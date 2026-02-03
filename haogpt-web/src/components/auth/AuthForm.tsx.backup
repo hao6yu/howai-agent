@@ -1,0 +1,129 @@
+'use client'
+
+import { useState } from 'react'
+import { supabase } from '@/lib/supabase'
+
+type AuthMode = 'sign-in' | 'sign-up'
+
+export default function AuthForm() {
+  const [mode, setMode] = useState<AuthMode>('sign-in')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setMessage('')
+
+    try {
+      if (mode === 'sign-up') {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        })
+        if (error) throw error
+        setMessage('Check your email for confirmation link!')
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+        if (error) throw error
+      }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'An error occurred')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="max-w-md w-full space-y-8 p-6 sm:p-8 bg-white rounded-lg shadow-md">
+        <div>
+          <div className="flex justify-center mb-4">
+            <img
+              src="/howai-icon.png"
+              alt="HowAI"
+              className="w-16 h-16 rounded-2xl"
+            />
+          </div>
+          <h2 className="mt-6 text-center text-2xl sm:text-3xl font-extrabold text-gray-900">
+            {mode === 'sign-in' ? 'Sign in to HowAI' : 'Create your account'}
+          </h2>
+        </div>
+
+        <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              Email address
+            </label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 rounded-md placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          {message && (
+            <div className={`p-3 rounded-md text-sm ${
+              message.includes('error') || message.includes('Error')
+                ? 'bg-red-100 text-red-700'
+                : 'bg-green-100 text-green-700'
+            }`}>
+              {message}
+            </div>
+          )}
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              {loading ? 'Loading...' : mode === 'sign-in' ? 'Sign in' : 'Sign up'}
+            </button>
+          </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              className="text-indigo-600 hover:text-indigo-500"
+              onClick={() => setMode(mode === 'sign-in' ? 'sign-up' : 'sign-in')}
+            >
+              {mode === 'sign-in'
+                ? "Don't have an account? Sign up"
+                : 'Already have an account? Sign in'
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}

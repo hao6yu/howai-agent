@@ -1,0 +1,78 @@
+{
+  "name": "HowAI - Your Personal AI Agent",
+  "short_name": "HowAI",
+  "description": "Own your AI agent completely. Create a custom AI personality that adapts to your style and works exclusively for you.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/howai-icon.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/howai-icon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/howai-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/howai-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/howai-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "utilities", "education"],
+  "screenshots": [
+    {
+      "src": "/howai-icon.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Chat",
+      "short_name": "Chat",
+      "description": "Start a new conversation with your AI agent",
+      "url": "/",
+      "icons": [
+        {
+          "src": "/howai-icon.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Settings",
+      "short_name": "Settings",
+      "description": "Customize your AI agent personality",
+      "url": "/?settings=true",
+      "icons": [
+        {
+          "src": "/howai-icon.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/",
+  "id": "howai-personal-ai-agent"
+}

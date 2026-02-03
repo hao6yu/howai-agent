@@ -1,0 +1,33 @@
+# Dependencies
+node_modules
+npm-debug.log*
+
+# Local env files (but keep .env.local for build)
+# .env.local  <- commented out so it gets copied for build
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build files
+.next/cache
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+.dockerignore
+
+# Development files
+README.md
+*.md
+deployment/
+
+# IDE
+.vscode
+.idea
+
+# OS
+.DS_Store
+Thumbs.db

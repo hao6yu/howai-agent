@@ -1,0 +1,10 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/chat/route": "app/api/chat/route.js",
+  "/api/chat/stream/route": "app/api/chat/stream/route.js",
+  "/api/image-generation/route": "app/api/image-generation/route.js",
+  "/api/search/route": "app/api/search/route.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/page": "app/page.js",
+  "/api/setup-db/route": "app/api/setup-db/route.js"
+}

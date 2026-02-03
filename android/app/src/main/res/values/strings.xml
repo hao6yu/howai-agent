@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HowAI</string>
+    
+    <!-- Permission rationale strings for permission_handler plugin -->
+    <string name="permission_camera_rationale">HowAI needs camera access to let you take and send photos in chat.</string>
+    <string name="permission_microphone_rationale">HowAI needs microphone access for voice chat and speech recognition.</string>
+    <string name="permission_storage_rationale">HowAI needs storage access to save images and PDF files.</string>
+    <string name="permission_photos_rationale">HowAI needs access to your photos to let you select and send images in chat.</string>
+    <string name="permission_speech_recognition_rationale">HowAI needs speech recognition to understand your voice inputs.</string>
+</resources> 

@@ -1,0 +1,21 @@
+# Ultra minimal - for space-constrained environments
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy everything and build in one go
+COPY . .
+
+# Install, build, and clean up in one layer
+RUN npm ci && \
+    npm run build && \
+    npm prune --production && \
+    npm cache clean --force && \
+    rm -rf /root/.npm /tmp/*
+
+EXPOSE 3000
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Run as root to avoid permission issues in space-constrained build
+CMD ["npm", "start"]

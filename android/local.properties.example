@@ -1,0 +1,9 @@
+# Flutter SDK path (auto-generated, update to your path)
+flutter.sdk=/path/to/flutter
+
+# Android SDK path (auto-generated, update to your path)  
+sdk.dir=/path/to/Android/sdk
+
+# Google Maps API Key (required for location features)
+# Get one at: https://console.cloud.google.com/google/maps-apis
+GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here

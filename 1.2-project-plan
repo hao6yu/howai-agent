@@ -1,0 +1,113 @@
+Next Phase Solution Design & Project Plan
+
+1. Smart Reminders & Scheduling
+Goal:
+Let users create, view, and manage reminders/events via chat, integrating with iOS Calendar and Reminders.
+Key Tasks:
+Research and select a Flutter plugin for iOS Calendar/Reminders (e.g., device_calendar, flutter_local_notifications, or custom platform channels for advanced needs).
+Design conversational UI for event/reminder creation (e.g., “Remind me to call mom at 7pm”).
+Implement permission handling for calendar/reminder access.
+Parse user intent (NLP) for date/time/event extraction.
+Add event/reminder to iOS system and confirm with user.
+List, edit, and delete reminders/events via chat.
+Considerations:
+iOS privacy policies and permission prompts.
+Fallback to in-app reminders if system access denied.
+
+2. Daily Briefing
+Goal:
+Provide a morning summary: weather, news, calendar events, and personalized tips.
+Key Tasks:
+Integrate weather API (e.g., OpenWeatherMap).
+Integrate news API (e.g., NewsAPI, Google News).
+Fetch today’s calendar events (reuse calendar integration).
+Generate personalized tips (e.g., “Don’t forget your meeting at 10am!”).
+Schedule daily push notification or in-app card.
+Allow user to customize briefing content.
+Considerations:
+Localization for weather/news.
+Respect user notification preferences.
+
+3. Habit Tracker
+Goal:
+Enable users to set, track, and review daily habits/goals, with AI encouragement.
+Key Tasks:
+Design habit creation UI (e.g., “Drink water 3 times a day”).
+Store habits and progress locally (and/or cloud sync).
+Daily check-in reminders (push notifications).
+Visualize progress (charts, streaks).
+AI-generated encouragement and tips.
+Optionally, integrate with Apple Health for fitness habits.
+Considerations:
+Data privacy for health-related habits.
+Gamification (badges, streaks) for engagement.
+
+4. Photo-to-Story
+Goal:
+Transform user photos into creative stories, social posts, or travel journals using AI.
+Key Tasks:
+Allow photo selection/upload.
+Use AI (e.g., OpenAI Vision, Google ML Kit) to analyze photo content.
+Generate creative text (story, caption, journal entry) based on photo and user prompt.
+UI for editing and sharing generated stories.
+Option to save stories in-app or export to social media.
+Considerations:
+User privacy for photo data.
+Support for multiple photos (albums, travel logs).
+
+5. Voice-to-Text Notes
+Goal:
+Let users record voice memos, transcribe them, and summarize with AI.
+Key Tasks:
+Integrate voice recording (Flutter plugin: speech_to_text, flutter_sound).
+Transcribe audio to text (on-device or cloud).
+Summarize note with AI (OpenAI, Gemini, etc.).
+UI for recording, playback, editing, and saving notes.
+Search and organize notes.
+Considerations:
+On-device transcription for privacy.
+Support for multiple languages.
+
+6. Smart Summarizer
+Goal:
+Summarize long articles, PDFs, or web pages for easy reading.
+Key Tasks:
+Allow user to input text, upload PDF, or paste a URL.
+Extract content from PDFs/web pages (use pdf_text, html).
+Send content to AI summarizer (OpenAI, Gemini, etc.).
+Display concise summary with key points.
+Option to save/share summaries.
+Considerations:
+File size and API limits.
+Caching summaries for offline access.
+
+Phased Project Plan
+Phase 1: Foundation
+Set up project structure for new features.
+Implement permission and privacy handling for calendar, reminders, and media.
+Integrate AI backend (if not already done).
+
+Phase 2: Core Features
+Smart Reminders & Scheduling: Calendar/reminder integration, chat UI, intent parsing.
+Voice-to-Text Notes: Voice recording, transcription, summarization.
+Smart Summarizer: Text/PDF/web summarization.
+
+Phase 3: Daily Briefing & Habit Tracker
+Daily Briefing: Weather/news/calendar integration, notification scheduling.
+Habit Tracker: Habit CRUD, progress tracking, reminders, AI encouragement.
+
+Phase 4: Photo-to-Story
+Photo upload, AI analysis, story generation, editing/sharing UI.
+
+Phase 5: Polish & Launch
+User testing and feedback.
+UI/UX refinements.
+Accessibility and localization.
+App Store compliance and privacy review.
+
+Technical Stack Suggestions
+Push notifications for reminders and daily briefing.
+User Experience Principles
+Conversational, friendly, and helpful AI tone.
+Minimal permissions, clear privacy explanations.
+Easy sharing and export of user-generated content.

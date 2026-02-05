@@ -1,6 +1,6 @@
 // This is a generated file; do not edit or check into version control.
 FLUTTER_ROOT=/Users/haoyu/flutter
-FLUTTER_APPLICATION_PATH=/Users/haoyu/development/HaoGPT
+FLUTTER_APPLICATION_PATH=/Users/haoyu/development/howai-agent
 COCOAPODS_PARALLEL_CODE_SIGN=true
 FLUTTER_TARGET=lib/main.dart
 FLUTTER_BUILD_DIR=build
@@ -12,4 +12,4 @@ DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuMzUuNw==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,R
 DART_OBFUSCATION=false
 TRACK_WIDGET_CREATION=false
 TREE_SHAKE_ICONS=true
-PACKAGE_CONFIG=/Users/haoyu/development/HaoGPT/.dart_tool/package_config.json
+PACKAGE_CONFIG=/Users/haoyu/development/howai-agent/.dart_tool/package_config.json

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_markdown_selectionarea/flutter_markdown_selectionarea.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
@@ -70,6 +72,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   String? _cachedTargetLanguageCode;
   String? _cachedFlag;
   int _translationVersion = 0;
+  String? _selectedText;
 
   @override
   Widget build(BuildContext context) {
@@ -436,6 +439,78 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                               ),
                             )
                           : SelectionArea(
+                              onSelectionChanged: (SelectedContent? selectedContent) {
+                                setState(() {
+                                  _selectedText = selectedContent?.plainText;
+                                });
+                              },
+                              contextMenuBuilder: (context, selectableRegionState) {
+                                // Get the default button items (Copy, Select All, etc.)
+                                final List<ContextMenuButtonItem> buttonItems = selectableRegionState.contextMenuButtonItems;
+
+                                // Add native iOS/Android actions if there's selected text
+                                if (_selectedText != null && _selectedText!.isNotEmpty) {
+                                  // Share button (native)
+                                  buttonItems.add(ContextMenuButtonItem(
+                                    onPressed: () async {
+                                      ContextMenuController.removeAny();
+
+                                      // Get the position for iOS share sheet
+                                      final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+                                      final Rect sharePositionOrigin = renderBox != null
+                                          ? Rect.fromPoints(
+                                              renderBox.localToGlobal(Offset.zero),
+                                              renderBox.localToGlobal(renderBox.size.bottomRight(Offset.zero)),
+                                            )
+                                          : const Rect.fromLTWH(0, 0, 1, 1);
+
+                                      await SharePlus.instance.share(
+                                        ShareParams(
+                                          text: _selectedText!,
+                                          sharePositionOrigin: sharePositionOrigin,
+                                        ),
+                                      );
+                                    },
+                                    type: ContextMenuButtonType.share,
+                                  ));
+
+                                  // Look Up button (opens Wikipedia/dictionary)
+                                  buttonItems.add(ContextMenuButtonItem(
+                                    onPressed: () async {
+                                      ContextMenuController.removeAny();
+
+                                      if (_selectedText != null && _selectedText!.isNotEmpty) {
+                                        // Open Wikipedia for Look Up (similar to native iOS behavior)
+                                        final wikiUrl = Uri.parse(
+                                          'https://en.m.wikipedia.org/wiki/Special:Search?search=${Uri.encodeComponent(_selectedText!)}'
+                                        );
+                                        await launchUrl(wikiUrl, mode: LaunchMode.externalApplication);
+                                      }
+                                    },
+                                    type: ContextMenuButtonType.lookUp,
+                                  ));
+
+                                  // Search Web button (opens web search)
+                                  buttonItems.add(ContextMenuButtonItem(
+                                    onPressed: () async {
+                                      ContextMenuController.removeAny();
+
+                                      if (_selectedText != null && _selectedText!.isNotEmpty) {
+                                        final searchUrl = Uri.parse(
+                                          'https://www.google.com/search?q=${Uri.encodeComponent(_selectedText!)}'
+                                        );
+                                        await launchUrl(searchUrl, mode: LaunchMode.externalApplication);
+                                      }
+                                    },
+                                    type: ContextMenuButtonType.searchWeb,
+                                  ));
+                                }
+
+                                return AdaptiveTextSelectionToolbar.buttonItems(
+                                  anchors: selectableRegionState.contextMenuAnchors,
+                                  buttonItems: buttonItems,
+                                );
+                              },
                               child: MarkdownBody(
                                 data: widget.message.message,
                                 imageBuilder: (uri, title, alt) {

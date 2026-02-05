@@ -11,7 +11,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:open_file/open_file.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 
@@ -799,6 +799,11 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     String? title;
     List<String>? images;
     List<String>? files;
+    String lastRenderedText = '';
+    DateTime? lastUiUpdateAt;
+    DateTime? lastAutoScrollAt;
+    const uiUpdateInterval = Duration(milliseconds: 80);
+    const autoScrollInterval = Duration(milliseconds: 250);
 
     // Helper to strip title JSON from text
     String _stripTitleJson(String text) {
@@ -845,7 +850,7 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
               title = _extractTitle(fullText);
             }
             String displayText = _stripTitleJson(fullText);
-            
+
             // Only show message once we have actual content (not just title JSON)
             if (displayText.trim().isNotEmpty) {
               if (!_streamingMessageAdded) {
@@ -863,24 +868,41 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                   _streamingMessageAdded = true;
                   _isSending = false; // Hide typing indicator, show message instead
                 });
+                lastRenderedText = displayText;
+                lastUiUpdateAt = DateTime.now();
+                lastAutoScrollAt = DateTime.now();
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   _scrollToBottom(animated: true);
                 });
               } else if (_streamingMessageIndex != null && _streamingMessageIndex! < _messages.length) {
-                // Update existing message
-                setState(() {
-                  final updatedMessage = ChatMessage(
-                    message: displayText,
-                    isUserMessage: false,
-                    timestamp: timestamp,
-                    profileId: _currentProfileId,
-                    conversationId: conversationId,
-                  );
-                  _messages[_streamingMessageIndex!] = updatedMessage;
-                });
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _scrollToBottom(animated: false);
-                });
+                // Throttle UI updates to avoid excessive full-list rebuilds/flicker.
+                final now = DateTime.now();
+                final shouldUpdateUi = lastUiUpdateAt == null || now.difference(lastUiUpdateAt!) >= uiUpdateInterval;
+                final isTextChanged = displayText != lastRenderedText;
+
+                if (shouldUpdateUi && isTextChanged) {
+                  setState(() {
+                    final updatedMessage = ChatMessage(
+                      message: displayText,
+                      isUserMessage: false,
+                      timestamp: timestamp,
+                      profileId: _currentProfileId,
+                      conversationId: conversationId,
+                    );
+                    _messages[_streamingMessageIndex!] = updatedMessage;
+                  });
+
+                  lastRenderedText = displayText;
+                  lastUiUpdateAt = now;
+
+                  final shouldAutoScroll = lastAutoScrollAt == null || now.difference(lastAutoScrollAt!) >= autoScrollInterval;
+                  if (shouldAutoScroll) {
+                    lastAutoScrollAt = now;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _scrollToBottom(animated: false);
+                    });
+                  }
+                }
               }
             }
             break;
@@ -917,6 +939,24 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       // Clean up the final text
       String cleanedText = _stripTitleJson(fullText);
 
+      // Ensure the latest streamed text is rendered before we remove the temporary message.
+      if (_streamingMessageAdded &&
+          _streamingMessageIndex != null &&
+          _streamingMessageIndex! < _messages.length &&
+          cleanedText.trim().isNotEmpty &&
+          cleanedText != lastRenderedText) {
+        setState(() {
+          final finalUpdatedMessage = ChatMessage(
+            message: cleanedText,
+            isUserMessage: false,
+            timestamp: timestamp,
+            profileId: _currentProfileId,
+            conversationId: conversationId,
+          );
+          _messages[_streamingMessageIndex!] = finalUpdatedMessage;
+        });
+      }
+
       // Remove the streaming message - it will be re-added by the normal flow with proper DB save
       if (_streamingMessageAdded && _streamingMessageIndex != null && _streamingMessageIndex! < _messages.length) {
         setState(() {
@@ -951,6 +991,29 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       });
       return null;
     }
+  }
+
+  // Streaming mode currently skips image generation tools, so detect likely
+  // image requests and route those through non-streaming instead.
+  bool _looksLikeImageGenerationRequest(String text) {
+    final lower = text.toLowerCase().trim();
+    if (lower.isEmpty) return false;
+
+    final imageNouns = RegExp(
+      r'\b(image|picture|photo|drawing|art|artwork|illustration|logo|icon|portrait|wallpaper|banner)\b',
+    );
+    final imageVerbs = RegExp(
+      r'\b(generate|create|make|draw|paint|design|illustrate|render)\b',
+    );
+
+    if (lower.startsWith('generate an image of') ||
+        lower.startsWith('create an image of') ||
+        lower.startsWith('draw ') ||
+        lower.startsWith('make me an image of')) {
+      return true;
+    }
+
+    return imageNouns.hasMatch(lower) && imageVerbs.hasMatch(lower);
   }
 
   Future<void> _sendMessage(String text, [List<XFile>? images, List<PlatformFile>? files]) async {
@@ -1206,12 +1269,22 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       }
 
       // Check if streaming is enabled
-      // Disable streaming for deep research mode (reasoning takes too long to stream)
-      final useStreaming = settings.useStreaming && !isDeepResearchMode;
+      // Disable streaming for:
+      // 1) deep research mode (reasoning takes too long to stream)
+      // 2) image-generation style requests (streaming path skips image tool)
+      final isLikelyImageGenerationRequest = _looksLikeImageGenerationRequest(finalMessage);
+      final useStreaming = settings.useStreaming && !isDeepResearchMode && !isLikelyImageGenerationRequest;
+      print(
+        '[ChatScreen] Streaming decision => useStreaming=$useStreaming '
+        '(settings.useStreaming=${settings.useStreaming}, '
+        'isDeepResearchMode=$isDeepResearchMode, '
+        'isLikelyImageGenerationRequest=$isLikelyImageGenerationRequest)',
+      );
 
       Map<String, dynamic>? response;
 
       if (useStreaming) {
+        print('[ChatScreen] Using STREAMING response path');
         // STREAMING MODE: Show response as it arrives
         response = await _handleStreamingResponse(
           message: finalMessage,
@@ -1231,6 +1304,7 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
           aiName: aiName,
         );
       } else {
+        print('[ChatScreen] Using NON-STREAMING response path');
         // NON-STREAMING MODE: Wait for complete response
         response = await _openAIService.generateChatResponse(
           message: finalMessage,
@@ -4940,27 +5014,23 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
           _scrollToBottom(animated: true);
         });
 
-        // Auto-open the PDF for immediate sharing
+        // Share the PDF using native platform share sheet
         try {
-          await OpenFile.open(filePath);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "PDF opened! Use your device's share button to send it.",
-                style: TextStyle(fontSize: settings.getScaledFontSize(14)),
-              ),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
+          await SharePlus.instance.share(
+            ShareParams(
+              files: [XFile(filePath)],
+              subject: 'AI Message',
+              text: 'Shared from HaoGPT',
             ),
           );
         } catch (e) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                "PDF created! Tap the link in the message to open it.",
+                "Failed to share PDF: ${e.toString()}",
                 style: TextStyle(fontSize: settings.getScaledFontSize(14)),
               ),
-              backgroundColor: Colors.green,
+              backgroundColor: Colors.red,
               duration: Duration(seconds: 2),
             ),
           );

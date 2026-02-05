@@ -22,7 +22,8 @@
       "Bash(flutter analyze:*)",
       "Bash(flutter pub:*)",
       "Bash(flutter clean:*)",
-      "Bash(flutter build:*)"
+      "Bash(flutter build:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []

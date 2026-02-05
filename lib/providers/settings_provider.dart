@@ -14,7 +14,7 @@ class SettingsProvider with ChangeNotifier {
   static const String _useStreamingKey = 'use_streaming';
 
   bool _useVoiceResponse = false; // Always false - auto-play disabled
-  bool _useStreaming = false; // Disable streaming by default (required for image generation)
+  bool _useStreaming = true; // Default ON for chat; image requests are routed to non-streaming path
   String _selectedVoiceId = '9BWtsMINqrJLrRacOk9x'; // Default voice (Aria)
   bool _useSpeakerOutput = false;
   double _fontSizeScale = 1.0; // Default font size scale (1.0 = normal)
@@ -44,7 +44,7 @@ class SettingsProvider with ChangeNotifier {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     _useVoiceResponse = prefs.getBool(_useVoiceResponseKey) ?? false;
-    _useStreaming = prefs.getBool(_useStreamingKey) ?? false;
+    _useStreaming = prefs.getBool(_useStreamingKey) ?? true;
     _selectedVoiceId = prefs.getString(_selectedVoiceIdKey) ?? '9BWtsMINqrJLrRacOk9x';
     _useSpeakerOutput = prefs.getBool(_useSpeakerOutputKey) ?? false;
     _fontSizeScale = prefs.getDouble(_fontSizeScaleKey) ?? defaultFontScale;

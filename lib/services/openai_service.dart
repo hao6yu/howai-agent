@@ -1406,80 +1406,95 @@ Note: Could not extract text content from this file. Please describe what you'd 
       String? title;
       List<String> images = [];
       List<String> files = [];
+      bool sawFirstDelta = false;
 
-      // Process SSE stream
+      // Process SSE stream. Keep a buffer because chunks may split lines/JSON.
+      String sseBuffer = '';
       await for (final chunk in streamedResponse.stream.transform(utf8.decoder)) {
-        // SSE format: each event is prefixed with "data: " and separated by newlines
-        final lines = chunk.split('\n');
-        for (final line in lines) {
-          if (line.startsWith('data: ')) {
-            final jsonStr = line.substring(6).trim();
-            if (jsonStr.isEmpty || jsonStr == '[DONE]') continue;
+        sseBuffer += chunk;
+        final lines = sseBuffer.split('\n');
+        if (lines.isEmpty) {
+          continue;
+        }
 
-            try {
-              final event = jsonDecode(jsonStr);
-              final eventType = event['type'] as String?;
+        // Keep trailing partial line for next chunk.
+        sseBuffer = lines.last;
 
-              if (eventType == 'response.output_text.delta') {
-                // Text delta event
-                final delta = event['delta'] as String?;
-                if (delta != null && delta.isNotEmpty) {
-                  fullText += delta;
-                  yield StreamEvent.textDelta(delta);
+        for (int i = 0; i < lines.length - 1; i++) {
+          final rawLine = lines[i];
+          final line = rawLine.trimRight();
+          if (!line.startsWith('data: ')) continue;
+
+          final jsonStr = line.substring(6).trim();
+          if (jsonStr.isEmpty || jsonStr == '[DONE]') continue;
+
+          try {
+            final event = jsonDecode(jsonStr);
+            final eventType = event['type'] as String?;
+
+            if (eventType == 'response.output_text.delta') {
+              // Text delta event
+              final delta = event['delta'] as String?;
+              if (delta != null && delta.isNotEmpty) {
+                if (!sawFirstDelta) {
+                  sawFirstDelta = true;
+                  print('[OpenAIService-Stream] First text delta received');
                 }
-              } else if (eventType == 'response.output_text.done') {
-                // Text complete
-                final text = event['text'] as String?;
-                if (text != null) {
-                  fullText = text;
-                }
-                yield StreamEvent.textDone(fullText);
-              } else if (eventType == 'response.completed' || eventType == 'response.done') {
-                // Response complete - parse final data
-                print('[OpenAIService-Stream] 📦 Response completed event received');
-                final response = event['response'];
-                if (response != null && response['output'] is List) {
-                  print('[OpenAIService-Stream] 📦 Output items: ${(response['output'] as List).length}');
-                  for (final item in response['output']) {
-                    print('[OpenAIService-Stream] 📦 Item type: ${item['type']}');
-                    if (item['type'] == 'message' && item['content'] != null) {
-                      for (final content in item['content']) {
-                        if (content['type'] == 'output_text' && content['text'] != null) {
-                          fullText = content['text'];
-                        }
-                      }
-                    } else if (item['type'] == 'image_generation_call') {
-                      print('[OpenAIService-Stream] 🖼️ Found image_generation_call');
-                      print('[OpenAIService-Stream] 🖼️ Keys: ${item.keys.toList()}');
-                      print('[OpenAIService-Stream] 🖼️ Has result: ${item['result'] != null}');
-                      if (item['result'] != null) {
-                        String base64Data = item['result'].toString();
-                        print('[OpenAIService-Stream] 🖼️ Result length: ${base64Data.length}');
-                        if (base64Data.contains('base64,')) {
-                          base64Data = base64Data.split('base64,').last;
-                        }
-                        images.add('data:image/png;base64,$base64Data');
-                        print('[OpenAIService-Stream] 🖼️ Added image to list');
+                fullText += delta;
+                yield StreamEvent.textDelta(delta);
+              }
+            } else if (eventType == 'response.output_text.done') {
+              // Text complete
+              final text = event['text'] as String?;
+              if (text != null) {
+                fullText = text;
+              }
+              yield StreamEvent.textDone(fullText);
+            } else if (eventType == 'response.completed' || eventType == 'response.done') {
+              // Response complete - parse final data
+              print('[OpenAIService-Stream] 📦 Response completed event received');
+              final response = event['response'];
+              if (response != null && response['output'] is List) {
+                print('[OpenAIService-Stream] 📦 Output items: ${(response['output'] as List).length}');
+                for (final item in response['output']) {
+                  print('[OpenAIService-Stream] 📦 Item type: ${item['type']}');
+                  if (item['type'] == 'message' && item['content'] != null) {
+                    for (final content in item['content']) {
+                      if (content['type'] == 'output_text' && content['text'] != null) {
+                        fullText = content['text'];
                       }
                     }
-                  }
-                }
-
-                // Parse title if generating - always strip title JSON from text
-                if (fullText.isNotEmpty) {
-                  final titleMatch = RegExp(r'\{"title"\s*:\s*"([^"]+)"\}').firstMatch(fullText);
-                  if (titleMatch != null) {
-                    if (generateTitle && title == null) {
-                      title = titleMatch.group(1);
+                  } else if (item['type'] == 'image_generation_call') {
+                    print('[OpenAIService-Stream] 🖼️ Found image_generation_call');
+                    print('[OpenAIService-Stream] 🖼️ Keys: ${item.keys.toList()}');
+                    print('[OpenAIService-Stream] 🖼️ Has result: ${item['result'] != null}');
+                    if (item['result'] != null) {
+                      String base64Data = item['result'].toString();
+                      print('[OpenAIService-Stream] 🖼️ Result length: ${base64Data.length}');
+                      if (base64Data.contains('base64,')) {
+                        base64Data = base64Data.split('base64,').last;
+                      }
+                      images.add('data:image/png;base64,$base64Data');
+                      print('[OpenAIService-Stream] 🖼️ Added image to list');
                     }
-                    // Always strip title JSON from text regardless of generateTitle
-                    fullText = fullText.replaceAll(RegExp(r'\s*\{"title"\s*:\s*"[^"]*"\}\s*'), '').trim();
                   }
                 }
               }
-            } catch (e) {
-              // Skip malformed JSON
+
+              // Parse title if generating - always strip title JSON from text
+              if (fullText.isNotEmpty) {
+                final titleMatch = RegExp(r'\{"title"\s*:\s*"([^"]+)"\}').firstMatch(fullText);
+                if (titleMatch != null) {
+                  if (generateTitle && title == null) {
+                    title = titleMatch.group(1);
+                  }
+                  // Always strip title JSON from text regardless of generateTitle
+                  fullText = fullText.replaceAll(RegExp(r'\s*\{"title"\s*:\s*"[^"]*"\}\s*'), '').trim();
+                }
+              }
             }
+          } catch (e) {
+            // Skip malformed JSON event
           }
         }
       }

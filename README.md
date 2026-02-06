@@ -67,6 +67,9 @@ haogpt-web/         # Web deployment (Docker)
 2. Copy `env.example` to `.env` and fill in API keys:
    ```
    OPENAI_API_KEY=sk-...
+   # Optional in production: route through your backend proxy
+   OPENAI_PROXY_BASE_URL=https://your-proxy.example.com
+   OPENAI_PROXY_TOKEN=...
    ELEVENLABS_API_KEY=...
    GOOGLE_MAPS_API_KEY=...
    SUPABASE_URL=https://...
@@ -83,6 +86,24 @@ haogpt-web/         # Web deployment (Docker)
 5. Run the app:
    ```bash
    flutter run
+   ```
+
+### Optional: OpenAI Proxy (Recommended for Production)
+
+Use the included Supabase Edge Function proxy to keep OpenAI keys off-device:
+
+1. Deploy function:
+   ```bash
+   supabase functions deploy openai-proxy
+   ```
+2. Set function secrets:
+   ```bash
+   supabase secrets set OPENAI_API_KEY=sk-... PROXY_SHARED_TOKEN=your-shared-token
+   ```
+3. Configure mobile app `.env`:
+   ```bash
+   OPENAI_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/openai-proxy
+   OPENAI_PROXY_TOKEN=your-shared-token
    ```
 
 ### Building

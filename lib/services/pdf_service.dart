@@ -1,201 +1,153 @@
-import 'dart:io';
-import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:pdf/pdf.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
-import 'package:haogpt/generated/app_localizations.dart';
+import 'package:pdf/widgets.dart' as pw;
 
-class PDFService {
-  static Future<void> generatePdfFromImages(
-    BuildContext context,
-    List<XFile> images,
-    Function() onSuccess,
-    Function(String) onError,
-  ) async {
-    try {
-      final pdf = pw.Document();
+class PdfService {
+  static Future<List<int>> generatePdfFromImages(List<XFile> images) async {
+    final pdf = pw.Document();
 
-      for (final image in images) {
-        final imageBytes = await File(image.path).readAsBytes();
-        final pdfImage = pw.MemoryImage(imageBytes);
-
-        pdf.addPage(
-          pw.Page(
-            pageFormat: PdfPageFormat.a4,
-            build: (pw.Context context) {
-              return pw.Center(
-                child: pw.Image(pdfImage, fit: pw.BoxFit.contain),
-              );
-            },
-          ),
-        );
-      }
-
-      final directory = await getApplicationDocumentsDirectory();
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final file = File('${directory.path}/howai_images_$timestamp.pdf');
-      await file.writeAsBytes(await pdf.save());
-
-      onSuccess();
-
-      // Show success dialog
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          builder: (BuildContext context) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 28),
-                  SizedBox(width: 12),
-                  Text(AppLocalizations.of(context)!.pdfCreated),
-                ],
-              ),
-              content: Text("PDF saved successfully"),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text("Close"),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF0078D4),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    OpenFile.open(file.path);
-                  },
-                  child: Text("Open PDF"),
-                ),
-              ],
+    for (final xfile in images) {
+      final imageBytes = await xfile.readAsBytes();
+      final image = pw.MemoryImage(imageBytes);
+      pdf.addPage(
+        pw.Page(
+          pageFormat: PdfPageFormat.a4,
+          build: (pw.Context context) {
+            return pw.Center(
+              child: pw.Image(image, fit: pw.BoxFit.contain),
             );
           },
-        );
-      }
-    } catch (e) {
-      onError('Failed to create PDF: $e');
-    }
-  }
-
-  static void showAttachmentOptions(
-    BuildContext context, {
-    bool forPdf = false,
-    required Function(ImageSource) onCameraSelected,
-    required Function(ImageSource) onGallerySelected,
-  }) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-          child: SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  margin: EdgeInsets.only(top: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(20),
-                  child: Column(
-                    children: [
-                      Text(
-                        forPdf ? "Add Images to PDF" : AppLocalizations.of(context)!.attachPhoto,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildOptionButton(
-                            context,
-                            icon: Icons.camera_alt,
-                            label: "Camera",
-                            onTap: () {
-                              Navigator.pop(context);
-                              onCameraSelected(ImageSource.camera);
-                            },
-                          ),
-                          _buildOptionButton(
-                            context,
-                            icon: Icons.photo_library,
-                            label: "Gallery",
-                            onTap: () {
-                              Navigator.pop(context);
-                              onGallerySelected(ImageSource.gallery);
-                            },
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  static Widget _buildOptionButton(
-    BuildContext context, {
-    required IconData icon,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 120,
-        padding: EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Color(0xFF0078D4).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Color(0xFF0078D4).withOpacity(0.3),
-            width: 1,
-          ),
         ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: Color(0xFF0078D4),
-            ),
-            SizedBox(height: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+      );
+    }
+
+    return pdf.save();
+  }
+
+  static Future<List<int>?> generateStyledMessagePdf(String message) async {
+    try {
+      String cleanText = message;
+
+      cleanText = cleanText.replaceAll(RegExp(r'!\\[.*?\\]\\(.*?\\)'), '');
+      cleanText = cleanText.replaceAll(''', "'");
+      cleanText = cleanText.replaceAll(''', "'");
+      cleanText = cleanText.replaceAll('"', '"');
+      cleanText = cleanText.replaceAll('"', '"');
+      cleanText = cleanText.replaceAll('—', '-');
+      cleanText = cleanText.replaceAll('–', '-');
+
+      pw.Font? unicodeFont;
+      try {
+        final fontData =
+            await rootBundle.load('assets/fonts/NotoSans-Regular.ttf');
+        unicodeFont = pw.Font.ttf(fontData);
+      } catch (_) {
+        unicodeFont = null;
+      }
+
+      if (unicodeFont == null) {
+        cleanText = cleanText.replaceAll('•', '- ');
+        cleanText = cleanText.replaceAll('…', '...');
+        cleanText = cleanText.replaceAll('°', ' degrees');
+        cleanText = cleanText.replaceAll('©', '(c)');
+        cleanText = cleanText.replaceAll('®', '(R)');
+        cleanText = cleanText.replaceAll('™', '(TM)');
+
+        cleanText = cleanText.replaceAllMapped(RegExp(r'[^\\x00-\\x7F]'), (_) {
+          return ' ';
+        });
+      }
+
+      final pdf = pw.Document();
+
+      final lines = cleanText.split('\n');
+      final List<pw.Widget> contentWidgets = [];
+
+      for (String line in lines) {
+        line = line.trim();
+
+        if (line.isEmpty) {
+          contentWidgets.add(pw.SizedBox(height: 8));
+          continue;
+        }
+
+        final isHeader = line.length < 50 &&
+            (line.toUpperCase() == line ||
+                line.endsWith(':') ||
+                line.startsWith('---'));
+
+        if (isHeader) {
+          contentWidgets.add(
+            pw.Container(
+              margin: const pw.EdgeInsets.only(top: 12, bottom: 6),
+              child: pw.Text(
+                line.replaceAll('---', '').trim(),
+                style: pw.TextStyle(
+                  fontSize: 14,
+                  fontWeight: pw.FontWeight.bold,
+                  font: unicodeFont,
+                ),
               ),
             ),
-          ],
+          );
+        } else if (line.startsWith('• ') || line.startsWith('- ')) {
+          contentWidgets.add(
+            pw.Container(
+              margin: const pw.EdgeInsets.only(left: 16, bottom: 4),
+              child: pw.Row(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Container(
+                    width: 16,
+                    child: pw.Text(
+                      '•',
+                      style: pw.TextStyle(fontSize: 12, font: unicodeFont),
+                    ),
+                  ),
+                  pw.Expanded(
+                    child: pw.Text(
+                      line.substring(2).trim(),
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        height: 1.4,
+                        font: unicodeFont,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else {
+          contentWidgets.add(
+            pw.Container(
+              margin: const pw.EdgeInsets.only(bottom: 8),
+              child: pw.Text(
+                line,
+                style:
+                    pw.TextStyle(fontSize: 12, height: 1.4, font: unicodeFont),
+              ),
+            ),
+          );
+        }
+      }
+
+      final List<pw.Widget> buildContent = [];
+      buildContent.add(pw.SizedBox(height: 30));
+      buildContent.addAll(contentWidgets);
+
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: pw.EdgeInsets.all(30),
+          build: (pw.Context context) => buildContent,
         ),
-      ),
-    );
+      );
+
+      return pdf.save();
+    } catch (_) {
+      return null;
+    }
   }
 }

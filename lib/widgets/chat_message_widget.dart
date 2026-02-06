@@ -31,7 +31,9 @@ class ChatMessageWidget extends StatefulWidget {
   final Set<int> selectedMessages;
   final Function(int) onToggleSelection;
   final Function(ChatMessage) onTranslate;
-  final Function(ChatMessage, String targetLanguageCode, String targetLanguageName)? onQuickTranslate;
+  final Function(
+          ChatMessage, String targetLanguageCode, String targetLanguageName)?
+      onQuickTranslate;
   final Function(ChatMessage)? onSelectTranslationLanguage;
   final int translationPreferenceVersion;
   final Function(ChatMessage) onDelete;
@@ -68,10 +70,6 @@ class ChatMessageWidget extends StatefulWidget {
 
 class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   Offset? _lastTapPosition;
-  String? _cachedTargetLanguage;
-  String? _cachedTargetLanguageCode;
-  String? _cachedFlag;
-  int _translationVersion = 0;
   String? _selectedText;
 
   @override
@@ -81,9 +79,13 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          isUserMessage ? 16.0 : 0.0, // No left padding for AI messages, normal padding for user messages
+          isUserMessage
+              ? 16.0
+              : 0.0, // No left padding for AI messages, normal padding for user messages
           8.0, // Top padding
-          isUserMessage ? 0.0 : 16.0, // No right padding for user messages, normal padding for AI messages
+          isUserMessage
+              ? 0.0
+              : 16.0, // No right padding for user messages, normal padding for AI messages
           8.0 // Bottom padding
           ),
       child: Column(
@@ -106,12 +108,25 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E3A5F) : const Color(0xFF0078D4)) : Colors.grey.shade400,
+                          color: isSelected
+                              ? (Theme.of(context).brightness == Brightness.dark
+                                  ? const Color(0xFF1E3A5F)
+                                  : const Color(0xFF0078D4))
+                              : Colors.grey.shade400,
                           width: 2,
                         ),
-                        color: isSelected ? (Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E3A5F) : const Color(0xFF0078D4)) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.white),
+                        color: isSelected
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF1E3A5F)
+                                : const Color(0xFF0078D4))
+                            : (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey.shade700
+                                : Colors.white),
                       ),
-                      child: isSelected ? const Icon(Icons.check, color: Colors.white, size: 18) : null,
+                      child: isSelected
+                          ? const Icon(Icons.check,
+                              color: Colors.white, size: 18)
+                          : null,
                     ),
                   ),
                 ),
@@ -168,7 +183,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     return FutureBuilder<Map<String, dynamic>>(
       future: _getMessageReportStatus(),
       builder: (context, snapshot) {
-        final reportData = snapshot.data ?? {'isReported': false, 'shouldHide': false};
+        final reportData =
+            snapshot.data ?? {'isReported': false, 'shouldHide': false};
         final isReported = reportData['isReported'] as bool;
         final shouldHide = reportData['shouldHide'] as bool;
 
@@ -185,11 +201,17 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                   Container(
                     decoration: BoxDecoration(
                       // Add subtle background if reported
-                      color: isReported ? Colors.orange.withOpacity(0.05) : null,
+                      color:
+                          isReported ? Colors.orange.withOpacity(0.05) : null,
                       borderRadius: BorderRadius.circular(12),
-                      border: isReported ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1) : null,
+                      border: isReported
+                          ? Border.all(
+                              color: Colors.orange.withOpacity(0.3), width: 1)
+                          : null,
                     ),
-                    child: shouldHide ? _buildHiddenContentWarning() : _buildMessageContent(false),
+                    child: shouldHide
+                        ? _buildHiddenContentWarning()
+                        : _buildMessageContent(false),
                   ),
 
                   // Reported indicator badge
@@ -198,7 +220,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       top: 4,
                       right: 4,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
                           color: Colors.orange,
                           borderRadius: BorderRadius.circular(10),
@@ -222,12 +245,16 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   Widget _buildMessageContent(bool isUserMessage) {
     final settings = Provider.of<SettingsProvider>(context);
     final isWelcomeMessage = widget.message.isWelcomeMessage ?? false;
-    final hasLocationResults = !isUserMessage && widget.message.locationResults != null && widget.message.locationResults!.isNotEmpty;
+    final hasLocationResults = !isUserMessage &&
+        widget.message.locationResults != null &&
+        widget.message.locationResults!.isNotEmpty;
 
     // Reduce AI message width to prevent overlap, keep user messages same
     final maxWidth = isUserMessage
-        ? MediaQuery.of(context).size.width * 0.60 // User messages reduced from 0.7 to 0.65
-        : MediaQuery.of(context).size.width * 0.72; // AI messages increased from 0.65 to 0.72
+        ? MediaQuery.of(context).size.width *
+            0.60 // User messages reduced from 0.7 to 0.65
+        : MediaQuery.of(context).size.width *
+            0.72; // AI messages increased from 0.65 to 0.72
 
     return ConstrainedBox(
       constraints: BoxConstraints(
@@ -240,8 +267,12 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
             children: [
               Container(
                 margin: EdgeInsets.only(
-                  left: isUserMessage ? 0 : 0, // Removed padding, changed from 6 to 0
-                  right: isUserMessage ? 0 : 0, // Removed padding, changed from 6 to 0
+                  left: isUserMessage
+                      ? 0
+                      : 0, // Removed padding, changed from 6 to 0
+                  right: isUserMessage
+                      ? 0
+                      : 0, // Removed padding, changed from 6 to 0
                 ),
                 padding: EdgeInsets.symmetric(
                   horizontal: 12, // Increased for speech bubble
@@ -265,18 +296,29 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (widget.message.imagePaths != null && widget.message.imagePaths!.isNotEmpty)
+                    if (widget.message.imagePaths != null &&
+                        widget.message.imagePaths!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: widget.message.imagePaths!
-                              .where((path) => path.startsWith('http') || path.startsWith('data:image') || File(path).existsSync())
+                              .where((path) =>
+                                  path.startsWith('http') ||
+                                  path.startsWith('data:image') ||
+                                  File(path).existsSync())
                               .map((path) => GestureDetector(
                                     onTap: () {
-                                      final imagePaths = widget.message.imagePaths!.where((p) => p.startsWith('http') || p.startsWith('data:image') || File(p).existsSync()).toList();
-                                      final initialIndex = imagePaths.indexOf(path);
+                                      final imagePaths = widget
+                                          .message.imagePaths!
+                                          .where((p) =>
+                                              p.startsWith('http') ||
+                                              p.startsWith('data:image') ||
+                                              File(p).existsSync())
+                                          .toList();
+                                      final initialIndex =
+                                          imagePaths.indexOf(path);
                                       showDialog(
                                         context: context,
                                         barrierColor: Colors.black,
@@ -294,13 +336,16 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                               width: 96,
                                               height: 96,
                                               fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) {
+                                              errorBuilder:
+                                                  (context, error, stackTrace) {
                                                 return Container(
                                                   width: 96,
                                                   height: 96,
                                                   decoration: BoxDecoration(
                                                     color: Colors.grey.shade200,
-                                                    borderRadius: BorderRadius.circular(8),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            8),
                                                   ),
                                                   child: Icon(
                                                     Icons.broken_image,
@@ -312,27 +357,34 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                             )
                                           : path.startsWith('data:image')
                                               ? Image.memory(
-                                                  base64Decode(path.split(',').last),
+                                                  base64Decode(
+                                                      path.split(',').last),
                                                   width: 96,
                                                   height: 96,
                                                   fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) {
+                                                  errorBuilder: (context, error,
+                                                      stackTrace) {
                                                     return Container(
                                                       width: 96,
                                                       height: 96,
                                                       decoration: BoxDecoration(
-                                                        color: Colors.grey.shade200,
-                                                        borderRadius: BorderRadius.circular(8),
+                                                        color: Colors
+                                                            .grey.shade200,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
                                                       ),
                                                       child: Icon(
                                                         Icons.broken_image,
-                                                        color: Colors.grey.shade400,
+                                                        color: Colors
+                                                            .grey.shade400,
                                                         size: 32,
                                                       ),
                                                     );
                                                   },
                                                 )
-                                              : _buildSafeLocalImage(path, 96, 96),
+                                              : _buildSafeLocalImage(
+                                                  path, 96, 96),
                                     ),
                                   ))
                               .toList(),
@@ -340,12 +392,15 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       ),
 
                     // File attachments display
-                    if (widget.message.filePaths != null && widget.message.filePaths!.isNotEmpty)
+                    if (widget.message.filePaths != null &&
+                        widget.message.filePaths!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: widget.message.filePaths!.where((path) => path.isNotEmpty).map((path) {
+                          children: widget.message.filePaths!
+                              .where((path) => path.isNotEmpty)
+                              .map((path) {
                             // Check file existence
                             final fileExists = File(path).existsSync();
 
@@ -353,12 +408,19 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                               onTap: () => _openFile(path),
                               child: Container(
                                 margin: const EdgeInsets.only(bottom: 8.0),
-                                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 14.0, vertical: 10.0),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade100,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.grey.shade600
+                                        : Colors.grey.shade300,
                                     width: 1,
                                   ),
                                 ),
@@ -375,13 +437,18 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                     // File name and type
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Text(
                                             _getFileName(path),
                                             style: TextStyle(
-                                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.white
+                                                  : Colors.black87,
                                               fontSize: 14,
                                               fontWeight: FontWeight.w500,
                                             ),
@@ -405,15 +472,24 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
                                     // File type badge
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0078D4).withOpacity(0.3) : const Color(0xFF0078D4).withOpacity(0.1),
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? const Color(0xFF0078D4)
+                                                .withOpacity(0.3)
+                                            : const Color(0xFF0078D4)
+                                                .withOpacity(0.1),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
                                         _getFileExtension(path).toUpperCase(),
                                         style: TextStyle(
-                                          color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade300 : const Color(0xFF0078D4),
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.blue.shade300
+                                              : const Color(0xFF0078D4),
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
                                         ),
@@ -432,42 +508,55 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                           ? Text(
                               widget.message.message,
                               style: TextStyle(
-                                color: Theme.of(context).brightness == Brightness.dark 
-                                    ? Colors.white 
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.white
                                     : Colors.black87,
                                 fontSize: settings.getScaledFontSize(14),
                               ),
                             )
                           : SelectionArea(
-                              onSelectionChanged: (SelectedContent? selectedContent) {
+                              onSelectionChanged:
+                                  (SelectedContent? selectedContent) {
                                 setState(() {
                                   _selectedText = selectedContent?.plainText;
                                 });
                               },
-                              contextMenuBuilder: (context, selectableRegionState) {
+                              contextMenuBuilder:
+                                  (context, selectableRegionState) {
                                 // Get the default button items (Copy, Select All, etc.)
-                                final List<ContextMenuButtonItem> buttonItems = selectableRegionState.contextMenuButtonItems;
+                                final List<ContextMenuButtonItem> buttonItems =
+                                    selectableRegionState
+                                        .contextMenuButtonItems;
 
                                 // Add native iOS/Android actions if there's selected text
-                                if (_selectedText != null && _selectedText!.isNotEmpty) {
+                                if (_selectedText != null &&
+                                    _selectedText!.isNotEmpty) {
                                   // Share button (native)
                                   buttonItems.add(ContextMenuButtonItem(
                                     onPressed: () async {
                                       ContextMenuController.removeAny();
 
                                       // Get the position for iOS share sheet
-                                      final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-                                      final Rect sharePositionOrigin = renderBox != null
-                                          ? Rect.fromPoints(
-                                              renderBox.localToGlobal(Offset.zero),
-                                              renderBox.localToGlobal(renderBox.size.bottomRight(Offset.zero)),
-                                            )
-                                          : const Rect.fromLTWH(0, 0, 1, 1);
+                                      final RenderBox? renderBox = context
+                                          .findRenderObject() as RenderBox?;
+                                      final Rect sharePositionOrigin =
+                                          renderBox != null
+                                              ? Rect.fromPoints(
+                                                  renderBox.localToGlobal(
+                                                      Offset.zero),
+                                                  renderBox.localToGlobal(
+                                                      renderBox.size
+                                                          .bottomRight(
+                                                              Offset.zero)),
+                                                )
+                                              : const Rect.fromLTWH(0, 0, 1, 1);
 
                                       await SharePlus.instance.share(
                                         ShareParams(
                                           text: _selectedText!,
-                                          sharePositionOrigin: sharePositionOrigin,
+                                          sharePositionOrigin:
+                                              sharePositionOrigin,
                                         ),
                                       );
                                     },
@@ -479,12 +568,14 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                     onPressed: () async {
                                       ContextMenuController.removeAny();
 
-                                      if (_selectedText != null && _selectedText!.isNotEmpty) {
+                                      if (_selectedText != null &&
+                                          _selectedText!.isNotEmpty) {
                                         // Open Wikipedia for Look Up (similar to native iOS behavior)
                                         final wikiUrl = Uri.parse(
-                                          'https://en.m.wikipedia.org/wiki/Special:Search?search=${Uri.encodeComponent(_selectedText!)}'
-                                        );
-                                        await launchUrl(wikiUrl, mode: LaunchMode.externalApplication);
+                                            'https://en.m.wikipedia.org/wiki/Special:Search?search=${Uri.encodeComponent(_selectedText!)}');
+                                        await launchUrl(wikiUrl,
+                                            mode:
+                                                LaunchMode.externalApplication);
                                       }
                                     },
                                     type: ContextMenuButtonType.lookUp,
@@ -495,11 +586,13 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                     onPressed: () async {
                                       ContextMenuController.removeAny();
 
-                                      if (_selectedText != null && _selectedText!.isNotEmpty) {
+                                      if (_selectedText != null &&
+                                          _selectedText!.isNotEmpty) {
                                         final searchUrl = Uri.parse(
-                                          'https://www.google.com/search?q=${Uri.encodeComponent(_selectedText!)}'
-                                        );
-                                        await launchUrl(searchUrl, mode: LaunchMode.externalApplication);
+                                            'https://www.google.com/search?q=${Uri.encodeComponent(_selectedText!)}');
+                                        await launchUrl(searchUrl,
+                                            mode:
+                                                LaunchMode.externalApplication);
                                       }
                                     },
                                     type: ContextMenuButtonType.searchWeb,
@@ -507,7 +600,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                 }
 
                                 return AdaptiveTextSelectionToolbar.buttonItems(
-                                  anchors: selectableRegionState.contextMenuAnchors,
+                                  anchors:
+                                      selectableRegionState.contextMenuAnchors,
                                   buttonItems: buttonItems,
                                 );
                               },
@@ -515,14 +609,18 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                 data: widget.message.message,
                                 imageBuilder: (uri, title, alt) {
                                   // Custom image builder that handles missing local files safely and makes images clickable
-                                  if (uri.scheme.isEmpty || uri.scheme == 'file') {
+                                  if (uri.scheme.isEmpty ||
+                                      uri.scheme == 'file') {
                                     // Local file path
-                                    final path = uri.scheme.isEmpty ? uri.toString() : uri.path;
+                                    final path = uri.scheme.isEmpty
+                                        ? uri.toString()
+                                        : uri.path;
                                     final file = File(path);
 
                                     // If file doesn't exist, return empty container (skip the image)
                                     if (!file.existsSync()) {
-                                      return SizedBox.shrink(); // Invisible widget that takes no space
+                                      return SizedBox
+                                          .shrink(); // Invisible widget that takes no space
                                     }
 
                                     // File exists, show it safely with click handler
@@ -539,25 +637,30 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                         );
                                       },
                                       child: Container(
-                                        margin: const EdgeInsets.symmetric(vertical: 8.0),
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 8.0),
                                         decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.1),
+                                              color:
+                                                  Colors.black.withOpacity(0.1),
                                               blurRadius: 4,
                                               offset: const Offset(0, 2),
                                             ),
                                           ],
                                         ),
                                         child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                           child: Stack(
                                             children: [
                                               Image.file(
                                                 file,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (context, error, stackTrace) {
+                                                errorBuilder: (context, error,
+                                                    stackTrace) {
                                                   // If there's an error loading the file, also skip it
                                                   return SizedBox.shrink();
                                                 },
@@ -567,10 +670,14 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                                 top: 8,
                                                 right: 8,
                                                 child: Container(
-                                                  padding: const EdgeInsets.all(4),
+                                                  padding:
+                                                      const EdgeInsets.all(4),
                                                   decoration: BoxDecoration(
-                                                    color: Colors.black.withOpacity(0.6),
-                                                    borderRadius: BorderRadius.circular(12),
+                                                    color: Colors.black
+                                                        .withOpacity(0.6),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
                                                   ),
                                                   child: Icon(
                                                     Icons.zoom_in,
@@ -600,36 +707,51 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                         );
                                       },
                                       child: Container(
-                                        margin: const EdgeInsets.symmetric(vertical: 8.0),
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 8.0),
                                         decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.1),
+                                              color:
+                                                  Colors.black.withOpacity(0.1),
                                               blurRadius: 4,
                                               offset: const Offset(0, 2),
                                             ),
                                           ],
                                         ),
                                         child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                           child: Stack(
                                             children: [
                                               Image.network(
                                                 imageUrl,
                                                 fit: BoxFit.cover,
-                                                loadingBuilder: (context, child, loadingProgress) {
-                                                  if (loadingProgress == null) return child;
+                                                loadingBuilder: (context, child,
+                                                    loadingProgress) {
+                                                  if (loadingProgress == null)
+                                                    return child;
                                                   return Container(
                                                     height: 200,
                                                     child: Center(
-                                                      child: CircularProgressIndicator(
-                                                        value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        value: loadingProgress
+                                                                    .expectedTotalBytes !=
+                                                                null
+                                                            ? loadingProgress
+                                                                    .cumulativeBytesLoaded /
+                                                                loadingProgress
+                                                                    .expectedTotalBytes!
+                                                            : null,
                                                       ),
                                                     ),
                                                   );
                                                 },
-                                                errorBuilder: (context, error, stackTrace) {
+                                                errorBuilder: (context, error,
+                                                    stackTrace) {
                                                   // For network images that fail to load, also skip them
                                                   return SizedBox.shrink();
                                                 },
@@ -639,10 +761,14 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                                 top: 8,
                                                 right: 8,
                                                 child: Container(
-                                                  padding: const EdgeInsets.all(4),
+                                                  padding:
+                                                      const EdgeInsets.all(4),
                                                   decoration: BoxDecoration(
-                                                    color: Colors.black.withOpacity(0.6),
-                                                    borderRadius: BorderRadius.circular(12),
+                                                    color: Colors.black
+                                                        .withOpacity(0.6),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
                                                   ),
                                                   child: Icon(
                                                     Icons.zoom_in,
@@ -660,7 +786,10 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                 },
                                 styleSheet: MarkdownStyleSheet(
                                   p: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87,
                                     fontSize: settings.getScaledFontSize(14),
                                     height: 1.4,
                                   ),
@@ -670,60 +799,99 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                     fontSize: settings.getScaledFontSize(14),
                                   ),
                                   em: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.grey.shade300
+                                        : Colors.grey.shade700,
                                     fontStyle: FontStyle.italic,
                                     fontSize: settings.getScaledFontSize(14),
                                   ),
                                   h1: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87,
                                     fontSize: settings.getScaledFontSize(18),
                                     fontWeight: FontWeight.bold,
                                   ),
                                   h2: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87,
                                     fontSize: settings.getScaledFontSize(16),
                                     fontWeight: FontWeight.bold,
                                   ),
                                   h3: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87,
                                     fontSize: settings.getScaledFontSize(15),
                                     fontWeight: FontWeight.w600,
                                   ),
                                   code: TextStyle(
-                                    backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade100,
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                    backgroundColor:
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey.shade700
+                                            : Colors.grey.shade100,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87,
                                     fontFamily: 'monospace',
                                     fontSize: settings.getScaledFontSize(12),
                                   ),
                                   codeblockDecoration: BoxDecoration(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade100,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.grey.shade700
+                                        : Colors.grey.shade100,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.grey.shade600
+                                          : Colors.grey.shade300,
                                     ),
                                   ),
                                   blockquote: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.grey.shade300
+                                        : Colors.grey.shade700,
                                     fontStyle: FontStyle.italic,
                                     fontSize: settings.getScaledFontSize(14),
                                   ),
                                   listBullet: TextStyle(
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black87,
                                     fontSize: settings.getScaledFontSize(14),
                                   ),
                                 ),
                                 onTapLink: (text, href, title) async {
                                   if (href != null) {
-                                    if (href.endsWith('.pdf') && File(href).existsSync()) {
+                                    if (href.endsWith('.pdf') &&
+                                        File(href).existsSync()) {
                                       await OpenFile.open(href);
                                     } else {
-                                      final isImage = href.endsWith('.png') || href.endsWith('.jpg') || href.endsWith('.jpeg') || href.endsWith('.gif') || href.contains('oaidalleapiprodscus');
+                                      final isImage = href.endsWith('.png') ||
+                                          href.endsWith('.jpg') ||
+                                          href.endsWith('.jpeg') ||
+                                          href.endsWith('.gif') ||
+                                          href.contains('oaidalleapiprodscus');
                                       if (isImage) {
                                         _showSingleImagePreview(context, href);
                                       } else {
                                         final uri = Uri.tryParse(href);
-                                        if (uri != null && await canLaunchUrl(uri)) {
-                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                        if (uri != null &&
+                                            await canLaunchUrl(uri)) {
+                                          await launchUrl(uri,
+                                              mode: LaunchMode
+                                                  .externalApplication);
                                         }
                                       }
                                     }
@@ -739,19 +907,25 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               ),
             ],
           ),
-          if (widget.translatedMessages.containsKey(widget.messageKey) && widget.translatedMessages[widget.messageKey] != null)
+          if (widget.translatedMessages.containsKey(widget.messageKey) &&
+              widget.translatedMessages[widget.messageKey] != null)
             Padding(
               padding: const EdgeInsets.only(top: 6.0, left: 8.0, right: 8.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.amber.shade900.withOpacity(0.3) : Colors.yellow[50],
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.amber.shade900.withOpacity(0.3)
+                      : Colors.yellow[50],
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.amber.shade600 : (Colors.yellow[700] ?? Colors.orange),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.amber.shade600
+                        : (Colors.yellow[700] ?? Colors.orange),
                     width: 1,
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -759,7 +933,9 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       child: Text(
                         widget.translatedMessages[widget.messageKey] ?? '',
                         style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black87,
                           fontSize: settings.getScaledFontSize(15),
                         ),
                       ),
@@ -775,7 +951,9 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                         child: Icon(
                           Icons.close,
                           size: 18,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey[600],
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.grey[600],
                         ),
                       ),
                     ),
@@ -799,7 +977,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          // 1. Copy button
+          // 1. Copy
           _buildActionButton(
             icon: Icons.copy,
             tooltip: "Copy",
@@ -813,58 +991,41 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               );
             },
           ),
-          // 2. Play button
+          // 2. Speak
           if (widget.onSpeakWithHighlight != null) ...[
             SizedBox(width: 4),
-            // Show play button when not playing, stop when playing device TTS, pause for ElevenLabs
             _buildActionButton(
-              icon: widget.isPlayingAudio ? (widget.message.audioPath == "device_tts" ? Icons.stop_circle : Icons.pause_circle_outline) : Icons.play_circle_outline,
-              tooltip: widget.isPlayingAudio ? (widget.message.audioPath == "device_tts" ? "Stop audio" : "Pause audio") : "Play audio",
+              icon: widget.isPlayingAudio
+                  ? (widget.message.audioPath == "device_tts"
+                      ? Icons.stop_circle
+                      : Icons.pause_circle_outline)
+                  : Icons.play_circle_outline,
+              tooltip: widget.isPlayingAudio
+                  ? (widget.message.audioPath == "device_tts"
+                      ? "Stop audio"
+                      : "Pause audio")
+                  : "Play audio",
               onTap: () {
                 if (widget.isPlayingAudio) {
-                  // If currently playing, pause/stop based on audio type
                   if (widget.message.audioPath == "device_tts") {
-                    // For device TTS, use the speak callback to stop
                     widget.onSpeakWithHighlight!(widget.message);
                   } else {
-                    // For ElevenLabs audio, use the audio service to stop
-                    widget.onPlayAudio(''); // Empty string signals stop
+                    widget.onPlayAudio('');
                   }
                 } else {
-                  // If not playing, start playing
                   widget.onSpeakWithHighlight!(widget.message);
                 }
               },
             ),
-            // Show stop button only when ElevenLabs audio is playing (device TTS uses main button for stop)
-            if (widget.isPlayingAudio && widget.message.audioPath != "device_tts") ...[
-              SizedBox(width: 4),
-              _buildActionButton(
-                icon: Icons.stop_circle,
-                tooltip: "Stop audio",
-                onTap: () {
-                  // For ElevenLabs audio, use the audio service to stop
-                  widget.onPlayAudio(''); // Empty string signals stop
-                },
-              ),
-            ],
           ],
-          // 3. Share button
-          if (widget.onShare != null) ...[
-            SizedBox(width: 4),
-            _buildActionButton(
-              icon: Icons.share,
-              tooltip: "Share as PDF",
-              onTap: () => widget.onShare!(widget.message),
-            ),
-          ],
-          // 4. Report button (only for AI messages)
+
+          // 3. Report
           SizedBox(width: 4),
           _buildReportButton(),
 
-          // 5. Translate button
+          // 4. More (translate actions only)
           SizedBox(width: 4),
-          _buildSmartTranslateButton(),
+          _buildTranslateMoreButton(),
         ],
       ),
     );
@@ -892,7 +1053,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                 borderRadius: BorderRadius.circular(20),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+              textStyle:
+                  const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
           const SizedBox(width: 8),
@@ -917,95 +1079,118 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     );
   }
 
-  Widget _buildSmartTranslateButton() {
-    // Get smart translation info directly since it's no longer async
-    final translationInfo = _getSmartTranslationInfo();
-    final targetLanguage = translationInfo['targetLanguage'] ?? 'Auto';
-    final targetLanguageCode = translationInfo['targetLanguageCode'] ?? 'auto';
+  Widget _buildTranslateMoreButton() {
+    return _buildActionButton(
+      icon: Icons.more_horiz,
+      tooltip: "More",
+      onTap: _showTranslateActionsSheet,
+    );
+  }
 
-    return Consumer<SettingsProvider>(
-      key: ValueKey('${widget.translationPreferenceVersion}_${_translationVersion}'), // Force rebuild when preference version changes
-      builder: (context, settings, child) {
-        return Material(
-          color: Colors.transparent,
-          child: Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
-                width: 0.5,
-              ),
-            ),
-            child: Row(
+  void _showTranslateActionsSheet() {
+    final options = _getSmartTranslationOptions();
+    final primaryOption = options.first;
+    final targetLanguage = primaryOption['targetLanguage'] ?? 'English';
+    final targetLanguageCode = primaryOption['targetLanguageCode'] ?? 'en';
+    final targetLanguageFlag = primaryOption['targetLanguageFlag'] ?? '🌐';
+    final recentOptions = options.skip(1).take(2).toList();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: isDark ? const Color(0xFF1D1D1F) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Main translate button (left part)
-                InkWell(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    bottomLeft: Radius.circular(16),
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 10, bottom: 8),
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(999),
                   ),
+                ),
+                ListTile(
+                  leading: Text(
+                    targetLanguageFlag,
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                  title: Text('Translate to $targetLanguage'),
+                  subtitle: const Text('Quick translate'),
                   onTap: () {
-                    // Quick translate with smart guess
+                    Navigator.of(sheetContext).pop();
                     if (widget.onQuickTranslate != null) {
-                      widget.onQuickTranslate!(widget.message, targetLanguageCode, targetLanguage);
+                      widget.onQuickTranslate!(
+                          widget.message, targetLanguageCode, targetLanguage);
                     } else {
                       widget.onTranslate(widget.message);
                     }
                   },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.translate,
-                          size: settings.getScaledFontSize(14),
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                ),
+                if (recentOptions.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Recent targets',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: isDark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
                         ),
-                        SizedBox(width: 4),
-                        Text(
-                          targetLanguage,
-                          style: TextStyle(
-                            fontSize: settings.getScaledFontSize(10),
-                            fontWeight: FontWeight.w500,
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
+                ...recentOptions.map((option) {
+                  final recentLanguage =
+                      option['targetLanguage'] ?? option['targetLanguageCode']!;
+                  final recentCode = option['targetLanguageCode'] ?? 'en';
+                  final recentFlag = option['targetLanguageFlag'] ?? '🌐';
+                  return ListTile(
+                    leading: Text(
+                      recentFlag,
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                    title: Text('Translate to $recentLanguage'),
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      if (widget.onQuickTranslate != null) {
+                        widget.onQuickTranslate!(
+                            widget.message, recentCode, recentLanguage);
+                      } else {
+                        widget.onTranslate(widget.message);
+                      }
+                    },
+                  );
+                }),
+                Divider(
+                  height: 8,
+                  thickness: 0.6,
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
                 ),
-                // Divider
-                Container(
-                  width: 1,
-                  height: 20,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
-                ),
-                // Language dropdown button (right part) - Made bigger and more clickable
-                InkWell(
-                  borderRadius: const BorderRadius.only(
-                    topRight: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                  ),
+                ListTile(
+                  leading: const Icon(Icons.tune),
+                  title: const Text('Choose language'),
+                  subtitle: const Text('Translate to another language'),
                   onTap: () {
-                    // Show language selection
+                    Navigator.of(sheetContext).pop();
                     if (widget.onSelectTranslationLanguage != null) {
                       widget.onSelectTranslationLanguage!(widget.message);
                     } else {
                       widget.onTranslate(widget.message);
                     }
                   },
-                  child: Container(
-                    // Increased padding for bigger touch area
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Icon(
-                      Icons.keyboard_arrow_down,
-                      size: settings.getScaledFontSize(18), // Slightly bigger icon
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
-                    ),
-                  ),
                 ),
               ],
             ),
@@ -1015,15 +1200,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     );
   }
 
-  Future<void> _refreshTranslationButton() async {
-    if (mounted) {
-      setState(() {
-        _translationVersion++; // This will force the widget to rebuild
-      });
-    }
-  }
-
-  Map<String, String> _getSmartTranslationInfo() {
+  List<Map<String, String>> _getSmartTranslationOptions() {
     try {
       // Get device locale and detected language
       final deviceLocale = Localizations.localeOf(context);
@@ -1033,14 +1210,16 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
       String detectedLanguageCode = 'en';
       if (RegExp(r'[\u4e00-\u9fff]').hasMatch(widget.message.message)) {
         detectedLanguageCode = 'zh';
-      } else if (RegExp(r'[\u3040-\u309f\u30a0-\u30ff]').hasMatch(widget.message.message)) {
+      } else if (RegExp(r'[\u3040-\u309f\u30a0-\u30ff]')
+          .hasMatch(widget.message.message)) {
         detectedLanguageCode = 'ja';
       } else if (RegExp(r'[\uac00-\ud7af]').hasMatch(widget.message.message)) {
         detectedLanguageCode = 'ko';
       }
 
       // Get user's translation history for smart suggestions from profile
-      final userPreferences = ProfileTranslationService.getTranslationHistory(context);
+      final userPreferences =
+          ProfileTranslationService.getTranslationHistory(context);
 
       // Get smart suggestions
       final suggestions = LanguageUtils.getSmartSuggestions(
@@ -1051,22 +1230,30 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
       );
 
       if (suggestions.isNotEmpty) {
-        final smartChoice = suggestions.first;
-        return {
-          'targetLanguage': smartChoice.name,
-          'targetLanguageCode': smartChoice.code,
-        };
+        return suggestions
+            .map((choice) => {
+                  'targetLanguage': choice.name,
+                  'targetLanguageCode': choice.code,
+                  'targetLanguageFlag': choice.flag,
+                })
+            .toList();
       }
 
-      return {
-        'targetLanguage': 'English',
-        'targetLanguageCode': 'en',
-      };
+      return [
+        {
+          'targetLanguage': 'English',
+          'targetLanguageCode': 'en',
+          'targetLanguageFlag': '🇺🇸',
+        }
+      ];
     } catch (e) {
-      return {
-        'targetLanguage': 'Auto',
-        'targetLanguageCode': 'auto',
-      };
+      return [
+        {
+          'targetLanguage': 'English',
+          'targetLanguageCode': 'en',
+          'targetLanguageFlag': '🇺🇸',
+        }
+      ];
     }
   }
 
@@ -1081,13 +1268,22 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           color: Colors.transparent,
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
-            onTap: onTap,
+            splashColor:
+                Theme.of(context).colorScheme.primary.withOpacity(0.14),
+            highlightColor:
+                Theme.of(context).colorScheme.primary.withOpacity(0.12),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              onTap();
+            },
             child: Container(
               padding: const EdgeInsets.all(8),
               child: Icon(
                 icon,
                 size: settings.getScaledFontSize(16),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade600,
               ),
             ),
           ),
@@ -1108,13 +1304,26 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               color: Colors.transparent,
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: isReported ? null : () => _showReportDialog(), // Disable if already reported
+                splashColor:
+                    Theme.of(context).colorScheme.primary.withOpacity(0.14),
+                highlightColor:
+                    Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                onTap: isReported
+                    ? null
+                    : () {
+                        HapticFeedback.selectionClick();
+                        _showReportDialog();
+                      }, // Disable if already reported
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   child: Icon(
                     isReported ? Icons.flag : Icons.flag_outlined,
                     size: settings.getScaledFontSize(16),
-                    color: isReported ? Colors.orange[700] : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                    color: isReported
+                        ? Colors.orange[700]
+                        : (Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade300
+                            : Colors.grey.shade600),
                   ),
                 ),
               ),
@@ -1151,12 +1360,15 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
   void _showMessageActions(BuildContext context, ChatMessage message) async {
     if (_lastTapPosition == null) return;
-    final RenderBox? overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final RenderBox? overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
     final double panelWidth = 320;
     final double panelHeight = 80;
-    final double left = (_lastTapPosition!.dx - panelWidth / 2).clamp(12.0, overlay.size.width - panelWidth - 12.0);
-    final double top = (_lastTapPosition!.dy - panelHeight - 12).clamp(24.0, overlay.size.height - panelHeight - 24.0);
+    final double left = (_lastTapPosition!.dx - panelWidth / 2)
+        .clamp(12.0, overlay.size.width - panelWidth - 12.0);
+    final double top = (_lastTapPosition!.dy - panelHeight - 12)
+        .clamp(24.0, overlay.size.height - panelHeight - 24.0);
     showDialog(
       context: context,
       barrierColor: Colors.transparent,
@@ -1178,9 +1390,12 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               child: Material(
                 color: Colors.transparent,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.white,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade800
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(18),
                     boxShadow: [
                       BoxShadow(
@@ -1197,10 +1412,14 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                         icon: Icons.copy,
                         label: AppLocalizations.of(context)!.copy,
                         onTap: () {
-                          Clipboard.setData(ClipboardData(text: message.message));
+                          Clipboard.setData(
+                              ClipboardData(text: message.message));
                           Navigator.of(context).pop();
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(AppLocalizations.of(context)!.copied), duration: Duration(seconds: 2)),
+                            SnackBar(
+                                content:
+                                    Text(AppLocalizations.of(context)!.copied),
+                                duration: Duration(seconds: 2)),
                           );
                         },
                       ),
@@ -1222,15 +1441,6 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                           widget.onTranslate(message);
                         },
                       ),
-                      if (widget.onShare != null)
-                        _ActionButton(
-                          icon: Icons.share,
-                          label: "Share",
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            widget.onShare!(message);
-                          },
-                        ),
                     ],
                   ),
                 ),
@@ -1267,7 +1477,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('File not found. The file may have been moved or deleted.'),
+              content: Text(
+                  'File not found. The file may have been moved or deleted.'),
               backgroundColor: Colors.orange,
               duration: Duration(seconds: 3),
             ),
@@ -1292,7 +1503,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('No app available to open this file type. Please install an appropriate app.'),
+                content: Text(
+                    'No app available to open this file type. Please install an appropriate app.'),
                 backgroundColor: Colors.orange,
                 duration: Duration(seconds: 4),
               ),
@@ -1303,7 +1515,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('File not found. The file may have been moved or deleted.'),
+                content: Text(
+                    'File not found. The file may have been moved or deleted.'),
                 backgroundColor: Colors.red,
                 duration: Duration(seconds: 3),
               ),
@@ -1431,30 +1644,38 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                   (p) => p.id == profileProvider.selectedProfileId,
                 )
                 .isNotEmpty
-            ? profileProvider.profiles.firstWhere((p) => p.id == profileProvider.selectedProfileId)
+            ? profileProvider.profiles
+                .firstWhere((p) => p.id == profileProvider.selectedProfileId)
             : null;
 
         return Container(
           width: 32,
           height: 32,
-          margin: const EdgeInsets.only(top: 2), // Added top margin for text alignment
+          margin: const EdgeInsets.only(
+              top: 2), // Added top margin for text alignment
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
               colors: Theme.of(context).brightness == Brightness.dark
                   ? [
-                      const Color(0xFF1E3A5F).withOpacity(0.8), // More visible dark blue for dark mode
-                      const Color(0xFF2C5282).withOpacity(0.6), // More visible dark blue for dark mode
+                      const Color(0xFF1E3A5F).withOpacity(
+                          0.8), // More visible dark blue for dark mode
+                      const Color(0xFF2C5282).withOpacity(
+                          0.6), // More visible dark blue for dark mode
                     ]
                   : [
-                      const Color(0xFF0078D4).withOpacity(0.1), // Original for light mode
-                      const Color(0xFF0078D4).withOpacity(0.05), // Original for light mode
+                      const Color(0xFF0078D4)
+                          .withOpacity(0.1), // Original for light mode
+                      const Color(0xFF0078D4)
+                          .withOpacity(0.05), // Original for light mode
                     ],
             ),
             border: Border.all(
               color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF2C5282).withOpacity(0.8) // More visible border for dark mode
-                  : const Color(0xFF0078D4).withOpacity(0.2), // Original for light mode
+                  ? const Color(0xFF2C5282)
+                      .withOpacity(0.8) // More visible border for dark mode
+                  : const Color(0xFF0078D4)
+                      .withOpacity(0.2), // Original for light mode
               width: 1,
             ),
           ),
@@ -1470,15 +1691,21 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                     }
                     return CircleAvatar(
                       radius: 16,
-                      backgroundColor: Colors.transparent, // Transparent like in settings
+                      backgroundColor:
+                          Colors.transparent, // Transparent like in settings
                       child: Text(
-                        selectedProfile?.name.isNotEmpty == true ? selectedProfile!.name.substring(0, 1).toUpperCase() : 'U',
+                        selectedProfile?.name.isNotEmpty == true
+                            ? selectedProfile!.name
+                                .substring(0, 1)
+                                .toUpperCase()
+                            : 'U',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600, // w600 like in settings
                           color: Theme.of(context).brightness == Brightness.dark
                               ? Colors.white // White text for dark mode
-                              : const Color(0xFF0078D4), // Blue text for light mode
+                              : const Color(
+                                  0xFF0078D4), // Blue text for light mode
                         ),
                       ),
                     );
@@ -1486,9 +1713,12 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                 )
               : CircleAvatar(
                   radius: 16,
-                  backgroundColor: Colors.transparent, // Transparent like in settings
+                  backgroundColor:
+                      Colors.transparent, // Transparent like in settings
                   child: Text(
-                    selectedProfile?.name.isNotEmpty == true ? selectedProfile!.name.substring(0, 1).toUpperCase() : 'U',
+                    selectedProfile?.name.isNotEmpty == true
+                        ? selectedProfile!.name.substring(0, 1).toUpperCase()
+                        : 'U',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600, // w600 like in settings
@@ -1507,22 +1737,28 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     return Consumer2<ProfileProvider, AIPersonalityProvider>(
       builder: (context, profileProvider, aiPersonalityProvider, child) {
         final currentProfileId = profileProvider.selectedProfileId;
-        final aiPersonality = currentProfileId != null ? aiPersonalityProvider.getPersonalityForProfile(currentProfileId) : null;
+        final aiPersonality = currentProfileId != null
+            ? aiPersonalityProvider.getPersonalityForProfile(currentProfileId)
+            : null;
 
         return Container(
           width: 32,
           height: 32,
-          margin: const EdgeInsets.only(top: 2), // Added top margin for text alignment
+          margin: const EdgeInsets.only(
+              top: 2), // Added top margin for text alignment
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
               colors: [
-                const Color(0xFF0078D4).withOpacity(0.1), // Restored blue gradient
-                const Color(0xFF0078D4).withOpacity(0.05), // Restored blue gradient
+                const Color(0xFF0078D4)
+                    .withOpacity(0.1), // Restored blue gradient
+                const Color(0xFF0078D4)
+                    .withOpacity(0.05), // Restored blue gradient
               ],
             ),
             border: Border.all(
-              color: const Color(0xFF0078D4).withOpacity(0.2), // Restored blue border
+              color: const Color(0xFF0078D4)
+                  .withOpacity(0.2), // Restored blue border
               width: 1,
             ),
           ),
@@ -1630,7 +1866,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
     try {
       final reportService = ContentReportService();
-      final isReported = await reportService.isMessageReported(widget.message.id!);
+      final isReported =
+          await reportService.isMessageReported(widget.message.id!);
 
       // Check if message has images (AI-generated images should be hidden when reported)
       final hasImages = widget.message.imagePaths?.isNotEmpty == true;
@@ -1674,7 +1911,9 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  hasImages ? 'Image content hidden due to report' : 'Content hidden due to report',
+                  hasImages
+                      ? 'Image content hidden due to report'
+                      : 'Content hidden due to report',
                   style: TextStyle(
                     color: Colors.grey[700],
                     fontWeight: FontWeight.w500,
@@ -1685,7 +1924,9 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           ),
           const SizedBox(height: 8),
           Text(
-            hasImages ? 'This message contained AI-generated images that were reported as inappropriate.' : 'This message has been flagged as inappropriate content.',
+            hasImages
+                ? 'This message contained AI-generated images that were reported as inappropriate.'
+                : 'This message has been flagged as inappropriate content.',
             style: TextStyle(
               color: Colors.grey[600],
               fontSize: 13,
@@ -1754,7 +1995,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Text content
-                        if (widget.message.message.isNotEmpty) Text(widget.message.message),
+                        if (widget.message.message.isNotEmpty)
+                          Text(widget.message.message),
 
                         // Images handling
                         if (widget.message.imagePaths?.isNotEmpty == true) ...[
@@ -1772,7 +2014,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                 children: [
                                   Row(
                                     children: [
-                                      Icon(Icons.warning, color: Colors.red[600], size: 16),
+                                      Icon(Icons.warning,
+                                          color: Colors.red[600], size: 16),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
@@ -1799,7 +2042,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                       style: TextButton.styleFrom(
                                         foregroundColor: Colors.red[700],
                                         backgroundColor: Colors.red[100],
-                                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 8),
                                       ),
                                     ),
                                   ),
@@ -1812,11 +2056,19 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                               spacing: 8,
                               runSpacing: 8,
                               children: widget.message.imagePaths!
-                                  .where((path) => path.startsWith('http') || File(path).existsSync())
+                                  .where((path) =>
+                                      path.startsWith('http') ||
+                                      File(path).existsSync())
                                   .map((path) => GestureDetector(
                                         onTap: () {
-                                          final imagePaths = widget.message.imagePaths!.where((p) => p.startsWith('http') || File(p).existsSync()).toList();
-                                          final initialIndex = imagePaths.indexOf(path);
+                                          final imagePaths = widget
+                                              .message.imagePaths!
+                                              .where((p) =>
+                                                  p.startsWith('http') ||
+                                                  File(p).existsSync())
+                                              .toList();
+                                          final initialIndex =
+                                              imagePaths.indexOf(path);
                                           showDialog(
                                             context: context,
                                             barrierColor: Colors.black,
@@ -1827,30 +2079,37 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                           );
                                         },
                                         child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                           child: path.startsWith('http')
                                               ? Image.network(
                                                   path,
                                                   width: 96,
                                                   height: 96,
                                                   fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) {
+                                                  errorBuilder: (context, error,
+                                                      stackTrace) {
                                                     return Container(
                                                       width: 96,
                                                       height: 96,
                                                       decoration: BoxDecoration(
-                                                        color: Colors.grey.shade200,
-                                                        borderRadius: BorderRadius.circular(8),
+                                                        color: Colors
+                                                            .grey.shade200,
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(8),
                                                       ),
                                                       child: Icon(
                                                         Icons.broken_image,
-                                                        color: Colors.grey.shade400,
+                                                        color: Colors
+                                                            .grey.shade400,
                                                         size: 32,
                                                       ),
                                                     );
                                                   },
                                                 )
-                                              : _buildSafeLocalImage(path, 96, 96),
+                                              : _buildSafeLocalImage(
+                                                  path, 96, 96),
                                         ),
                                       ))
                                   .toList(),
@@ -1924,7 +2183,10 @@ class _ActionButton extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: textColor ?? (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
+                    color: textColor ??
+                        (Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black87),
                     fontSize: settings.getScaledFontSize(13),
                     fontWeight: FontWeight.w500,
                   ),

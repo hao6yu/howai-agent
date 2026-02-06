@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
@@ -13,21 +14,21 @@ import 'file_service.dart';
 
 /// Event types for streaming responses
 enum StreamEventType {
-  textDelta,    // Partial text chunk
-  textDone,     // Text streaming complete
-  error,        // Error occurred
-  done,         // Full response complete
+  textDelta, // Partial text chunk
+  textDone, // Text streaming complete
+  error, // Error occurred
+  done, // Full response complete
 }
 
 /// Represents a streaming event from OpenAI
 class StreamEvent {
   final StreamEventType type;
-  final String? textDelta;           // For textDelta events
-  final String? fullText;            // For textDone/done events
-  final String? title;               // For done events (new conversations)
-  final List<String>? images;        // For done events
-  final List<String>? files;         // For done events
-  final String? error;               // For error events
+  final String? textDelta; // For textDelta events
+  final String? fullText; // For textDone/done events
+  final String? title; // For done events (new conversations)
+  final List<String>? images; // For done events
+  final List<String>? files; // For done events
+  final String? error; // For error events
 
   StreamEvent({
     required this.type,
@@ -40,51 +41,66 @@ class StreamEvent {
   });
 
   factory StreamEvent.textDelta(String delta) => StreamEvent(
-    type: StreamEventType.textDelta,
-    textDelta: delta,
-  );
+        type: StreamEventType.textDelta,
+        textDelta: delta,
+      );
 
   factory StreamEvent.textDone(String fullText) => StreamEvent(
-    type: StreamEventType.textDone,
-    fullText: fullText,
-  );
+        type: StreamEventType.textDone,
+        fullText: fullText,
+      );
 
   factory StreamEvent.error(String message) => StreamEvent(
-    type: StreamEventType.error,
-    error: message,
-  );
+        type: StreamEventType.error,
+        error: message,
+      );
 
   factory StreamEvent.done({
     String? fullText,
     String? title,
     List<String>? images,
     List<String>? files,
-  }) => StreamEvent(
-    type: StreamEventType.done,
-    fullText: fullText,
-    title: title,
-    images: images,
-    files: files,
-  );
+  }) =>
+      StreamEvent(
+        type: StreamEventType.done,
+        fullText: fullText,
+        title: title,
+        images: images,
+        files: files,
+      );
 }
 
 class OpenAIService {
   // gpt-5.2 Responses API endpoint
-  static const String _baseUrl = 'https://api.openai.com/v1/responses';
-  static const String _audioTranscriptionUrl = 'https://api.openai.com/v1/audio/transcriptions';
+  static String _baseUrl = 'https://api.openai.com/v1/responses';
+  static String _audioTranscriptionUrl =
+      'https://api.openai.com/v1/audio/transcriptions';
   static String? _apiKey;
-  static String _chatModel = 'gpt-5.2'; // Default value - gpt-5.2 flagship model
-  static String _chatMiniModel = 'gpt-5-nano'; // Default value - GPT-5 mini model
+  static String? _proxyBaseUrl;
+  static String? _proxyToken;
+  static String _chatModel =
+      'gpt-5.2'; // Default value - gpt-5.2 flagship model
+  static String _chatMiniModel =
+      'gpt-5-nano'; // Default value - GPT-5 mini model
 
   // HTTP timeout configurations - optimized for faster responses
-  static const Duration _httpTimeout = Duration(seconds: 180); // 3 minutes for main requests (image generation can be slow)
-  static const Duration _followupTimeout = Duration(seconds: 120); // 2 minutes for follow-up requests
+  static const Duration _httpTimeout = Duration(
+      seconds:
+          180); // 3 minutes for main requests (image generation can be slow)
+  static const Duration _followupTimeout =
+      Duration(seconds: 120); // 2 minutes for follow-up requests
 
   // Persistent HTTP client for connection reuse and better performance
   static http.Client? _httpClient;
   static http.Client get httpClient {
     _httpClient ??= http.Client();
     return _httpClient!;
+  }
+
+  static void _log(Object message) {
+    if (kDebugMode) {
+      debugPrint(message.toString());
+    }
   }
 
   // System prompt cache for improved performance
@@ -94,13 +110,47 @@ class OpenAIService {
   // Initialize with env variables or direct values
   static Future<void> initialize({String? apiKey}) async {
     _apiKey = apiKey ?? dotenv.env['OPENAI_API_KEY'];
-    if (_apiKey == null) {
-      //// print('Warning: OpenAI API key not set');
+    _proxyBaseUrl = dotenv.env['OPENAI_PROXY_BASE_URL']?.trim();
+    _proxyToken = dotenv.env['OPENAI_PROXY_TOKEN']?.trim();
+
+    if (_proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty) {
+      final normalized = _proxyBaseUrl!.replaceFirst(RegExp(r'/+$'), '');
+      _baseUrl = '$normalized/v1/responses';
+      _audioTranscriptionUrl = '$normalized/v1/audio/transcriptions';
+    }
+
+    if (!_isConfigured) {
+      //// _log('Warning: OpenAI API key not set');
     }
 
     // Initialize model names from .env
     _chatModel = dotenv.env['OPENAI_CHAT_MODEL'] ?? 'gpt-5.2';
     _chatMiniModel = dotenv.env['OPENAI_CHAT_MINI_MODEL'] ?? 'gpt-5-nano';
+  }
+
+  static bool get _isUsingProxy =>
+      _proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty;
+  static bool get _hasApiKey => _apiKey != null && _apiKey!.isNotEmpty;
+  static bool get _isConfigured => _isUsingProxy || _hasApiKey;
+
+  static Map<String, String> _buildHeaders(
+      {bool includeJsonContentType = true}) {
+    final headers = <String, String>{};
+    if (includeJsonContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    if (_isUsingProxy) {
+      headers['X-HowAI-Timestamp'] =
+          '${DateTime.now().millisecondsSinceEpoch ~/ 1000}';
+      if (_proxyToken != null && _proxyToken!.isNotEmpty) {
+        headers['X-HowAI-Proxy-Token'] = _proxyToken!;
+      }
+    } else if (_hasApiKey) {
+      headers['Authorization'] = 'Bearer $_apiKey';
+    }
+
+    return headers;
   }
 
   // Helper method for HTTP requests with timeout using persistent client
@@ -142,7 +192,8 @@ class OpenAIService {
     }
 
     // Create cache key from parameters (simplified for common cases)
-    final cacheKey = '${userName ?? 'User'}-$isPremiumUser-$generateTitle-$userWantsPresentations-${characteristicsSummary?.hashCode ?? 0}-${aiPersonality?.hashCode ?? 0}';
+    final cacheKey =
+        '${userName ?? 'User'}-$isPremiumUser-$generateTitle-$userWantsPresentations-${characteristicsSummary?.hashCode ?? 0}-${aiPersonality?.hashCode ?? 0}';
 
     // Check cache first
     if (_promptCache.containsKey(cacheKey)) {
@@ -196,10 +247,15 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
     bool isPremiumUser = false,
     bool allowWebSearch = true,
     bool allowImageGeneration = true,
-    bool isDeepResearch = false, // Deep research mode uses reasoning.effort: high
+    bool isDeepResearch =
+        false, // Deep research mode uses reasoning.effort: high
     SubscriptionService? subscriptionService, // Add subscription service
     dynamic aiPersonality, // Add AI personality parameter
   }) async {
+    if (!_isConfigured) {
+      return null;
+    }
+
     // Determine which model to use based on subscription and attachments
     String modelToUse;
 
@@ -207,15 +263,15 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
       // Always use the main model for image analysis regardless of subscription
       // because mini models don't support vision as well
       modelToUse = _chatModel;
-      //// print('[OpenAIService] Using main model ($_chatModel) for image analysis');
+      //// _log('[OpenAIService] Using main model ($_chatModel) for image analysis');
     } else if (isPremiumUser) {
       // Premium users get the main model for text-only conversations
       modelToUse = _chatModel;
-      //// print('[OpenAIService] Using main model ($_chatModel) for premium user');
+      //// _log('[OpenAIService] Using main model ($_chatModel) for premium user');
     } else {
       // Free users get the mini model for text-only conversations
       modelToUse = _chatMiniModel;
-      //// print('[OpenAIService] Using mini model ($_chatMiniModel) for free user');
+      //// _log('[OpenAIService] Using mini model ($_chatMiniModel) for free user');
     }
 
     // Deep research mode uses high reasoning effort
@@ -224,7 +280,8 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
     // Build user characteristics summary
     String characteristicsSummary = "";
     if (userCharacteristics != null && userCharacteristics.isNotEmpty) {
-      characteristicsSummary = "Here is what I know about the user based on our previous conversations:\n";
+      characteristicsSummary =
+          "Here is what I know about the user based on our previous conversations:\n";
       userCharacteristics.forEach((key, value) {
         if (value != null && value.toString().isNotEmpty) {
           characteristicsSummary += "- $key: $value\n";
@@ -233,15 +290,8 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
       characteristicsSummary += "\n";
     }
 
-    // Quick intent detection for PowerPoint presentations
-    // Disabled - not practical for mobile apps, adds latency for minimal benefit
-    bool userWantsPresentations = false;
-    // if (history.isNotEmpty) {
-    //   userWantsPresentations = await detectPresentationIntent(
-    //     recentMessages: history,
-    //     currentUserMessage: message,
-    //   );
-    // }
+    // Lightweight local heuristic to avoid the dead/disabled workflow path.
+    bool userWantsPresentations = _looksLikePresentationRequest(message);
 
     // Generate system prompt using cached approach for better performance
     String systemPrompt = _getCachedSystemPrompt(
@@ -271,7 +321,7 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
     }
 
     // Debug: // print personality summary
-    //// print('[AIPersonality] ${AIPersonalityService.getPersonalitySummary()}');
+    //// _log('[AIPersonality] ${AIPersonalityService.getPersonalitySummary()}');
 
     // Build input array: conversation history + current message (NO system prompt - that goes in 'instructions')
     final List<Map<String, dynamic>> inputMessages = [];
@@ -282,7 +332,8 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
     }
 
     // If there are attachments (images or files), build a content block
-    if ((attachments != null && attachments.isNotEmpty) || (fileAttachments != null && fileAttachments.isNotEmpty)) {
+    if ((attachments != null && attachments.isNotEmpty) ||
+        (fileAttachments != null && fileAttachments.isNotEmpty)) {
       List<Map<String, dynamic>> contentBlocks = [];
 
       // Add the text message as a block if not empty
@@ -313,23 +364,23 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
               });
             }
           } catch (e) {
-            //// print('Error compressing/encoding image: $e');
+            //// _log('Error compressing/encoding image: $e');
           }
         }
       }
 
       // Add file attachments using text extraction
       if (fileAttachments != null && fileAttachments.isNotEmpty) {
-        //// print('[OpenAIService] Processing ${fileAttachments.length} file attachments');
+        //// _log('[OpenAIService] Processing ${fileAttachments.length} file attachments');
 
         for (final file in fileAttachments) {
           try {
-            //// print('[OpenAIService] Processing file: ${file.name} (${FileService.formatFileSize(file.size)})');
+            //// _log('[OpenAIService] Processing file: ${file.name} (${FileService.formatFileSize(file.size)})');
 
             // Extract text content instead of base64 encoding
             final extractedText = await FileService.extractTextFromFile(file);
             if (extractedText != null && extractedText.isNotEmpty) {
-              //// print('[OpenAIService] Successfully extracted text from ${file.name} (${extractedText.length} chars)');
+              //// _log('[OpenAIService] Successfully extracted text from ${file.name} (${extractedText.length} chars)');
 
               // Add file as a text block with extracted content for OpenAI to analyze
               final fileContent = '''
@@ -360,9 +411,9 @@ Please analyze this file content based on the user's request.
                 });
               }
 
-              //// print('[OpenAIService] Added extracted file content to message (total content blocks: ${contentBlocks.length})');
+              //// _log('[OpenAIService] Added extracted file content to message (total content blocks: ${contentBlocks.length})');
             } else {
-              //// print('[OpenAIService] Failed to extract text from file ${file.name}');
+              //// _log('[OpenAIService] Failed to extract text from file ${file.name}');
 
               // Add a fallback message indicating the file type
               final fallbackContent = '''
@@ -391,11 +442,11 @@ Note: Could not extract text content from this file. Please describe what you'd 
               }
             }
           } catch (e) {
-            //// print('[OpenAIService] Error processing file ${file.name}: $e');
+            //// _log('[OpenAIService] Error processing file ${file.name}: $e');
           }
         }
       } else {
-        //// print('[OpenAIService] No file attachments to process');
+        //// _log('[OpenAIService] No file attachments to process');
       }
 
       inputMessages.add({
@@ -436,7 +487,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
             'parameters': {
               'type': 'object',
               'properties': {
-                'title': {'type': 'string', 'description': 'Main title of the presentation'},
+                'title': {
+                  'type': 'string',
+                  'description': 'Main title of the presentation'
+                },
                 'slides': {
                   'type': 'array',
                   'description': 'Array of slide objects',
@@ -444,7 +498,11 @@ Note: Could not extract text content from this file. Please describe what you'd 
                     'type': 'object',
                     'properties': {
                       'title': {'type': 'string', 'description': 'Slide title'},
-                      'content': {'type': 'string', 'description': 'Main slide content or bullet points (use \\n for new lines)'},
+                      'content': {
+                        'type': 'string',
+                        'description':
+                            'Main slide content or bullet points (use \\n for new lines)'
+                      },
                       'type': {
                         'type': 'string',
                         'enum': ['title', 'content', 'bullets'],
@@ -459,7 +517,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
                   'enum': ['professional', 'modern', 'minimal'],
                   'description': 'Presentation theme/style'
                 },
-                'author': {'type': 'string', 'description': 'Author name for the presentation'}
+                'author': {
+                  'type': 'string',
+                  'description': 'Author name for the presentation'
+                }
               },
               'required': ['title', 'slides']
             }
@@ -489,8 +550,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
       // Format matches Teams bot: instructions separate from input, no tool_choice
       final requestPayload = {
         'model': modelToUse,
-        'instructions': systemPrompt, // System prompt as separate field (not in input)
-        'input': inputMessages, // Only conversation history + current user message
+        'instructions':
+            systemPrompt, // System prompt as separate field (not in input)
+        'input':
+            inputMessages, // Only conversation history + current user message
         'max_output_tokens': maxTokens,
         'reasoning': {
           'effort': reasoningEffort,
@@ -503,50 +566,49 @@ Note: Could not extract text content from this file. Please describe what you'd 
         requestPayload['tools'] = tools;
       }
 
-      //// print('[OpenAIService] Sending request to $_baseUrl with model: $modelToUse');
-      //// print('[OpenAIService] Available tools: ${tools.map((t) => t['name']).join(', ')}');
-      //// print('[OpenAIService] System prompt length: ${systemPrompt.length} chars');
-      //// print('[OpenAIService] UserWantsPresentations: $userWantsPresentations');
+      //// _log('[OpenAIService] Sending request to $_baseUrl with model: $modelToUse');
+      //// _log('[OpenAIService] Available tools: ${tools.map((t) => t['name']).join(', ')}');
+      //// _log('[OpenAIService] System prompt length: ${systemPrompt.length} chars');
+      //// _log('[OpenAIService] UserWantsPresentations: $userWantsPresentations');
 
-      // print('[OpenAIService] DEBUG - Request Debug:');
-      // print('[OpenAIService] - User message: "${message.substring(0, message.length > 100 ? 100 : message.length)}..."');
-      // print('[OpenAIService] - allowWebSearch: $allowWebSearch');
-      // print('[OpenAIService] - Available tools: ${tools.map((t) => t['name']).join(', ')}');
-      // print('[OpenAIService] - Model: $modelToUse');
-      // print('[OpenAIService] - isPremiumUser: $isPremiumUser');
-      // print('[OpenAIService] - isDeepResearch: $isDeepResearch');
+      // _log('[OpenAIService] DEBUG - Request Debug:');
+      // _log('[OpenAIService] - User message: "${message.substring(0, message.length > 100 ? 100 : message.length)}..."');
+      // _log('[OpenAIService] - allowWebSearch: $allowWebSearch');
+      // _log('[OpenAIService] - Available tools: ${tools.map((t) => t['name']).join(', ')}');
+      // _log('[OpenAIService] - Model: $modelToUse');
+      // _log('[OpenAIService] - isPremiumUser: $isPremiumUser');
+      // _log('[OpenAIService] - isDeepResearch: $isDeepResearch');
       if (isDeepResearchMode) {
-        // print('[OpenAIService] 🧠 DEEP RESEARCH MODE ACTIVE - gpt-5.2 with high reasoning effort');
-        // print('[OpenAIService] 🔧 Has access to ${tools.length} tools: ${tools.map((t) => t['type']).join(', ')}');
+        // _log('[OpenAIService] 🧠 DEEP RESEARCH MODE ACTIVE - gpt-5.2 with high reasoning effort');
+        // _log('[OpenAIService] 🔧 Has access to ${tools.length} tools: ${tools.map((t) => t['type']).join(', ')}');
       }
 
       // Debug: Print request payload for troubleshooting
-      print('[OpenAIService] 📤 Request to $_baseUrl');
-      print('[OpenAIService] 📤 Model: $modelToUse');
-      print('[OpenAIService] 📤 API Key present: ${_apiKey != null}');
+      _log('[OpenAIService] 📤 Request to $_baseUrl');
+      _log('[OpenAIService] 📤 Model: $modelToUse');
+      _log(
+        '[OpenAIService] 📤 Transport: ${_isUsingProxy ? "proxy" : "direct"}',
+      );
 
       final response = await _httpPostWithTimeout(
         _baseUrl,
-        {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
-        },
+        _buildHeaders(),
         jsonEncode(requestPayload),
         _httpTimeout,
       );
 
       final elapsed = stopwatch.elapsedMilliseconds;
-      print('[OpenAIService] Response status: ${response.statusCode}');
-      print('[OpenAIService] Response time: ${elapsed}ms');
+      _log('[OpenAIService] Response status: ${response.statusCode}');
+      _log('[OpenAIService] Response time: ${elapsed}ms');
       if (response.statusCode != 200) {
-        print('[OpenAIService] ❌ ERROR RESPONSE: ${response.body}');
+        _log('[OpenAIService] ❌ ERROR RESPONSE: ${response.body}');
 
         // Special handling for deep research mode errors
         if (isDeepResearchMode) {
-          // print('[OpenAIService] 🧠 gpt-5.2 deep research mode error detected');
+          // _log('[OpenAIService] 🧠 gpt-5.2 deep research mode error detected');
         }
       } else {
-        // print('[OpenAIService] ✅ Success - Raw response preview: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...');
+        // _log('[OpenAIService] ✅ Success - Raw response preview: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}...');
       }
 
       if (response.statusCode == 200) {
@@ -558,17 +620,20 @@ Note: Could not extract text content from this file. Please describe what you'd 
         List<dynamic>? toolCalls;
 
         // Debug: Print raw response structure
-        print('[OpenAIService] 📥 Raw response keys: ${data.keys.toList()}');
-        print('[OpenAIService] 📥 Response status: ${data['status']}');
+        _log('[OpenAIService] 📥 Raw response keys: ${data.keys.toList()}');
+        _log('[OpenAIService] 📥 Response status: ${data['status']}');
         if (data['status'] != 'completed') {
-          print('[OpenAIService] ⚠️ Response not completed! Status: ${data['status']}');
-          print('[OpenAIService] 📥 incomplete_details: ${data['incomplete_details']}');
-          print('[OpenAIService] 📥 error: ${data['error']}');
+          _log(
+              '[OpenAIService] ⚠️ Response not completed! Status: ${data['status']}');
+          _log(
+              '[OpenAIService] 📥 incomplete_details: ${data['incomplete_details']}');
+          _log('[OpenAIService] 📥 error: ${data['error']}');
         }
         if (data.containsKey('output')) {
-          print('[OpenAIService] 📥 Output is List: ${data['output'] is List}');
+          _log('[OpenAIService] 📥 Output is List: ${data['output'] is List}');
           if (data['output'] is List && (data['output'] as List).isNotEmpty) {
-            print('[OpenAIService] 📥 Output items: ${(data['output'] as List).map((e) => e['type']).toList()}');
+            _log(
+                '[OpenAIService] 📥 Output items: ${(data['output'] as List).map((e) => e['type']).toList()}');
           }
         }
 
@@ -581,38 +646,45 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
             if (itemType == 'reasoning') {
               // Skip reasoning output - this is chain-of-thought, not for display
-              print('[OpenAIService] 📥 Skipping reasoning output');
+              _log('[OpenAIService] 📥 Skipping reasoning output');
               continue;
             } else if (itemType == 'message' && item['content'] != null) {
               for (final content in item['content']) {
-                if (content['type'] == 'output_text' && content['text'] != null) {
+                if (content['type'] == 'output_text' &&
+                    content['text'] != null) {
                   textContent = (textContent ?? '') + content['text'];
-                } else if (content['type'] == 'text' && content['text'] != null) {
+                } else if (content['type'] == 'text' &&
+                    content['text'] != null) {
                   textContent = (textContent ?? '') + content['text'];
                 } else if (content['type'] == 'tool_use') {
                   // Collect tool calls
                   toolCalls ??= [];
                   toolCalls.add(content);
-                } else if (content['type'] == 'image' && content['image_url'] != null) {
+                } else if (content['type'] == 'image' &&
+                    content['image_url'] != null) {
                   // Built-in image generation returns images in message content
-                  print('[OpenAIService] 📥 Found image in message content');
+                  _log('[OpenAIService] 📥 Found image in message content');
                   imageUrls.add(content['image_url']);
                 }
               }
             } else if (itemType == 'function_call') {
               // Handle custom function calls (e.g., generate_pptx)
-              print('[OpenAIService] 📥 Found function_call in output: ${item['name']}');
+              _log(
+                  '[OpenAIService] 📥 Found function_call in output: ${item['name']}');
               toolCalls ??= [];
               toolCalls.add(item);
             } else if (itemType == 'image_generation_call') {
               // Built-in image generation tool result - returns base64 in 'result' field
-              print('[OpenAIService] 📥 Found built-in image_generation_call');
-              print('[OpenAIService] 📥 image_generation_call status: ${item['status']}');
-              print('[OpenAIService] 📥 image_generation_call keys: ${item.keys.toList()}');
+              _log('[OpenAIService] 📥 Found built-in image_generation_call');
+              _log(
+                  '[OpenAIService] 📥 image_generation_call status: ${item['status']}');
+              _log(
+                  '[OpenAIService] 📥 image_generation_call keys: ${item.keys.toList()}');
 
               if (item['result'] != null) {
                 String base64Data = item['result'].toString();
-                print('[OpenAIService] 📥 Got image result, length: ${base64Data.length}');
+                _log(
+                    '[OpenAIService] 📥 Got image result, length: ${base64Data.length}');
 
                 // Remove data URI prefix if present (e.g., "data:image/png;base64,")
                 if (base64Data.contains('base64,')) {
@@ -622,24 +694,29 @@ Note: Could not extract text content from this file. Please describe what you'd 
                 // Convert to data URL for Flutter to display
                 final dataUrl = 'data:image/png;base64,$base64Data';
                 imageUrls.add(dataUrl);
-                print('[OpenAIService] 📥 Added base64 image to imageUrls');
+                _log('[OpenAIService] 📥 Added base64 image to imageUrls');
               } else {
-                print('[OpenAIService] ⚠️ image_generation_call has no result field');
-                print('[OpenAIService] 📥 Status: ${item['status']}, Error: ${item['error']}');
+                _log(
+                    '[OpenAIService] ⚠️ image_generation_call has no result field');
+                _log(
+                    '[OpenAIService] 📥 Status: ${item['status']}, Error: ${item['error']}');
               }
             } else if (itemType == 'web_search_call') {
               // Built-in web search tool result - results are handled automatically by OpenAI
-              print('[OpenAIService] 📥 Found built-in web_search_call - results integrated into response');
+              _log(
+                  '[OpenAIService] 📥 Found built-in web_search_call - results integrated into response');
               // No manual handling needed - OpenAI incorporates search results into the response
             } else {
-              print('[OpenAIService] 📥 Unknown item type in output: $itemType');
+              _log('[OpenAIService] 📥 Unknown item type in output: $itemType');
             }
           }
         }
         // Fallback to output_text only if output array didn't provide content
-        if (textContent == null && data.containsKey('output_text') && data['output_text'] != null) {
+        if (textContent == null &&
+            data.containsKey('output_text') &&
+            data['output_text'] != null) {
           textContent = data['output_text'];
-          print('[OpenAIService] 📥 Got output_text as fallback');
+          _log('[OpenAIService] 📥 Got output_text as fallback');
         }
         // Fallback: Check for Chat Completions format (for backwards compatibility)
         else if (data.containsKey('choices') && data['choices'].isNotEmpty) {
@@ -658,18 +735,21 @@ Note: Could not extract text content from this file. Please describe what you'd 
           // Extract title if this is the first message of a conversation
           if (generateTitle) {
             // Look for JSON at the beginning of the response
-            final titleMatch = RegExp(r'^\s*\{\s*"title"\s*:\s*"([^"]+)"\s*\}').firstMatch(textContent);
+            final titleMatch = RegExp(r'^\s*\{\s*"title"\s*:\s*"([^"]+)"\s*\}')
+                .firstMatch(textContent);
             if (titleMatch != null && titleMatch.groupCount >= 1) {
               conversationTitle = titleMatch.group(1);
               // Remove the JSON from the beginning of the response
               textContent = textContent.substring(titleMatch.end).trim();
             } else {
               // Fallback: try to extract any JSON object with a title key
-              final jsonMatch = RegExp(r'\{\s*"title"\s*:\s*"([^"]+)"\s*\}').firstMatch(textContent);
+              final jsonMatch = RegExp(r'\{\s*"title"\s*:\s*"([^"]+)"\s*\}')
+                  .firstMatch(textContent);
               if (jsonMatch != null && jsonMatch.groupCount >= 1) {
                 conversationTitle = jsonMatch.group(1);
                 // Remove the JSON from the response
-                textContent = textContent.replaceFirst(jsonMatch.group(0)!, '').trim();
+                textContent =
+                    textContent.replaceFirst(jsonMatch.group(0)!, '').trim();
               }
             }
           }
@@ -677,8 +757,9 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
         // Handle custom function tool calls (only generate_pptx now - web_search and image_generation are built-in)
         if (toolCalls != null && toolCalls.isNotEmpty) {
-          print('[OpenAIService] 🔧 AI made ${toolCalls.length} tool calls');
-          print('[OpenAIService] 🔧 Tool calls: ${toolCalls.map((t) => t.toString()).toList()}');
+          _log('[OpenAIService] 🔧 AI made ${toolCalls.length} tool calls');
+          _log(
+              '[OpenAIService] 🔧 Tool calls: ${toolCalls.map((t) => t.toString()).toList()}');
 
           List<Map<String, dynamic>> toolResults = [];
 
@@ -689,7 +770,8 @@ Note: Could not extract text content from this file. Please describe what you'd 
             dynamic functionArgs;
             String? toolCallId;
 
-            if (toolCall['type'] == 'function' && toolCall['function'] != null) {
+            if (toolCall['type'] == 'function' &&
+                toolCall['function'] != null) {
               // Chat Completions format
               functionName = toolCall['function']['name'];
               functionArgs = toolCall['function']['arguments'];
@@ -703,58 +785,67 @@ Note: Could not extract text content from this file. Please describe what you'd 
               // Simple tool call format
               functionName = toolCall['name'];
               functionArgs = toolCall['arguments'];
-              toolCallId = toolCall['call_id'] ?? toolCall['id'] ?? 'tool_${DateTime.now().millisecondsSinceEpoch}';
+              toolCallId = toolCall['call_id'] ??
+                  toolCall['id'] ??
+                  'tool_${DateTime.now().millisecondsSinceEpoch}';
             }
 
-            print('[OpenAIService] 🔧 Processing tool call: $functionName, id: $toolCallId');
+            _log(
+                '[OpenAIService] 🔧 Processing tool call: $functionName, id: $toolCallId');
 
             // Handle PPTX generation (custom function - the only one we handle manually now)
             if (functionName == 'generate_pptx' && functionArgs != null) {
-                Map<String, dynamic> argMap;
-                if (functionArgs is String) {
-                  argMap = jsonDecode(functionArgs);
-                } else {
-                  argMap = functionArgs;
-                }
+              Map<String, dynamic> argMap;
+              if (functionArgs is String) {
+                argMap = jsonDecode(functionArgs);
+              } else {
+                argMap = functionArgs;
+              }
 
-                final title = argMap['title'] as String?;
-                final slides = argMap['slides'] as List?;
-                final theme = argMap['theme'] as String? ?? 'professional';
-                final author = argMap['author'] as String? ?? 'HaoGPT';
+              final title = argMap['title'] as String?;
+              final slides = argMap['slides'] as List?;
+              final theme = argMap['theme'] as String? ?? 'professional';
+              final author = argMap['author'] as String? ?? 'HaoGPT';
 
-                if (title != null && slides != null && slides.isNotEmpty) {
-                  //// print('[OpenAIService] Generating PPTX with title: $title, slides: ${slides.length}');
+              if (title != null && slides != null && slides.isNotEmpty) {
+                //// _log('[OpenAIService] Generating PPTX with title: $title, slides: ${slides.length}');
 
-                  try {
-                    final pptxPath = await _generatePptxFile(
-                      title: title,
-                      slides: slides.cast<Map<String, dynamic>>(),
-                      theme: theme,
-                      author: author,
-                    );
+                try {
+                  final pptxPath = await _generatePptxFile(
+                    title: title,
+                    slides: slides.cast<Map<String, dynamic>>(),
+                    theme: theme,
+                    author: author,
+                  );
 
-                    if (pptxPath != null) {
-                      toolResults.add({
-                        'role': 'tool',
-                        'tool_call_id': toolCallId,
-                        'content': jsonEncode({'pptx_path': pptxPath, 'message': 'PPTX presentation generated successfully! File ready.'}),
-                      });
-                    } else {
-                      toolResults.add({
-                        'role': 'tool',
-                        'tool_call_id': toolCallId,
-                        'content': jsonEncode({'error': 'Failed to generate PPTX file'}),
-                      });
-                    }
-                  } catch (e) {
-                    //// print('[OpenAIService] Error generating PPTX: $e');
+                  if (pptxPath != null) {
                     toolResults.add({
                       'role': 'tool',
                       'tool_call_id': toolCallId,
-                      'content': jsonEncode({'error': 'Error generating PPTX: $e'}),
+                      'content': jsonEncode({
+                        'pptx_path': pptxPath,
+                        'message':
+                            'PPTX presentation generated successfully! File ready.'
+                      }),
+                    });
+                  } else {
+                    toolResults.add({
+                      'role': 'tool',
+                      'tool_call_id': toolCallId,
+                      'content':
+                          jsonEncode({'error': 'Failed to generate PPTX file'}),
                     });
                   }
+                } catch (e) {
+                  //// _log('[OpenAIService] Error generating PPTX: $e');
+                  toolResults.add({
+                    'role': 'tool',
+                    'tool_call_id': toolCallId,
+                    'content':
+                        jsonEncode({'error': 'Error generating PPTX: $e'}),
+                  });
                 }
+              }
             }
           }
 
@@ -772,7 +863,8 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
           // If we have tool results, send them all together in one follow-up request
           if (toolResults.isNotEmpty) {
-            print('[OpenAIService] 📤 Preparing follow-up with ${toolResults.length} tool results');
+            _log(
+                '[OpenAIService] 📤 Preparing follow-up with ${toolResults.length} tool results');
 
             // For Responses API, convert tool results to function_call_output format
             List<Map<String, dynamic>> functionCallOutputs = [];
@@ -788,25 +880,29 @@ Note: Could not extract text content from this file. Please describe what you'd 
             // Use previous_response_id to continue the conversation
             final followupPayload = {
               'model': modelToUse,
-              'input': functionCallOutputs, // Send function call outputs directly
-              'previous_response_id': data['id'], // Reference the previous response
+              'input':
+                  functionCallOutputs, // Send function call outputs directly
+              'previous_response_id':
+                  data['id'], // Reference the previous response
               'max_output_tokens': 2000,
               'reasoning': {
                 'effort': isDeepResearchMode ? 'high' : 'low',
               },
             };
 
-            print('[OpenAIService] 📤 Follow-up using previous_response_id: ${data['id']}');
+            _log(
+                '[OpenAIService] 📤 Follow-up using previous_response_id: ${data['id']}');
 
-            print('[OpenAIService] 📤 Sending ${toolResults.length} tool results to OpenAI');
+            _log(
+                '[OpenAIService] 📤 Sending ${toolResults.length} tool results to OpenAI');
 
             // Debug: Show follow-up payload for deep research mode
             if (isDeepResearchMode) {
-              // print('[OpenAIService] 🧠 gpt-5.2 Follow-up payload preview:');
-              // print('[OpenAIService] - Model: ${followupPayload['model']}');
-              // print('[OpenAIService] - Input count: ${followupMessages.length}');
-              // print('[OpenAIService] - Has tools: ${followupPayload.containsKey('tools')}');
-              // print('[OpenAIService] - Parameters: ${followupPayload.keys.toList()}');
+              // _log('[OpenAIService] 🧠 gpt-5.2 Follow-up payload preview:');
+              // _log('[OpenAIService] - Model: ${followupPayload['model']}');
+              // _log('[OpenAIService] - Input count: ${followupMessages.length}');
+              // _log('[OpenAIService] - Has tools: ${followupPayload.containsKey('tools')}');
+              // _log('[OpenAIService] - Parameters: ${followupPayload.keys.toList()}');
             }
 
             // Send follow-up with retry for 500 errors
@@ -817,26 +913,28 @@ Note: Could not extract text content from this file. Please describe what you'd 
             do {
               followupResponse = await _httpPostWithTimeout(
                 _baseUrl,
-                {
-                  'Content-Type': 'application/json',
-                  'Authorization': 'Bearer $_apiKey',
-                },
+                _buildHeaders(),
                 jsonEncode(followupPayload),
                 _followupTimeout,
               );
 
-              if (followupResponse.statusCode == 500 && retryCount < maxRetries) {
+              if (followupResponse.statusCode == 500 &&
+                  retryCount < maxRetries) {
                 retryCount++;
-                print('[OpenAIService] ⚠️ Server error (500), retrying... (attempt $retryCount/$maxRetries)');
-                await Future.delayed(Duration(seconds: 2 * retryCount)); // Exponential backoff
+                _log(
+                    '[OpenAIService] ⚠️ Server error (500), retrying... (attempt $retryCount/$maxRetries)');
+                await Future.delayed(
+                    Duration(seconds: 2 * retryCount)); // Exponential backoff
               } else {
                 break;
               }
             } while (retryCount <= maxRetries);
 
-            print('[OpenAIService] 📥 Follow-up response status: ${followupResponse.statusCode}');
+            _log(
+                '[OpenAIService] 📥 Follow-up response status: ${followupResponse.statusCode}');
             if (followupResponse.statusCode != 200) {
-              print('[OpenAIService] ❌ Follow-up error: ${followupResponse.body}');
+              _log(
+                  '[OpenAIService] ❌ Follow-up error: ${followupResponse.body}');
             }
 
             if (followupResponse.statusCode == 200) {
@@ -845,34 +943,48 @@ Note: Could not extract text content from this file. Please describe what you'd 
               List<dynamic>? followupToolCalls;
 
               // Debug: Print follow-up response structure
-              print('[OpenAIService] 📥 Follow-up response keys: ${followupData.keys.toList()}');
+              _log(
+                  '[OpenAIService] 📥 Follow-up response keys: ${followupData.keys.toList()}');
               if (followupData.containsKey('output_text')) {
-                print('[OpenAIService] 📥 Follow-up has output_text: ${followupData['output_text']?.toString().substring(0, followupData['output_text'].toString().length > 100 ? 100 : followupData['output_text'].toString().length)}...');
+                _log(
+                    '[OpenAIService] 📥 Follow-up has output_text: ${followupData['output_text']?.toString().substring(0, followupData['output_text'].toString().length > 100 ? 100 : followupData['output_text'].toString().length)}...');
               }
-              if (followupData.containsKey('output') && followupData['output'] is List) {
-                final outputItems = (followupData['output'] as List).map((e) => e['type']).toList();
-                print('[OpenAIService] 📥 Follow-up output items: $outputItems');
+              if (followupData.containsKey('output') &&
+                  followupData['output'] is List) {
+                final outputItems = (followupData['output'] as List)
+                    .map((e) => e['type'])
+                    .toList();
+                _log('[OpenAIService] 📥 Follow-up output items: $outputItems');
               }
 
               // Parse Responses API format for follow-up - skip reasoning output
-              if (followupData.containsKey('output') && followupData['output'] is List) {
+              if (followupData.containsKey('output') &&
+                  followupData['output'] is List) {
                 for (final item in followupData['output']) {
                   final itemType = item['type'];
 
                   if (itemType == 'reasoning') {
                     // Skip reasoning output - this is chain-of-thought, not for display
-                    print('[OpenAIService] 📥 Skipping follow-up reasoning output');
+                    _log(
+                        '[OpenAIService] 📥 Skipping follow-up reasoning output');
                     continue;
                   } else if (itemType == 'message' && item['content'] != null) {
-                    print('[OpenAIService] 📥 Found message item, content types: ${(item['content'] as List).map((c) => c['type']).toList()}');
+                    _log(
+                        '[OpenAIService] 📥 Found message item, content types: ${(item['content'] as List).map((c) => c['type']).toList()}');
                     for (final content in item['content']) {
-                      if (content['type'] == 'output_text' && content['text'] != null) {
-                        followupTextContent = (followupTextContent ?? '') + content['text'];
-                        print('[OpenAIService] 📥 Got text from output_text in message');
-                      } else if (content['type'] == 'text' && content['text'] != null) {
+                      if (content['type'] == 'output_text' &&
+                          content['text'] != null) {
+                        followupTextContent =
+                            (followupTextContent ?? '') + content['text'];
+                        _log(
+                            '[OpenAIService] 📥 Got text from output_text in message');
+                      } else if (content['type'] == 'text' &&
+                          content['text'] != null) {
                         // Also check for 'text' type (alternative format)
-                        followupTextContent = (followupTextContent ?? '') + content['text'];
-                        print('[OpenAIService] 📥 Got text from text type in message');
+                        followupTextContent =
+                            (followupTextContent ?? '') + content['text'];
+                        _log(
+                            '[OpenAIService] 📥 Got text from text type in message');
                       } else if (content['type'] == 'tool_use') {
                         followupToolCalls ??= [];
                         followupToolCalls.add(content);
@@ -885,12 +997,16 @@ Note: Could not extract text content from this file. Please describe what you'd 
                 }
               }
               // Fallback to output_text only if output array didn't provide content
-              if (followupTextContent == null && followupData.containsKey('output_text') && followupData['output_text'] != null) {
+              if (followupTextContent == null &&
+                  followupData.containsKey('output_text') &&
+                  followupData['output_text'] != null) {
                 followupTextContent = followupData['output_text'];
-                print('[OpenAIService] 📥 Got follow-up text from output_text as fallback');
+                _log(
+                    '[OpenAIService] 📥 Got follow-up text from output_text as fallback');
               }
               // Fallback: Check for Chat Completions format
-              else if (followupData.containsKey('choices') && followupData['choices'].isNotEmpty) {
+              else if (followupData.containsKey('choices') &&
+                  followupData['choices'].isNotEmpty) {
                 final followupChoice = followupData['choices'][0];
                 final followupMessage = followupChoice['message'];
                 followupTextContent = followupMessage['content'];
@@ -899,34 +1015,43 @@ Note: Could not extract text content from this file. Please describe what you'd 
                 }
               }
 
-              print('[OpenAIService] 📥 Follow-up parsed text: ${followupTextContent?.substring(0, followupTextContent.length > 100 ? 100 : followupTextContent.length) ?? "NULL"}...');
+              _log(
+                  '[OpenAIService] 📥 Follow-up parsed text: ${followupTextContent?.substring(0, followupTextContent.length > 100 ? 100 : followupTextContent.length) ?? "NULL"}...');
 
               // Update the main textContent with follow-up response
-              if (followupTextContent != null && followupTextContent.isNotEmpty) {
+              if (followupTextContent != null &&
+                  followupTextContent.isNotEmpty) {
                 // Extract title from follow-up if this is a new conversation
                 if (generateTitle && conversationTitle == null) {
-                  final titleMatch = RegExp(r'\{\s*"title"\s*:\s*"([^"]+)"\s*\}').firstMatch(followupTextContent);
+                  final titleMatch =
+                      RegExp(r'\{\s*"title"\s*:\s*"([^"]+)"\s*\}')
+                          .firstMatch(followupTextContent);
                   if (titleMatch != null && titleMatch.groupCount >= 1) {
                     conversationTitle = titleMatch.group(1);
                     // Remove the title JSON from the response
-                    followupTextContent = followupTextContent.replaceFirst(titleMatch.group(0)!, '').trim();
-                    print('[OpenAIService] 📥 Extracted title from follow-up: $conversationTitle');
+                    followupTextContent = followupTextContent
+                        .replaceFirst(titleMatch.group(0)!, '')
+                        .trim();
+                    _log(
+                        '[OpenAIService] 📥 Extracted title from follow-up: $conversationTitle');
                   }
                 }
 
                 // Clean up AI thinking/planning text that shouldn't be shown to users
-                followupTextContent = _cleanupAIThinkingText(followupTextContent);
+                followupTextContent =
+                    _cleanupAIThinkingText(followupTextContent);
 
                 // Extract only the final answer portion - look for the actual answer after all tool processing
                 followupTextContent = _extractFinalAnswer(followupTextContent);
 
                 textContent = followupTextContent;
-                print('[OpenAIService] ✅ Updated textContent with follow-up response');
+                _log(
+                    '[OpenAIService] ✅ Updated textContent with follow-up response');
               }
 
               // Check if there are additional tool calls in the follow-up response
               if (followupToolCalls != null && followupToolCalls.isNotEmpty) {
-                //// print('[OpenAIService] Follow-up response contains additional tool calls');
+                //// _log('[OpenAIService] Follow-up response contains additional tool calls');
 
                 // Process additional tool calls (for multi-step workflows like search -> PPTX)
                 List<Map<String, dynamic>> additionalToolResults = [];
@@ -937,14 +1062,18 @@ Note: Could not extract text content from this file. Please describe what you'd 
                   dynamic funcArgs;
                   String? tcId;
 
-                  if (toolCall['type'] == 'function' && toolCall['function'] != null) {
+                  if (toolCall['type'] == 'function' &&
+                      toolCall['function'] != null) {
                     funcName = toolCall['function']['name'];
                     funcArgs = toolCall['function']['arguments'];
                     tcId = toolCall['id'];
-                  } else if (toolCall['type'] == 'function_call' || toolCall['name'] != null) {
+                  } else if (toolCall['type'] == 'function_call' ||
+                      toolCall['name'] != null) {
                     funcName = toolCall['name'];
                     funcArgs = toolCall['arguments'];
-                    tcId = toolCall['call_id'] ?? toolCall['id'] ?? 'tool_${DateTime.now().millisecondsSinceEpoch}';
+                    tcId = toolCall['call_id'] ??
+                        toolCall['id'] ??
+                        'tool_${DateTime.now().millisecondsSinceEpoch}';
                   }
 
                   // Handle PPTX generation in follow-up
@@ -962,7 +1091,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
                     final author = argMap['author'] as String? ?? 'HaoGPT';
 
                     if (title != null && slides != null && slides.isNotEmpty) {
-                      //// print('[OpenAIService] Generating PPTX in follow-up with title: $title, slides: ${slides.length}');
+                      //// _log('[OpenAIService] Generating PPTX in follow-up with title: $title, slides: ${slides.length}');
 
                       try {
                         final pptxPath = await _generatePptxFile(
@@ -977,21 +1106,27 @@ Note: Could not extract text content from this file. Please describe what you'd 
                           additionalToolResults.add({
                             'role': 'tool',
                             'tool_call_id': tcId,
-                            'content': jsonEncode({'pptx_path': pptxPath, 'message': 'PPTX presentation generated successfully! File ready.'}),
+                            'content': jsonEncode({
+                              'pptx_path': pptxPath,
+                              'message':
+                                  'PPTX presentation generated successfully! File ready.'
+                            }),
                           });
                         } else {
                           additionalToolResults.add({
                             'role': 'tool',
                             'tool_call_id': tcId,
-                            'content': jsonEncode({'error': 'Failed to generate PPTX file'}),
+                            'content': jsonEncode(
+                                {'error': 'Failed to generate PPTX file'}),
                           });
                         }
                       } catch (e) {
-                        //// print('[OpenAIService] Error generating PPTX in follow-up: $e');
+                        //// _log('[OpenAIService] Error generating PPTX in follow-up: $e');
                         additionalToolResults.add({
                           'role': 'tool',
                           'tool_call_id': tcId,
-                          'content': jsonEncode({'error': 'Error generating PPTX: $e'}),
+                          'content': jsonEncode(
+                              {'error': 'Error generating PPTX: $e'}),
                         });
                       }
                     }
@@ -1013,46 +1148,57 @@ Note: Could not extract text content from this file. Please describe what you'd 
                   final secondFollowupPayload = {
                     'model': modelToUse,
                     'input': secondFunctionCallOutputs,
-                    'previous_response_id': followupData['id'], // Reference the follow-up response
+                    'previous_response_id':
+                        followupData['id'], // Reference the follow-up response
                     'max_output_tokens': 2000,
                     'reasoning': {
                       'effort': isDeepResearchMode ? 'high' : 'low',
                     },
                   };
 
-                  //// print('[OpenAIService] Sending second follow-up for PPTX generation');
+                  //// _log('[OpenAIService] Sending second follow-up for PPTX generation');
                   final secondFollowupResponse = await _httpPostWithTimeout(
                     _baseUrl,
-                    {
-                      'Content-Type': 'application/json',
-                      'Authorization': 'Bearer $_apiKey',
-                    },
+                    _buildHeaders(),
                     jsonEncode(secondFollowupPayload),
                     _followupTimeout,
                   );
 
                   if (secondFollowupResponse.statusCode == 200) {
-                    final secondFollowupData = jsonDecode(secondFollowupResponse.body);
+                    final secondFollowupData =
+                        jsonDecode(secondFollowupResponse.body);
                     // Parse Responses API format
-                    if (secondFollowupData.containsKey('output_text') && secondFollowupData['output_text'] != null) {
+                    if (secondFollowupData.containsKey('output_text') &&
+                        secondFollowupData['output_text'] != null) {
                       textContent = secondFollowupData['output_text'];
-                      //// print('[OpenAIService] Successfully extracted second follow-up content for PPTX generation');
-                    } else if (secondFollowupData.containsKey('output') && secondFollowupData['output'] is List) {
+                      //// _log('[OpenAIService] Successfully extracted second follow-up content for PPTX generation');
+                    } else if (secondFollowupData.containsKey('output') &&
+                        secondFollowupData['output'] is List) {
                       for (final item in secondFollowupData['output']) {
-                        if (item['type'] == 'message' && item['content'] != null) {
+                        if (item['type'] == 'message' &&
+                            item['content'] != null) {
                           for (final content in item['content']) {
-                            if (content['type'] == 'output_text' && content['text'] != null) {
-                              textContent = (textContent ?? '') + content['text'];
+                            if (content['type'] == 'output_text' &&
+                                content['text'] != null) {
+                              textContent =
+                                  (textContent ?? '') + content['text'];
                             }
                           }
                         }
                       }
                     }
                     // Fallback: Check for Chat Completions format
-                    else if (secondFollowupData.containsKey('choices') && secondFollowupData['choices'].isNotEmpty) {
-                      final secondFollowupChoice = secondFollowupData['choices'][0];
-                      final secondFollowupMessage = secondFollowupChoice['message'];
-                      if (secondFollowupMessage['content'] != null && secondFollowupMessage['content'].toString().trim().isNotEmpty) {
+                    else if (secondFollowupData.containsKey('choices') &&
+                        secondFollowupData['choices'].isNotEmpty) {
+                      final secondFollowupChoice =
+                          secondFollowupData['choices'][0];
+                      final secondFollowupMessage =
+                          secondFollowupChoice['message'];
+                      if (secondFollowupMessage['content'] != null &&
+                          secondFollowupMessage['content']
+                              .toString()
+                              .trim()
+                              .isNotEmpty) {
                         textContent = secondFollowupMessage['content'];
                       }
                     }
@@ -1061,26 +1207,36 @@ Note: Could not extract text content from this file. Please describe what you'd 
               }
 
               // Extract text content from follow-up if not already set by second follow-up
-              if (textContent == null && followupTextContent != null && followupTextContent.trim().isNotEmpty) {
+              if (textContent == null &&
+                  followupTextContent != null &&
+                  followupTextContent.trim().isNotEmpty) {
                 textContent = followupTextContent;
-                // print('[OpenAIService] Successfully extracted follow-up content: ${textContent?.substring(0, min(200, textContent?.length ?? 0)) ?? 'null'}...');
+                // _log('[OpenAIService] Successfully extracted follow-up content: ${textContent?.substring(0, min(200, textContent?.length ?? 0)) ?? 'null'}...');
 
                 // Debug: Check if only returned a title in deep research mode
-                if (isDeepResearchMode && generateTitle && textContent != null) {
-                  // print('[OpenAIService] 🧠 gpt-5.2 title generation - Content preview: "${textContent.substring(0, min(100, textContent.length))}..."');
-                  if (textContent.trim().startsWith('{"title":') && textContent.length < 100) {
-                    // print('[OpenAIService] ⚠️ gpt-5.2 seems to have returned only title JSON, missing full content');
+                if (isDeepResearchMode && generateTitle) {
+                  // _log('[OpenAIService] 🧠 gpt-5.2 title generation - Content preview: "${textContent.substring(0, min(100, textContent.length))}..."');
+                  if (textContent.trim().startsWith('{"title":') &&
+                      textContent.length < 100) {
+                    // _log('[OpenAIService] ⚠️ gpt-5.2 seems to have returned only title JSON, missing full content');
                   }
                 }
 
                 // Check if AI completed the workflow properly by looking for actual tool calls
                 // If we have search results but no PPTX file was generated, continue the workflow
                 // BUT ONLY if the user actually wanted presentations
-                bool hasSearchResults = toolResults.any((result) => result['role'] == 'tool' && result['content'] != null);
-                bool hasPptxGeneration = followupToolCalls != null && followupToolCalls.any((call) => call['function']?['name'] == 'generate_pptx' || call['name'] == 'generate_pptx');
+                bool hasSearchResults = toolResults.any((result) =>
+                    result['role'] == 'tool' && result['content'] != null);
+                bool hasPptxGeneration = followupToolCalls != null &&
+                    followupToolCalls.any((call) =>
+                        call['function']?['name'] == 'generate_pptx' ||
+                        call['name'] == 'generate_pptx');
 
-                if (userWantsPresentations && hasSearchResults && !hasPptxGeneration && filePaths.isEmpty) {
-                  //// print('[OpenAIService] Detected incomplete workflow - AI searched but did not generate PPTX file');
+                if (userWantsPresentations &&
+                    hasSearchResults &&
+                    !hasPptxGeneration &&
+                    filePaths.isEmpty) {
+                  //// _log('[OpenAIService] Detected incomplete workflow - AI searched but did not generate PPTX file');
 
                   // Send additional prompt to complete PPTX generation using Responses API format
                   final completionPayload = {
@@ -1092,7 +1248,8 @@ Note: Could not extract text content from this file. Please describe what you'd 
                             'You performed the search but did not call the generate_pptx function. Please now use the generate_pptx function to create the actual PowerPoint file with the search results you gathered. I need the downloadable PPTX file, not just a description.',
                       }
                     ],
-                    'previous_response_id': followupData['id'], // Continue from the follow-up response
+                    'previous_response_id': followupData[
+                        'id'], // Continue from the follow-up response
                     'tools': tools,
                     'max_output_tokens': 2000,
                     'reasoning': {
@@ -1100,13 +1257,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
                     },
                   };
 
-                  //// print('[OpenAIService] Sending completion prompt for PPTX generation');
+                  //// _log('[OpenAIService] Sending completion prompt for PPTX generation');
                   final completionResponse = await _httpPostWithTimeout(
                     _baseUrl,
-                    {
-                      'Content-Type': 'application/json',
-                      'Authorization': 'Bearer $_apiKey',
-                    },
+                    _buildHeaders(),
                     jsonEncode(completionPayload),
                     _followupTimeout,
                   );
@@ -1117,14 +1271,20 @@ Note: Could not extract text content from this file. Please describe what you'd 
                     List<dynamic>? completionToolCalls;
 
                     // Parse Responses API format for completion response
-                    if (completionData.containsKey('output_text') && completionData['output_text'] != null) {
+                    if (completionData.containsKey('output_text') &&
+                        completionData['output_text'] != null) {
                       completionTextContent = completionData['output_text'];
-                    } else if (completionData.containsKey('output') && completionData['output'] is List) {
+                    } else if (completionData.containsKey('output') &&
+                        completionData['output'] is List) {
                       for (final item in completionData['output']) {
-                        if (item['type'] == 'message' && item['content'] != null) {
+                        if (item['type'] == 'message' &&
+                            item['content'] != null) {
                           for (final content in item['content']) {
-                            if (content['type'] == 'output_text' && content['text'] != null) {
-                              completionTextContent = (completionTextContent ?? '') + content['text'];
+                            if (content['type'] == 'output_text' &&
+                                content['text'] != null) {
+                              completionTextContent =
+                                  (completionTextContent ?? '') +
+                                      content['text'];
                             } else if (content['type'] == 'tool_use') {
                               completionToolCalls ??= [];
                               completionToolCalls.add(content);
@@ -1137,7 +1297,8 @@ Note: Could not extract text content from this file. Please describe what you'd 
                       }
                     }
                     // Fallback: Check for Chat Completions format
-                    else if (completionData.containsKey('choices') && completionData['choices'].isNotEmpty) {
+                    else if (completionData.containsKey('choices') &&
+                        completionData['choices'].isNotEmpty) {
                       final completionChoice = completionData['choices'][0];
                       final completionMessage = completionChoice['message'];
                       completionTextContent = completionMessage['content'];
@@ -1147,16 +1308,19 @@ Note: Could not extract text content from this file. Please describe what you'd 
                     }
 
                     // Process any tool calls in the completion response
-                    if (completionToolCalls != null && completionToolCalls.isNotEmpty) {
+                    if (completionToolCalls != null &&
+                        completionToolCalls.isNotEmpty) {
                       for (final toolCall in completionToolCalls) {
                         // Handle both API formats
                         String? cFuncName;
                         dynamic cFuncArgs;
 
-                        if (toolCall['type'] == 'function' && toolCall['function'] != null) {
+                        if (toolCall['type'] == 'function' &&
+                            toolCall['function'] != null) {
                           cFuncName = toolCall['function']['name'];
                           cFuncArgs = toolCall['function']['arguments'];
-                        } else if (toolCall['type'] == 'function_call' || toolCall['name'] != null) {
+                        } else if (toolCall['type'] == 'function_call' ||
+                            toolCall['name'] != null) {
                           cFuncName = toolCall['name'];
                           cFuncArgs = toolCall['arguments'];
                         }
@@ -1171,11 +1335,15 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
                           final title = argMap['title'] as String?;
                           final slides = argMap['slides'] as List?;
-                          final theme = argMap['theme'] as String? ?? 'professional';
-                          final author = argMap['author'] as String? ?? 'HowAI Agent';
+                          final theme =
+                              argMap['theme'] as String? ?? 'professional';
+                          final author =
+                              argMap['author'] as String? ?? 'HowAI Agent';
 
-                          if (title != null && slides != null && slides.isNotEmpty) {
-                            //// print('[OpenAIService] Generating PPTX in completion step with title: $title, slides: ${slides.length}');
+                          if (title != null &&
+                              slides != null &&
+                              slides.isNotEmpty) {
+                            //// _log('[OpenAIService] Generating PPTX in completion step with title: $title, slides: ${slides.length}');
 
                             try {
                               final pptxPath = await _generatePptxFile(
@@ -1187,11 +1355,12 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
                               if (pptxPath != null) {
                                 filePaths.add(pptxPath);
-                                textContent = 'I\'ve successfully created your PowerPoint presentation. It includes comprehensive analysis with current market insights and trends.';
-                                //// print('[OpenAIService] Successfully completed PPTX generation in completion step');
+                                textContent =
+                                    'I\'ve successfully created your PowerPoint presentation. It includes comprehensive analysis with current market insights and trends.';
+                                //// _log('[OpenAIService] Successfully completed PPTX generation in completion step');
                               }
                             } catch (e) {
-                              //// print('[OpenAIService] Error generating PPTX in completion step: $e');
+                              //// _log('[OpenAIService] Error generating PPTX in completion step: $e');
                             }
                           }
                         }
@@ -1206,15 +1375,17 @@ Note: Could not extract text content from this file. Please describe what you'd 
                 }
               }
             } else {
-              //// print('[OpenAIService] Follow-up response error: ${followupResponse.body}');
+              //// _log('[OpenAIService] Follow-up response error: ${followupResponse.body}');
             }
           }
         }
-        print('[OpenAIService] 📊 Parsed text: ${textContent?.substring(0, textContent.length > 100 ? 100 : textContent.length) ?? "NULL"}...');
-        print('[OpenAIService] 📊 Parsed images: ${imageUrls.length}');
-        print('[OpenAIService] 📊 Parsed files: ${filePaths.length}');
+        _log(
+            '[OpenAIService] 📊 Parsed text: ${textContent?.substring(0, textContent.length > 100 ? 100 : textContent.length) ?? "NULL"}...');
+        _log('[OpenAIService] 📊 Parsed images: ${imageUrls.length}');
+        _log('[OpenAIService] 📊 Parsed files: ${filePaths.length}');
         if (conversationTitle != null) {
-          print('[OpenAIService] 📊 Generated conversation title: $conversationTitle');
+          _log(
+              '[OpenAIService] 📊 Generated conversation title: $conversationTitle');
         }
 
         // Return successful response
@@ -1225,13 +1396,13 @@ Note: Could not extract text content from this file. Please describe what you'd 
           'title': conversationTitle,
         };
       } else {
-        //// print('Error - Status code: ${response.statusCode}');
-        //// print('Error response: ${response.body}');
+        //// _log('Error - Status code: ${response.statusCode}');
+        //// _log('Error response: ${response.body}');
         return null;
       }
     } catch (e) {
-      //// print('Exception in OpenAI API call: $e');
-      //// print('Stack trace: ${StackTrace.current}');
+      //// _log('Exception in OpenAI API call: $e');
+      //// _log('Stack trace: ${StackTrace.current}');
       return null;
     }
   }
@@ -1253,8 +1424,8 @@ Note: Could not extract text content from this file. Please describe what you'd 
     SubscriptionService? subscriptionService,
     dynamic aiPersonality,
   }) async* {
-    if (_apiKey == null) {
-      yield StreamEvent.error('API key not configured');
+    if (!_isConfigured) {
+      yield StreamEvent.error('OpenAI transport not configured');
       return;
     }
 
@@ -1273,7 +1444,8 @@ Note: Could not extract text content from this file. Please describe what you'd 
     // Build user characteristics summary
     String characteristicsSummary = "";
     if (userCharacteristics != null && userCharacteristics.isNotEmpty) {
-      characteristicsSummary = "Here is what I know about the user based on our previous conversations:\n";
+      characteristicsSummary =
+          "Here is what I know about the user based on our previous conversations:\n";
       userCharacteristics.forEach((key, value) {
         if (value != null && value.toString().isNotEmpty) {
           characteristicsSummary += "- $key: $value\n";
@@ -1282,7 +1454,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
       characteristicsSummary += "\n";
     }
 
-    bool userWantsPresentations = false;
+    bool userWantsPresentations = _looksLikePresentationRequest(message);
 
     // Generate system prompt
     String systemPrompt = _getCachedSystemPrompt(
@@ -1296,8 +1468,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
     );
 
     if (isDeepResearchMode) {
-      systemPrompt += "\n\nDEEP RESEARCH MODE: You are using gpt-5.2 with high reasoning effort for thorough analysis.";
-      systemPrompt += "\n\nCRITICAL OUTPUT FORMAT: Do NOT include your thinking process in your response. Just provide the final answer directly.";
+      systemPrompt +=
+          "\n\nDEEP RESEARCH MODE: You are using gpt-5.2 with high reasoning effort for thorough analysis.";
+      systemPrompt +=
+          "\n\nCRITICAL OUTPUT FORMAT: Do NOT include your thinking process in your response. Just provide the final answer directly.";
     }
 
     // Build input messages
@@ -1307,7 +1481,8 @@ Note: Could not extract text content from this file. Please describe what you'd 
     }
 
     // Handle attachments
-    if ((attachments != null && attachments.isNotEmpty) || (fileAttachments != null && fileAttachments.isNotEmpty)) {
+    if ((attachments != null && attachments.isNotEmpty) ||
+        (fileAttachments != null && fileAttachments.isNotEmpty)) {
       List<Map<String, dynamic>> contentBlocks = [];
 
       if (message.trim().isNotEmpty) {
@@ -1344,10 +1519,12 @@ Note: Could not extract text content from this file. Please describe what you'd 
             final fileContent = await FileService.extractTextFromFile(file);
             if (fileContent != null && fileContent.isNotEmpty) {
               // Sanitize filename - remove potentially problematic characters
-              final sanitizedFileName = file.name.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
+              final sanitizedFileName =
+                  file.name.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_');
               contentBlocks.add({
                 'type': 'input_text',
-                'text': '--- Content of uploaded file "$sanitizedFileName" (${FileService.formatFileSize(file.size)}) ---\n$fileContent\n--- End of file content ---',
+                'text':
+                    '--- Content of uploaded file "$sanitizedFileName" (${FileService.formatFileSize(file.size)}) ---\n$fileContent\n--- End of file content ---',
               });
             }
           } catch (e) {
@@ -1375,7 +1552,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
       'model': modelToUse,
       'instructions': systemPrompt,
       'input': inputMessages,
-      'stream': true,  // Enable streaming
+      'stream': true, // Enable streaming
     };
 
     if (tools.isNotEmpty) {
@@ -1388,17 +1565,16 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
     try {
       final request = http.Request('POST', Uri.parse(_baseUrl));
-      request.headers.addAll({
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $_apiKey',
-      });
+      request.headers.addAll(_buildHeaders());
       request.body = jsonEncode(requestPayload);
 
-      final streamedResponse = await httpClient.send(request).timeout(_httpTimeout);
+      final streamedResponse =
+          await httpClient.send(request).timeout(_httpTimeout);
 
       if (streamedResponse.statusCode != 200) {
         final body = await streamedResponse.stream.bytesToString();
-        yield StreamEvent.error('API error: ${streamedResponse.statusCode} - $body');
+        yield StreamEvent.error(
+            'API error: ${streamedResponse.statusCode} - $body');
         return;
       }
 
@@ -1410,7 +1586,8 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
       // Process SSE stream. Keep a buffer because chunks may split lines/JSON.
       String sseBuffer = '';
-      await for (final chunk in streamedResponse.stream.transform(utf8.decoder)) {
+      await for (final chunk
+          in streamedResponse.stream.transform(utf8.decoder)) {
         sseBuffer += chunk;
         final lines = sseBuffer.split('\n');
         if (lines.isEmpty) {
@@ -1438,7 +1615,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
               if (delta != null && delta.isNotEmpty) {
                 if (!sawFirstDelta) {
                   sawFirstDelta = true;
-                  print('[OpenAIService-Stream] First text delta received');
+                  _log('[OpenAIService-Stream] First text delta received');
                 }
                 fullText += delta;
                 yield StreamEvent.textDelta(delta);
@@ -1450,32 +1627,40 @@ Note: Could not extract text content from this file. Please describe what you'd 
                 fullText = text;
               }
               yield StreamEvent.textDone(fullText);
-            } else if (eventType == 'response.completed' || eventType == 'response.done') {
+            } else if (eventType == 'response.completed' ||
+                eventType == 'response.done') {
               // Response complete - parse final data
-              print('[OpenAIService-Stream] 📦 Response completed event received');
+              _log(
+                  '[OpenAIService-Stream] 📦 Response completed event received');
               final response = event['response'];
               if (response != null && response['output'] is List) {
-                print('[OpenAIService-Stream] 📦 Output items: ${(response['output'] as List).length}');
+                _log(
+                    '[OpenAIService-Stream] 📦 Output items: ${(response['output'] as List).length}');
                 for (final item in response['output']) {
-                  print('[OpenAIService-Stream] 📦 Item type: ${item['type']}');
+                  _log('[OpenAIService-Stream] 📦 Item type: ${item['type']}');
                   if (item['type'] == 'message' && item['content'] != null) {
                     for (final content in item['content']) {
-                      if (content['type'] == 'output_text' && content['text'] != null) {
+                      if (content['type'] == 'output_text' &&
+                          content['text'] != null) {
                         fullText = content['text'];
                       }
                     }
                   } else if (item['type'] == 'image_generation_call') {
-                    print('[OpenAIService-Stream] 🖼️ Found image_generation_call');
-                    print('[OpenAIService-Stream] 🖼️ Keys: ${item.keys.toList()}');
-                    print('[OpenAIService-Stream] 🖼️ Has result: ${item['result'] != null}');
+                    _log(
+                        '[OpenAIService-Stream] 🖼️ Found image_generation_call');
+                    _log(
+                        '[OpenAIService-Stream] 🖼️ Keys: ${item.keys.toList()}');
+                    _log(
+                        '[OpenAIService-Stream] 🖼️ Has result: ${item['result'] != null}');
                     if (item['result'] != null) {
                       String base64Data = item['result'].toString();
-                      print('[OpenAIService-Stream] 🖼️ Result length: ${base64Data.length}');
+                      _log(
+                          '[OpenAIService-Stream] 🖼️ Result length: ${base64Data.length}');
                       if (base64Data.contains('base64,')) {
                         base64Data = base64Data.split('base64,').last;
                       }
                       images.add('data:image/png;base64,$base64Data');
-                      print('[OpenAIService-Stream] 🖼️ Added image to list');
+                      _log('[OpenAIService-Stream] 🖼️ Added image to list');
                     }
                   }
                 }
@@ -1483,13 +1668,17 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
               // Parse title if generating - always strip title JSON from text
               if (fullText.isNotEmpty) {
-                final titleMatch = RegExp(r'\{"title"\s*:\s*"([^"]+)"\}').firstMatch(fullText);
+                final titleMatch =
+                    RegExp(r'\{"title"\s*:\s*"([^"]+)"\}').firstMatch(fullText);
                 if (titleMatch != null) {
                   if (generateTitle && title == null) {
                     title = titleMatch.group(1);
                   }
                   // Always strip title JSON from text regardless of generateTitle
-                  fullText = fullText.replaceAll(RegExp(r'\s*\{"title"\s*:\s*"[^"]*"\}\s*'), '').trim();
+                  fullText = fullText
+                      .replaceAll(
+                          RegExp(r'\s*\{"title"\s*:\s*"[^"]*"\}\s*'), '')
+                      .trim();
                 }
               }
             }
@@ -1500,35 +1689,35 @@ Note: Could not extract text content from this file. Please describe what you'd 
       }
 
       // Debug: Log final state
-      print('[OpenAIService-Stream] 📊 Final state: text=${fullText.length} chars, images=${images.length}');
+      _log(
+          '[OpenAIService-Stream] 📊 Final state: text=${fullText.length} chars, images=${images.length}');
 
       // Emit final done event
-      print('[OpenAIService-Stream] ✅ Stream complete - text: ${fullText.length} chars, images: ${images.length}, title: $title');
+      _log(
+          '[OpenAIService-Stream] ✅ Stream complete - text: ${fullText.length} chars, images: ${images.length}, title: $title');
       yield StreamEvent.done(
         fullText: fullText,
         title: title,
         images: images.isNotEmpty ? images : null,
         files: files.isNotEmpty ? files : null,
       );
-
     } catch (e) {
       yield StreamEvent.error('Stream error: $e');
     }
   }
 
   // Transcribe audio using OpenAI's Whisper API
-  Future<String?> transcribeAudio(List<int> audioBytes, {String? language}) async {
-    if (_apiKey == null) {
-      //// print('Error: OpenAI API key not found');
+  Future<String?> transcribeAudio(List<int> audioBytes,
+      {String? language}) async {
+    if (!_isConfigured) {
+      //// _log('Error: OpenAI transport not configured');
       return null;
     }
 
     // Create a multipart request
-    final request = http.MultipartRequest('POST', Uri.parse(_audioTranscriptionUrl));
-    // Add the API key to the headers
-    request.headers.addAll({
-      'Authorization': 'Bearer $_apiKey',
-    });
+    final request =
+        http.MultipartRequest('POST', Uri.parse(_audioTranscriptionUrl));
+    request.headers.addAll(_buildHeaders(includeJsonContentType: false));
 
     // Add the audio file as a multipart field
     request.files.add(
@@ -1538,7 +1727,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
         filename: 'audio.webm', // The filename matters for the MIME type
       ),
     );
-    //// print('Added audio file to request (${audioBytes.length} bytes)');
+    //// _log('Added audio file to request (${audioBytes.length} bytes)');
 
     // Add parameters
     request.fields['model'] = 'whisper-1';
@@ -1546,41 +1735,38 @@ Note: Could not extract text content from this file. Please describe what you'd 
     // Smart language detection - let Whisper auto-detect if no language specified
     if (language != null) {
       request.fields['language'] = language;
-      //// print('Using specified language: $language');
+      //// _log('Using specified language: $language');
     } else {
       // Don't specify language - let Whisper auto-detect for maximum flexibility
-      //// print('Using auto-detection for language recognition');
+      //// _log('Using auto-detection for language recognition');
     }
 
     // Add prompt that prioritizes English and Chinese but supports other languages
-    request.fields['prompt'] = 'This is a natural conversation, most likely in English or Chinese. Please transcribe accurately with proper punctuation and formatting.';
+    request.fields['prompt'] =
+        'This is a natural conversation, most likely in English or Chinese. Please transcribe accurately with proper punctuation and formatting.';
 
-    //// print('Whisper transcription configured with flexible language detection and context prompt');
+    //// _log('Whisper transcription configured with flexible language detection and context prompt');
     try {
-      final stopwatch = Stopwatch()..start();
-
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-
-      final elapsed = stopwatch.elapsedMilliseconds;
-      //// print('Response received in ${elapsed}ms');
+      //// _log('Response received in ${elapsed}ms');
 
       if (response.statusCode == 200) {
-        //// print('Success - Status code: ${response.statusCode}');
+        //// _log('Success - Status code: ${response.statusCode}');
 
         final data = jsonDecode(response.body);
         final transcription = data['text'];
 
-        //// print('Transcription result (${transcription.length} chars): "${transcription.substring(0, min(100, transcription.length))}${transcription.length > 100 ? '...' : ''}"');
+        //// _log('Transcription result (${transcription.length} chars): "${transcription.substring(0, min(100, transcription.length))}${transcription.length > 100 ? '...' : ''}"');
         return transcription;
       } else {
-        //// print('Error - Status code: ${response.statusCode}');
-        //// print('Error response: ${response.body.substring(0, min(200, response.body.length))}...');
+        //// _log('Error - Status code: ${response.statusCode}');
+        //// _log('Error response: ${response.body.substring(0, min(200, response.body.length))}...');
         return null;
       }
     } catch (e) {
-      //// print('Exception in OpenAI Whisper API call: $e');
-      //// print('Stack trace: ${StackTrace.current}');
+      //// _log('Exception in OpenAI Whisper API call: $e');
+      //// _log('Stack trace: ${StackTrace.current}');
       return null;
     }
   }
@@ -1589,6 +1775,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
     required List<Map<String, String>> history,
     required String userName,
   }) async {
+    if (!_isConfigured) {
+      return {};
+    }
+
     String systemPrompt = """
 You are an AI analyst tasked with understanding the user's characteristics from their conversation history.
 Analyze the conversation and extract key characteristics about the user. Focus on:
@@ -1603,16 +1793,17 @@ Be concise and specific. Only include characteristics you're confident about.
 """;
 
     final userMessage = [
-      {'role': 'user', 'content': 'Analyze this conversation history and extract user characteristics: ${jsonEncode(history)}'},
+      {
+        'role': 'user',
+        'content':
+            'Analyze this conversation history and extract user characteristics: ${jsonEncode(history)}'
+      },
     ];
 
     try {
       final response = await _httpPostWithTimeout(
         _baseUrl,
-        {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
-        },
+        _buildHeaders(),
         jsonEncode({
           'model': _chatMiniModel,
           'instructions': systemPrompt, // System prompt as separate field
@@ -1653,14 +1844,14 @@ Be concise and specific. Only include characteristics you're confident about.
             // Parse the AI's response as JSON
             return jsonDecode(content) as Map<String, dynamic>;
           } catch (e) {
-            //// print('Error parsing characteristics JSON: $e');
+            //// _log('Error parsing characteristics JSON: $e');
             return {};
           }
         }
       }
       return {};
     } catch (e) {
-      //// print('Error analyzing user characteristics: $e');
+      //// _log('Error analyzing user characteristics: $e');
       return {};
     }
   }
@@ -1673,9 +1864,9 @@ Be concise and specific. Only include characteristics you're confident about.
     required String author,
   }) async {
     try {
-      //// print('[PPTXGenerator] Creating presentation with title: $title');
-      //// print('[PPTXGenerator] Number of slides: ${slides.length}');
-      //// print('[PPTXGenerator] Theme: $theme, Author: $author');
+      //// _log('[PPTXGenerator] Creating presentation with title: $title');
+      //// _log('[PPTXGenerator] Number of slides: ${slides.length}');
+      //// _log('[PPTXGenerator] Theme: $theme, Author: $author');
 
       // Use a more basic and compatible approach
       final pres = FlutterPowerPoint();
@@ -1696,14 +1887,14 @@ Be concise and specific. Only include characteristics you're confident about.
         final slideContent = slide['content'] as String? ?? '';
         final slideType = slide['type'] as String? ?? 'content';
 
-        //// print('[PPTXGenerator] Adding slide ${i + 1}: $slideTitle (type: $slideType)');
+        //// _log('[PPTXGenerator] Adding slide ${i + 1}: $slideTitle (type: $slideType)');
 
         // Clean and validate text content
         final cleanTitle = _cleanText(slideTitle);
         final cleanContent = _cleanText(slideContent);
 
         if (cleanTitle.isEmpty && cleanContent.isEmpty) {
-          //// print('[PPTXGenerator] Skipping empty slide ${i + 1}');
+          //// _log('[PPTXGenerator] Skipping empty slide ${i + 1}');
           continue;
         }
 
@@ -1714,7 +1905,8 @@ Be concise and specific. Only include characteristics you're confident about.
                 // First slide should be title slide
                 pres.addTitleSlide(
                   title: cleanTitle.toTextValue(),
-                  author: (cleanContent.isNotEmpty ? cleanContent : author).toTextValue(),
+                  author: (cleanContent.isNotEmpty ? cleanContent : author)
+                      .toTextValue(),
                 );
                 addedSlides = true;
               } else {
@@ -1773,7 +1965,7 @@ Be concise and specific. Only include characteristics you're confident about.
               break;
           }
         } catch (e) {
-          //// print('[PPTXGenerator] Error adding slide ${i + 1}: $e');
+          //// _log('[PPTXGenerator] Error adding slide ${i + 1}: $e');
           // Try adding a simple text slide as fallback
           try {
             pres.addTitleOnlySlide(
@@ -1782,14 +1974,14 @@ Be concise and specific. Only include characteristics you're confident about.
             );
             addedSlides = true;
           } catch (e2) {
-            //// print('[PPTXGenerator] Failed to add fallback slide: $e2');
+            //// _log('[PPTXGenerator] Failed to add fallback slide: $e2');
           }
         }
       }
 
       // If no slides were successfully added, create a basic title slide
       if (!addedSlides) {
-        //// print('[PPTXGenerator] No slides added, creating default title slide');
+        //// _log('[PPTXGenerator] No slides added, creating default title slide');
         pres.addTitleSlide(
           title: _cleanText(title).toTextValue(),
           author: _cleanText(author).toTextValue(),
@@ -1799,20 +1991,21 @@ Be concise and specific. Only include characteristics you're confident about.
       // Generate the PPTX file with better error handling
       final bytes = await pres.save();
       if (bytes == null || bytes.isEmpty) {
-        //// print('[PPTXGenerator] Failed to generate PPTX bytes - null or empty result');
+        //// _log('[PPTXGenerator] Failed to generate PPTX bytes - null or empty result');
         return null;
       }
 
       // Validate minimum file size (a valid PPTX should be at least a few KB)
       if (bytes.length < 1024) {
-        //// print('[PPTXGenerator] Generated file too small (${bytes.length} bytes), likely corrupted');
+        //// _log('[PPTXGenerator] Generated file too small (${bytes.length} bytes), likely corrupted');
         return null;
       }
 
       // Save to documents directory with improved path handling
       final directory = await getApplicationDocumentsDirectory();
       final cleanFileName = _createSafeFileName(title);
-      final fileName = '${cleanFileName}_${DateTime.now().millisecondsSinceEpoch}.pptx';
+      final fileName =
+          '${cleanFileName}_${DateTime.now().millisecondsSinceEpoch}.pptx';
       final filePath = '${directory.path}/$fileName';
 
       final file = File(filePath);
@@ -1820,18 +2013,17 @@ Be concise and specific. Only include characteristics you're confident about.
 
       // Verify file was written successfully
       if (!await file.exists()) {
-        //// print('[PPTXGenerator] File was not created successfully');
+        //// _log('[PPTXGenerator] File was not created successfully');
         return null;
       }
 
-      final fileSize = await file.length();
-      //// print('[PPTXGenerator] PPTX file saved to: $filePath');
-      //// print('[PPTXGenerator] File size: $fileSize bytes');
+      //// _log('[PPTXGenerator] PPTX file saved to: $filePath');
+      //// _log('[PPTXGenerator] File size: $fileSize bytes');
 
       return filePath;
     } catch (e) {
-      //// print('[PPTXGenerator] Error generating PPTX: $e');
-      //// print('[PPTXGenerator] Stack trace: $stackTrace');
+      //// _log('[PPTXGenerator] Error generating PPTX: $e');
+      //// _log('[PPTXGenerator] Stack trace: $stackTrace');
       return null;
     }
   }
@@ -1842,9 +2034,11 @@ Be concise and specific. Only include characteristics you're confident about.
 
     // Remove problematic characters that might cause OOXML issues
     return input
-        .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'), '') // Control characters
+        .replaceAll(RegExp(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]'),
+            '') // Control characters
         .replaceAll(RegExp(r'[\uFFFE\uFFFF]'), '') // Invalid Unicode
-        .replaceAll(RegExp(r'&(?![a-zA-Z]+;)'), '&amp;') // Escape unescaped ampersands
+        .replaceAll(
+            RegExp(r'&(?![a-zA-Z]+;)'), '&amp;') // Escape unescaped ampersands
         .replaceAll('<', '&lt;')
         .replaceAll('>', '&gt;')
         .trim();
@@ -1872,11 +2066,18 @@ Be concise and specific. Only include characteristics you're confident about.
   bool _shouldTreatAsBullets(String content) {
     if (content.isEmpty) return false;
 
-    final lines = content.split('\n').where((line) => line.trim().isNotEmpty).toList();
+    final lines =
+        content.split('\n').where((line) => line.trim().isNotEmpty).toList();
     if (lines.length < 2) return false;
 
     // Check if multiple lines start with bullet indicators
-    final bulletLines = lines.where((line) => line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*') || line.trim().startsWith('+')).length;
+    final bulletLines = lines
+        .where((line) =>
+            line.trim().startsWith('•') ||
+            line.trim().startsWith('-') ||
+            line.trim().startsWith('*') ||
+            line.trim().startsWith('+'))
+        .length;
 
     return bulletLines >= 2 && bulletLines >= (lines.length * 0.5);
   }
@@ -1893,7 +2094,7 @@ Be concise and specific. Only include characteristics you're confident about.
       return '${truncated.substring(0, lastSpace)}...';
     }
 
-    return '${truncated}...';
+    return '$truncated...';
   }
 
   // Helper method to create safe file names
@@ -1901,7 +2102,8 @@ Be concise and specific. Only include characteristics you're confident about.
     if (input.isEmpty) return 'document';
 
     String cleaned = input
-        .replaceAll(RegExp(r'[^\w\s\-]'), '') // Remove special chars except word chars, spaces, hyphens
+        .replaceAll(RegExp(r'[^\w\s\-]'),
+            '') // Remove special chars except word chars, spaces, hyphens
         .replaceAll(RegExp(r'\s+'), '_') // Replace spaces with underscores
         .replaceAll(RegExp(r'_+'), '_') // Collapse multiple underscores
         .trim();
@@ -1923,12 +2125,13 @@ Be concise and specific. Only include characteristics you're confident about.
     required List<Map<String, dynamic>> recentMessages,
     required String currentUserMessage,
   }) async {
-    if (_apiKey == null) {
+    if (!_isConfigured) {
       return false;
     }
 
     // Take the LAST (most recent) 10 messages for context, in reverse chronological order
-    final lastMessages = recentMessages.reversed.take(10).toList().reversed.toList();
+    final lastMessages =
+        recentMessages.reversed.take(10).toList().reversed.toList();
 
     final intentDetectionPrompt = """
 You are an intent analyzer. Analyze the conversation context and the user's latest message to determine if the user is REQUESTING ACTION related to PowerPoint presentations, slides, or PPTX files.
@@ -1958,19 +2161,21 @@ Answer ONLY with "YES" or "NO" - nothing else.
     final inputMessages = [
       ...lastMessages,
       {'role': 'user', 'content': currentUserMessage},
-      {'role': 'user', 'content': 'Based on the conversation context and my latest message, am I REQUESTING ACTION related to PowerPoint presentations?'}
+      {
+        'role': 'user',
+        'content':
+            'Based on the conversation context and my latest message, am I REQUESTING ACTION related to PowerPoint presentations?'
+      }
     ];
 
     try {
       final response = await _httpPostWithTimeout(
         _baseUrl,
-        {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_apiKey',
-        },
+        _buildHeaders(),
         jsonEncode({
           'model': _chatMiniModel, // Use gpt-5-nano for intent detection
-          'instructions': intentDetectionPrompt, // System prompt as separate field
+          'instructions':
+              intentDetectionPrompt, // System prompt as separate field
           'input': inputMessages, // Only conversation + user messages
           'max_output_tokens': 10, // Very short response needed
           'reasoning': {
@@ -2001,22 +2206,20 @@ Answer ONLY with "YES" or "NO" - nothing else.
         }
         // Fallback: Check for Chat Completions format
         else if (data.containsKey('choices') && data['choices'].isNotEmpty) {
-          content = data['choices'][0]['message']['content']?.toString().trim().toLowerCase();
+          content = data['choices'][0]['message']['content']
+              ?.toString()
+              .trim()
+              .toLowerCase();
         }
 
-        //// print('[OpenAIService] Presentation intent detection result: $content');
-        //// print('[OpenAIService] Current user message: ${currentUserMessage.substring(0, min(100, currentUserMessage.length))}...');
-        //// print('[OpenAIService] Recent messages for context: ${lastMessages.length} messages');
-        for (int i = 0; i < lastMessages.length && i < 3; i++) {
-          final msg = lastMessages[i];
-          final preview = msg['content']?.toString().substring(0, min(50, msg['content']?.toString().length ?? 0)) ?? '';
-          //// print('[OpenAIService] Message ${i + 1}: ${msg['role']} - "$preview..."');
-        }
+        //// _log('[OpenAIService] Presentation intent detection result: $content');
+        //// _log('[OpenAIService] Current user message: ${currentUserMessage.substring(0, min(100, currentUserMessage.length))}...');
+        //// _log('[OpenAIService] Recent messages for context: ${lastMessages.length} messages');
         return content?.contains('yes') ?? false;
       }
       return false;
     } catch (e) {
-      //// print('[OpenAIService] Error in presentation intent detection: $e');
+      //// _log('[OpenAIService] Error in presentation intent detection: $e');
       return false;
     }
   }
@@ -2070,7 +2273,9 @@ Answer ONLY with "YES" or "NO" - nothing else.
     ];
 
     for (final greeting in greetings) {
-      if (lowerMessage == greeting || lowerMessage.startsWith('$greeting ') || lowerMessage.startsWith('$greeting,')) {
+      if (lowerMessage == greeting ||
+          lowerMessage.startsWith('$greeting ') ||
+          lowerMessage.startsWith('$greeting,')) {
         return true;
       }
     }
@@ -2124,10 +2329,14 @@ Answer ONLY with "YES" or "NO" - nothing else.
       if (jsonStart == -1) {
         // Try finding other JSON patterns
         final altStart = cleaned.indexOf('{');
-        if (altStart != -1 && cleaned.substring(altStart, altStart + 100).contains('"search_results"')) {
+        if (altStart != -1 &&
+            cleaned
+                .substring(altStart, altStart + 100)
+                .contains('"search_results"')) {
           final endBrace = cleaned.indexOf('}', altStart);
           if (endBrace != -1) {
-            cleaned = cleaned.substring(0, altStart) + cleaned.substring(endBrace + 1);
+            cleaned = cleaned.substring(0, altStart) +
+                cleaned.substring(endBrace + 1);
           }
         }
         break;
@@ -2185,8 +2394,12 @@ Answer ONLY with "YES" or "NO" - nothing else.
           trimmedLine.startsWith("Now let me") ||
           trimmedLine.startsWith("First, I'll") ||
           trimmedLine.startsWith("Next, I'll") ||
-          (trimmedLine.contains("search") && trimmedLine.contains("for") && trimmedLine.startsWith("I")) ||
-          (trimmedLine.contains("pull") && trimmedLine.contains("data") && trimmedLine.startsWith("I")) ||
+          (trimmedLine.contains("search") &&
+              trimmedLine.contains("for") &&
+              trimmedLine.startsWith("I")) ||
+          (trimmedLine.contains("pull") &&
+              trimmedLine.contains("data") &&
+              trimmedLine.startsWith("I")) ||
           (trimmedLine.contains("grab") && trimmedLine.startsWith("I"));
 
       // If we haven't found main content yet, skip thinking lines
@@ -2213,7 +2426,8 @@ Answer ONLY with "YES" or "NO" - nothing else.
             trimmedLine.startsWith("In summary") ||
             trimmedLine.contains("is trading") ||
             trimmedLine.contains("stock price") ||
-            (trimmedLine.length > 50 && !isThinkingLine); // Longer lines are likely content
+            (trimmedLine.length > 50 &&
+                !isThinkingLine); // Longer lines are likely content
 
         if (isMainContentStart) {
           foundMainContent = true;
@@ -2288,17 +2502,25 @@ Answer ONLY with "YES" or "NO" - nothing else.
     }
 
     // Alternative approach: look for the last paragraph that seems like a summary/conclusion
-    final lines = cleaned.split('\n').where((line) => line.trim().isNotEmpty).toList();
+    final lines =
+        cleaned.split('\n').where((line) => line.trim().isNotEmpty).toList();
     if (lines.isNotEmpty) {
       // Find lines that look like final answers (contain key info without JSON)
       final meaningfulLines = lines.where((line) {
         final trimmed = line.trim();
         // Skip lines that are clearly JSON or tool data
-        if (trimmed.startsWith('{') || trimmed.startsWith('[') || trimmed.contains('"title":') || trimmed.contains('"snippet":') || trimmed.contains('"link":') || trimmed.contains('search_results')) {
+        if (trimmed.startsWith('{') ||
+            trimmed.startsWith('[') ||
+            trimmed.contains('"title":') ||
+            trimmed.contains('"snippet":') ||
+            trimmed.contains('"link":') ||
+            trimmed.contains('search_results')) {
           return false;
         }
         // Skip very short lines unless they're headers
-        if (trimmed.length < 20 && !trimmed.startsWith('**') && !trimmed.startsWith('#')) {
+        if (trimmed.length < 20 &&
+            !trimmed.startsWith('**') &&
+            !trimmed.startsWith('#')) {
           return false;
         }
         return true;
@@ -2314,55 +2536,36 @@ Answer ONLY with "YES" or "NO" - nothing else.
     }
 
     // Final cleanup - remove any remaining artifacts
-    cleaned = cleaned.replaceAll(RegExp(r'^\s*[\{\[].*[\}\]]\s*$', multiLine: true), ''); // Remove JSON lines
-    cleaned = cleaned.replaceAll(RegExp(r'search_results?'), ''); // Remove search result mentions
-    cleaned = cleaned.replaceAll(RegExp(r'\{[^}]*\}'), ''); // Remove any remaining JSON objects
-    cleaned = cleaned.replaceAll(RegExp(r'\[[^\]]*\]'), ''); // Remove any arrays
+    cleaned = cleaned.replaceAll(
+        RegExp(r'^\s*[\{\[].*[\}\]]\s*$', multiLine: true),
+        ''); // Remove JSON lines
+    cleaned = cleaned.replaceAll(
+        RegExp(r'search_results?'), ''); // Remove search result mentions
+    cleaned = cleaned.replaceAll(
+        RegExp(r'\{[^}]*\}'), ''); // Remove any remaining JSON objects
+    cleaned =
+        cleaned.replaceAll(RegExp(r'\[[^\]]*\]'), ''); // Remove any arrays
 
     // Clean up excessive whitespace
-    cleaned = cleaned.replaceAll(RegExp(r'\n\s*\n\s*\n'), '\n\n'); // Multiple newlines to double
+    cleaned = cleaned.replaceAll(
+        RegExp(r'\n\s*\n\s*\n'), '\n\n'); // Multiple newlines to double
     cleaned = cleaned.trim();
 
     return cleaned;
   }
 
-  /// Helper to extract images from various possible response formats
-  /// Handles: direct URL string, b64_json, Map with url/image_url/b64_json, List of images
-  static void _extractImagesFromData(dynamic data, List<String> imageUrls) {
-    if (data == null) return;
-
-    if (data is String) {
-      // Could be a URL or base64 data
-      if (data.startsWith('http://') || data.startsWith('https://')) {
-        imageUrls.add(data);
-      } else if (data.length > 100) {
-        // Likely base64 data
-        imageUrls.add('data:image/png;base64,$data');
-      }
-    } else if (data is Map) {
-      // Check various possible field names
-      if (data['url'] != null) {
-        imageUrls.add(data['url'] as String);
-      } else if (data['image_url'] != null) {
-        imageUrls.add(data['image_url'] as String);
-      } else if (data['b64_json'] != null) {
-        imageUrls.add('data:image/png;base64,${data['b64_json']}');
-      } else if (data['b64'] != null) {
-        imageUrls.add('data:image/png;base64,${data['b64']}');
-      } else if (data['base64'] != null) {
-        imageUrls.add('data:image/png;base64,${data['base64']}');
-      } else if (data['data'] != null) {
-        // Nested data field - recurse
-        _extractImagesFromData(data['data'], imageUrls);
-      } else if (data['image'] != null) {
-        _extractImagesFromData(data['image'], imageUrls);
-      }
-    } else if (data is List) {
-      // List of images
-      for (final item in data) {
-        _extractImagesFromData(item, imageUrls);
-      }
-    }
+  static bool _looksLikePresentationRequest(String message) {
+    final lower = message.toLowerCase();
+    final mentionsDeck = lower.contains('presentation') ||
+        lower.contains('powerpoint') ||
+        lower.contains('slides') ||
+        lower.contains('slide deck') ||
+        lower.contains('pptx');
+    final actionVerb = lower.contains('create') ||
+        lower.contains('make') ||
+        lower.contains('generate') ||
+        lower.contains('build');
+    return mentionsDeck && actionVerb;
   }
 }
 

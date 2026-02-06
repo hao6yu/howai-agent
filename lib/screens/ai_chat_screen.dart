@@ -7,8 +7,6 @@ import 'dart:math' as math;
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:pdf/pdf.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
@@ -27,6 +25,15 @@ import '../utils/chat_utils.dart';
 import '../services/image_service.dart';
 import '../services/audio_service.dart';
 import '../services/message_service.dart';
+import '../services/pdf_service.dart';
+import '../services/chat_speech_service.dart';
+import '../services/device_tts_service.dart';
+import '../services/chat_attachment_service.dart';
+import '../services/pdf_workflow_service.dart';
+import '../services/loading_message_service.dart';
+import '../services/chat_translation_service.dart';
+import '../services/chat_audio_listener_service.dart';
+import '../constants/chat_ui_constants.dart';
 
 import '../models/chat_message.dart';
 import '../services/database_service.dart';
@@ -53,21 +60,12 @@ import '../services/chat_integration_helper.dart';
 import '../services/profile_translation_service.dart';
 import '../services/feature_showcase_service.dart';
 import '../utils/language_utils.dart';
+import '../utils/location_query_detector.dart';
+import '../utils/conversation_guard.dart';
+import '../utils/chat_snackbar_service.dart';
 import '../widgets/language_selection_popup.dart';
 import '../widgets/full_language_selection_dialog.dart';
-
-// Add LocationQueryInfo class definition
-class LocationQueryInfo {
-  final String category;
-  final String query;
-  final String originalText;
-
-  LocationQueryInfo({
-    required this.category,
-    required this.query,
-    required this.originalText,
-  });
-}
+import '../widgets/location_search_dialog.dart';
 
 class AiChatScreen extends StatefulWidget {
   final VoidCallback? onNavigateToGuide;
@@ -81,13 +79,15 @@ class AiChatScreen extends StatefulWidget {
   State<AiChatScreen> createState() => _AiChatScreenState();
 }
 
-class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMixin {
+class _AiChatScreenState extends State<AiChatScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final DatabaseService _databaseService = DatabaseService();
   final OpenAIService _openAIService = OpenAIService();
   final ElevenLabsService _elevenLabsService = ElevenLabsService();
-  final SpeechRecognitionService _speechRecognitionService = SpeechRecognitionService();
+  final SpeechRecognitionService _speechRecognitionService =
+      SpeechRecognitionService();
   final AudioRecorderService _audioRecorderService = AudioRecorderService();
 
   // Add a FocusNode for the text input
@@ -152,8 +152,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   // PDF auto-conversion timer
   Timer? _pdfAutoConversionTimer;
   int _pdfCountdown = 0;
-  bool _isSelectingForPdf = false; // Flag to track if we're selecting images for PDF
-  bool _isPdfWorkflowActive = false; // Track if current images are for PDF workflow
+  bool _isSelectingForPdf =
+      false; // Flag to track if we're selecting images for PDF
+  bool _isPdfWorkflowActive =
+      false; // Track if current images are for PDF workflow
 
   // Add these state variables:
   Duration _aiLoadingTimeout = const Duration(seconds: 300); // 5 minutes
@@ -165,44 +167,6 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   bool _requestCancelled = false; // Flag to track if request was cancelled
   String? _currentRequestId; // Track current request to prevent duplicates
   int _loadingMessageIndex = 0;
-  
-  // Dynamic loading messages like Claude Code
-  static const List<String> _thinkingMessages = [
-    'is thinking...',
-    'is pondering...',
-    'is analyzing...',
-    'is considering...',
-    'is processing...',
-    'is working on it...',
-    'is figuring it out...',
-    'is contemplating...',
-    'is reasoning...',
-    'is crafting a response...',
-  ];
-  
-  static const List<String> _deepThinkingMessages = [
-    'is deep reasoning...',
-    'is thinking deeply...',
-    'is analyzing in depth...',
-    'is doing heavy lifting...',
-    'is crunching the data...',
-    'is exploring possibilities...',
-    'is diving deep...',
-    'is connecting the dots...',
-    'is synthesizing insights...',
-    'is reasoning step by step...',
-  ];
-  
-  static const List<String> _longWaitMessages = [
-    'is still working...',
-    'is almost there...',
-    'just a bit longer...',
-    'working hard on this...',
-    'taking extra care...',
-    'putting finishing touches...',
-    'wrapping things up...',
-    'hang tight...',
-  ];
 
   Map<int, String> _translatedMessages = {};
   int _translationPreferenceVersion = 0;
@@ -279,10 +243,11 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
     // Listen for conversation selection changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
       conversationProvider.addListener(_onConversationChanged);
     });
-    
+
     // Listen for auth sync completion to refresh conversations
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -299,29 +264,31 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
     // Initialize feature showcase
     _initializeFeatureShowcase();
-    
+
     // Setup real-time sync for current conversation
     _setupRealtimeSync();
   }
-  
+
   // Setup real-time sync for the current conversation
   void _setupRealtimeSync() async {
     try {
-      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
       final currentConv = conversationProvider.selectedConversation;
-      
+
       if (currentConv?.id != null) {
         final currentConvId = currentConv!.id!;
         // Get the UUID for this conversation
         final idMapping = IDMappingService();
         await idMapping.initialize();
         final conversationUuid = idMapping.getConversationUUID(currentConvId);
-        
+
         if (conversationUuid != null) {
           // Subscribe to real-time updates for this conversation
           final syncService = SyncService();
           await syncService.watchConversation(conversationUuid);
-          debugPrint('[AIChatScreen] Subscribed to real-time updates for conversation: $conversationUuid');
+          debugPrint(
+              '[AIChatScreen] Subscribed to real-time updates for conversation: $conversationUuid');
         }
       }
     } catch (e) {
@@ -334,7 +301,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   void _loadDisplayModePreference() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedMode = prefs.getBool('display_mode_is_tools') ?? false; // Default to chat mode for new users
+      final savedMode = prefs.getBool('display_mode_is_tools') ??
+          false; // Default to chat mode for new users
       setState(() {
         _isToolsMode = savedMode;
       });
@@ -394,7 +362,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     }
 
     // Get features from service (single source of truth)
-    final features = FeatureShowcaseService.getFeaturesForCurrentVersion(context);
+    final features =
+        FeatureShowcaseService.getFeaturesForCurrentVersion(context);
     final keysToShow = _mapFeaturesToKeys(features);
 
     if (keysToShow.isEmpty) {
@@ -441,7 +410,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
   // Get showcase data for a specific feature ID
   ShowcaseFeature? _getShowcaseFeature(String featureId) {
-    final features = FeatureShowcaseService.getFeaturesForCurrentVersion(context);
+    final features =
+        FeatureShowcaseService.getFeaturesForCurrentVersion(context);
     return features.firstWhere((feature) => feature.id == featureId,
         orElse: () => ShowcaseFeature(
               id: featureId,
@@ -450,60 +420,32 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
             ));
   }
 
-  // Helper method to validate voice map
-  bool _isValidVoiceMap(Map<String, String> voice) {
-    return voice.containsKey('name') && voice['name'] != null && voice['name']!.isNotEmpty;
-  }
-
   Future<void> _initializeDeviceTTS() async {
-    try {
-      _flutterTts = FlutterTts();
-
-      // Set basic TTS properties first
-      await _flutterTts!.setLanguage("en-US");
-      await _flutterTts!.setSpeechRate(0.5); // Optimized for clarity
-      await _flutterTts!.setVolume(1.0);
-      await _flutterTts!.setPitch(1.0);
-
-      // DO NOT set custom voice during initialization to avoid crashes
-      // Voice will be set later when actually speaking if needed
-
-      // Set completion handler
-      _flutterTts!.setCompletionHandler(() {
-        //// print('[DeviceTTS] TTS playback completed');
+    _flutterTts = await DeviceTtsService.initialize(
+      onComplete: () {
         if (mounted) {
           setState(() {
             _isDeviceTTSPlaying = false;
             _currentPlayingMessageId = null;
           });
         }
-      });
-
-      // Set start handler
-      _flutterTts!.setStartHandler(() {
-        //// print('[DeviceTTS] TTS playback started');
+      },
+      onStart: () {
         if (mounted) {
           setState(() {
             _isDeviceTTSPlaying = true;
           });
         }
-      });
-
-      // Set cancel handler
-      _flutterTts!.setCancelHandler(() {
-        //// print('[DeviceTTS] TTS playback cancelled');
+      },
+      onCancel: () {
         if (mounted) {
           setState(() {
             _isDeviceTTSPlaying = false;
             _currentPlayingMessageId = null;
           });
         }
-      });
-
-      //// print('[DeviceTTS] Device TTS initialized successfully');
-    } catch (e) {
-      //// print('[DeviceTTS] Error initializing device TTS: $e');
-    }
+      },
+    );
   }
 
   @override
@@ -535,10 +477,11 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
     // Remove conversation listener
     try {
-      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
       conversationProvider.removeListener(_onConversationChanged);
     } catch (e) {}
-    
+
     // Remove auth listener
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -546,7 +489,7 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     } catch (e) {}
 
     // Dispose device TTS
-    _flutterTts?.stop();
+    DeviceTtsService.stop(_flutterTts);
     _flutterTts = null;
 
     super.dispose();
@@ -554,31 +497,28 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
   // PDF Auto-conversion methods
   void _startPdfAutoConversionTimer() {
-    // Cancel any existing timer
     _pdfAutoConversionTimer?.cancel();
-
     if (_pendingImages.isEmpty) return;
 
-    // Start countdown from 3 seconds
     setState(() {
-      _pdfCountdown = 3;
+      _pdfCountdown = ChatUiConstants.pdfAutoConvertCountdownSeconds;
     });
 
-    _pdfAutoConversionTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-      setState(() {
-        _pdfCountdown--;
-      });
-
-      if (_pdfCountdown <= 0) {
-        timer.cancel();
+    _pdfAutoConversionTimer = PdfWorkflowService.startAutoConversionTimer(
+      countdownSeconds: ChatUiConstants.pdfAutoConvertCountdownSeconds,
+      onTick: (nextCountdown) {
+        if (!mounted) return;
+        setState(() {
+          _pdfCountdown = nextCountdown;
+        });
+      },
+      onComplete: () {
         _pdfAutoConversionTimer = null;
-
-        // Auto-convert to PDF
         if (_pendingImages.isNotEmpty) {
           _onConvertToPdfPressed();
         }
-      }
-    });
+      },
+    );
   }
 
   void _cancelPdfAutoConversion() {
@@ -590,13 +530,18 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   }
 
   void _onScroll() {
-    if (_scrollController.hasClients && _scrollController.offset <= 100 && !_isLoadingMore && _hasMore && !_isLoading) {
+    if (_scrollController.hasClients &&
+        _scrollController.offset <= 100 &&
+        !_isLoadingMore &&
+        _hasMore &&
+        !_isLoading) {
       _loadMoreMessages();
     }
   }
 
   Future<void> _loadMessages({bool initial = true}) async {
-    final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+    final conversationProvider =
+        Provider.of<ConversationProvider>(context, listen: false);
     final selectedConversation = conversationProvider.selectedConversation;
 
     // If we have a selected conversation, load messages for that conversation
@@ -684,7 +629,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     }
 
     // NEW: Don't add welcome message on landing page - only add when user starts a conversation
-    final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+    final conversationProvider =
+        Provider.of<ConversationProvider>(context, listen: false);
     if (conversationProvider.selectedConversation == null) {
       return; // Don't add welcome message on landing page
     }
@@ -700,7 +646,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       isUserMessage: false,
       timestamp: DateTime.now().toIso8601String(),
       profileId: _currentProfileId,
-      isWelcomeMessage: true, // Add a flag to identify this as the welcome message
+      isWelcomeMessage:
+          true, // Add a flag to identify this as the welcome message
     );
 
     // Save to database
@@ -722,39 +669,46 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   // Voice demo preparation using service
   Future<void> _prepareVoiceDemoPlayer() async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    await AudioService.prepareVoiceDemoPlayer(useSpeakerOutput: settings.useSpeakerOutput);
+    await AudioService.prepareVoiceDemoPlayer(
+        useSpeakerOutput: settings.useSpeakerOutput);
   }
 
   // Start rotating loading messages
-  void _startLoadingMessageRotation(String aiName, {bool isDeepResearch = false, bool isLongWait = false}) {
+  void _startLoadingMessageRotation(String aiName,
+      {bool isDeepResearch = false, bool isLongWait = false}) {
     _loadingMessageRotationTimer?.cancel();
     _loadingMessageIndex = 0;
-    
-    // Set initial message
-    final messages = isLongWait 
-        ? _longWaitMessages 
-        : (isDeepResearch ? _deepThinkingMessages : _thinkingMessages);
-    
-    // Shuffle for variety (use a copy to not modify original)
-    final shuffled = List<String>.from(messages)..shuffle();
-    
+
+    final shuffled = LoadingMessageService.shuffledMessages(
+      isDeepResearch: isDeepResearch,
+      isLongWait: isLongWait,
+    );
+
     setState(() {
-      _aiLoadingMessage = '$aiName ${shuffled[0]}';
+      _aiLoadingMessage = LoadingMessageService.buildMessage(
+        aiName: aiName,
+        shuffledMessages: shuffled,
+        index: 0,
+      );
     });
-    
-    // Rotate every 2-3 seconds
-    _loadingMessageRotationTimer = Timer.periodic(const Duration(milliseconds: 2500), (timer) {
+
+    _loadingMessageRotationTimer =
+        Timer.periodic(ChatUiConstants.loadingRotationInterval, (timer) {
       if (!_isSending || !mounted) {
         timer.cancel();
         return;
       }
       _loadingMessageIndex = (_loadingMessageIndex + 1) % shuffled.length;
       setState(() {
-        _aiLoadingMessage = '$aiName ${shuffled[_loadingMessageIndex]}';
+        _aiLoadingMessage = LoadingMessageService.buildMessage(
+          aiName: aiName,
+          shuffledMessages: shuffled,
+          index: _loadingMessageIndex,
+        );
       });
     });
   }
-  
+
   // Stop rotating loading messages
   void _stopLoadingMessageRotation() {
     _loadingMessageRotationTimer?.cancel();
@@ -785,7 +739,7 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     required String aiName,
   }) async {
     final timestamp = DateTime.now().toIso8601String();
-    
+
     // Don't add placeholder yet - just show typing indicator
     // Message will be added when first text arrives
     setState(() {
@@ -814,7 +768,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
     // Helper to extract title from text
     String? _extractTitle(String text) {
-      final titleMatch = RegExp(r'\{"title"\s*:\s*"([^"]+)"\}').firstMatch(text);
+      final titleMatch =
+          RegExp(r'\{"title"\s*:\s*"([^"]+)"\}').firstMatch(text);
       return titleMatch?.group(1);
     }
 
@@ -844,7 +799,7 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
           case StreamEventType.textDelta:
             // Append delta to full text
             fullText += event.textDelta ?? '';
-            
+
             // Strip title JSON if present and extract title
             if (title == null && generateTitle) {
               title = _extractTitle(fullText);
@@ -866,7 +821,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                   _messages.add(newMessage);
                   _streamingMessageIndex = _messages.length - 1;
                   _streamingMessageAdded = true;
-                  _isSending = false; // Hide typing indicator, show message instead
+                  _isSending =
+                      false; // Hide typing indicator, show message instead
                 });
                 lastRenderedText = displayText;
                 lastUiUpdateAt = DateTime.now();
@@ -874,10 +830,12 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   _scrollToBottom(animated: true);
                 });
-              } else if (_streamingMessageIndex != null && _streamingMessageIndex! < _messages.length) {
+              } else if (_streamingMessageIndex != null &&
+                  _streamingMessageIndex! < _messages.length) {
                 // Throttle UI updates to avoid excessive full-list rebuilds/flicker.
                 final now = DateTime.now();
-                final shouldUpdateUi = lastUiUpdateAt == null || now.difference(lastUiUpdateAt!) >= uiUpdateInterval;
+                final shouldUpdateUi = lastUiUpdateAt == null ||
+                    now.difference(lastUiUpdateAt!) >= uiUpdateInterval;
                 final isTextChanged = displayText != lastRenderedText;
 
                 if (shouldUpdateUi && isTextChanged) {
@@ -895,7 +853,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                   lastRenderedText = displayText;
                   lastUiUpdateAt = now;
 
-                  final shouldAutoScroll = lastAutoScrollAt == null || now.difference(lastAutoScrollAt!) >= autoScrollInterval;
+                  final shouldAutoScroll = lastAutoScrollAt == null ||
+                      now.difference(lastAutoScrollAt!) >= autoScrollInterval;
                   if (shouldAutoScroll) {
                     lastAutoScrollAt = now;
                     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -922,7 +881,9 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
           case StreamEventType.error:
             print('[ChatScreen] Streaming error: ${event.error}');
             // Remove message on error if it was added
-            if (_streamingMessageAdded && _streamingMessageIndex != null && _streamingMessageIndex! < _messages.length) {
+            if (_streamingMessageAdded &&
+                _streamingMessageIndex != null &&
+                _streamingMessageIndex! < _messages.length) {
               setState(() {
                 _messages.removeAt(_streamingMessageIndex!);
               });
@@ -958,7 +919,9 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       }
 
       // Remove the streaming message - it will be re-added by the normal flow with proper DB save
-      if (_streamingMessageAdded && _streamingMessageIndex != null && _streamingMessageIndex! < _messages.length) {
+      if (_streamingMessageAdded &&
+          _streamingMessageIndex != null &&
+          _streamingMessageIndex! < _messages.length) {
         setState(() {
           _messages.removeAt(_streamingMessageIndex!);
         });
@@ -975,11 +938,12 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         'images': images,
         'files': files,
       };
-
     } catch (e) {
       print('[ChatScreen] Streaming exception: $e');
       // Remove message on exception if it was added
-      if (_streamingMessageAdded && _streamingMessageIndex != null && _streamingMessageIndex! < _messages.length) {
+      if (_streamingMessageAdded &&
+          _streamingMessageIndex != null &&
+          _streamingMessageIndex! < _messages.length) {
         setState(() {
           _messages.removeAt(_streamingMessageIndex!);
         });
@@ -1016,8 +980,11 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     return imageNouns.hasMatch(lower) && imageVerbs.hasMatch(lower);
   }
 
-  Future<void> _sendMessage(String text, [List<XFile>? images, List<PlatformFile>? files]) async {
-    if (text.trim().isEmpty && (images == null || images.isEmpty) && (files == null || files.isEmpty)) return;
+  Future<void> _sendMessage(String text,
+      [List<XFile>? images, List<PlatformFile>? files]) async {
+    if (text.trim().isEmpty &&
+        (images == null || images.isEmpty) &&
+        (files == null || files.isEmpty)) return;
 
     // Hide keyboard immediately when sending message
     FocusScope.of(context).unfocus();
@@ -1059,7 +1026,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     }
 
     // Get subscription service
-    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
 
     // Check image analysis limits if images are present (but don't consume usage yet)
     if (images != null && images.isNotEmpty) {
@@ -1077,27 +1045,35 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     // File analysis is handled at the UI level - files should only reach here if user has access
 
     // Generate unique request ID for this send operation
-    final requestId = 'req_${DateTime.now().millisecondsSinceEpoch}_${text.hashCode.abs()}';
+    final requestId =
+        'req_${DateTime.now().millisecondsSinceEpoch}_${text.hashCode.abs()}';
     _currentRequestId = requestId;
 
     // Clear any existing message lists before starting a new conversation
-    if (Provider.of<ConversationProvider>(context, listen: false).selectedConversation == null) {
+    if (Provider.of<ConversationProvider>(context, listen: false)
+            .selectedConversation ==
+        null) {
       setState(() {
         _messages = [];
       });
     }
 
     // Ensure a conversation exists before saving a message
-    final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+    final conversationProvider =
+        Provider.of<ConversationProvider>(context, listen: false);
     bool isNewConversation = conversationProvider.selectedConversation == null;
-    int? conversationId = isNewConversation ? null : conversationProvider.selectedConversation!.id;
+    int? conversationId = isNewConversation
+        ? null
+        : conversationProvider.selectedConversation!.id;
 
     // Get the current settings and profile from the providers
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final profileProvider =
+        Provider.of<ProfileProvider>(context, listen: false);
 
     // Get the latest profile name and characteristics
-    final currentProfile = await _databaseService.getProfile(_currentProfileId!);
+    final currentProfile =
+        await _databaseService.getProfile(_currentProfileId!);
     final currentProfileName = currentProfile?.name ?? 'User';
     final userCharacteristics = currentProfile?.characteristics ?? {};
 
@@ -1117,26 +1093,38 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       isUserMessage: true,
       timestamp: DateTime.now().toIso8601String(),
       profileId: _currentProfileId,
-      imagePaths: images != null && images.isNotEmpty ? images.map((x) => x.path).toList() : null,
+      imagePaths: images != null && images.isNotEmpty
+          ? images.map((x) => x.path).toList()
+          : null,
       conversationId: conversationId, // May be null for new conversations
-      filePaths: files != null && files.isNotEmpty ? files.map((f) => f.path ?? f.name).toList() : null,
+      filePaths: files != null && files.isNotEmpty
+          ? files.map((f) => f.path ?? f.name).toList()
+          : null,
     );
 
     //// print('[ChatScreen] User message created with filePaths: ${userMessage.filePaths}');
 
     // Filter messages by conversation ID before building history
     final conversationMessages = conversationId == null
-        ? _messages.where((msg) => msg.conversationId == null).toList() // For new conversations, only use messages without conversation ID
-        : _messages.where((msg) => msg.conversationId == conversationId).toList(); // For existing conversations, only use messages from this conversation
+        ? _messages
+            .where((msg) => msg.conversationId == null)
+            .toList() // For new conversations, only use messages without conversation ID
+        : _messages
+            .where((msg) => msg.conversationId == conversationId)
+            .toList(); // For existing conversations, only use messages from this conversation
 
     // Add the current user message to the filtered list if not already included
     // This ensures the current message is part of the history even before it's added to _messages
-    if (!conversationMessages.any((msg) => msg.isUserMessage && msg.message == userMessage.message && msg.timestamp == userMessage.timestamp)) {
+    if (!conversationMessages.any((msg) =>
+        msg.isUserMessage &&
+        msg.message == userMessage.message &&
+        msg.timestamp == userMessage.timestamp)) {
       conversationMessages.add(userMessage);
     }
 
     // Sort messages by timestamp to ensure proper order
-    conversationMessages.sort((a, b) => DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)));
+    conversationMessages.sort((a, b) =>
+        DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)));
 
     final history = conversationMessages
         .take(50) // Take last 50 messages for context
@@ -1150,28 +1138,35 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     dynamic aiPersonality;
     String aiName = 'HowAI'; // Default fallback matching createDefault()
     if (_currentProfileId != null) {
-      final personalityProvider = Provider.of<AIPersonalityProvider>(context, listen: false);
+      final personalityProvider =
+          Provider.of<AIPersonalityProvider>(context, listen: false);
       await personalityProvider.loadPersonalityForProfile(_currentProfileId!);
-      aiPersonality = personalityProvider.getPersonalityForProfile(_currentProfileId!);
+      aiPersonality =
+          personalityProvider.getPersonalityForProfile(_currentProfileId!);
       if (aiPersonality != null && aiPersonality.aiName.isNotEmpty) {
         aiName = aiPersonality.aiName;
       }
     }
 
     // Set loading state first
-    final isDeepResearchMode = _forceDeepResearch && subscriptionService.isPremium;
+    final isDeepResearchMode =
+        _forceDeepResearch && subscriptionService.isPremium;
     setState(() {
       _isSending = true;
       _textController.clear();
       _messageCountSinceLastAnalysis++;
-      _isPdfWorkflowActive = false; // Reset PDF workflow flag when sending message
+      _isPdfWorkflowActive =
+          false; // Reset PDF workflow flag when sending message
     });
     _startLoadingMessageRotation(aiName, isDeepResearch: isDeepResearchMode);
 
     // Add message to UI state AFTER building the history, but check for duplicates
     setState(() {
       // Check if this exact message already exists to prevent duplicates
-      bool messageExists = _messages.any((existing) => existing.message == userMessage.message && existing.timestamp == userMessage.timestamp && existing.isUserMessage == userMessage.isUserMessage);
+      bool messageExists = _messages.any((existing) =>
+          existing.message == userMessage.message &&
+          existing.timestamp == userMessage.timestamp &&
+          existing.isUserMessage == userMessage.isUserMessage);
 
       if (!messageExists) {
         _messages.add(userMessage);
@@ -1192,7 +1187,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       if (userMessageId != null) {
         setState(() {
           // Find the message in our state and update it with the ID from DB
-          int index = _messages.indexWhere((msg) => msg.isUserMessage && msg.message == text && msg.timestamp == userMessage.timestamp);
+          int index = _messages.indexWhere((msg) =>
+              msg.isUserMessage &&
+              msg.message == text &&
+              msg.timestamp == userMessage.timestamp);
           if (index != -1) {
             // Create a new message with the ID
             final updatedMessage = ChatMessage(
@@ -1245,7 +1243,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       // AI personality was already loaded earlier for the loading message
 
       // Check if we have recent places data that could be relevant for this query
-      String? placesContext = _getRecentPlacesContext(text, conversationMessages);
+      String? placesContext =
+          _getRecentPlacesContext(text, conversationMessages);
 
       // If user is asking for analysis but no places found, add a specific instruction
       String finalMessage = text;
@@ -1254,7 +1253,13 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       } else {
         // Check if user is asking for place analysis without having place data
         final lowerText = text.toLowerCase();
-        final isPlaceAnalysisRequest = (lowerText.contains('suggest') || lowerText.contains('recommend') || lowerText.contains('best') || lowerText.contains('top')) && (lowerText.contains('place') || lowerText.contains('restaurant') || lowerText.contains('location'));
+        final isPlaceAnalysisRequest = (lowerText.contains('suggest') ||
+                lowerText.contains('recommend') ||
+                lowerText.contains('best') ||
+                lowerText.contains('top')) &&
+            (lowerText.contains('place') ||
+                lowerText.contains('restaurant') ||
+                lowerText.contains('location'));
 
         if (isPlaceAnalysisRequest) {
           finalMessage =
@@ -1263,7 +1268,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       }
 
       // Determine if we should use deep research mode
-      final isDeepResearchMode = _forceDeepResearch && subscriptionService.isPremium;
+      final isDeepResearchMode =
+          _forceDeepResearch && subscriptionService.isPremium;
       if (isDeepResearchMode) {
         // print('[ChatScreen] Deep Research Mode ENABLED - Using reasoning model');
       }
@@ -1272,8 +1278,11 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       // Disable streaming for:
       // 1) deep research mode (reasoning takes too long to stream)
       // 2) image-generation style requests (streaming path skips image tool)
-      final isLikelyImageGenerationRequest = _looksLikeImageGenerationRequest(finalMessage);
-      final useStreaming = settings.useStreaming && !isDeepResearchMode && !isLikelyImageGenerationRequest;
+      final isLikelyImageGenerationRequest =
+          _looksLikeImageGenerationRequest(finalMessage);
+      final useStreaming = settings.useStreaming &&
+          !isDeepResearchMode &&
+          !isLikelyImageGenerationRequest;
       print(
         '[ChatScreen] Streaming decision => useStreaming=$useStreaming '
         '(settings.useStreaming=${settings.useStreaming}, '
@@ -1350,14 +1359,16 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
             await subscriptionService.tryUseDocumentAnalysis();
             // Show usage reminder for free users
             final remaining = subscriptionService.remainingDocumentAnalysis;
-            final settings = Provider.of<SettingsProvider>(context, listen: false);
+            final settings =
+                Provider.of<SettingsProvider>(context, listen: false);
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
                       "Document analysis used. You have $remaining uses remaining.",
-                      style: TextStyle(fontSize: settings.getScaledFontSize(14)),
+                      style:
+                          TextStyle(fontSize: settings.getScaledFontSize(14)),
                     ),
                     duration: Duration(seconds: 2),
                     backgroundColor: Colors.blue,
@@ -1371,9 +1382,11 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         String aiText = response['text'] as String? ?? '';
         List<String>? generatedImages = response['images'] as List<String>?;
         List<String>? generatedFiles = response['files'] as List<String>?;
-        
+
         // Strip any title JSON that may have leaked into the response text (anywhere in text)
-        aiText = aiText.replaceAll(RegExp(r'\s*\{"title"\s*:\s*"[^"]*"\}\s*'), '').trim();
+        aiText = aiText
+            .replaceAll(RegExp(r'\s*\{"title"\s*:\s*"[^"]*"\}\s*'), '')
+            .trim();
 
         // Debug: Log the received files
         //// print('[ChatScreen] Received response from OpenAI:');
@@ -1390,11 +1403,14 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         if (isNewConversation) {
           String? conversationTitle = response['title'] as String?;
           if (conversationTitle != null && conversationTitle.isNotEmpty) {
-            await conversationProvider.createConversation(conversationTitle, _currentProfileId);
+            await conversationProvider.createConversation(
+                conversationTitle, _currentProfileId);
           } else {
             // Fallback to local title generation if AI didn't provide one
-            String generatedTitle = MessageService.generateConversationTitle(text);
-            await conversationProvider.createConversation(generatedTitle, _currentProfileId);
+            String generatedTitle =
+                MessageService.generateConversationTitle(text);
+            await conversationProvider.createConversation(
+                generatedTitle, _currentProfileId);
           }
 
           // Now we have a conversation ID
@@ -1407,42 +1423,35 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
           // This prevents duplicate AI responses when the conversation is created
           _isCreatingNewConversation = true;
 
-          // Update all messages in our state and database with this conversation ID
-          if (userMessageId != null) {
-            try {
-              // Find our message in the state
-              int messageIndex = -1;
-              for (int i = 0; i < _messages.length; i++) {
-                if (_messages[i].id == userMessageId) {
-                  messageIndex = i;
-                  break;
-                }
-              }
+          await _ensureUserMessageAssignedToConversation(
+            originalUserMessage: userMessage,
+            userMessageId: userMessageId,
+            conversationId: conversationId!,
+          );
 
-              if (messageIndex != -1) {
-                // Create a new message with the updated conversation ID
-                final updatedUserMessage = ChatMessage(
-                  id: userMessageId,
-                  message: _messages[messageIndex].message,
-                  isUserMessage: _messages[messageIndex].isUserMessage,
-                  timestamp: _messages[messageIndex].timestamp,
-                  profileId: _messages[messageIndex].profileId,
-                  imagePaths: _messages[messageIndex].imagePaths,
-                  conversationId: conversationId,
-                  filePaths: _messages[messageIndex].filePaths,
-                );
-
-                // Update in the database
-                await _databaseService.updateChatMessage(updatedUserMessage);
-
-                // Update in state
-                setState(() {
-                  _messages[messageIndex] = updatedUserMessage;
-                });
-              } else {}
-            } catch (e) {
-              //debug
-            }
+          // Defensive: guarantee the just-sent user message is present in the new conversation UI.
+          final hasCurrentUserMessage = _messages.any((m) =>
+              m.isUserMessage &&
+              m.conversationId == conversationId &&
+              m.timestamp == userMessage.timestamp &&
+              m.message == userMessage.message);
+          if (!hasCurrentUserMessage) {
+            setState(() {
+              _messages.add(ChatMessage(
+                id: userMessageId,
+                message: userMessage.message,
+                isUserMessage: true,
+                timestamp: userMessage.timestamp,
+                profileId: userMessage.profileId,
+                imagePaths: userMessage.imagePaths,
+                imageUrls: userMessage.imageUrls,
+                filePaths: userMessage.filePaths,
+                conversationId: conversationId,
+                isWelcomeMessage: userMessage.isWelcomeMessage,
+                locationResults: userMessage.locationResults,
+                messageType: userMessage.messageType,
+              ));
+            });
           }
         } else {
           conversationId = conversationProvider.selectedConversation!.id;
@@ -1467,22 +1476,38 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
           );
 
           // Filter to only this conversation's messages
-          final existingConversationMessages = currentMessages.where((m) => m.conversationId == conversationId).toList();
+          final existingConversationMessages = currentMessages
+              .where((m) => m.conversationId == conversationId)
+              .toList();
 
           // Check if this exact AI message already exists in the database
           // IMPORTANT: Also check file paths to avoid treating messages with different files as duplicates
-          final serializedGeneratedFiles = generatedFiles != null && generatedFiles.isNotEmpty ? jsonEncode(generatedFiles) : null;
-          final serializedGeneratedImages = generatedImages != null && generatedImages.isNotEmpty ? jsonEncode(generatedImages) : null;
+          final serializedGeneratedFiles =
+              generatedFiles != null && generatedFiles.isNotEmpty
+                  ? jsonEncode(generatedFiles)
+                  : null;
+          final serializedGeneratedImages =
+              generatedImages != null && generatedImages.isNotEmpty
+                  ? jsonEncode(generatedImages)
+                  : null;
           final aiMessageExists = existingConversationMessages.any((existing) =>
               !existing.isUserMessage && // Only check AI messages
-                  existing.message == aiText && // Same content
-                  existing.conversationId == conversationId && // Same conversation
-                  // Also compare file paths
-                  (((existing.filePaths == null || existing.filePaths!.isEmpty) && (generatedFiles == null || generatedFiles.isEmpty)) ||
-                   (existing.filePaths != null && generatedFiles != null && jsonEncode(existing.filePaths) == serializedGeneratedFiles)) &&
-                  // Also compare image paths
-                  (((existing.imagePaths == null || existing.imagePaths!.isEmpty) && (generatedImages == null || generatedImages.isEmpty)) ||
-                   (existing.imagePaths != null && generatedImages != null && jsonEncode(existing.imagePaths) == serializedGeneratedImages)));
+              existing.message == aiText && // Same content
+              existing.conversationId == conversationId && // Same conversation
+              // Also compare file paths
+              (((existing.filePaths == null || existing.filePaths!.isEmpty) &&
+                      (generatedFiles == null || generatedFiles.isEmpty)) ||
+                  (existing.filePaths != null &&
+                      generatedFiles != null &&
+                      jsonEncode(existing.filePaths) ==
+                          serializedGeneratedFiles)) &&
+              // Also compare image paths
+              (((existing.imagePaths == null || existing.imagePaths!.isEmpty) &&
+                      (generatedImages == null || generatedImages.isEmpty)) ||
+                  (existing.imagePaths != null &&
+                      generatedImages != null &&
+                      jsonEncode(existing.imagePaths) ==
+                          serializedGeneratedImages)));
 
           if (aiMessageExists) {
             //// print('[ChatScreen] Detected duplicate AI message - skipping creation');
@@ -1627,7 +1652,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
           // Find the most recent AI message with matching content
           final matchingMessage = recentMessages.firstWhere(
-            (msg) => !msg.isUserMessage && msg.message == aiText && msg.conversationId == conversationId,
+            (msg) =>
+                !msg.isUserMessage &&
+                msg.message == aiText &&
+                msg.conversationId == conversationId,
             orElse: () => ChatMessage(
               message: '',
               isUserMessage: false,
@@ -1640,41 +1668,33 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
           if (matchingMessage.id != null) {
             String? audioPath;
 
-            // Use subscription-aware audio generation
-            if (subscriptionService.isPremium) {
-              // Check if premium user can use ElevenLabs
-              final canUseElevenLabs = await subscriptionService.tryUseElevenLabsTTS();
-              if (canUseElevenLabs) {
-                // Premium users get ElevenLabs TTS
-                audioPath = await _generateAndPlayAudioForMessage(aiText, settings.selectedVoiceId);
-              } else {
-                // Fallback to device TTS even for premium if ElevenLabs fails
-                audioPath = await _generateAndPlayDeviceTTS(aiText);
-              }
-            } else {
-              // Free users get device TTS
-              if (subscriptionService.canUseDeviceTTS()) {
-                audioPath = await _generateAndPlayDeviceTTS(aiText);
-              }
-            }
+            audioPath = await ChatSpeechService.generateSubscriptionAwareAudio(
+              isPremium: subscriptionService.isPremium,
+              tryUseElevenLabsTts: () =>
+                  subscriptionService.tryUseElevenLabsTTS(),
+              canUseDeviceTTS: () => subscriptionService.canUseDeviceTTS(),
+              generateElevenLabsAudio: () =>
+                  ChatSpeechService.generateAndPlayAudioForMessage(
+                message: aiText,
+                voiceId: settings.selectedVoiceId,
+                elevenLabsService: _elevenLabsService,
+                playAudio: _playAudio,
+              ),
+              generateDeviceTtsAudio: () => _generateAndPlayDeviceTTS(aiText),
+            );
 
             if (audioPath != null) {
-              final updatedAiMessage = ChatMessage(
-                id: matchingMessage.id,
-                message: matchingMessage.message,
-                isUserMessage: false,
-                timestamp: matchingMessage.timestamp,
-                profileId: _currentProfileId,
-                imagePaths: null,
-                conversationId: conversationId,
+              await _persistAudioPathForMessage(
+                sourceMessage: matchingMessage,
                 audioPath: audioPath,
+                clearImagePaths: true,
               );
-              await _databaseService.updateChatMessage(updatedAiMessage);
             }
           } else {}
         }
         // Analyze user characteristics if we've reached the threshold
-        if (_messageCountSinceLastAnalysis >= _analysisThreshold && _currentProfileId != null) {
+        if (_messageCountSinceLastAnalysis >= _analysisThreshold &&
+            _currentProfileId != null) {
           _analyzeUserCharacteristics(history);
           _messageCountSinceLastAnalysis = 0;
         }
@@ -1685,7 +1705,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
         // Only access context if widget is still mounted
         if (mounted) {
-          _showErrorSnackBar(AppLocalizations.of(context)!.sorryCouldNotRespond);
+          _showErrorSnackBar(
+              AppLocalizations.of(context)!.sorryCouldNotRespond);
           setState(() {
             _isSending = false;
             _isCreatingNewConversation = false;
@@ -1716,361 +1737,20 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
   // Detect location query method
   LocationQueryInfo? _detectLocationQuery(String text) {
-    final lowerText = text.toLowerCase();
-
-    // Skip location detection if this is clearly an analysis request about existing results
-    final isAnalysisRequest = lowerText.contains('suggest') && (lowerText.contains('from the list') || lowerText.contains('top ') || lowerText.contains('best')) ||
-        lowerText.contains('recommend') && (lowerText.contains('from the list') || lowerText.contains('top ') || lowerText.contains('best')) ||
-        lowerText.contains('explain why') ||
-        lowerText.contains('analyze') ||
-        lowerText.contains('compare') ||
-        lowerText.contains('choose') ||
-        lowerText.contains('pick');
-
-    if (isAnalysisRequest) {
-      // print('[DEBUG] Skipping location detection - this is an analysis request: $text');
-      return null;
-    }
-
-    // Food-related query patterns
-    final foodPatterns = [
-      // Chinese patterns
-      RegExp(r'附近.*?(餐厅|饭店|美食|吃饭|吃的|火锅|烧烤|日料|韩料|川菜|粤菜|湘菜|东北菜)', caseSensitive: false),
-      RegExp(r'(哪里|哪儿).*?(好吃|美食|餐厅|饭店)', caseSensitive: false),
-      RegExp(r'推荐.*?(餐厅|美食|吃饭|饭店)', caseSensitive: false),
-
-      // English patterns
-      RegExp(r'(restaurants?|food|eating|dining).*?(near|nearby|around|close)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|close).*?(restaurants?|food|eating|dining)', caseSensitive: false),
-      RegExp(r'(recommend|suggest|find).*?(restaurants?|food|places to eat)', caseSensitive: false),
-      RegExp(r'(where.*?(eat|dine|food)|best.*?(restaurants?|food))', caseSensitive: false),
-      RegExp(r'(good|best).*(pizza|burger|sushi|chinese|italian|mexican|thai|indian)', caseSensitive: false),
-      // Location-based patterns with "in"
-      RegExp(r'(restaurants?|food|places|dining).*?(in|at)\s+\w+', caseSensitive: false), // "restaurants in area"
-      RegExp(r'(any|find|looking for).*(restaurants?|food|places to eat)', caseSensitive: false), // "any restaurants"
-      RegExp(r'(pizza|burger|sushi|chinese|italian|mexican|thai|indian|coffee).*?(in|at)\s+\w+', caseSensitive: false), // "pizza in 77479"
-    ];
-
-    // Bar/nightlife related queries
-    final barPatterns = [
-      // Chinese
-      RegExp(r'附近.*?(酒吧|夜店|清吧|夜生活|喝酒)', caseSensitive: false),
-      RegExp(r'(哪里|哪儿).*?(喝酒|酒吧)', caseSensitive: false),
-
-      // English
-      RegExp(r'(bars?|nightlife|drinking|cocktails?).*?(near|nearby|around)', caseSensitive: false),
-      RegExp(r'(near|nearby|around).*?(bars?|nightlife|drinking)', caseSensitive: false),
-      RegExp(r'(find|recommend).*(bars?|nightlife|drinks)', caseSensitive: false),
-    ];
-
-    // Coffee shop related
-    final cafePatterns = [
-      RegExp(r'(coffee|cafe|咖啡).*?(near|nearby|around|附近)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|附近).*?(coffee|cafe|咖啡)', caseSensitive: false),
-      RegExp(r'(coffee|cafe|咖啡).*?(in|at)\s+\w+', caseSensitive: false),
-      RegExp(r'(any|find|looking for).*?(coffee|cafe)', caseSensitive: false),
-    ];
-
-    // Shopping related
-    final shoppingPatterns = [
-      RegExp(r'(shopping|mall|store|商场|购物).*?(near|nearby|around|附近)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|附近).*?(shopping|mall|store|商场|购物)', caseSensitive: false),
-    ];
-
-    // Dessert/ice cream related
-    final dessertPatterns = [
-      RegExp(r'(ice cream|gelato|dessert|sweet|bakery|cake|donut|甜品|冰淇淋|蛋糕|面包房).*?(near|nearby|around|附近)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|附近).*?(ice cream|gelato|dessert|sweet|bakery|cake|donut|甜品|冰淇淋|蛋糕)', caseSensitive: false),
-      RegExp(r'(find|looking for|any).*?(ice cream|gelato|dessert|sweet|bakery)', caseSensitive: false),
-    ];
-
-    // Parking related
-    final parkingPatterns = [
-      RegExp(r'(parking|garage|park.*car|停车|停车场).*?(near|nearby|around|附近)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|附近).*?(parking|garage|停车)', caseSensitive: false),
-      RegExp(r'(find|looking for|need).*?(parking|garage|place to park)', caseSensitive: false),
-    ];
-
-    // Restroom related
-    final restroomPatterns = [
-      RegExp(r'(restroom|bathroom|toilet|washroom|wc|洗手间|厕所|卫生间).*?(near|nearby|around|附近)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|附近).*?(restroom|bathroom|toilet|washroom|洗手间|厕所)', caseSensitive: false),
-      RegExp(r'(find|looking for|need).*?(restroom|bathroom|toilet|washroom)', caseSensitive: false),
-    ];
-
-    // Beauty/Spa related
-    final beautyPatterns = [
-      RegExp(r'(beauty|salon|spa|nail|hair|massage|美容|美发|按摩|指甲).*?(near|nearby|around|附近)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|附近).*?(beauty|salon|spa|nail|hair|massage|美容|美发)', caseSensitive: false),
-      RegExp(r'(find|looking for).*?(beauty|salon|spa|nail salon|hair salon)', caseSensitive: false),
-    ];
-
-    // Pharmacy related
-    final pharmacyPatterns = [
-      RegExp(r'(pharmacy|drugstore|medicine|药店|药房|医药).*?(near|nearby|around|附近)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|附近).*?(pharmacy|drugstore|medicine|药店|药房)', caseSensitive: false),
-      RegExp(r'(find|looking for|need).*?(pharmacy|drugstore|medicine)', caseSensitive: false),
-    ];
-
-    // ATM related
-    final atmPatterns = [
-      RegExp(r'(atm|cash|withdraw|money|取款机|提款机|现金).*?(near|nearby|around|附近)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|附近).*?(atm|cash|withdraw|取款机)', caseSensitive: false),
-      RegExp(r'(find|looking for|need).*?(atm|cash machine|money)', caseSensitive: false),
-    ];
-
-    // Laundry related
-    final laundryPatterns = [
-      RegExp(r'(laundry|laundromat|dry.*clean|洗衣|干洗).*?(near|nearby|around|附近)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|附近).*?(laundry|laundromat|dry.*clean|洗衣)', caseSensitive: false),
-      RegExp(r'(find|looking for|need).*?(laundry|laundromat|dry cleaning)', caseSensitive: false),
-    ];
-
-    // Attractions related
-    final attractionPatterns = [
-      RegExp(r'(attractions?|tourist|sightseeing|景点|旅游|游玩).*?(near|nearby|around|附近)', caseSensitive: false),
-      RegExp(r'(near|nearby|around|附近).*?(attractions?|tourist|sightseeing|景点|旅游)', caseSensitive: false),
-    ];
-
-    // General location query patterns with zip codes, area codes etc
-    final generalLocationPatterns = [
-      RegExp(r'(any|find|looking for|show me|list).*?(shops?|stores?|places?).*?(in|at)\s+\d{5}', caseSensitive: false), // "any shops in 77479"
-      RegExp(r'(any|find|looking for|show me|list).*?(in|at)\s+\w+\s+(area|city|town|neighborhood)', caseSensitive: false), // "any coffee in area"
-      RegExp(r'\b\d{5}\b.*?(area|region|zip|code)', caseSensitive: false), // "77479 area"
-    ];
-
-    // Check various patterns and return corresponding query info
-    for (final pattern in foodPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'restaurant',
-          query: _extractFoodQuery(text),
-          originalText: text,
-        );
-      }
-    }
-
-    for (final pattern in barPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'night_club',
-          query: _extractBarQuery(text),
-          originalText: text,
-        );
-      }
-    }
-
-    for (final pattern in cafePatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'cafe',
-          query: 'coffee shops',
-          originalText: text,
-        );
-      }
-    }
-
-    for (final pattern in shoppingPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'shopping_mall',
-          query: 'shopping',
-          originalText: text,
-        );
-      }
-    }
-
-    for (final pattern in attractionPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'tourist_attraction',
-          query: 'attractions',
-          originalText: text,
-        );
-      }
-    }
-
-    // Check dessert/ice cream patterns
-    for (final pattern in dessertPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'convenience_store',
-          query: 'ice cream desserts',
-          originalText: text,
-        );
-      }
-    }
-
-    // Check parking patterns
-    for (final pattern in parkingPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'parking',
-          query: 'parking garage',
-          originalText: text,
-        );
-      }
-    }
-
-    // Check restroom patterns
-    for (final pattern in restroomPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'restroom',
-          query: 'public restroom',
-          originalText: text,
-        );
-      }
-    }
-
-    // Check beauty/spa patterns
-    for (final pattern in beautyPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'beauty_salon',
-          query: 'beauty spa salon',
-          originalText: text,
-        );
-      }
-    }
-
-    // Check pharmacy patterns
-    for (final pattern in pharmacyPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'pharmacy',
-          query: 'pharmacy drugstore',
-          originalText: text,
-        );
-      }
-    }
-
-    // Check ATM patterns
-    for (final pattern in atmPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'atm',
-          query: 'atm cash machine',
-          originalText: text,
-        );
-      }
-    }
-
-    // Check laundry patterns
-    for (final pattern in laundryPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        return LocationQueryInfo(
-          category: 'laundry',
-          query: 'laundromat dry cleaning',
-          originalText: text,
-        );
-      }
-    }
-
-    // Check general location query patterns
-    for (final pattern in generalLocationPatterns) {
-      if (pattern.hasMatch(lowerText)) {
-        // Infer category based on message content
-        String category = 'restaurant'; // default
-        String query = text;
-
-        if (lowerText.contains('coffee') || lowerText.contains('cafe')) {
-          category = 'cafe';
-          query = 'coffee shops';
-        } else if (lowerText.contains('shop') || lowerText.contains('store')) {
-          category = 'shopping_mall';
-          query = 'shops';
-        } else if (lowerText.contains('restaurant') || lowerText.contains('food')) {
-          category = 'restaurant';
-          query = 'restaurants';
-        } else if (lowerText.contains('bar') || lowerText.contains('drink')) {
-          category = 'night_club';
-          query = 'bars';
-        } else if (lowerText.contains('ice cream') || lowerText.contains('dessert')) {
-          category = 'convenience_store';
-          query = 'ice cream desserts';
-        } else if (lowerText.contains('parking') || lowerText.contains('garage')) {
-          category = 'parking';
-          query = 'parking garage';
-        } else if (lowerText.contains('restroom') || lowerText.contains('bathroom')) {
-          category = 'restroom';
-          query = 'public restroom';
-        }
-
-        return LocationQueryInfo(
-          category: category,
-          query: query,
-          originalText: text,
-        );
-      }
-    }
-
-    return null; // No location query detected
-  }
-
-  String _extractFoodQuery(String text) {
-    final lowerText = text.toLowerCase();
-
-    // Try to extract specific food types
-    final foodKeywords = {
-      'pizza': 'pizza places',
-      'burger': 'burger joints',
-      'sushi': 'sushi restaurants',
-      'chinese': 'chinese restaurants',
-      'italian': 'italian restaurants',
-      'mexican': 'mexican restaurants',
-      'thai': 'thai restaurants',
-      'indian': 'indian restaurants',
-      'korean': 'korean restaurants',
-      'japanese': 'japanese restaurants',
-      'vietnamese': 'vietnamese restaurants',
-      'seafood': 'seafood restaurants',
-      'steakhouse': 'steakhouses',
-      'bbq': 'bbq restaurants',
-      'breakfast': 'breakfast places',
-      'lunch': 'lunch spots',
-      'dinner': 'dinner restaurants',
-
-      // Chinese food types
-      '火锅': 'hot pot restaurants',
-      '烧烤': 'bbq restaurants',
-      '日料': 'japanese restaurants',
-      '韩料': 'korean restaurants',
-      '川菜': 'sichuan restaurants',
-      '粤菜': 'cantonese restaurants',
-      '湘菜': 'hunan restaurants',
-      '东北菜': 'northeastern chinese restaurants',
-    };
-
-    for (final keyword in foodKeywords.keys) {
-      if (lowerText.contains(keyword)) {
-        return foodKeywords[keyword]!;
-      }
-    }
-
-    return 'restaurants'; // default return
-  }
-
-  String _extractBarQuery(String text) {
-    final lowerText = text.toLowerCase();
-
-    if (lowerText.contains('cocktail')) return 'cocktail bars';
-    if (lowerText.contains('wine')) return 'wine bars';
-    if (lowerText.contains('beer')) return 'beer bars';
-    if (lowerText.contains('rooftop')) return 'rooftop bars';
-    if (lowerText.contains('sports')) return 'sports bars';
-
-    return 'bars'; // default return
+    return LocationQueryDetector.detect(text);
   }
 
   // Handle location query method
-  Future<void> _handleLocationQuery(String originalText, LocationQueryInfo queryInfo) async {
+  Future<void> _handleLocationQuery(
+      String originalText, LocationQueryInfo queryInfo) async {
     try {
       //// print('[LocationQuery] Auto-detected location query: ${queryInfo.query} (category: ${queryInfo.category})');
 
       // Create user message first
-      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
-      int? messageConversationId = conversationProvider.selectedConversation?.id;
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
+      int? messageConversationId =
+          conversationProvider.selectedConversation?.id;
       bool createdNewConversation = false;
 
       // If no conversation exists, create one
@@ -2078,7 +1758,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         createdNewConversation = true;
         final String searchTitle = "Places Explorer: ${queryInfo.query}";
 
-        await conversationProvider.createConversation(searchTitle, _currentProfileId);
+        await conversationProvider.createConversation(
+            searchTitle, _currentProfileId);
         messageConversationId = conversationProvider.selectedConversation?.id;
 
         if (messageConversationId == null) {
@@ -2125,7 +1806,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       if (places.isNotEmpty) {
         // Create AI response message with location results
         final locationResultsMessage = ChatMessage(
-          message: "🗺️ **Found ${places.length} great ${queryInfo.query} near you!**\n\nTap below to explore these locations with photos, ratings, and directions.",
+          message:
+              "🗺️ **Found ${places.length} great ${queryInfo.query} near you!**\n\nTap below to explore these locations with photos, ratings, and directions.",
           isUserMessage: false,
           timestamp: DateTime.now().toIso8601String(),
           profileId: _currentProfileId,
@@ -2185,7 +1867,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       //// print('[LocationQuery] Error handling location query: $e');
 
       // Create error message
-      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
       final errorMessage = ChatMessage(
         message:
             "❌ Sorry, I had trouble searching for ${queryInfo.query} near you. This might be because:\n\n• Location services are disabled\n• Network connectivity issues\n• The search service is temporarily unavailable\n\nPlease check your location settings and try again, or feel free to ask me something else!",
@@ -2221,9 +1904,13 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
             final isFreeUserWithLimit = !subscriptionService.isPremium;
             final remaining = subscriptionService.remainingPlacesExplorer;
 
-            String dialogTitle = isFreeUserWithLimit && remaining <= 0 ? 'Places Explorer Limit Reached' : 'Smart Location Detection';
+            String dialogTitle = isFreeUserWithLimit && remaining <= 0
+                ? 'Places Explorer Limit Reached'
+                : 'Smart Location Detection';
 
-            String mainMessage = isFreeUserWithLimit && remaining <= 0 ? 'You\'ve used all ${subscriptionService.limits.placesExplorerWeekly} weekly place searches. Your limit will reset next week!' : 'I detected you\'re looking for local recommendations!';
+            String mainMessage = isFreeUserWithLimit && remaining <= 0
+                ? 'You\'ve used all ${subscriptionService.limits.placesExplorerWeekly} weekly place searches. Your limit will reset next week!'
+                : 'I detected you\'re looking for local recommendations!';
 
             return AlertDialog(
               title: Row(
@@ -2245,7 +1932,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     child: Text(
                       dialogTitle,
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isSmallScreen ? 16 : 18),
+                        fontSize:
+                            settings.getScaledFontSize(isSmallScreen ? 16 : 18),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -2278,7 +1966,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     Text(
                       mainMessage,
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isSmallScreen ? 14 : 16),
+                        fontSize:
+                            settings.getScaledFontSize(isSmallScreen ? 14 : 16),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -2291,12 +1980,19 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                       ),
                     ),
                     SizedBox(height: 4),
-                    ...['• Unlimited places exploration', '• Advanced location search', '• Real-time business info', '• Maps integration with directions', '• All premium features unlocked'].map((feature) => Padding(
+                    ...[
+                      '• Unlimited places exploration',
+                      '• Advanced location search',
+                      '• Real-time business info',
+                      '• Maps integration with directions',
+                      '• All premium features unlocked'
+                    ].map((feature) => Padding(
                           padding: EdgeInsets.only(bottom: 4),
                           child: Text(
                             feature,
                             style: TextStyle(
-                              fontSize: settings.getScaledFontSize(isSmallScreen ? 12 : 14),
+                              fontSize: settings
+                                  .getScaledFontSize(isSmallScreen ? 12 : 14),
                               color: Colors.grey.shade700,
                             ),
                           ),
@@ -2347,38 +2043,17 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         await _initializeDeviceTTS();
       }
 
-      if (_flutterTts != null) {
-        // Stop any ongoing TTS
-        await _flutterTts!.stop();
-
-        // Try to set the selected voice, but don't fail if it doesn't work
-        final settings = Provider.of<SettingsProvider>(context, listen: false);
-        final selectedVoice = settings.selectedSystemTTSVoice;
-        if (selectedVoice != null && _isValidVoiceMap(selectedVoice)) {
-          try {
-            // Add a small delay to ensure TTS is ready
-            await Future.delayed(Duration(milliseconds: 100));
-            await _flutterTts!.setVoice(selectedVoice);
-            //// print('[DeviceTTS] Successfully set voice: ${selectedVoice['name']}');
-          } catch (e) {
-            //// print('[DeviceTTS] Failed to set voice, using default: $e');
-            // Continue with default voice instead of failing
-          }
-        }
-
-        //// print('[DeviceTTS] Playing device TTS for message: ${message.substring(0, message.length > 50 ? 50 : message.length)}...');
-
-        // Speak the message using device TTS
-        final result = await _flutterTts!.speak(message);
-
-        if (result == 1) {
-          //// print('[DeviceTTS] Device TTS started successfully');
-        } else {
-          //// print('[DeviceTTS] Failed to start device TTS');
-        }
+      if (_flutterTts == null) {
+        return "device_tts";
       }
 
-      return "device_tts"; // Return a special identifier for device TTS
+      final settings = Provider.of<SettingsProvider>(context, listen: false);
+      final result = await DeviceTtsService.generateAndPlay(
+        flutterTts: _flutterTts,
+        message: message,
+        selectedVoice: settings.selectedSystemTTSVoice,
+      );
+      return result ?? "device_tts";
     } catch (e) {
       //// print('[DeviceTTS] Error with device TTS: $e');
       return null;
@@ -2388,7 +2063,7 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   // Add device TTS control methods
   Future<void> _pauseDeviceTTS() async {
     if (_flutterTts != null) {
-      await _flutterTts!.pause();
+      await DeviceTtsService.pause(_flutterTts);
       setState(() {
         _isDeviceTTSPlaying = false;
       });
@@ -2397,41 +2072,12 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
   Future<void> _stopDeviceTTS() async {
     if (_flutterTts != null) {
-      await _flutterTts!.stop();
+      await DeviceTtsService.stop(_flutterTts);
       setState(() {
         _isDeviceTTSPlaying = false;
         _currentPlayingMessageId = null;
       });
     }
-  }
-
-  Future<String?> _generateAndPlayAudioForMessage(String message, String voiceId) async {
-    try {
-      // Create a unique identifier for this message
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final messageHash = message.hashCode.abs();
-      final audioId = messageHash + timestamp;
-
-      // Create voice settings with faster speed (1.0)
-      final voiceSettings = {
-        'stability': 0.35,
-        'similarity_boost': 0.95,
-        'style': 0.6,
-        'use_speaker_boost': true,
-        'speed': 1.0, // Set faster speech speed
-      };
-
-      final audioPath = await _elevenLabsService.generateAudioWithSettings(message, audioId, voiceId: voiceId, voiceSettings: voiceSettings);
-
-      if (audioPath != null) {
-        _playAudio(audioPath);
-        return audioPath;
-      } else {
-        return null;
-      }
-    } catch (e) {
-      return null;
-    } finally {}
   }
 
   // Audio playback methods replaced with service calls
@@ -2444,20 +2090,21 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     }
 
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    await AudioService.playAudio(audioPath, useSpeakerOutput: settings.useSpeakerOutput);
+    await AudioService.playAudio(audioPath,
+        useSpeakerOutput: settings.useSpeakerOutput);
 
-    // Listen to state changes
-    AudioService.isPlayingAudio.addListener(() {
-      if (mounted) {
+    ChatAudioListenerService.bindPlaybackListener(
+      isPlayingNotifier: AudioService.isPlayingAudio,
+      isMounted: () => mounted,
+      onPlaybackChanged: (isPlaying) {
         setState(() {
-          _isPlayingAudio = AudioService.isPlayingAudio.value;
-          // Clear current playing message when audio stops
-          if (!_isPlayingAudio) {
+          _isPlayingAudio = isPlaying;
+          if (!isPlaying) {
             _currentPlayingMessageId = null;
           }
         });
-      }
-    });
+      },
+    );
   }
 
   Future<void> _stopAudio() async {
@@ -2467,11 +2114,132 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     });
   }
 
+  Future<void> _persistAudioPathForMessage({
+    required ChatMessage sourceMessage,
+    required String audioPath,
+    bool syncInMemory = false,
+    bool clearImagePaths = false,
+  }) async {
+    final updatedMessage = ChatMessage(
+      id: sourceMessage.id,
+      message: sourceMessage.message,
+      isUserMessage: sourceMessage.isUserMessage,
+      timestamp: sourceMessage.timestamp,
+      profileId: sourceMessage.profileId,
+      imagePaths: clearImagePaths ? null : sourceMessage.imagePaths,
+      imageUrls: sourceMessage.imageUrls,
+      filePaths: sourceMessage.filePaths,
+      isWelcomeMessage: sourceMessage.isWelcomeMessage,
+      conversationId: sourceMessage.conversationId,
+      locationResults: sourceMessage.locationResults,
+      messageType: sourceMessage.messageType,
+      audioPath: audioPath,
+    );
+
+    await _databaseService.updateChatMessage(updatedMessage);
+
+    if (!syncInMemory) {
+      return;
+    }
+
+    final messageIndex = _messages.indexWhere((m) => m.id == sourceMessage.id);
+    if (messageIndex == -1) {
+      return;
+    }
+
+    setState(() {
+      _messages[messageIndex] = updatedMessage;
+    });
+  }
+
+  Future<void> _ensureUserMessageAssignedToConversation({
+    required ChatMessage originalUserMessage,
+    required int? userMessageId,
+    required int conversationId,
+  }) async {
+    try {
+      int messageIndex = -1;
+
+      if (userMessageId != null) {
+        for (int i = 0; i < _messages.length; i++) {
+          if (_messages[i].id == userMessageId) {
+            messageIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (messageIndex == -1) {
+        for (int i = _messages.length - 1; i >= 0; i--) {
+          final candidate = _messages[i];
+          if (candidate.isUserMessage &&
+              candidate.timestamp == originalUserMessage.timestamp &&
+              candidate.message == originalUserMessage.message) {
+            messageIndex = i;
+            break;
+          }
+        }
+      }
+
+      final source =
+          messageIndex != -1 ? _messages[messageIndex] : originalUserMessage;
+      ChatMessage updatedUserMessage = ChatMessage(
+        id: source.id ?? userMessageId,
+        message: source.message,
+        isUserMessage: source.isUserMessage,
+        timestamp: source.timestamp,
+        profileId: source.profileId,
+        imagePaths: source.imagePaths,
+        imageUrls: source.imageUrls,
+        conversationId: conversationId,
+        filePaths: source.filePaths,
+        isWelcomeMessage: source.isWelcomeMessage,
+        locationResults: source.locationResults,
+        messageType: source.messageType,
+      );
+
+      if (updatedUserMessage.id != null) {
+        await _databaseService.updateChatMessage(updatedUserMessage);
+      } else {
+        final insertedId =
+            await _databaseService.insertChatMessage(updatedUserMessage);
+        updatedUserMessage = ChatMessage(
+          id: insertedId,
+          message: updatedUserMessage.message,
+          isUserMessage: updatedUserMessage.isUserMessage,
+          timestamp: updatedUserMessage.timestamp,
+          profileId: updatedUserMessage.profileId,
+          imagePaths: updatedUserMessage.imagePaths,
+          imageUrls: updatedUserMessage.imageUrls,
+          conversationId: updatedUserMessage.conversationId,
+          filePaths: updatedUserMessage.filePaths,
+          isWelcomeMessage: updatedUserMessage.isWelcomeMessage,
+          locationResults: updatedUserMessage.locationResults,
+          messageType: updatedUserMessage.messageType,
+        );
+      }
+
+      if (messageIndex != -1) {
+        setState(() {
+          _messages[messageIndex] = updatedUserMessage;
+        });
+      } else {
+        setState(() {
+          _messages.add(updatedUserMessage);
+        });
+      }
+    } catch (e) {
+      //debug
+    }
+  }
+
   // Update the speaking method to handle both ElevenLabs and device TTS
   Future<void> _speakMessage(ChatMessage message) async {
     try {
       // If this specific message is currently playing, stop it
-      if (_currentPlayingMessageId == message.id && ((message.audioPath == "device_tts" && _isDeviceTTSPlaying) || (message.audioPath != "device_tts" && _isPlayingAudio))) {
+      if (_currentPlayingMessageId == message.id &&
+          ((message.audioPath == "device_tts" && _isDeviceTTSPlaying) ||
+              (message.audioPath != "device_tts" && _isPlayingAudio))) {
         await _stopAudio();
         await _stopDeviceTTS();
         setState(() {
@@ -2485,9 +2253,12 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       await _stopDeviceTTS(); // Also stop device TTS
 
       // Get subscription service
-      final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+      final subscriptionService =
+          Provider.of<SubscriptionService>(context, listen: false);
       // Check if message already has audio (but not device TTS identifier)
-      if (message.audioPath != null && message.audioPath != "device_tts" && File(message.audioPath!).existsSync()) {
+      if (message.audioPath != null &&
+          message.audioPath != "device_tts" &&
+          File(message.audioPath!).existsSync()) {
         // Set this message as the currently playing one and immediately set playing state
         setState(() {
           _currentPlayingMessageId = message.id;
@@ -2502,7 +2273,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       // Determine what type of audio we'll be using and set the appropriate playing state
       bool willUseDeviceTTS = false;
       if (subscriptionService.isPremium) {
-        final canUseElevenLabs = await subscriptionService.tryUseElevenLabsTTS();
+        final canUseElevenLabs =
+            await subscriptionService.tryUseElevenLabsTTS();
         willUseDeviceTTS = !canUseElevenLabs;
       } else {
         willUseDeviceTTS = subscriptionService.canUseDeviceTTS();
@@ -2518,45 +2290,28 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         }
       });
 
-      // Use subscription-aware audio generation
-      if (subscriptionService.isPremium) {
-        // Check if premium user can use ElevenLabs
-        final canUseElevenLabs = await subscriptionService.tryUseElevenLabsTTS();
-        if (canUseElevenLabs) {
-          // Premium users get ElevenLabs TTS
-          final settings = Provider.of<SettingsProvider>(context, listen: false);
-          audioPath = await _generateAndPlayAudioForMessage(message.message, settings.selectedVoiceId);
-        } else {
-          // Fallback to device TTS even for premium if ElevenLabs fails
-          audioPath = await _generateAndPlayDeviceTTS(message.message);
-        }
-      } else {
-        // Free users get device TTS
-        if (subscriptionService.canUseDeviceTTS()) {
-          audioPath = await _generateAndPlayDeviceTTS(message.message);
-        }
-      }
+      final settings = Provider.of<SettingsProvider>(context, listen: false);
+      audioPath = await ChatSpeechService.generateSubscriptionAwareAudio(
+        isPremium: subscriptionService.isPremium,
+        tryUseElevenLabsTts: () => subscriptionService.tryUseElevenLabsTTS(),
+        canUseDeviceTTS: () => subscriptionService.canUseDeviceTTS(),
+        generateElevenLabsAudio: () =>
+            ChatSpeechService.generateAndPlayAudioForMessage(
+          message: message.message,
+          voiceId: settings.selectedVoiceId,
+          elevenLabsService: _elevenLabsService,
+          playAudio: _playAudio,
+        ),
+        generateDeviceTtsAudio: () =>
+            _generateAndPlayDeviceTTS(message.message),
+      );
 
       if (audioPath != null) {
-        // Update message with audio path
-        final updatedMessage = ChatMessage(
-          id: message.id,
-          message: message.message,
-          isUserMessage: message.isUserMessage,
-          timestamp: message.timestamp,
-          profileId: message.profileId,
-          conversationId: message.conversationId,
+        await _persistAudioPathForMessage(
+          sourceMessage: message,
           audioPath: audioPath,
+          syncInMemory: true,
         );
-        await _databaseService.updateChatMessage(updatedMessage);
-
-        // Update local state
-        final messageIndex = _messages.indexWhere((m) => m.id == message.id);
-        if (messageIndex != -1) {
-          setState(() {
-            _messages[messageIndex] = updatedMessage;
-          });
-        }
       } else {
         // Audio generation failed, reset playing states
         setState(() {
@@ -2593,7 +2348,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         _showcaseContext = context;
         return Consumer<ConversationProvider>(
           builder: (context, conversationProvider, child) {
-            final selectedConversation = conversationProvider.selectedConversation;
+            final selectedConversation =
+                conversationProvider.selectedConversation;
 
             // Filter messages for the selected conversation (important for UI consistency)
             List<ChatMessage> displayMessages = [];
@@ -2601,7 +2357,12 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
               // No conversation selected yet - only show messages being actively sent
               // This avoids showing historical messages without conversation IDs
               if (_isSending) {
-                displayMessages = _messages.where((msg) => msg.conversationId == null && DateTime.parse(msg.timestamp).isAfter(DateTime.now().subtract(Duration(minutes: 5)))).toList();
+                displayMessages = _messages
+                    .where((msg) =>
+                        msg.conversationId == null &&
+                        DateTime.parse(msg.timestamp).isAfter(
+                            DateTime.now().subtract(Duration(minutes: 5))))
+                    .toList();
               } else {
                 // No active sending - don't show any messages
                 displayMessages = [];
@@ -2629,8 +2390,11 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
               } else {
                 // For messages without ID, use multiple criteria
                 final contentHash = msg.message.hashCode;
-                final timestampHash = DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/ 1000; // Round to nearest second
-                key = 'content_${contentHash}_${msg.isUserMessage}_${timestampHash}';
+                final timestampHash =
+                    DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/
+                        1000; // Round to nearest second
+                key =
+                    'content_${contentHash}_${msg.isUserMessage}_${timestampHash}';
               }
 
               if (!uniqueMessages.containsKey(key)) {
@@ -2680,8 +2444,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                       final showcaseData = _getShowcaseFeature('drawer_button');
                       return Showcase(
                         key: _drawerButtonKey,
-                        title: showcaseData?.title ?? '📋 Conversations & Settings',
-                        description: showcaseData?.description ?? 'Tap here to open the side panel where you can view all your conversations, search through them, and access your settings.',
+                        title: showcaseData?.title ??
+                            '📋 Conversations & Settings',
+                        description: showcaseData?.description ??
+                            'Tap here to open the side panel where you can view all your conversations, search through them, and access your settings.',
                         targetBorderRadius: BorderRadius.circular(8),
                         tooltipBackgroundColor: const Color(0xFF8B5CF6),
                         textColor: Colors.white,
@@ -2708,9 +2474,13 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                       builder: (context, settings, child) {
                         final button = IconButton(
                           icon: Icon(
-                            _isToolsMode ? Icons.grid_view_rounded : Icons.chat_bubble_outline,
+                            _isToolsMode
+                                ? Icons.grid_view_rounded
+                                : Icons.chat_bubble_outline,
                             size: settings.getScaledFontSize(24),
-                            color: _isToolsMode ? const Color(0xFF0078D4) : const Color(0xFF0078D4),
+                            color: _isToolsMode
+                                ? const Color(0xFF0078D4)
+                                : const Color(0xFF0078D4),
                           ),
                           onPressed: () {
                             setState(() {
@@ -2718,7 +2488,9 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                             });
                             _saveDisplayModePreference(_isToolsMode);
                           },
-                          tooltip: _isToolsMode ? 'Switch to Chat Mode' : 'Switch to Tools Mode',
+                          tooltip: _isToolsMode
+                              ? 'Switch to Chat Mode'
+                              : 'Switch to Tools Mode',
                         );
 
                         // Wrap with Showcase for feature highlighting
@@ -2726,7 +2498,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                         return Showcase(
                           key: _toolsModeKey,
                           title: showcaseData?.title ?? '🔧 Tools Mode',
-                          description: showcaseData?.description ?? 'Switch between Chat mode for conversations and Tools mode for quick actions like image generation, PDF creation, and more!',
+                          description: showcaseData?.description ??
+                              'Switch between Chat mode for conversations and Tools mode for quick actions like image generation, PDF creation, and more!',
                           targetBorderRadius: BorderRadius.circular(8),
                           tooltipBackgroundColor: const Color(0xFF10B981),
                           textColor: Colors.white,
@@ -2756,10 +2529,13 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                           onPressed: () {
                             // Clear current conversation selection and unfocus any text fields
                             FocusScope.of(context).unfocus();
-                            final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+                            final conversationProvider =
+                                Provider.of<ConversationProvider>(context,
+                                    listen: false);
                             conversationProvider.clearSelection();
                           },
-                          tooltip: AppLocalizations.of(context)!.newConversation,
+                          tooltip:
+                              AppLocalizations.of(context)!.newConversation,
                         );
                       },
                     ),
@@ -2785,23 +2561,32 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                           child: _isLoading
                               ? const Center(
                                   child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8E6CFF)),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                        Color(0xFF8E6CFF)),
                                   ),
                                 )
                               : Stack(
                                   children: [
                                     // When no conversation is selected or displaying messages, show welcome message
-                                    selectedConversation == null && displayMessages.isEmpty
+                                    selectedConversation == null &&
+                                            displayMessages.isEmpty
                                         ? _buildWelcomeScreen()
                                         : displayMessages.isEmpty
                                             ? Center(
-                                                child: Consumer<SettingsProvider>(
-                                                  builder: (context, settings, child) {
+                                                child:
+                                                    Consumer<SettingsProvider>(
+                                                  builder: (context, settings,
+                                                      child) {
                                                     return Text(
-                                                      AppLocalizations.of(context)!.noConversationsYet,
+                                                      AppLocalizations.of(
+                                                              context)!
+                                                          .noConversationsYet,
                                                       style: TextStyle(
-                                                        color: Colors.grey.shade600,
-                                                        fontSize: settings.getScaledFontSize(16),
+                                                        color: Colors
+                                                            .grey.shade600,
+                                                        fontSize: settings
+                                                            .getScaledFontSize(
+                                                                16),
                                                       ),
                                                     );
                                                   },
@@ -2813,81 +2598,170 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                                                   16,
                                                   20,
                                                   16,
-                                                  _isVoiceInputMode ? 100 : 80, // More padding for voice mode
+                                                  _isVoiceInputMode
+                                                      ? 100
+                                                      : 80, // More padding for voice mode
                                                 ),
-                                                itemCount: displayMessages.length,
-                                                reverse: false, // Keep chronological order
-                                                physics: const AlwaysScrollableScrollPhysics(), // Make sure scrolling is always enabled
+                                                itemCount:
+                                                    displayMessages.length,
+                                                reverse:
+                                                    false, // Keep chronological order
+                                                physics:
+                                                    const AlwaysScrollableScrollPhysics(), // Make sure scrolling is always enabled
                                                 itemBuilder: (context, index) {
-                                                  final message = displayMessages[index];
+                                                  final message =
+                                                      displayMessages[index];
                                                   // Safer message key generation to avoid null check issues
-                                                  final messageIndex = _messages.indexOf(message);
-                                                  final messageKey = message.id ?? (messageIndex >= 0 ? messageIndex : message.hashCode);
+                                                  final messageIndex = _messages
+                                                      .indexOf(message);
+                                                  final messageKey = message
+                                                          .id ??
+                                                      (messageIndex >= 0
+                                                          ? messageIndex
+                                                          : message.hashCode);
 
                                                   // Check if this is a places widget message (has locationResults but no message text)
-                                                  if (message.locationResults != null && message.locationResults!.isNotEmpty && message.message.isEmpty) {
+                                                  if (message.locationResults !=
+                                                          null &&
+                                                      message.locationResults!
+                                                          .isNotEmpty &&
+                                                      message.message.isEmpty) {
                                                     // Render places widget at full width as a card with consistent styling
                                                     return Container(
-                                                      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 0),
+                                                      margin: const EdgeInsets
+                                                          .symmetric(
+                                                          vertical: 8,
+                                                          horizontal: 0),
                                                       child: PlaceResultWidget(
-                                                        places: message.locationResults!,
-                                                        searchQuery: _extractSearchQueryFromPreviousMessage(index),
+                                                        places: message
+                                                            .locationResults!,
+                                                        searchQuery:
+                                                            _extractSearchQueryFromPreviousMessage(
+                                                                index),
                                                       ),
                                                     );
                                                   }
 
                                                   // Regular message rendering
                                                   return ChatMessageWidget(
-                                                    key: ValueKey('${messageKey}'),
+                                                    key: ValueKey(
+                                                        '${messageKey}'),
                                                     message: message,
                                                     messageKey: messageKey,
-                                                    selectionMode: _selectionMode,
-                                                    selectedMessages: _selectedMessages,
-                                                    onToggleSelection: (int key) {
+                                                    selectionMode:
+                                                        _selectionMode,
+                                                    selectedMessages:
+                                                        _selectedMessages,
+                                                    onToggleSelection:
+                                                        (int key) {
                                                       setState(() {
-                                                        if (_selectedMessages.contains(key)) {
-                                                          _selectedMessages.remove(key);
+                                                        if (_selectedMessages
+                                                            .contains(key)) {
+                                                          _selectedMessages
+                                                              .remove(key);
                                                         } else {
-                                                          _selectedMessages.add(key);
+                                                          _selectedMessages
+                                                              .add(key);
                                                         }
                                                       });
                                                     },
-                                                    onTranslate: (ChatMessage msg) => _translateMessage(context, msg.message, message: msg),
-                                                    onQuickTranslate: (ChatMessage msg, String targetLanguageCode, String targetLanguageName) => _performTranslation(context, msg.message, targetLanguageCode, targetLanguageName, message: msg),
-                                                    onSelectTranslationLanguage: (ChatMessage msg) => _showTranslationLanguageSelector(context, msg.message, message: msg),
-                                                    translationPreferenceVersion: _translationPreferenceVersion,
+                                                    onTranslate:
+                                                        (ChatMessage msg) =>
+                                                            _translateMessage(
+                                                                context,
+                                                                msg.message,
+                                                                message: msg),
+                                                    onQuickTranslate: (ChatMessage
+                                                                msg,
+                                                            String
+                                                                targetLanguageCode,
+                                                            String
+                                                                targetLanguageName) =>
+                                                        _performTranslation(
+                                                            context,
+                                                            msg.message,
+                                                            targetLanguageCode,
+                                                            targetLanguageName,
+                                                            message: msg),
+                                                    onSelectTranslationLanguage:
+                                                        (ChatMessage msg) =>
+                                                            _showTranslationLanguageSelector(
+                                                                context,
+                                                                msg.message,
+                                                                message: msg),
+                                                    translationPreferenceVersion:
+                                                        _translationPreferenceVersion,
                                                     onDelete: _deleteMessage,
-                                                    onShare: message.isUserMessage ? null : _shareMessage,
-                                                    translatedMessages: _translatedMessages,
-                                                    isPlayingAudio: _currentPlayingMessageId == message.id && (message.audioPath == "device_tts" ? _isDeviceTTSPlaying : _isPlayingAudio),
+                                                    onShare: null,
+                                                    translatedMessages:
+                                                        _translatedMessages,
+                                                    isPlayingAudio:
+                                                        _currentPlayingMessageId ==
+                                                                message.id &&
+                                                            (message.audioPath ==
+                                                                    "device_tts"
+                                                                ? _isDeviceTTSPlaying
+                                                                : _isPlayingAudio),
                                                     onPlayAudio: _playAudio,
-                                                    onSpeakWithHighlight: message.isUserMessage ? null : _speakMessage,
-                                                    onReviewRequested: () async {
+                                                    onSpeakWithHighlight:
+                                                        message.isUserMessage
+                                                            ? null
+                                                            : _speakMessage,
+                                                    onReviewRequested:
+                                                        () async {
                                                       // Add thank you message when user leaves review
-                                                      final thankYouMessage = ChatIntegrationHelper.createThankYouMessage(
-                                                        profileId: _currentProfileId,
-                                                        conversationId: Provider.of<ConversationProvider>(context, listen: false).selectedConversation?.id,
+                                                      final thankYouMessage =
+                                                          ChatIntegrationHelper
+                                                              .createThankYouMessage(
+                                                        profileId:
+                                                            _currentProfileId,
+                                                        conversationId: Provider
+                                                                .of<ConversationProvider>(
+                                                                    context,
+                                                                    listen:
+                                                                        false)
+                                                            .selectedConversation
+                                                            ?.id,
                                                       );
 
                                                       // Save to database
-                                                      final messageId = await _databaseService.insertChatMessage(thankYouMessage);
-                                                      final completeThankYou = ChatMessage(
+                                                      final messageId =
+                                                          await _databaseService
+                                                              .insertChatMessage(
+                                                                  thankYouMessage);
+                                                      final completeThankYou =
+                                                          ChatMessage(
                                                         id: messageId,
-                                                        message: thankYouMessage.message,
-                                                        isUserMessage: thankYouMessage.isUserMessage,
-                                                        timestamp: thankYouMessage.timestamp,
-                                                        profileId: thankYouMessage.profileId,
-                                                        conversationId: thankYouMessage.conversationId,
-                                                        messageType: thankYouMessage.messageType,
+                                                        message: thankYouMessage
+                                                            .message,
+                                                        isUserMessage:
+                                                            thankYouMessage
+                                                                .isUserMessage,
+                                                        timestamp:
+                                                            thankYouMessage
+                                                                .timestamp,
+                                                        profileId:
+                                                            thankYouMessage
+                                                                .profileId,
+                                                        conversationId:
+                                                            thankYouMessage
+                                                                .conversationId,
+                                                        messageType:
+                                                            thankYouMessage
+                                                                .messageType,
                                                       );
 
                                                       setState(() {
-                                                        _messages.add(completeThankYou);
+                                                        _messages.add(
+                                                            completeThankYou);
                                                       });
 
                                                       // Scroll to bottom to show thank you message
-                                                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                                                        _scrollToBottom(animated: true);
+                                                      WidgetsBinding.instance
+                                                          .addPostFrameCallback(
+                                                              (_) {
+                                                        _scrollToBottom(
+                                                            animated: true);
                                                       });
                                                     },
                                                   );
@@ -2903,10 +2777,12 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                                             padding: const EdgeInsets.all(8),
                                             decoration: BoxDecoration(
                                               color: Colors.white,
-                                              borderRadius: BorderRadius.circular(16),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: Colors.black.withOpacity(0.05),
+                                                  color: Colors.black
+                                                      .withOpacity(0.05),
                                                   blurRadius: 4,
                                                 ),
                                               ],
@@ -2916,7 +2792,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                                               height: 24,
                                               child: CircularProgressIndicator(
                                                 strokeWidth: 2,
-                                                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8E6CFF)),
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                            Color>(
+                                                        Color(0xFF8E6CFF)),
                                               ),
                                             ),
                                           ),
@@ -2940,7 +2819,9 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                                       height: 20,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8E6CFF)),
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                                Color(0xFF8E6CFF)),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -2949,7 +2830,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                                       style: TextStyle(
                                         color: Color(0xFF8E6CFF),
                                         fontStyle: FontStyle.italic,
-                                        fontSize: settings.getScaledFontSize(14),
+                                        fontSize:
+                                            settings.getScaledFontSize(14),
                                       ),
                                     ),
                                   ],
@@ -3001,15 +2883,21 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                             }
                           },
                           onRemovePendingImage: _removePendingImage,
-                          onRemovePendingFile: _removePendingFile, // Add file removal callback
+                          onRemovePendingFile:
+                              _removePendingFile, // Add file removal callback
                           onConvertToPdf: _onConvertToPdfPressed,
                           onCancelPdfAutoConversion: _cancelPdfAutoConversion,
-                          onShowAttachmentOptions: (bool forPdf) => _showAttachmentOptions(forPdf: forPdf),
-                          onShowFileUploadOptions: _showFileUploadOptions, // Add file upload callback
+                          onShowAttachmentOptions: (bool forPdf) =>
+                              _showAttachmentOptions(forPdf: forPdf),
+                          onShowFileUploadOptions:
+                              _showFileUploadOptions, // Add file upload callback
                           onLocationDiscovery: () {
                             // Show location discovery dialog with usage limits
-                            final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
-                            if (subscriptionService.isPremium || subscriptionService.canUsePlacesExplorer) {
+                            final subscriptionService =
+                                Provider.of<SubscriptionService>(context,
+                                    listen: false);
+                            if (subscriptionService.isPremium ||
+                                subscriptionService.canUsePlacesExplorer) {
                               _showLocationSearch();
                             }
                           },
@@ -3039,8 +2927,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                             _sendButtonController.forward().then((_) {
                               _sendButtonController.reverse();
                             });
-                            final imagesToSend = List<XFile>.from(_pendingImages);
-                            final filesToSend = List<PlatformFile>.from(_pendingFiles);
+                            final imagesToSend =
+                                List<XFile>.from(_pendingImages);
+                            final filesToSend =
+                                List<PlatformFile>.from(_pendingFiles);
                             setState(() {
                               _pendingImages.clear();
                               _pendingFiles.clear();
@@ -3067,7 +2957,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                               _pendingImages.clear();
                               _pendingFiles.clear(); // Clear pending files
                             });
-                            _sendMessage(text, images, files); // Pass files to send message
+                            _sendMessage(text, images,
+                                files); // Pass files to send message
                           },
                           sendButtonController: _sendButtonController,
                           micAnimationController: _micAnimationController,
@@ -3109,12 +3000,14 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       // First, load all messages for the current profile
       final allMessages = await _databaseService.getChatMessages(
         profileId: _currentProfileId,
-        limit: 100, // Increase limit to make sure we get all messages for this conversation
+        limit:
+            100, // Increase limit to make sure we get all messages for this conversation
         offset: 0,
       );
 
       // Then filter for this conversation
-      final conversationMessages = allMessages.where((m) => m.conversationId == conversationId).toList();
+      final conversationMessages =
+          allMessages.where((m) => m.conversationId == conversationId).toList();
 
       // Sort messages by timestamp to ensure proper order
       conversationMessages.sort((a, b) {
@@ -3138,7 +3031,11 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                 existing.isUserMessage == msg.isUserMessage &&
                 existing.conversationId == msg.conversationId &&
                 // Check if timestamps are within 5 seconds of each other
-                (DateTime.parse(existing.timestamp).difference(DateTime.parse(msg.timestamp)).abs().inSeconds < 5));
+                (DateTime.parse(existing.timestamp)
+                        .difference(DateTime.parse(msg.timestamp))
+                        .abs()
+                        .inSeconds <
+                    5));
 
             if (!alreadyExists) {
               updatedMessages.add(msg);
@@ -3159,7 +3056,9 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         } else {
           // For messages without ID, use combination of content hash, user flag, and timestamp
           final contentHash = msg.message.hashCode;
-          final timestampHash = DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/ 1000; // Round to nearest second
+          final timestampHash =
+              DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/
+                  1000; // Round to nearest second
           key = 'content_${contentHash}_${msg.isUserMessage}_${timestampHash}';
         }
 
@@ -3202,7 +3101,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       _messages.remove(message);
     });
     if (message.id != null) {
-      await _databaseService.deleteChatMessagesBefore(DateTime.parse(message.timestamp).add(const Duration(milliseconds: 1)), profileId: message.profileId);
+      await _databaseService.deleteChatMessagesBefore(
+          DateTime.parse(message.timestamp)
+              .add(const Duration(milliseconds: 1)),
+          profileId: message.profileId);
       // The above deletes all messages before the given timestamp, but we want to delete just this one.
       // Let's add a dedicated delete method for a single message if needed.
     }
@@ -3218,12 +3120,15 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     );
   }
 
-  Future<void> _translateMessage(BuildContext context, String text, {ChatMessage? message}) async {
+  Future<void> _translateMessage(BuildContext context, String text,
+      {ChatMessage? message}) async {
     // Show language selection popup instead of directly translating
     await _showTranslationLanguageSelector(context, text, message: message);
   }
 
-  Future<void> _showTranslationLanguageSelector(BuildContext context, String text, {ChatMessage? message}) async {
+  Future<void> _showTranslationLanguageSelector(
+      BuildContext context, String text,
+      {ChatMessage? message}) async {
     // Get device locale and detected language
     final deviceLocale = Localizations.localeOf(context);
     final deviceLanguage = deviceLocale.languageCode;
@@ -3231,11 +3136,13 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     final detectedLanguageCode = _getLanguageCode(detectedLanguage);
 
     // Get user's translation history for smart suggestions from profile
-    final userPreferences = ProfileTranslationService.getTranslationHistory(context);
+    final userPreferences =
+        ProfileTranslationService.getTranslationHistory(context);
 
     // For first-time users (no translation history), auto-show full language selector
     if (userPreferences.isEmpty) {
-      _showFullLanguageSelector(context, text, detectedLanguage, message: message);
+      _showFullLanguageSelector(context, text, detectedLanguage,
+          message: message);
       return;
     }
 
@@ -3257,10 +3164,13 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
             detectedLanguage: detectedLanguage,
             suggestedLanguages: suggestions,
             onLanguageSelected: (targetLanguageCode, targetLanguageName) {
-              _performTranslation(context, text, targetLanguageCode, targetLanguageName, message: message);
+              _performTranslation(
+                  context, text, targetLanguageCode, targetLanguageName,
+                  message: message);
             },
             onMoreLanguages: () {
-              _showFullLanguageSelector(context, text, detectedLanguage, message: message);
+              _showFullLanguageSelector(context, text, detectedLanguage,
+                  message: message);
             },
           );
         },
@@ -3268,7 +3178,9 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     }
   }
 
-  Future<void> _showFullLanguageSelector(BuildContext context, String text, String detectedLanguage, {ChatMessage? message}) async {
+  Future<void> _showFullLanguageSelector(
+      BuildContext context, String text, String detectedLanguage,
+      {ChatMessage? message}) async {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -3277,19 +3189,30 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
           sourceText: text,
           detectedLanguage: detectedLanguage,
           onLanguageSelected: (targetLanguageCode, targetLanguageName) {
-            _performTranslation(context, text, targetLanguageCode, targetLanguageName, message: message);
+            _performTranslation(
+                context, text, targetLanguageCode, targetLanguageName,
+                message: message);
           },
         );
       },
     );
   }
 
-  Future<void> _performTranslation(BuildContext context, String text, String targetLanguageCode, String targetLanguageName, {ChatMessage? message}) async {
+  Future<void> _performTranslation(BuildContext context, String text,
+      String targetLanguageCode, String targetLanguageName,
+      {ChatMessage? message}) async {
     // Save user's choice for future suggestions in their profile
-    await ProfileTranslationService.addTranslationChoice(context, targetLanguageCode);
+    await ProfileTranslationService.addTranslationChoice(
+        context, targetLanguageCode);
 
-    final detectedLanguage = _detectLanguage(text);
-    final prompt = 'Translate the following ${detectedLanguage} message to ${targetLanguageName}. Only output the translation, no extra explanation or quotes. Message: "$text"';
+    final translationSourceText =
+        ChatTranslationService.sanitizeForTranslation(text);
+    final detectedLanguage = _detectLanguage(translationSourceText);
+    final prompt = ChatTranslationService.buildTranslationPrompt(
+      detectedLanguage: detectedLanguage,
+      targetLanguageName: targetLanguageName,
+      text: translationSourceText,
+    );
 
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -3308,11 +3231,15 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         message: prompt,
         history: [],
       );
-      final translation = response != null && response['text'] != null && response['text'].toString().trim().isNotEmpty ? response['text'].toString().trim() : AppLocalizations.of(context)!.translationFailed;
+      final translation = ChatTranslationService.extractTranslationOrFallback(
+        response: response,
+        fallback: AppLocalizations.of(context)!.translationFailed,
+      );
       if (message != null) {
         // Safer message key generation to prevent null check issues
         final messageIndex = _messages.indexOf(message);
-        final messageKey = message.id ?? (messageIndex >= 0 ? messageIndex : message.hashCode);
+        final messageKey =
+            message.id ?? (messageIndex >= 0 ? messageIndex : message.hashCode);
         setState(() {
           _translatedMessages[messageKey] = translation;
         });
@@ -3352,7 +3279,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   }
 
   // Smart translation logic based on device locale and language detection
-  Map<String, String> _getSmartTranslationInfo(BuildContext context, String text) {
+  Map<String, String> _getSmartTranslationInfo(
+      BuildContext context, String text) {
     // Get user's device locale
     final deviceLocale = Localizations.localeOf(context);
     final deviceLanguage = deviceLocale.languageCode;
@@ -3387,7 +3315,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     };
 
     String targetLanguageCode;
-    String sourceLanguageName = languageNames[detectedLanguageCode] ?? detectedLanguage;
+    String sourceLanguageName =
+        languageNames[detectedLanguageCode] ?? detectedLanguage;
     String targetLanguageName;
 
     // Smart translation logic:
@@ -3551,10 +3480,51 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
   // Language pattern detection helpers
   bool _containsSpanishPatterns(String text) {
-    final spanishWords = ['el', 'la', 'de', 'que', 'y', 'es', 'en', 'un', 'con', 'no', 'se', 'te', 'lo', 'le', 'da', 'su', 'por', 'son', 'como', 'para', 'del', 'está', 'una', 'tiene', 'más', 'este', 'eso', 'todo', 'bien', 'sí', 'donde', 'qué', 'cómo', 'cuándo', 'quién'];
+    final spanishWords = [
+      'el',
+      'la',
+      'de',
+      'que',
+      'y',
+      'es',
+      'en',
+      'un',
+      'con',
+      'no',
+      'se',
+      'te',
+      'lo',
+      'le',
+      'da',
+      'su',
+      'por',
+      'son',
+      'como',
+      'para',
+      'del',
+      'está',
+      'una',
+      'tiene',
+      'más',
+      'este',
+      'eso',
+      'todo',
+      'bien',
+      'sí',
+      'donde',
+      'qué',
+      'cómo',
+      'cuándo',
+      'quién'
+    ];
     final spanishChars = RegExp(r'[ñáéíóúü]');
 
-    int wordMatches = spanishWords.where((word) => text.contains(' $word ') || text.startsWith('$word ') || text.endsWith(' $word')).length;
+    int wordMatches = spanishWords
+        .where((word) =>
+            text.contains(' $word ') ||
+            text.startsWith('$word ') ||
+            text.endsWith(' $word'))
+        .length;
     bool hasSpanishChars = spanishChars.hasMatch(text);
 
     return wordMatches >= 2 || hasSpanishChars;
@@ -3602,7 +3572,12 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     ];
     final frenchChars = RegExp(r'[àâäçéèêëïîôùûüÿ]');
 
-    int wordMatches = frenchWords.where((word) => text.contains(' $word ') || text.startsWith('$word ') || text.endsWith(' $word')).length;
+    int wordMatches = frenchWords
+        .where((word) =>
+            text.contains(' $word ') ||
+            text.startsWith('$word ') ||
+            text.endsWith(' $word'))
+        .length;
     bool hasFrenchChars = frenchChars.hasMatch(text);
 
     return wordMatches >= 2 || hasFrenchChars;
@@ -3671,7 +3646,12 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     ];
     final germanChars = RegExp(r'[äöüß]');
 
-    int wordMatches = germanWords.where((word) => text.contains(' $word ') || text.startsWith('$word ') || text.endsWith(' $word')).length;
+    int wordMatches = germanWords
+        .where((word) =>
+            text.contains(' $word ') ||
+            text.startsWith('$word ') ||
+            text.endsWith(' $word'))
+        .length;
     bool hasGermanChars = germanChars.hasMatch(text);
 
     return wordMatches >= 2 || hasGermanChars;
@@ -3722,7 +3702,12 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     ];
     final italianChars = RegExp(r'[àèéìîíòóù]');
 
-    int wordMatches = italianWords.where((word) => text.contains(' $word ') || text.startsWith('$word ') || text.endsWith(' $word')).length;
+    int wordMatches = italianWords
+        .where((word) =>
+            text.contains(' $word ') ||
+            text.startsWith('$word ') ||
+            text.endsWith(' $word'))
+        .length;
     bool hasItalianChars = italianChars.hasMatch(text);
 
     return wordMatches >= 2 || hasItalianChars;
@@ -3785,7 +3770,12 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     ];
     final portugueseChars = RegExp(r'[áàâãçéêíóôõú]');
 
-    int wordMatches = portugueseWords.where((word) => text.contains(' $word ') || text.startsWith('$word ') || text.endsWith(' $word')).length;
+    int wordMatches = portugueseWords
+        .where((word) =>
+            text.contains(' $word ') ||
+            text.startsWith('$word ') ||
+            text.endsWith(' $word'))
+        .length;
     bool hasPortugueseChars = portugueseChars.hasMatch(text);
 
     return wordMatches >= 2 || hasPortugueseChars;
@@ -3888,7 +3878,9 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                       ),
                 borderRadius: BorderRadius.circular(scaledBorderRadius),
                 border: Border.all(
-                  color: _isRecording ? Colors.red : const Color(0xFF0078D4).withOpacity(0.3),
+                  color: _isRecording
+                      ? Colors.red
+                      : const Color(0xFF0078D4).withOpacity(0.3),
                   width: _isRecording ? 1.5 : 1,
                 ),
                 boxShadow: [
@@ -3913,10 +3905,13 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                         builder: (context, child) {
                           return Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(scaledBorderRadius),
+                              borderRadius:
+                                  BorderRadius.circular(scaledBorderRadius),
                               border: Border.all(
-                                color: Colors.red.withOpacity(0.5 * (1 - _recordingPulseController.value)),
-                                width: 3.0 * (1 - _recordingPulseController.value),
+                                color: Colors.red.withOpacity(0.5 *
+                                    (1 - _recordingPulseController.value)),
+                                width:
+                                    3.0 * (1 - _recordingPulseController.value),
                               ),
                             ),
                           );
@@ -3928,20 +3923,28 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                       Positioned(
                         top: 0,
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: scaledSpacing, vertical: settings.getScaledFontSize(2)),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: scaledSpacing,
+                              vertical: settings.getScaledFontSize(2)),
                           decoration: BoxDecoration(
-                            color: _isCancelingRecording ? Colors.red : Colors.grey.shade700,
+                            color: _isCancelingRecording
+                                ? Colors.red
+                                : Colors.grey.shade700,
                             borderRadius: BorderRadius.only(
                               bottomLeft: Radius.circular(scaledSpacing),
                               bottomRight: Radius.circular(scaledSpacing),
                             ),
                           ),
                           child: Text(
-                            _isCancelingRecording ? AppLocalizations.of(context)!.releaseToCancel : AppLocalizations.of(context)!.swipeUpToCancel,
+                            _isCancelingRecording
+                                ? AppLocalizations.of(context)!.releaseToCancel
+                                : AppLocalizations.of(context)!.swipeUpToCancel,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: settings.getScaledFontSize(10),
-                              fontWeight: _isCancelingRecording ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: _isCancelingRecording
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         ),
@@ -3965,8 +3968,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                               Text(
                                 _isRecording
                                     ? _isCancelingRecording
-                                        ? AppLocalizations.of(context)!.cancelRecording
-                                        : AppLocalizations.of(context)!.listening
+                                        ? AppLocalizations.of(context)!
+                                            .cancelRecording
+                                        : AppLocalizations.of(context)!
+                                            .listening
                                     : AppLocalizations.of(context)!.holdToTalk,
                                 style: TextStyle(
                                   color: _isCancelingRecording
@@ -3999,7 +4004,9 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                       Positioned(
                         right: scaledPadding,
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: scaledSpacing, vertical: settings.getScaledFontSize(2)),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: scaledSpacing,
+                              vertical: settings.getScaledFontSize(2)),
                           decoration: BoxDecoration(
                             color: Colors.red.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(scaledPadding),
@@ -4012,7 +4019,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                                 builder: (context, child) {
                                   return Icon(
                                     Icons.mic,
-                                    color: Colors.red.withOpacity(0.7 + 0.3 * _micAnimationController.value),
+                                    color: Colors.red.withOpacity(0.7 +
+                                        0.3 * _micAnimationController.value),
                                     size: settings.getScaledFontSize(16),
                                   );
                                 },
@@ -4077,11 +4085,13 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     ),
                     title: Text(
                       AppLocalizations.of(context)!.voiceInputTipsPressHold,
-                      style: TextStyle(fontSize: settings.getScaledFontSize(16)),
+                      style:
+                          TextStyle(fontSize: settings.getScaledFontSize(16)),
                     ),
                     subtitle: Text(
                       AppLocalizations.of(context)!.voiceInputTipsPressHoldDesc,
-                      style: TextStyle(fontSize: settings.getScaledFontSize(14)),
+                      style:
+                          TextStyle(fontSize: settings.getScaledFontSize(14)),
                     ),
                   ),
                   ListTile(
@@ -4092,11 +4102,14 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     ),
                     title: Text(
                       AppLocalizations.of(context)!.voiceInputTipsSpeakClearly,
-                      style: TextStyle(fontSize: settings.getScaledFontSize(16)),
+                      style:
+                          TextStyle(fontSize: settings.getScaledFontSize(16)),
                     ),
                     subtitle: Text(
-                      AppLocalizations.of(context)!.voiceInputTipsSpeakClearlyDesc,
-                      style: TextStyle(fontSize: settings.getScaledFontSize(14)),
+                      AppLocalizations.of(context)!
+                          .voiceInputTipsSpeakClearlyDesc,
+                      style:
+                          TextStyle(fontSize: settings.getScaledFontSize(14)),
                     ),
                   ),
                   ListTile(
@@ -4107,11 +4120,13 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     ),
                     title: Text(
                       AppLocalizations.of(context)!.voiceInputTipsSwipeUp,
-                      style: TextStyle(fontSize: settings.getScaledFontSize(16)),
+                      style:
+                          TextStyle(fontSize: settings.getScaledFontSize(16)),
                     ),
                     subtitle: Text(
                       AppLocalizations.of(context)!.voiceInputTipsSwipeUpDesc,
-                      style: TextStyle(fontSize: settings.getScaledFontSize(14)),
+                      style:
+                          TextStyle(fontSize: settings.getScaledFontSize(14)),
                     ),
                   ),
                   const Divider(),
@@ -4123,11 +4138,14 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     ),
                     title: Text(
                       AppLocalizations.of(context)!.voiceInputTipsSwitchInput,
-                      style: TextStyle(fontSize: settings.getScaledFontSize(16)),
+                      style:
+                          TextStyle(fontSize: settings.getScaledFontSize(16)),
                     ),
                     subtitle: Text(
-                      AppLocalizations.of(context)!.voiceInputTipsSwitchInputDesc,
-                      style: TextStyle(fontSize: settings.getScaledFontSize(14)),
+                      AppLocalizations.of(context)!
+                          .voiceInputTipsSwitchInputDesc,
+                      style:
+                          TextStyle(fontSize: settings.getScaledFontSize(14)),
                     ),
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -4204,7 +4222,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     _audioRecorderService.cancelRecording();
   }
 
-  Future<void> _analyzeUserCharacteristics(List<Map<String, String>> history) async {
+  Future<void> _analyzeUserCharacteristics(
+      List<Map<String, String>> history) async {
     if (_currentProfileId == null) return;
 
     try {
@@ -4214,8 +4233,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       );
 
       if (characteristics.isNotEmpty) {
-        final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-        await profileProvider.updateProfileCharacteristics(_currentProfileId!, characteristics);
+        final profileProvider =
+            Provider.of<ProfileProvider>(context, listen: false);
+        await profileProvider.updateProfileCharacteristics(
+            _currentProfileId!, characteristics);
       } else {}
     } catch (e) {
       //debug
@@ -4226,17 +4247,20 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   Future<void> _pickImages({bool forPdf = false}) async {
     _isSelectingForPdf = forPdf;
     final List<XFile> images = await ImageService.pickImages(forPdf: forPdf);
+    final result = ChatAttachmentService.applyImageSelection(
+      currentPendingImages: _pendingImages,
+      newImages: images,
+      forPdf: _isSelectingForPdf,
+    );
     if (images.isNotEmpty) {
       setState(() {
-        _pendingImages.addAll(images);
-        if (_isSelectingForPdf) {
-          _isPdfWorkflowActive = true;
-        }
+        _pendingImages = result.pendingImages;
+        _isPdfWorkflowActive = result.isPdfWorkflowActive;
       });
+    }
 
-      if (_isSelectingForPdf) {
-        _startPdfAutoConversionTimer();
-      }
+    if (result.shouldStartPdfTimer) {
+      _startPdfAutoConversionTimer();
     }
     _isSelectingForPdf = false;
   }
@@ -4244,36 +4268,41 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   Future<void> _takePhoto({bool forPdf = false}) async {
     _isSelectingForPdf = forPdf;
     final XFile? photo = await ImageService.takePhoto(forPdf: forPdf);
+    final result = ChatAttachmentService.applyImageSelection(
+      currentPendingImages: _pendingImages,
+      newImages: photo == null ? [] : [photo],
+      forPdf: _isSelectingForPdf,
+    );
     if (photo != null) {
       setState(() {
-        _pendingImages.add(photo);
-        if (_isSelectingForPdf) {
-          _isPdfWorkflowActive = true;
-        }
+        _pendingImages = result.pendingImages;
+        _isPdfWorkflowActive = result.isPdfWorkflowActive;
       });
+    }
 
-      if (_isSelectingForPdf) {
-        _startPdfAutoConversionTimer();
-      }
+    if (result.shouldStartPdfTimer) {
+      _startPdfAutoConversionTimer();
     }
     _isSelectingForPdf = false;
   }
 
   // Remove image from pending list
   void _removePendingImage(int index) {
+    final result = ChatAttachmentService.removePendingImage(
+      currentPendingImages: _pendingImages,
+      index: index,
+      isPdfWorkflowActive: _isPdfWorkflowActive,
+    );
+
     setState(() {
-      _pendingImages.removeAt(index);
+      _pendingImages = result.pendingImages;
+      _isPdfWorkflowActive = result.isPdfWorkflowActive;
     });
 
-    // Cancel auto-conversion if no images left, or restart timer
-    if (_pendingImages.isEmpty) {
+    if (result.shouldCancelPdfTimer) {
       _cancelPdfAutoConversion();
-      _isPdfWorkflowActive = false; // Reset PDF workflow flag
-    } else {
-      // Restart timer for remaining images only if in PDF workflow
-      if (_isPdfWorkflowActive) {
-        _startPdfAutoConversionTimer();
-      }
+    } else if (result.shouldRestartPdfTimer) {
+      _startPdfAutoConversionTimer();
     }
   }
 
@@ -4310,7 +4339,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
             }
           },
           title: 'Upload Document',
-          subtitle: 'Select a document file for AI analysis\n(PDF, Word, PowerPoint, Excel, etc.)',
+          subtitle:
+              'Select a document file for AI analysis\n(PDF, Word, PowerPoint, Excel, etc.)',
           cancelText: 'Cancel',
         );
       } catch (e) {
@@ -4348,29 +4378,16 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         ),
       );
 
-      final pdf = pw.Document();
-      for (final xfile in _pendingImages) {
-        final imageBytes = await File(xfile.path).readAsBytes();
-        final image = pw.MemoryImage(imageBytes);
-        pdf.addPage(
-          pw.Page(
-            pageFormat: PdfPageFormat.a4,
-            build: (pw.Context context) {
-              return pw.Center(
-                child: pw.Image(image, fit: pw.BoxFit.contain),
-              );
-            },
-          ),
-        );
-      }
-      final pdfBytes = await pdf.save();
+      final pdfBytes = await PdfService.generatePdfFromImages(_pendingImages);
       final dir = await getApplicationDocumentsDirectory();
-      final filePath = '${dir.path}/howai_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final filePath =
+          '${dir.path}/howai_${DateTime.now().millisecondsSinceEpoch}.pdf';
       final file = File(filePath);
       await file.writeAsBytes(pdfBytes);
 
       // Verify file was actually written and is accessible
-      await Future.delayed(Duration(milliseconds: 100)); // Small delay to ensure file system sync
+      await Future.delayed(Duration(
+          milliseconds: 100)); // Small delay to ensure file system sync
       if (!await file.exists()) {
         throw Exception("PDF file was not created successfully");
       }
@@ -4392,17 +4409,21 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       FocusScope.of(context).unfocus();
 
       // Get the conversation provider
-      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
-      int? messageConversationId = conversationProvider.selectedConversation?.id;
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
+      int? messageConversationId =
+          conversationProvider.selectedConversation?.id;
       bool createdNewConversation = false;
 
       // If no conversation exists, create one for this PDF
       if (messageConversationId == null) {
         createdNewConversation = true;
-        final String pdfTitle = "PDF Document ${DateTime.now().toString().substring(0, 16)}";
+        final String pdfTitle =
+            "PDF Document ${DateTime.now().toString().substring(0, 16)}";
 
         // Create a new conversation
-        await conversationProvider.createConversation(pdfTitle, _currentProfileId);
+        await conversationProvider.createConversation(
+            pdfTitle, _currentProfileId);
 
         // Get the new conversation ID
         messageConversationId = conversationProvider.selectedConversation?.id;
@@ -4439,7 +4460,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       await _databaseService.insertChatMessage(aiMessage);
 
       // Only add the message to the UI if we're in the right conversation
-      if (conversationProvider.selectedConversation?.id == messageConversationId) {
+      if (conversationProvider.selectedConversation?.id ==
+          messageConversationId) {
         setState(() {
           _messages.add(aiMessage);
         });
@@ -4480,26 +4502,22 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
   // Update the onConversationChanged method
   void _onConversationChanged() {
-    if (!mounted) {
+    if (!ConversationGuard.shouldHandleConversationChange(
+      mounted: mounted,
+      isSending: _isSending,
+      isCreatingNewConversation: _isCreatingNewConversation,
+    )) {
       return;
     }
 
-    // Don't reload messages if we're currently sending a message
-    // This prevents duplication when a new conversation is created during _sendMessage
-    if (_isSending) {
-      return;
-    }
-
-    // Don't reload messages if we're in the process of creating a new conversation
-    // This prevents duplicate AI responses from appearing
-    if (_isCreatingNewConversation) {
-      return;
-    }
-
-    final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+    final conversationProvider =
+        Provider.of<ConversationProvider>(context, listen: false);
     final selectedConversation = conversationProvider.selectedConversation;
 
-    if (selectedConversation?.id != _lastLoadedConversationId) {
+    if (ConversationGuard.shouldReloadConversation(
+      selectedConversationId: selectedConversation?.id,
+      lastLoadedConversationId: _lastLoadedConversationId,
+    )) {
       // Clear messages before loading new ones to prevent mixing
       setState(() {
         _messages = [];
@@ -4510,26 +4528,29 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       _loadMessagesForConversation(selectedConversation?.id);
     }
   }
-  
+
   // Handle auth sync completion - refresh conversations and profile
   void _onAuthSyncCompleted() {
     if (!mounted) return;
-    
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (authProvider.syncCompleted) {
-      debugPrint('[AIChatScreen] Sync completed, refreshing conversations and profile');
-      
+      debugPrint(
+          '[AIChatScreen] Sync completed, refreshing conversations and profile');
+
       // Reset the flag so we don't re-trigger
       authProvider.resetSyncCompletedFlag();
-      
+
       // Force reload conversations from database (which now has synced data)
-      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
       conversationProvider.loadConversations(profileId: _currentProfileId);
-      
+
       // Reload profile to get updated name/avatar from cloud
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+      final profileProvider =
+          Provider.of<ProfileProvider>(context, listen: false);
       profileProvider.loadProfiles();
-      
+
       debugPrint('[AIChatScreen] UI refresh triggered after sync');
     }
   }
@@ -4539,8 +4560,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     super.didChangeDependencies();
 
     if (!_didInitLocalization) {
-      _recordButtonText = AppLocalizations.of(context)?.holdToTalk ?? 'Hold to Talk';
-      _aiLoadingMessage = AppLocalizations.of(context)?.processing ?? 'Processing...';
+      _recordButtonText =
+          AppLocalizations.of(context)?.holdToTalk ?? 'Hold to Talk';
+      _aiLoadingMessage =
+          AppLocalizations.of(context)?.processing ?? 'Processing...';
       _didInitLocalization = true;
     }
 
@@ -4549,7 +4572,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       return;
     }
     // Existing didChangeDependencies logic...
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+    final profileProvider =
+        Provider.of<ProfileProvider>(context, listen: false);
     final currentProfileId = profileProvider.selectedProfileId;
     if (currentProfileId != null) {
       _currentProfileId = currentProfileId;
@@ -4559,17 +4583,21 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       setState(() {
         _messages = [];
       });
-      Provider.of<ProfileProvider>(context, listen: false).resetChatHistoryClearedFlag();
+      Provider.of<ProfileProvider>(context, listen: false)
+          .resetChatHistoryClearedFlag();
     }
 
     // Load conversations for the current profile
     // This is safe because ConversationProvider exists at the app level
-    final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
-    conversationProvider.ensureConversationsLoaded(context, profileId: _currentProfileId);
+    final conversationProvider =
+        Provider.of<ConversationProvider>(context, listen: false);
+    conversationProvider.ensureConversationsLoaded(context,
+        profileId: _currentProfileId);
 
     // Load messages for the selected conversation
     final selectedConversation = conversationProvider.selectedConversation;
-    if (selectedConversation != null && selectedConversation.id != _lastLoadedConversationId) {
+    if (selectedConversation != null &&
+        selectedConversation.id != _lastLoadedConversationId) {
       _lastLoadedConversationId = selectedConversation.id;
       _loadMessagesForConversation(selectedConversation.id);
     }
@@ -4697,7 +4725,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
           }
           // For other languages, languageHint remains null and Whisper will auto-detect
 
-          final transcription = await _openAIService.transcribeAudio(recordingBytes, language: languageHint);
+          final transcription = await _openAIService
+              .transcribeAudio(recordingBytes, language: languageHint);
 
           if (transcription != null && transcription.isNotEmpty) {
             setState(() {
@@ -4716,7 +4745,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
           setState(() {
             _recordButtonText = AppLocalizations.of(context)!.holdToTalk;
           });
-          _showErrorSnackBar(AppLocalizations.of(context)!.errorProcessingAudio);
+          _showErrorSnackBar(
+              AppLocalizations.of(context)!.errorProcessingAudio);
         }
       } else {
         setState(() {
@@ -4738,16 +4768,13 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
   void _showErrorSnackBar(String message) {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: TextStyle(fontSize: settings.getScaledFontSize(14)),
-        ),
-        backgroundColor: Colors.red.shade800,
-        behavior: SnackBarBehavior.floating,
-        duration: Duration(seconds: 2),
-      ),
+    ChatSnackbarService.show(
+      context: context,
+      message: message,
+      textStyle: TextStyle(fontSize: settings.getScaledFontSize(14)),
+      backgroundColor: Colors.red.shade800,
+      behavior: SnackBarBehavior.floating,
+      duration: const Duration(seconds: 2),
     );
   }
 
@@ -4841,7 +4868,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         break;
       case 'file':
         // Open file picker for document analysis with usage limits for free users
-        final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+        final subscriptionService =
+            Provider.of<SubscriptionService>(context, listen: false);
         if (subscriptionService.isPremium) {
           _showFileUploadOptions();
         } else {
@@ -4856,7 +4884,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         break;
       case 'location':
         // Open location discovery feature with usage limits for free users
-        final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+        final subscriptionService =
+            Provider.of<SubscriptionService>(context, listen: false);
         if (subscriptionService.isPremium) {
           _showLocationSearch();
         } else {
@@ -4902,7 +4931,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       builder: (BuildContext context) {
         return LocationSearchDialog(
           onSearchCompleted: (places, query) {
-            print('[PlacesExplorer] Search completed: ${places.length} places found for "$query"');
+            print(
+                '[PlacesExplorer] Search completed: ${places.length} places found for "$query"');
             Navigator.of(context).pop();
             if (places.isNotEmpty) {
               _addLocationResultsToChat(places, query);
@@ -4910,7 +4940,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
               print('[PlacesExplorer] No places found - showing message');
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('No places found for "$query". Try a different search or location.'),
+                  content: Text(
+                      'No places found for "$query". Try a different search or location.'),
                   backgroundColor: Colors.orange,
                   duration: Duration(seconds: 3),
                 ),
@@ -4926,7 +4957,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   Future<void> _shareMessage(ChatMessage message) async {
     try {
       // Check PDF generation limits for free users
-      final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+      final subscriptionService =
+          Provider.of<SubscriptionService>(context, listen: false);
       if (!subscriptionService.isPremium) {
         final canUsePdf = await subscriptionService.tryUsePdfGeneration();
         if (!canUsePdf) {
@@ -4948,7 +4980,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
       );
 
       // Generate PDF using HTML approach for better Unicode and styling support
-      final pdfBytes = await _generateHtmlToPdf(message);
+      final pdfBytes =
+          await PdfService.generateStyledMessagePdf(message.message);
 
       if (pdfBytes != null) {
         // Save PDF to documents directory
@@ -4959,7 +4992,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         await file.writeAsBytes(pdfBytes);
 
         // Verify file was actually written and is accessible
-        await Future.delayed(Duration(milliseconds: 100)); // Small delay to ensure file system sync
+        await Future.delayed(Duration(
+            milliseconds: 100)); // Small delay to ensure file system sync
         if (!await file.exists()) {
           throw Exception("PDF file was not created successfully");
         }
@@ -4973,21 +5007,27 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         //// print('[PDF-SHARE] PDF file verified: ${fileSize} bytes at ${filePath}');
 
         // Get the conversation provider
-        final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
-        final messageConversationId = conversationProvider.selectedConversation?.id ?? message.conversationId;
+        final conversationProvider =
+            Provider.of<ConversationProvider>(context, listen: false);
+        final messageConversationId =
+            conversationProvider.selectedConversation?.id ??
+                message.conversationId;
 
         // Check subscription status for message customization
-        final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+        final subscriptionService =
+            Provider.of<SubscriptionService>(context, listen: false);
         final isPremium = subscriptionService.isPremium;
 
         // Create different messages for free vs premium users
         String pdfMessage;
         if (isPremium) {
-          pdfMessage = "📄 **PDF created successfully!**\n\n[Tap here to open and share]($filePath)";
+          pdfMessage =
+              "📄 **PDF created successfully!**\n\n[Tap here to open and share]($filePath)";
         } else {
           final remaining = subscriptionService.remainingPdfGenerations;
           final limit = subscriptionService.limits.pdfGenerationsWeekly;
-          pdfMessage = "📄 **PDF created successfully!**\n\n[Tap here to open and share]($filePath)\n\n📊 PDF generations remaining: $remaining/$limit\n✨ Upgrade to Premium for unlimited access";
+          pdfMessage =
+              "📄 **PDF created successfully!**\n\n[Tap here to open and share]($filePath)\n\n📊 PDF generations remaining: $remaining/$limit\n✨ Upgrade to Premium for unlimited access";
         }
 
         // Add AI response message with link to PDF
@@ -5003,7 +5043,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
         await _databaseService.insertChatMessage(pdfLinkMessage);
 
         // Add to UI if we're in the right conversation
-        if (conversationProvider.selectedConversation?.id == messageConversationId) {
+        if (conversationProvider.selectedConversation?.id ==
+            messageConversationId) {
           setState(() {
             _messages.add(pdfLinkMessage);
           });
@@ -5053,216 +5094,10 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
     }
   }
 
-  // Generate PDF using simple, robust text cleaning approach - Premium quality for all users
-  Future<List<int>?> _generateHtmlToPdf(ChatMessage message) async {
-    try {
-      //// print('[PDF-SIMPLE] Starting premium-quality PDF generation...');
-
-      // Get current profile for personalization
-      final currentProfile = await _databaseService.getProfile(_currentProfileId!);
-      final profileName = currentProfile?.name ?? 'User';
-
-      // Minimal cleaning approach - preserve quotes at all costs
-      String cleanText = message.message;
-
-      // Only do the most basic cleaning - remove markdown images and fix obvious issues
-      cleanText = cleanText.replaceAll(RegExp(r'!\[.*?\]\(.*?\)'), ''); // Remove markdown images
-      cleanText = cleanText.replaceAll(''', "'"); // Smart single quote left
-      cleanText = cleanText.replaceAll(''', "'"); // Smart single quote right
-      cleanText = cleanText.replaceAll('"', '"'); // Smart double quote left
-      cleanText = cleanText.replaceAll('"', '"'); // Smart double quote right
-      cleanText = cleanText.replaceAll('—', '-'); // Em dash
-      cleanText = cleanText.replaceAll('–', '-'); // En dash
-
-      //// print('[PDF-SIMPLE] Minimally cleaned text: ${cleanText.length} characters');
-      //// print('[PDF-SIMPLE] Sample: ${cleanText.substring(0, cleanText.length > 100 ? 100 : cleanText.length)}');
-
-      // Try to load Unicode-supporting font
-      pw.Font? unicodeFont;
-      try {
-        final fontData = await rootBundle.load('assets/fonts/NotoSans-Regular.ttf');
-        unicodeFont = pw.Font.ttf(fontData);
-        //// print('[PDF-SIMPLE] Successfully loaded NotoSans font for Unicode support');
-      } catch (e) {
-        //// print('[PDF-SIMPLE] Could not load NotoSans font, will use more aggressive text cleaning: $e');
-        unicodeFont = null;
-      }
-
-      // If no Unicode font available, do more aggressive cleaning
-      if (unicodeFont == null) {
-        // More comprehensive Unicode character replacement
-        cleanText = cleanText.replaceAll('•', '- '); // Bullet point
-        cleanText = cleanText.replaceAll('…', '...'); // Ellipsis
-        cleanText = cleanText.replaceAll('°', ' degrees'); // Degree symbol
-        cleanText = cleanText.replaceAll('©', '(c)'); // Copyright
-        cleanText = cleanText.replaceAll('®', '(R)'); // Registered
-        cleanText = cleanText.replaceAll('™', '(TM)'); // Trademark
-
-        // Remove any remaining non-ASCII characters that might cause issues
-        cleanText = cleanText.replaceAllMapped(RegExp(r'[^\x00-\x7F]'), (match) {
-          final char = match.group(0)!;
-          final codeUnit = char.codeUnitAt(0);
-          //// print('[PDF-SIMPLE] Removing problematic character: $char (U+${codeUnit.toRadixString(16).toUpperCase().padLeft(4, '0')})');
-          return ' '; // Replace with space
-        });
-
-        //// print('[PDF-SIMPLE] Applied ASCII-only cleaning due to font limitations');
-      }
-
-      // Generate multi-page PDF that can handle long content
-      final pdf = pw.Document();
-
-      // Split text into manageable chunks for better formatting
-      final lines = cleanText.split('\n');
-      final List<pw.Widget> contentWidgets = [];
-
-      // Process lines and create widgets
-      for (String line in lines) {
-        line = line.trim();
-
-        if (line.isEmpty) {
-          contentWidgets.add(pw.SizedBox(height: 8));
-          continue;
-        }
-
-        // Check if line is a header (all caps, short, or ends with colon)
-        bool isHeader = line.length < 50 && (line.toUpperCase() == line || line.endsWith(':') || line.startsWith('---'));
-
-        if (isHeader) {
-          contentWidgets.add(pw.Container(
-            margin: const pw.EdgeInsets.only(top: 12, bottom: 6),
-            child: pw.Text(
-              line.replaceAll('---', '').trim(),
-              style: pw.TextStyle(
-                fontSize: 14,
-                fontWeight: pw.FontWeight.bold,
-                font: unicodeFont,
-              ),
-            ),
-          ));
-        } else if (line.startsWith('• ') || line.startsWith('- ')) {
-          // Bullet point
-          contentWidgets.add(pw.Container(
-            margin: const pw.EdgeInsets.only(left: 16, bottom: 4),
-            child: pw.Row(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Container(
-                  width: 16,
-                  child: pw.Text('•', style: pw.TextStyle(fontSize: 12, font: unicodeFont)),
-                ),
-                pw.Expanded(
-                  child: pw.Text(
-                    line.substring(2).trim(),
-                    style: pw.TextStyle(fontSize: 12, height: 1.4, font: unicodeFont),
-                  ),
-                ),
-              ],
-            ),
-          ));
-        } else {
-          // Regular text paragraph
-          contentWidgets.add(pw.Container(
-            margin: const pw.EdgeInsets.only(bottom: 8),
-            child: pw.Text(
-              line,
-              style: pw.TextStyle(fontSize: 12, height: 1.4, font: unicodeFont),
-            ),
-          ));
-        }
-      }
-
-      // Always use premium layout (clean content without headers/footers)
-      final List<pw.Widget> buildContent = [];
-      // Add top padding since there's no header
-      buildContent.add(pw.SizedBox(height: 30));
-      buildContent.addAll(contentWidgets);
-
-      // Add pages with clean premium layout
-      pdf.addPage(
-        pw.MultiPage(
-          pageFormat: PdfPageFormat.a4,
-          margin: pw.EdgeInsets.all(30), // Premium margins
-          // No headers or footers for clean look
-          build: (pw.Context context) => buildContent,
-        ),
-      );
-
-      final pdfBytes = await pdf.save();
-      //// print('[PDF-SIMPLE] Successfully generated premium-quality PDF with ${pdfBytes.length} bytes');
-      return pdfBytes;
-    } catch (e) {
-      //// print('[PDF-SIMPLE] Error generating simple PDF: $e');
-      return null;
-    }
-  }
-
-  // Convert markdown to HTML with proper styling
-  String _convertMarkdownToHtml(String markdown) {
-    String html = markdown;
-
-    // Convert headers
-    html = html.replaceAllMapped(RegExp(r'^### (.+)$', multiLine: true), (match) => '<h3>${match.group(1)}</h3>');
-    html = html.replaceAllMapped(RegExp(r'^## (.+)$', multiLine: true), (match) => '<h2>${match.group(1)}</h2>');
-    html = html.replaceAllMapped(RegExp(r'^# (.+)$', multiLine: true), (match) => '<h1>${match.group(1)}</h1>');
-
-    // Convert bold and italic
-    html = html.replaceAllMapped(RegExp(r'\*\*(.+?)\*\*'), (match) => '<strong>${match.group(1)}</strong>');
-    html = html.replaceAllMapped(RegExp(r'\*(.+?)\*'), (match) => '<em>${match.group(1)}</em>');
-
-    // Convert bullet points
-    html = html.replaceAllMapped(RegExp(r'^- (.+)$', multiLine: true), (match) => '<li>${match.group(1)}</li>');
-
-    // Wrap consecutive list items in <ul> tags
-    html = html.replaceAllMapped(RegExp(r'(<li>.*?</li>(?:\s*<li>.*?</li>)*)', dotAll: true), (match) => '<ul>${match.group(1)}</ul>');
-
-    // Convert line breaks
-    html = html.replaceAll('\n\n', '</p><p>');
-    html = html.replaceAll('\n', '<br>');
-
-    // Wrap in paragraphs
-    html = '<p>$html</p>';
-
-    return html;
-  }
-
-  // Helper method to detect header lines based on content patterns
-  bool _isHeaderLine(String line) {
-    // Common header patterns in travel itineraries and content
-    final headerPatterns = [
-      RegExp(r'^### ', caseSensitive: false), // Markdown headers
-      RegExp(r'^Day \d+:', caseSensitive: false),
-      RegExp(r'^Morning:?$', caseSensitive: false),
-      RegExp(r'^Afternoon:?$', caseSensitive: false),
-      RegExp(r'^Evening:?$', caseSensitive: false),
-      RegExp(r'^Option [A-Z]:', caseSensitive: false),
-      RegExp(r'^Tips?:?$', caseSensitive: false),
-      RegExp(r'^Important:?$', caseSensitive: false),
-      RegExp(r'^Note:?$', caseSensitive: false),
-      RegExp(r'^Summary:?$', caseSensitive: false),
-      RegExp(r'.+ - .+'), // Pattern like "Day 1: Tokyo - Modern & Traditional Blend"
-    ];
-
-    return headerPatterns.any((pattern) => pattern.hasMatch(line));
-  }
-
-  // Helper method to detect bullet points
-  bool _isBulletPoint(String line) {
-    return line.startsWith('- ') || line.startsWith('* ') || line.startsWith('+ ') || RegExp(r'^\w+:').hasMatch(line); // Pattern like "Tsukiji Outer Market:" or "Hamarikyu Gardens:"
-  }
-
-  // Helper method to clean bullet text
-  String _cleanBulletText(String line) {
-    // Remove bullet markers
-    if (line.startsWith('- ') || line.startsWith('* ') || line.startsWith('+ ')) {
-      return line.substring(2).trim();
-    }
-    return line.trim();
-  }
-
   // Show PDF generation limit dialog
   void _showPdfLimitDialog() {
-    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
     final remaining = subscriptionService.remainingPdfGenerations;
     final limit = subscriptionService.limits.pdfGenerationsWeekly;
 
@@ -5274,7 +5109,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
             final screenHeight = MediaQuery.of(context).size.height;
             final screenWidth = MediaQuery.of(context).size.width;
             final isSmallScreen = screenHeight < 700;
-            final isVerySmallScreen = screenHeight < 860 && screenWidth < 400; // iPhone 16 specifically
+            final isVerySmallScreen = screenHeight < 860 &&
+                screenWidth < 400; // iPhone 16 specifically
 
             return AlertDialog(
               title: Row(
@@ -5288,7 +5124,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     child: Icon(
                       Icons.picture_as_pdf,
                       color: Colors.orange,
-                      size: settings.getScaledFontSize(isVerySmallScreen ? 18 : 24),
+                      size: settings
+                          .getScaledFontSize(isVerySmallScreen ? 18 : 24),
                     ),
                   ),
                   SizedBox(width: isVerySmallScreen ? 8 : 12),
@@ -5296,7 +5133,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     child: Text(
                       'PDF Limit Reached',
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18)),
+                        fontSize: settings.getScaledFontSize(
+                            isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18)),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -5311,7 +5149,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     Text(
                       'You\'ve used all $limit lifetime PDF generations.',
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
+                        fontSize: settings.getScaledFontSize(
+                            isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -5319,17 +5158,27 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     Text(
                       '✨ Upgrade to Premium for:',
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 12 : 14),
+                        fontSize: settings
+                            .getScaledFontSize(isVerySmallScreen ? 12 : 14),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     SizedBox(height: isVerySmallScreen ? 6 : 8),
-                    ...['• Unlimited PDF generation', '• Professional-quality documents', '• No waiting periods', '• All premium features'].map((feature) => Padding(
-                          padding: EdgeInsets.only(bottom: isVerySmallScreen ? 2 : 4),
+                    ...[
+                      '• Unlimited PDF generation',
+                      '• Professional-quality documents',
+                      '• No waiting periods',
+                      '• All premium features'
+                    ].map((feature) => Padding(
+                          padding: EdgeInsets.only(
+                              bottom: isVerySmallScreen ? 2 : 4),
                           child: Text(
                             feature,
                             style: TextStyle(
-                              fontSize: settings.getScaledFontSize(isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 14)),
+                              fontSize: settings.getScaledFontSize(
+                                  isVerySmallScreen
+                                      ? 10
+                                      : (isSmallScreen ? 12 : 14)),
                               color: Colors.grey.shade700,
                             ),
                           ),
@@ -5424,7 +5273,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
   // Show document analysis limit dialog
   void _showDocumentAnalysisLimitDialog() {
-    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
     final remaining = subscriptionService.remainingDocumentAnalysis;
     final limit = subscriptionService.limits.documentAnalysisWeekly;
 
@@ -5436,7 +5286,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
             final screenHeight = MediaQuery.of(context).size.height;
             final screenWidth = MediaQuery.of(context).size.width;
             final isSmallScreen = screenHeight < 700;
-            final isVerySmallScreen = screenHeight < 860 && screenWidth < 400; // iPhone 16 specifically
+            final isVerySmallScreen = screenHeight < 860 &&
+                screenWidth < 400; // iPhone 16 specifically
 
             return AlertDialog(
               title: Row(
@@ -5450,7 +5301,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     child: Icon(
                       Icons.description,
                       color: Colors.blue,
-                      size: settings.getScaledFontSize(isVerySmallScreen ? 18 : 24),
+                      size: settings
+                          .getScaledFontSize(isVerySmallScreen ? 18 : 24),
                     ),
                   ),
                   SizedBox(width: isVerySmallScreen ? 8 : 12),
@@ -5458,7 +5310,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     child: Text(
                       'Document Analysis Limit Reached',
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18)),
+                        fontSize: settings.getScaledFontSize(
+                            isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18)),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -5473,7 +5326,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     Text(
                       'You\'ve used all $limit lifetime document analyses.',
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
+                        fontSize: settings.getScaledFontSize(
+                            isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -5481,17 +5335,27 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     Text(
                       '✨ Upgrade to Premium for:',
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 12 : 14),
+                        fontSize: settings
+                            .getScaledFontSize(isVerySmallScreen ? 12 : 14),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     SizedBox(height: isVerySmallScreen ? 6 : 8),
-                    ...['• Unlimited document analysis', '• Advanced file processing', '• PDF, Word, Excel support', '• All premium features'].map((feature) => Padding(
-                          padding: EdgeInsets.only(bottom: isVerySmallScreen ? 2 : 4),
+                    ...[
+                      '• Unlimited document analysis',
+                      '• Advanced file processing',
+                      '• PDF, Word, Excel support',
+                      '• All premium features'
+                    ].map((feature) => Padding(
+                          padding: EdgeInsets.only(
+                              bottom: isVerySmallScreen ? 2 : 4),
                           child: Text(
                             feature,
                             style: TextStyle(
-                              fontSize: settings.getScaledFontSize(isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 14)),
+                              fontSize: settings.getScaledFontSize(
+                                  isVerySmallScreen
+                                      ? 10
+                                      : (isSmallScreen ? 12 : 14)),
                               color: Colors.grey.shade700,
                             ),
                           ),
@@ -5586,7 +5450,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
 
   // Show places explorer limit dialog
   void _showPlacesExplorerLimitDialog() {
-    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
     final remaining = subscriptionService.remainingPlacesExplorer;
     final limit = subscriptionService.limits.placesExplorerWeekly;
 
@@ -5598,7 +5463,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
             final screenHeight = MediaQuery.of(context).size.height;
             final screenWidth = MediaQuery.of(context).size.width;
             final isSmallScreen = screenHeight < 700;
-            final isVerySmallScreen = screenHeight < 860 && screenWidth < 400; // iPhone 16 specifically
+            final isVerySmallScreen = screenHeight < 860 &&
+                screenWidth < 400; // iPhone 16 specifically
 
             return AlertDialog(
               title: Row(
@@ -5612,7 +5478,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     child: Icon(
                       Icons.location_on,
                       color: Color(0xFF5856D6),
-                      size: settings.getScaledFontSize(isVerySmallScreen ? 18 : 24),
+                      size: settings
+                          .getScaledFontSize(isVerySmallScreen ? 18 : 24),
                     ),
                   ),
                   SizedBox(width: isVerySmallScreen ? 8 : 12),
@@ -5620,7 +5487,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     child: Text(
                       'Places Explorer Limit Reached',
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18)),
+                        fontSize: settings.getScaledFontSize(
+                            isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18)),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -5635,7 +5503,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     Text(
                       'You\'ve used all $limit lifetime place searches.',
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
+                        fontSize: settings.getScaledFontSize(
+                            isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -5643,17 +5512,27 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
                     Text(
                       '✨ Upgrade to Premium for:',
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 12 : 14),
+                        fontSize: settings
+                            .getScaledFontSize(isVerySmallScreen ? 12 : 14),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     SizedBox(height: isVerySmallScreen ? 6 : 8),
-                    ...['• Unlimited places exploration', '• Advanced location search', '• Real-time business info', '• All premium features'].map((feature) => Padding(
-                          padding: EdgeInsets.only(bottom: isVerySmallScreen ? 2 : 4),
+                    ...[
+                      '• Unlimited places exploration',
+                      '• Advanced location search',
+                      '• Real-time business info',
+                      '• All premium features'
+                    ].map((feature) => Padding(
+                          padding: EdgeInsets.only(
+                              bottom: isVerySmallScreen ? 2 : 4),
                           child: Text(
                             feature,
                             style: TextStyle(
-                              fontSize: settings.getScaledFontSize(isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 14)),
+                              fontSize: settings.getScaledFontSize(
+                                  isVerySmallScreen
+                                      ? 10
+                                      : (isSmallScreen ? 12 : 14)),
                               color: Colors.grey.shade700,
                             ),
                           ),
@@ -5749,9 +5628,11 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   // Show PPTX generation dialog to collect user details
   void _showPptxGenerationDialog() {
     // Check subscription status first
-    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
     // For PPTX: Premium users have unlimited access, free users get 3 uses based on document analysis remaining
-    if (!subscriptionService.isPremium && subscriptionService.remainingDocumentAnalysis <= 0) {
+    if (!subscriptionService.isPremium &&
+        subscriptionService.remainingDocumentAnalysis <= 0) {
       _showPptxUpgradeDialog();
       return;
     }
@@ -5795,7 +5676,8 @@ class _AiChatScreenState extends State<AiChatScreen> with TickerProviderStateMix
   }
 
   // Process translation request (unified for both text and images)
-  Future<void> _processTranslation(String translationPrompt, {List<XFile>? images}) async {
+  Future<void> _processTranslation(String translationPrompt,
+      {List<XFile>? images}) async {
     // Send the translation prompt as a regular chat message
     // If images are provided, send them along with the text
     if (images != null && images.isNotEmpty) {
@@ -5868,7 +5750,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Consumer<SettingsProvider>(
             builder: (context, settings, child) {
               return Container(
@@ -5930,7 +5813,12 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
                             ),
                           ),
                           SizedBox(height: 8),
-                          ...['• Create professional PPTX presentations', '• Unlimited presentation generation', '• Custom themes and layouts', '• All premium AI features unlocked'].map(
+                          ...[
+                            '• Create professional PPTX presentations',
+                            '• Unlimited presentation generation',
+                            '• Custom themes and layouts',
+                            '• All premium AI features unlocked'
+                          ].map(
                             (benefit) => Padding(
                               padding: EdgeInsets.symmetric(vertical: 2),
                               child: Text(
@@ -6001,12 +5889,17 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
     // Look for the user message before this places widget message
     for (int i = currentIndex - 1; i >= 0; i--) {
       final message = _messages[i];
-      if (message.isUserMessage && message.message.toLowerCase().contains('find')) {
+      if (message.isUserMessage &&
+          message.message.toLowerCase().contains('find')) {
         // Extract search query from messages like "Find restaurants near me"
         final words = message.message.split(' ');
-        final findIndex = words.indexWhere((word) => word.toLowerCase() == 'find');
+        final findIndex =
+            words.indexWhere((word) => word.toLowerCase() == 'find');
         if (findIndex >= 0 && findIndex < words.length - 1) {
-          return words.sublist(findIndex + 1).join(' ').replaceAll(' near me', '');
+          return words
+              .sublist(findIndex + 1)
+              .join(' ')
+              .replaceAll(' near me', '');
         }
       }
     }
@@ -6014,7 +5907,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
   }
 
   // Extract recent places context for AI follow-up questions
-  String? _getRecentPlacesContext(String userMessage, List<ChatMessage> history) {
+  String? _getRecentPlacesContext(
+      String userMessage, List<ChatMessage> history) {
     // Skip if this looks like a new search command rather than a question about existing results
     final lowerMessage = userMessage.toLowerCase();
 
@@ -6031,14 +5925,21 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
         lowerMessage.contains('pick');
 
     // Only skip if it's clearly a NEW search command AND not an analysis request
-    final isNewSearchCommand = !isAnalysisRequest && (lowerMessage.startsWith('find ') || lowerMessage.startsWith('search ') || lowerMessage.startsWith('show me ') || (lowerMessage.contains('near me') && !lowerMessage.contains('suggest')) || lowerMessage.contains('search for'));
+    final isNewSearchCommand = !isAnalysisRequest &&
+        (lowerMessage.startsWith('find ') ||
+            lowerMessage.startsWith('search ') ||
+            lowerMessage.startsWith('show me ') ||
+            (lowerMessage.contains('near me') &&
+                !lowerMessage.contains('suggest')) ||
+            lowerMessage.contains('search for'));
 
     if (isNewSearchCommand) return null;
 
     // Look for recent messages with location results (within last 8 messages)
     for (int i = history.length - 1; i >= 0 && i >= history.length - 8; i--) {
       final message = history[i];
-      if (message.locationResults != null && message.locationResults!.isNotEmpty) {
+      if (message.locationResults != null &&
+          message.locationResults!.isNotEmpty) {
         // Found recent places data, format it for AI context
         final places = message.locationResults!;
         final placesInfo = StringBuffer();
@@ -6047,7 +5948,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
         for (int j = 0; j < places.length && j < 20; j++) {
           final place = places[j];
           placesInfo.writeln('${j + 1}. ${place.name}');
-          placesInfo.writeln('   - Rating: ${place.rating}/5 (${place.userRatingsTotal} reviews)');
+          placesInfo.writeln(
+              '   - Rating: ${place.rating}/5 (${place.userRatingsTotal} reviews)');
           placesInfo.writeln('   - Type: ${place.types.join(', ')}');
           placesInfo.writeln('   - Price: ${place.priceLevel}');
           placesInfo.writeln('   - Distance: ${place.getDistanceText(
@@ -6086,7 +5988,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
     String placeCategory = 'places';
     String searchContext = query.toLowerCase();
 
-    if (placeTypes.any((type) => ['restaurant', 'food', 'meal_takeaway'].contains(type))) {
+    if (placeTypes.any(
+        (type) => ['restaurant', 'food', 'meal_takeaway'].contains(type))) {
       if (searchContext.contains('chinese')) {
         placeCategory = 'Chinese restaurants';
       } else if (searchContext.contains('pizza')) {
@@ -6114,7 +6017,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
       placeCategory = 'bakeries and dessert places';
     } else if (placeTypes.contains('parking')) {
       placeCategory = 'parking spots';
-    } else if (placeTypes.any((type) => ['hospital', 'pharmacy', 'doctor'].contains(type))) {
+    } else if (placeTypes
+        .any((type) => ['hospital', 'pharmacy', 'doctor'].contains(type))) {
       if (placeTypes.contains('pharmacy')) {
         placeCategory = 'pharmacies';
       } else {
@@ -6126,7 +6030,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
       placeCategory = 'ATMs';
     } else if (placeTypes.contains('bank')) {
       placeCategory = 'banks';
-    } else if (placeTypes.any((type) => ['shopping_mall', 'store'].contains(type))) {
+    } else if (placeTypes
+        .any((type) => ['shopping_mall', 'store'].contains(type))) {
       placeCategory = 'shopping locations';
     } else if (placeTypes.contains('lodging')) {
       placeCategory = 'hotels';
@@ -6147,12 +6052,16 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
     }
 
     // Special handling for restroom searches
-    if (searchContext.contains('restroom') || searchContext.contains('bathroom') || searchContext.contains('toilet')) {
+    if (searchContext.contains('restroom') ||
+        searchContext.contains('bathroom') ||
+        searchContext.contains('toilet')) {
       return "I found ${places.length} places with public restrooms nearby. These locations typically have facilities available:";
     }
 
     // Check if it's a location-specific search
-    bool hasLocationContext = query.toLowerCase().contains(' in ') || query.toLowerCase().contains(' at ') || RegExp(r'\b\d{5}\b').hasMatch(query); // zip code
+    bool hasLocationContext = query.toLowerCase().contains(' in ') ||
+        query.toLowerCase().contains(' at ') ||
+        RegExp(r'\b\d{5}\b').hasMatch(query); // zip code
 
     if (hasLocationContext) {
       return "I found ${places.length} $placeCategory in your specified area:";
@@ -6161,10 +6070,12 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
     }
   }
 
-  Future<void> _addLocationResultsToChat(List<PlaceResult> places, String query) async {
+  Future<void> _addLocationResultsToChat(
+      List<PlaceResult> places, String query) async {
     try {
       // Consume places explorer usage for free users
-      final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+      final subscriptionService =
+          Provider.of<SubscriptionService>(context, listen: false);
       if (!subscriptionService.isPremium) {
         await subscriptionService.tryUsePlacesExplorer();
         // Show usage reminder for free users
@@ -6185,8 +6096,10 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
       }
 
       // Get the conversation provider
-      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
-      int? messageConversationId = conversationProvider.selectedConversation?.id;
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
+      int? messageConversationId =
+          conversationProvider.selectedConversation?.id;
       bool createdNewConversation = false;
 
       // If no conversation exists, create one for this search
@@ -6195,7 +6108,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
         final String searchTitle = "Places Explorer: $query";
 
         // Create a new conversation
-        await conversationProvider.createConversation(searchTitle, _currentProfileId);
+        await conversationProvider.createConversation(
+            searchTitle, _currentProfileId);
 
         // Get the new conversation ID
         messageConversationId = conversationProvider.selectedConversation?.id;
@@ -6269,7 +6183,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
   // Show AI Image generation dialog to guide user with prompting
   void _showImageGenerationDialog() {
     // Check subscription status first
-    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
     if (!subscriptionService.canUseImageGeneration) {
       _showImageGenerationUpgradeDialog();
       return;
@@ -6295,7 +6210,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
                       child: Container(
                         child: Container(
                           constraints: BoxConstraints(
-                            maxHeight: MediaQuery.of(context).size.height * 0.75,
+                            maxHeight:
+                                MediaQuery.of(context).size.height * 0.75,
                             maxWidth: MediaQuery.of(context).size.width * 0.9,
                           ),
                           decoration: BoxDecoration(
@@ -6317,12 +6233,18 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
                                         Container(
                                           padding: EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: Theme.of(context).brightness == Brightness.dark ? Colors.teal.withOpacity(0.2) : Colors.teal.withOpacity(0.1),
-                                            borderRadius: BorderRadius.circular(30),
+                                            color: Theme.of(context)
+                                                        .brightness ==
+                                                    Brightness.dark
+                                                ? Colors.teal.withOpacity(0.2)
+                                                : Colors.teal.withOpacity(0.1),
+                                            borderRadius:
+                                                BorderRadius.circular(30),
                                           ),
                                           child: Icon(
                                             Icons.brush,
-                                            size: settings.getScaledFontSize(24),
+                                            size:
+                                                settings.getScaledFontSize(24),
                                             color: Colors.teal,
                                           ),
                                         ),
@@ -6331,22 +6253,33 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
                                         // Title and description
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 'AI Image Generation',
                                                 style: TextStyle(
-                                                  fontSize: settings.getScaledFontSize(16),
+                                                  fontSize: settings
+                                                      .getScaledFontSize(16),
                                                   fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Color(0xFF1C1C1E),
+                                                  color: Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.white
+                                                      : Color(0xFF1C1C1E),
                                                 ),
                                               ),
                                               SizedBox(height: 2),
                                               Text(
                                                 'Describe what you want to create',
                                                 style: TextStyle(
-                                                  fontSize: settings.getScaledFontSize(11),
-                                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                                  fontSize: settings
+                                                      .getScaledFontSize(11),
+                                                  color: Theme.of(context)
+                                                              .brightness ==
+                                                          Brightness.dark
+                                                      ? Colors.grey.shade400
+                                                      : Colors.grey.shade600,
                                                 ),
                                               ),
                                             ],
@@ -6369,34 +6302,61 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
                                         controller: promptController,
                                         maxLines: 2,
                                         decoration: InputDecoration(
-                                          hintText: AppLocalizations.of(context)!.futuristicCityExample,
+                                          hintText:
+                                              AppLocalizations.of(context)!
+                                                  .futuristicCityExample,
                                           hintStyle: TextStyle(
-                                            fontSize: settings.getScaledFontSize(11),
-                                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey.shade500,
+                                            fontSize:
+                                                settings.getScaledFontSize(11),
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.grey.shade500
+                                                    : Colors.grey.shade500,
                                           ),
                                           filled: true,
-                                          fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.white,
+                                          fillColor:
+                                              Theme.of(context).brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.grey.shade800
+                                                  : Colors.white,
                                           border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                             borderSide: BorderSide(
-                                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.grey.shade600
+                                                  : Colors.grey.shade300,
                                             ),
                                           ),
                                           enabledBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
                                             borderSide: BorderSide(
-                                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                                              color: Theme.of(context)
+                                                          .brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.grey.shade600
+                                                  : Colors.grey.shade300,
                                             ),
                                           ),
                                           focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                            borderSide: BorderSide(color: Colors.teal, width: 2),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            borderSide: BorderSide(
+                                                color: Colors.teal, width: 2),
                                           ),
                                           contentPadding: EdgeInsets.all(12),
                                         ),
                                         style: TextStyle(
-                                          fontSize: settings.getScaledFontSize(13),
-                                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                                          fontSize:
+                                              settings.getScaledFontSize(13),
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white
+                                              : Colors.black,
                                         ),
                                       ),
                                       SizedBox(height: 12),
@@ -6405,26 +6365,42 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
                                       Container(
                                         padding: EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade900.withOpacity(0.3) : Colors.blue.shade50,
-                                          borderRadius: BorderRadius.circular(8),
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.blue.shade900
+                                                  .withOpacity(0.3)
+                                              : Colors.blue.shade50,
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text(
                                               '💡 Tips:',
                                               style: TextStyle(
-                                                fontSize: settings.getScaledFontSize(13),
+                                                fontSize: settings
+                                                    .getScaledFontSize(13),
                                                 fontWeight: FontWeight.w600,
-                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade300 : Colors.blue.shade700,
+                                                color: Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.blue.shade300
+                                                    : Colors.blue.shade700,
                                               ),
                                             ),
                                             SizedBox(height: 2),
                                             Text(
                                               '• Style: realistic, cartoon, digital art\n• Lighting & mood details\n• Colors & composition',
                                               style: TextStyle(
-                                                fontSize: settings.getScaledFontSize(13),
-                                                color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600,
+                                                fontSize: settings
+                                                    .getScaledFontSize(13),
+                                                color: Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.blue.shade200
+                                                    : Colors.blue.shade600,
                                                 height: 1.2,
                                               ),
                                             ),
@@ -6451,8 +6427,13 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
                                         child: Text(
                                           'Cancel',
                                           style: TextStyle(
-                                            fontSize: settings.getScaledFontSize(13),
-                                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                            fontSize:
+                                                settings.getScaledFontSize(13),
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.grey.shade400
+                                                    : Colors.grey.shade600,
                                           ),
                                         ),
                                       ),
@@ -6464,12 +6445,15 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
                                           backgroundColor: Colors.teal,
                                           foregroundColor: Colors.white,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
                                           ),
-                                          padding: EdgeInsets.symmetric(vertical: 10),
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 10),
                                         ),
                                         onPressed: () {
-                                          final prompt = promptController.text.trim();
+                                          final prompt =
+                                              promptController.text.trim();
                                           if (prompt.isNotEmpty) {
                                             FocusScope.of(context).unfocus();
                                             Navigator.of(context).pop();
@@ -6479,7 +6463,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
                                         child: Text(
                                           'Generate',
                                           style: TextStyle(
-                                            fontSize: settings.getScaledFontSize(13),
+                                            fontSize:
+                                                settings.getScaledFontSize(13),
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -6516,7 +6501,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Consumer<SettingsProvider>(
             builder: (context, settings, child) {
               return Container(
@@ -6608,789 +6594,6 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
           ),
         );
       },
-    );
-  }
-}
-
-// Location Search Dialog
-class LocationSearchDialog extends StatefulWidget {
-  final Function(List<PlaceResult>, String) onSearchCompleted;
-
-  const LocationSearchDialog({
-    super.key,
-    required this.onSearchCompleted,
-  });
-
-  @override
-  State<LocationSearchDialog> createState() => _LocationSearchDialogState();
-}
-
-class _LocationSearchDialogState extends State<LocationSearchDialog> {
-  final TextEditingController _searchController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController();
-  final LocationService _locationService = LocationService();
-  bool _isSearching = false;
-  bool _isGettingLocation = false;
-  String? _locationError;
-  String _selectedCategory = 'restaurant';
-  bool _openNow = false; // Track "open now" filter
-  bool _useCurrentLocation = true; // Toggle for location type
-  String? _lastCustomLocation; // Remember last custom location
-  String? _validationError; // Show validation errors prominently
-
-  final Map<String, String> _categories = {
-    'restaurant': 'Restaurants',
-    'cafe': 'Coffee Shops',
-    'bakery': 'Sweet Food & Bakery',
-    'convenience_store': 'Ice Cream & Desserts',
-    'lodging': 'Hotels',
-    'tourist_attraction': 'Attractions',
-    'shopping_mall': 'Shopping',
-    'gas_station': 'Gas Stations',
-    'parking': 'Parking Garage',
-    'hospital': 'Healthcare',
-    'pharmacy': 'Pharmacy',
-    'bank': 'Banks',
-    'atm': 'ATM',
-    'gym': 'Fitness',
-    'beauty_salon': 'Beauty & Spa',
-    'laundry': 'Laundromat',
-    'car_wash': 'Car Wash',
-    'night_club': 'Nightlife',
-    'park': 'Parks',
-    'subway_station': 'Public Transit',
-    'restroom': 'Public Restroom',
-  };
-
-  @override
-  void initState() {
-    super.initState();
-    _requestLocationPermission();
-
-    // Add listener to update button text when search field changes
-    _searchController.addListener(() {
-      setState(() {
-        // Rebuild to update button text
-      });
-    });
-
-    // Add listener for location controller
-    _locationController.addListener(() {
-      setState(() {
-        // Rebuild to update UI state
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _locationController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _requestLocationPermission() async {
-    // Only request location permission if using current location
-    if (!_useCurrentLocation) return;
-
-    setState(() {
-      _isGettingLocation = true;
-      _locationError = null;
-    });
-
-    try {
-      bool hasPermission = await _locationService.checkLocationPermission();
-      if (hasPermission) {
-        await _locationService.getCurrentLocation();
-      } else {
-        setState(() {
-          _locationError = "Location permission required for current location search";
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _locationError = "Failed to get location: $e";
-      });
-    } finally {
-      setState(() {
-        _isGettingLocation = false;
-      });
-    }
-  }
-
-  // Toggle location mode and handle permission/geocoding accordingly
-  void _toggleLocationMode(bool useCurrentLocation) {
-    setState(() {
-      _useCurrentLocation = useCurrentLocation;
-      _locationError = null;
-
-      if (useCurrentLocation) {
-        // Switched to current location - request permission
-        _requestLocationPermission();
-      } else {
-        // Switched to custom location - stop location loading and pre-fill
-        _isGettingLocation = false;
-        if (_lastCustomLocation != null) {
-          _locationController.text = _lastCustomLocation!;
-        }
-      }
-    });
-  }
-
-  Future<void> _searchPlaces() async {
-    final searchText = _searchController.text.trim();
-    final customLocation = _useCurrentLocation ? null : _locationController.text.trim();
-
-    //// print('[LocationSearch] _searchPlaces called with: "$searchText"');
-    //// print('[LocationSearch] Use current location: $_useCurrentLocation');
-    if (customLocation != null) {
-      //// print('[LocationSearch] Custom location: "$customLocation"');
-    }
-
-    // Use category name as fallback if no search text provided
-    final queryText = searchText.isEmpty ? _categories[_selectedCategory] ?? _selectedCategory : searchText;
-
-    // Validate custom location if needed
-    if (!_useCurrentLocation && (customLocation == null || customLocation.isEmpty)) {
-      showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            title: Row(
-              children: [
-                Icon(Icons.warning, color: Colors.orange),
-                SizedBox(width: 8),
-                Text(
-                  'Location Required',
-                  style: TextStyle(
-                    color: Theme.of(context).textTheme.titleMedium?.color,
-                  ),
-                ),
-              ],
-            ),
-            content: Text(
-              'Please enter a city or address to search in.',
-              style: TextStyle(
-                color: Theme.of(context).textTheme.bodyMedium?.color,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: Text(AppLocalizations.of(context)!.ok),
-              ),
-            ],
-          );
-        },
-      );
-      return;
-    }
-
-    //// print('[LocationSearch] Using query: "$queryText" (category: $_selectedCategory)');
-    //// print('[LocationSearch] Starting search...');
-    setState(() {
-      _isSearching = true;
-    });
-
-    try {
-      //// print('[LocationSearch] Calling locationService.searchNearbyPlaces');
-      final places = await _locationService.searchNearbyPlaces(
-        query: queryText,
-        type: _selectedCategory,
-        openNow: _openNow,
-        customLocation: customLocation,
-      );
-
-      // Remember the custom location for next time
-      if (!_useCurrentLocation && customLocation != null) {
-        _lastCustomLocation = customLocation;
-      }
-
-      //// print('[LocationSearch] Search completed, found ${places.length} places');
-
-      // Create an enhanced query description for the chat
-      final searchDescription = _useCurrentLocation ? queryText : "$queryText in $customLocation";
-
-      widget.onSearchCompleted(places, searchDescription);
-    } catch (e) {
-      //// print('[LocationSearch] Error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(AppLocalizations.of(context)!.searchFailed(e.toString()))),
-      );
-    } finally {
-      setState(() {
-        _isSearching = false;
-      });
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
-        final screenHeight = MediaQuery.of(context).size.height;
-        final screenWidth = MediaQuery.of(context).size.width;
-        final isSmallScreen = screenHeight < 700 || screenWidth < 400; // iPhone 16 and similar
-
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          insetPadding: EdgeInsets.all(16),
-          child: Material(
-            elevation: 8,
-            borderRadius: BorderRadius.circular(16),
-            color: Theme.of(context).scaffoldBackgroundColor,
-            child: Container(
-              width: double.maxFinite,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                color: Theme.of(context).scaffoldBackgroundColor,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Custom title bar
-                  Container(
-                    padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                      color: Theme.of(context).scaffoldBackgroundColor,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Color(0xFF5856D6).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            Icons.explore,
-                            color: Color(0xFF5856D6),
-                            size: settings.getScaledFontSize(isSmallScreen ? 18 : 20),
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Places Explorer',
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(isSmallScreen ? 16 : 18),
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).textTheme.titleMedium?.color,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'PRO',
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(9),
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Content area
-                  Container(
-                    width: double.maxFinite,
-                    constraints: BoxConstraints(
-                      maxHeight: isSmallScreen ? screenHeight * 0.6 : screenHeight * 0.7,
-                    ),
-                    padding: EdgeInsets.fromLTRB(20, 0, 20, 8),
-                    child: SingleChildScrollView(
-                      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        if (_isGettingLocation) ...[
-                          Center(
-                            child: Column(
-                              children: [
-                                CircularProgressIndicator(color: Color(0xFF5856D6)),
-                                SizedBox(height: 12),
-                                Text(
-                                  'Getting your location...',
-                                  style: TextStyle(
-                                    fontSize: settings.getScaledFontSize(14),
-                                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ] else if (_locationError != null) ...[
-                          // Warning container with maximum elevation to ensure it appears on top
-                          Stack(
-                            children: [
-                              Material(
-                                elevation: 12, // Increased elevation for higher z-index
-                                borderRadius: BorderRadius.circular(8),
-                                shadowColor: Colors.red.withOpacity(0.5),
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade50,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.red, width: 2),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.red.withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: Offset(0, 4),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red,
-                                          borderRadius: BorderRadius.circular(20),
-                                        ),
-                                        child: Icon(
-                                          Icons.warning,
-                                          color: Colors.white,
-                                          size: settings.getScaledFontSize(20),
-                                        ),
-                                      ),
-                                      SizedBox(width: 16),
-                                      Expanded(
-                                        child: Text(
-                                          _locationError!,
-                                          style: TextStyle(
-                                            fontSize: settings.getScaledFontSize(14),
-                                            color: Colors.red.shade800,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          SizedBox(height: 20),
-                          Material(
-                            elevation: 8,
-                            borderRadius: BorderRadius.circular(8),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: _requestLocationPermission,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.red.shade600,
-                                  foregroundColor: Colors.white,
-                                  padding: EdgeInsets.symmetric(vertical: 16),
-                                  elevation: 4,
-                                ),
-                                child: Text(
-                                  'Try Again',
-                                  style: TextStyle(
-                                    fontSize: settings.getScaledFontSize(16),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ] else ...[
-                          // Location selection
-                          Text(
-                            'Search Location',
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(14),
-                              fontWeight: FontWeight.w600,
-                              color: Theme.of(context).textTheme.titleMedium?.color,
-                            ),
-                          ),
-                          SizedBox(height: 4),
-
-                          // Current location toggle
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: ListTile(
-                              dense: true,
-                              leading: Icon(
-                                Icons.my_location,
-                                color: _useCurrentLocation ? Color(0xFF5856D6) : Colors.grey,
-                                size: settings.getScaledFontSize(20),
-                              ),
-                              title: Text(
-                                'Use Current Location',
-                                style: TextStyle(
-                                  fontSize: settings.getScaledFontSize(14),
-                                  fontWeight: _useCurrentLocation ? FontWeight.w600 : FontWeight.normal,
-                                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                                ),
-                              ),
-                              subtitle: _locationService.currentAddress != null
-                                  ? Text(
-                                      _locationService.currentAddress!,
-                                      style: TextStyle(
-                                        fontSize: settings.getScaledFontSize(12),
-                                        color: Theme.of(context).textTheme.bodySmall?.color,
-                                      ),
-                                    )
-                                  : null,
-                              trailing: Switch(
-                                value: _useCurrentLocation,
-                                onChanged: _toggleLocationMode,
-                                activeColor: Color(0xFF5856D6),
-                              ),
-                            ),
-                          ),
-
-                          // Custom location input
-                          if (!_useCurrentLocation) ...[
-                            SizedBox(height: 4),
-                            TextField(
-                              controller: _locationController,
-                              decoration: InputDecoration(
-                                labelText: AppLocalizations.of(context)!.enterCityOrAddress,
-                                labelStyle: TextStyle(
-                                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                                ),
-                                hintText: AppLocalizations.of(context)!.tokyoParisExample,
-                                hintStyle: TextStyle(
-                                  fontSize: settings.getScaledFontSize(14),
-                                  color: Theme.of(context).textTheme.bodySmall?.color,
-                                ),
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                prefixIcon: Icon(Icons.location_city, color: Color(0xFF5856D6)),
-                                errorText: _validationError,
-                                fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.white,
-                                filled: true,
-                              ),
-                              style: TextStyle(
-                                fontSize: settings.getScaledFontSize(14),
-                                color: Theme.of(context).textTheme.bodyMedium?.color,
-                              ),
-                              textInputAction: TextInputAction.done,
-                              onChanged: (value) {
-                                // Clear validation error when user starts typing
-                                if (_validationError != null) {
-                                  setState(() {
-                                    _validationError = null;
-                                  });
-                                }
-                              },
-                            ),
-                          ],
-
-                          SizedBox(height: 16),
-
-                          // Section header with Open now filter
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  'What are you looking for?',
-                                  style: TextStyle(
-                                    fontSize: settings.getScaledFontSize(14),
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).textTheme.titleMedium?.color,
-                                  ),
-                                ),
-                              ),
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: _openNow ? Color(0xFF5856D6).withOpacity(0.1) : Colors.transparent,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: _openNow ? Color(0xFF5856D6) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300),
-                                  ),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: Checkbox(
-                                        value: _openNow,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _openNow = value ?? false;
-                                          });
-                                        },
-                                        activeColor: Color(0xFF5856D6),
-                                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                      ),
-                                    ),
-                                    SizedBox(width: 4),
-                                    Text(
-                                      'Open now',
-                                      style: TextStyle(
-                                        fontSize: settings.getScaledFontSize(12),
-                                        color: _openNow ? Color(0xFF5856D6) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade700),
-                                        fontWeight: _openNow ? FontWeight.w600 : FontWeight.normal,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          SizedBox(height: 12),
-
-                          // Category selection
-                          _buildCategoryGrid(settings),
-
-                          SizedBox(height: 12),
-
-                          // Search input
-                          TextField(
-                            controller: _searchController,
-                            decoration: InputDecoration(
-                              hintText: AppLocalizations.of(context)!.optionalBestPizza,
-                              hintStyle: TextStyle(
-                                fontSize: settings.getScaledFontSize(14),
-                                color: Theme.of(context).textTheme.bodySmall?.color,
-                              ),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.white,
-                              filled: true,
-                              suffixIcon: IconButton(
-                                onPressed: _isSearching ? null : _searchPlaces,
-                                icon: _isSearching
-                                    ? SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(strokeWidth: 2),
-                                      )
-                                    : Icon(Icons.search),
-                              ),
-                            ),
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(14),
-                              color: Theme.of(context).textTheme.bodyMedium?.color,
-                            ),
-                            onSubmitted: (_) => _searchPlaces(),
-                            textInputAction: TextInputAction.search,
-                          ),
-
-                          SizedBox(height: 12),
-                        ],
-                      ]),
-                    ),
-                  ),
-
-                  // Action buttons at bottom
-                  Container(
-                    padding: EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.vertical(bottom: Radius.circular(16)),
-                      border: Border(
-                          top: BorderSide(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
-                      )),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            child: Text(
-                              'Cancel',
-                              style: TextStyle(
-                                fontSize: settings.getScaledFontSize(14),
-                                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 12),
-                        if (!_isGettingLocation && _locationError == null)
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton(
-                              onPressed: _isSearching ? null : _searchPlaces,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF5856D4),
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 12),
-                              ),
-                              child: _isSearching
-                                  ? SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : Text(
-                                      _searchController.text.trim().isEmpty ? 'Find ${_categories[_selectedCategory]}' : 'Search',
-                                      style: TextStyle(fontSize: settings.getScaledFontSize(14)),
-                                    ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // Helper method to get brighter colors for dark mode
-  Color _getBrighterColorForDarkMode(Color originalColor) {
-    if (originalColor == Colors.orange) return Colors.orange.shade100;
-    if (originalColor == Colors.green) return Colors.green.shade100;
-    if (originalColor == Colors.blue) return Colors.blue.shade100;
-    if (originalColor == Colors.purple) return Colors.purple.shade100;
-    return originalColor.withOpacity(1.0);
-  }
-
-  Widget _buildCategoryGrid(SettingsProvider settings) {
-    // Group categories with icons and colors
-    final categoryGroups = [
-      {
-        'title': 'Food & Drink',
-        'color': Colors.orange,
-        'categories': [
-          {'key': 'restaurant', 'name': 'Restaurants', 'icon': Icons.restaurant},
-          {'key': 'cafe', 'name': 'Coffee', 'icon': Icons.local_cafe},
-          {'key': 'bakery', 'name': 'Bakery', 'icon': Icons.cake},
-          {'key': 'convenience_store', 'name': 'Desserts', 'icon': Icons.icecream},
-          {'key': 'night_club', 'name': 'Bars', 'icon': Icons.nightlife},
-        ]
-      },
-      {
-        'title': 'Places & Travel',
-        'color': Colors.green,
-        'categories': [
-          {'key': 'lodging', 'name': 'Hotels', 'icon': Icons.hotel},
-          {'key': 'tourist_attraction', 'name': 'Attractions', 'icon': Icons.attractions},
-          {'key': 'shopping_mall', 'name': 'Shopping', 'icon': Icons.shopping_bag},
-          {'key': 'park', 'name': 'Parks', 'icon': Icons.park},
-          {'key': 'subway_station', 'name': 'Transit', 'icon': Icons.train},
-          {'key': 'restroom', 'name': 'Restroom', 'icon': Icons.wc},
-        ]
-      },
-      {
-        'title': 'Services',
-        'color': Colors.blue,
-        'categories': [
-          {'key': 'gas_station', 'name': 'Gas', 'icon': Icons.local_gas_station},
-          {'key': 'parking', 'name': 'Parking', 'icon': Icons.local_parking},
-          {'key': 'atm', 'name': 'ATM', 'icon': Icons.atm},
-          {'key': 'bank', 'name': 'Bank', 'icon': Icons.account_balance},
-          {'key': 'pharmacy', 'name': 'Pharmacy', 'icon': Icons.medication},
-          {'key': 'laundry', 'name': 'Laundry', 'icon': Icons.local_laundry_service},
-        ]
-      },
-      {
-        'title': 'Health & Beauty',
-        'color': Colors.purple,
-        'categories': [
-          {'key': 'hospital', 'name': 'Healthcare', 'icon': Icons.local_hospital},
-          {'key': 'gym', 'name': 'Fitness', 'icon': Icons.fitness_center},
-          {'key': 'beauty_salon', 'name': 'Beauty', 'icon': Icons.face_retouching_natural},
-        ]
-      },
-    ];
-
-    return Container(
-      constraints: BoxConstraints(maxHeight: 180),
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: categoryGroups.map((group) {
-            final categories = group['categories'] as List<Map<String, dynamic>>;
-            final color = group['color'] as Color;
-
-            return Container(
-              margin: EdgeInsets.only(bottom: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Group header
-                  Text(
-                    group['title'] as String,
-                    style: TextStyle(
-                      fontSize: settings.getScaledFontSize(10),
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).brightness == Brightness.dark ? _getBrighterColorForDarkMode(color) : color,
-                    ),
-                  ),
-                  SizedBox(height: 4),
-                  // Category grid
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
-                    children: categories.map((category) {
-                      final isSelected = _selectedCategory == category['key'];
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedCategory = category['key'] as String;
-                          });
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: isSelected ? color : color.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isSelected ? color : color.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                category['icon'] as IconData,
-                                size: 12,
-                                color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? _getBrighterColorForDarkMode(color) : color),
-                              ),
-                              SizedBox(width: 3),
-                              Text(
-                                category['name'] as String,
-                                style: TextStyle(
-                                  fontSize: settings.getScaledFontSize(10),
-                                  fontWeight: FontWeight.w500,
-                                  color: isSelected ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? _getBrighterColorForDarkMode(color) : color),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            );
-          }).toList(),
-        ),
-      ),
     );
   }
 }

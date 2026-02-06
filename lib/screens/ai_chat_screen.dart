@@ -36,6 +36,7 @@ import '../services/chat_audio_listener_service.dart';
 import '../constants/chat_ui_constants.dart';
 
 import '../models/chat_message.dart';
+import '../models/knowledge_item.dart';
 import '../services/database_service.dart';
 import '../services/openai_service.dart';
 import '../services/elevenlabs_service.dart';
@@ -59,6 +60,7 @@ import '../widgets/place_result_widget.dart';
 import '../services/chat_integration_helper.dart';
 import '../services/profile_translation_service.dart';
 import '../services/feature_showcase_service.dart';
+import '../services/knowledge_hub_service.dart';
 import '../utils/language_utils.dart';
 import '../utils/location_query_detector.dart';
 import '../utils/conversation_guard.dart';
@@ -1266,6 +1268,12 @@ class _AiChatScreenState extends State<AiChatScreen>
               '$text\n\nIMPORTANT: The user is asking for place recommendations, but I don\'t have any recent place search results in our conversation. I should explain that I need them to search for places first before I can make recommendations, rather than making up place information.';
         }
       }
+
+      finalMessage = await _injectKnowledgeContextIfEligible(
+        message: finalMessage,
+        userPrompt: text,
+        subscriptionService: subscriptionService,
+      );
 
       // Determine if we should use deep research mode
       final isDeepResearchMode =
@@ -2707,6 +2715,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                         message.isUserMessage
                                                             ? null
                                                             : _speakMessage,
+                                                    onSaveToKnowledgeHub:
+                                                        _saveMessageToKnowledgeHub,
                                                     onReviewRequested:
                                                         () async {
                                                       // Add thank you message when user leaves review
@@ -3118,6 +3128,262 @@ class _AiChatScreenState extends State<AiChatScreen>
         duration: Duration(seconds: 2),
       ),
     );
+  }
+
+  Future<void> _saveMessageToKnowledgeHub(ChatMessage message) async {
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
+
+    if (!subscriptionService.isPremium) {
+      _showKnowledgeHubUpgradeDialog();
+      return;
+    }
+
+    await _showSaveToKnowledgeHubDialog(message);
+  }
+
+  Future<void> _showSaveToKnowledgeHubDialog(ChatMessage message) async {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final titleController = TextEditingController(
+      text: _buildKnowledgeTitle(message.message),
+    );
+    final contentController = TextEditingController(text: message.message);
+    final tagsController = TextEditingController();
+    MemoryType selectedType = MemoryType.fact;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Save to Knowledge Hub'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: titleController,
+                      decoration: const InputDecoration(
+                        labelText: 'Title',
+                        hintText: 'Short memory title',
+                      ),
+                      maxLength: 80,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: contentController,
+                      decoration: const InputDecoration(
+                        labelText: 'Content',
+                        hintText: 'What should HowAI remember?',
+                      ),
+                      maxLines: 4,
+                      minLines: 2,
+                      maxLength: 500,
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButtonFormField<MemoryType>(
+                      initialValue: selectedType,
+                      decoration: const InputDecoration(labelText: 'Type'),
+                      items: MemoryType.values
+                          .map((type) => DropdownMenuItem<MemoryType>(
+                                value: type,
+                                child: Text(_memoryTypeLabel(type)),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setDialogState(() {
+                          selectedType = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: tagsController,
+                      decoration: const InputDecoration(
+                        labelText: 'Tags (optional)',
+                        hintText: 'comma, separated, tags',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    final title = titleController.text.trim();
+                    final content = contentController.text.trim();
+                    if (title.isEmpty || content.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Title and content are required.',
+                            style: TextStyle(
+                                fontSize: settings.getScaledFontSize(14)),
+                          ),
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                      return;
+                    }
+
+                    final tags = tagsController.text
+                        .split(',')
+                        .map((tag) => tag.trim())
+                        .where((tag) => tag.isNotEmpty)
+                        .toList();
+
+                    try {
+                      final knowledgeHubService = KnowledgeHubService();
+                      await knowledgeHubService.createKnowledgeItem(
+                        profileId: message.profileId ?? _currentProfileId ?? 1,
+                        conversationId: message.conversationId,
+                        sourceMessageId: message.id,
+                        title: title,
+                        content: content,
+                        memoryType: selectedType,
+                        tags: tags,
+                      );
+
+                      if (mounted) {
+                        Navigator.of(dialogContext).pop();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Saved to Knowledge Hub.',
+                              style: TextStyle(
+                                  fontSize: settings.getScaledFontSize(14)),
+                            ),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } on PremiumRequiredException {
+                      if (mounted) {
+                        Navigator.of(dialogContext).pop();
+                        _showKnowledgeHubUpgradeDialog();
+                      }
+                    } on DuplicateKnowledgeItemException {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'This memory already exists in your Knowledge Hub.',
+                              style: TextStyle(
+                                  fontSize: settings.getScaledFontSize(14)),
+                            ),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Failed to save memory. Please try again.',
+                              style: TextStyle(
+                                  fontSize: settings.getScaledFontSize(14)),
+                            ),
+                            duration: const Duration(seconds: 2),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text('Save'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _buildKnowledgeTitle(String messageText) {
+    final trimmed = messageText.trim().replaceAll('\n', ' ');
+    if (trimmed.isEmpty) {
+      return 'Saved Memory';
+    }
+    if (trimmed.length <= 48) {
+      return trimmed;
+    }
+    return '${trimmed.substring(0, 48)}...';
+  }
+
+  String _memoryTypeLabel(MemoryType type) {
+    switch (type) {
+      case MemoryType.preference:
+        return 'Preference';
+      case MemoryType.fact:
+        return 'Fact';
+      case MemoryType.goal:
+        return 'Goal';
+      case MemoryType.constraint:
+        return 'Constraint';
+      case MemoryType.other:
+        return 'Other';
+    }
+  }
+
+  void _showKnowledgeHubUpgradeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) => UpgradeDialog(
+        featureName: 'Knowledge Hub',
+        limitMessage:
+            'Knowledge Hub is a Premium feature. Upgrade to save and reuse personal memories across conversations.',
+        premiumBenefits: const [
+          'Save personal memory from chat messages',
+          'Use saved memory context in AI responses',
+          'Manage and organize your knowledge hub',
+        ],
+        onUpgradePressed: () => Navigator.pushNamed(context, '/subscription'),
+      ),
+    );
+  }
+
+  Future<String> _injectKnowledgeContextIfEligible({
+    required String message,
+    required String userPrompt,
+    required SubscriptionService subscriptionService,
+  }) async {
+    if (!subscriptionService.isPremium) {
+      return message;
+    }
+
+    if (_currentProfileId == null) {
+      return message;
+    }
+
+    try {
+      final knowledgeHubService = KnowledgeHubService();
+      final knowledgeContext =
+          await knowledgeHubService.buildKnowledgeContextForPrompt(
+        profileId: _currentProfileId!,
+        prompt: userPrompt,
+      );
+
+      if (knowledgeContext.isEmpty) {
+        return message;
+      }
+
+      return '$knowledgeContext\n\nUser request: $message';
+    } on PremiumRequiredException {
+      return message;
+    } catch (_) {
+      return message;
+    }
   }
 
   Future<void> _translateMessage(BuildContext context, String text,

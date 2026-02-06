@@ -6,6 +6,7 @@ import '../providers/profile_provider.dart';
 import '../models/conversation.dart';
 import '../models/profile.dart';
 import '../services/database_service.dart';
+import '../services/subscription_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
@@ -63,10 +64,18 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
             final allConversations = provider.conversations;
 
             // Filter conversations based on search query
-            final filteredConversations = _searchQuery.isEmpty ? allConversations : allConversations.where((c) => c.title.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+            final filteredConversations = _searchQuery.isEmpty
+                ? allConversations
+                : allConversations
+                    .where((c) => c.title
+                        .toLowerCase()
+                        .contains(_searchQuery.toLowerCase()))
+                    .toList();
 
-            final pinned = filteredConversations.where((c) => c.isPinned).toList();
-            final others = filteredConversations.where((c) => !c.isPinned).toList();
+            final pinned =
+                filteredConversations.where((c) => c.isPinned).toList();
+            final others =
+                filteredConversations.where((c) => !c.isPinned).toList();
 
             return Column(
               children: [
@@ -75,7 +84,8 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
 
                 // Search bar and New Chat button
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                   child: Row(
                     children: [
                       // Search bar
@@ -83,20 +93,30 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                         child: Container(
                           height: 50,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Color(0xFFF2F2F2),
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade800
+                                    : Color(0xFFF2F2F2),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: TextField(
                             controller: _searchController,
                             style: TextStyle(
-                              color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black87,
+                              color: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.color ??
+                                  Colors.black87,
                             ),
                             decoration: InputDecoration(
-                              hintText: AppLocalizations.of(context)!.searchConversations,
+                              hintText: AppLocalizations.of(context)!
+                                  .searchConversations,
                               hintStyle: TextStyle(color: Colors.grey.shade600),
-                              prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+                              prefixIcon: Icon(Icons.search,
+                                  color: Colors.grey.shade600),
                               border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(vertical: 12),
                             ),
                             onChanged: (value) {
                               setState(() {
@@ -112,11 +132,14 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                         decoration: BoxDecoration(
                           color: Theme.of(context).cardColor,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Color(0xFF0078D4), width: 1),
+                          border:
+                              Border.all(color: Color(0xFF0078D4), width: 1),
                         ),
                         child: IconButton(
-                          icon: const Icon(Icons.post_add, color: Color(0xFF0078D4)),
-                          tooltip: AppLocalizations.of(context)!.newConversation,
+                          icon: const Icon(Icons.post_add,
+                              color: Color(0xFF0078D4)),
+                          tooltip:
+                              AppLocalizations.of(context)!.newConversation,
                           onPressed: () {
                             // Clear selection and close drawer
                             provider.clearSelection();
@@ -138,13 +161,20 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                       children: [
                         // Pinned conversations section
                         if (pinned.isNotEmpty) ...[
-                          _sectionHeader(AppLocalizations.of(context)!.pinnedSection),
-                          ...pinned.map((c) => _conversationTile(context, provider, c)),
-                          const Divider(height: 24, color: Colors.grey, indent: 16, endIndent: 16),
+                          _sectionHeader(
+                              AppLocalizations.of(context)!.pinnedSection),
+                          ...pinned.map(
+                              (c) => _conversationTile(context, provider, c)),
+                          const Divider(
+                              height: 24,
+                              color: Colors.grey,
+                              indent: 16,
+                              endIndent: 16),
                         ],
 
                         // Main conversations section
-                        _sectionHeader(AppLocalizations.of(context)!.chatsSection),
+                        _sectionHeader(
+                            AppLocalizations.of(context)!.chatsSection),
                         if (others.isEmpty && _searchQuery.isEmpty)
                           Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -164,13 +194,15 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                             ),
                           )
                         else
-                          ...others.map((c) => _conversationTile(context, provider, c)),
+                          ...others.map(
+                              (c) => _conversationTile(context, provider, c)),
                       ],
                     ),
                   ),
                 ),
 
                 // Settings section at bottom
+                _buildKnowledgeHubSection(),
                 _buildSettingsSection(),
               ],
             );
@@ -188,7 +220,9 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
         child: Text(
           title,
           style: TextStyle(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.grey.shade800,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.grey.shade800,
             fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
@@ -207,18 +241,22 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
     return c.title;
   }
 
-  Widget _conversationTile(BuildContext context, ConversationProvider provider, Conversation c) {
+  Widget _conversationTile(
+      BuildContext context, ConversationProvider provider, Conversation c) {
     final isSelected = provider.selectedConversation?.id == c.id;
 
     return ListTile(
       dense: true,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 0.0), // Remove vertical padding completely
+      contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16.0,
+          vertical: 0.0), // Remove vertical padding completely
       minVerticalPadding: 0.0, // Force minimum vertical padding to 0
       visualDensity: VisualDensity.compact, // Make the tile even more compact
       title: Text(
         _getDisplayTitle(c),
         style: TextStyle(
-          color: Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black87,
+          color:
+              Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black87,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
         overflow: TextOverflow.ellipsis,
@@ -231,7 +269,9 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
         ),
       ),
       selected: isSelected,
-      selectedTileColor: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade900.withOpacity(0.3) : Colors.blue.shade50,
+      selectedTileColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.blue.shade900.withOpacity(0.3)
+          : Colors.blue.shade50,
       trailing: IconButton(
         icon: Icon(
           c.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
@@ -304,7 +344,9 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
           decoration: BoxDecoration(
             border: Border(
               top: BorderSide(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade300,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade700
+                    : Colors.grey.shade300,
                 width: 1,
               ),
             ),
@@ -317,7 +359,8 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
               Navigator.pushNamed(context, '/settings');
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
               child: Row(
                 children: [
                   // User Avatar
@@ -329,18 +372,24 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                       gradient: LinearGradient(
                         colors: Theme.of(context).brightness == Brightness.dark
                             ? [
-                                const Color(0xFF1E3A5F).withOpacity(0.8), // More visible dark blue for dark mode
-                                const Color(0xFF2C5282).withOpacity(0.6), // More visible dark blue for dark mode
+                                const Color(0xFF1E3A5F).withOpacity(
+                                    0.8), // More visible dark blue for dark mode
+                                const Color(0xFF2C5282).withOpacity(
+                                    0.6), // More visible dark blue for dark mode
                               ]
                             : [
-                                const Color(0xFF0078D4).withOpacity(0.1), // Original for light mode
-                                const Color(0xFF0078D4).withOpacity(0.05), // Original for light mode
+                                const Color(0xFF0078D4).withOpacity(
+                                    0.1), // Original for light mode
+                                const Color(0xFF0078D4).withOpacity(
+                                    0.05), // Original for light mode
                               ],
                       ),
                       border: Border.all(
                         color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF2C5282).withOpacity(0.8) // More visible border for dark mode
-                            : const Color(0xFF0078D4).withOpacity(0.3), // Original for light mode
+                            ? const Color(0xFF2C5282).withOpacity(
+                                0.8) // More visible border for dark mode
+                            : const Color(0xFF0078D4)
+                                .withOpacity(0.3), // Original for light mode
                         width: 2,
                       ),
                     ),
@@ -357,13 +406,19 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                           radius: 18,
                           backgroundColor: Colors.transparent,
                           child: Text(
-                            selectedProfile.name.isNotEmpty ? selectedProfile.name.substring(0, 1).toUpperCase() : 'U',
+                            selectedProfile.name.isNotEmpty
+                                ? selectedProfile.name
+                                    .substring(0, 1)
+                                    .toUpperCase()
+                                : 'U',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Theme.of(context).brightness == Brightness.dark
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
                                   ? Colors.white // White text for dark mode
-                                  : const Color(0xFF0078D4), // Blue text for light mode
+                                  : const Color(
+                                      0xFF0078D4), // Blue text for light mode
                             ),
                           ),
                         );
@@ -375,9 +430,13 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                   // User Name
                   Expanded(
                     child: Text(
-                      selectedProfile.name.isNotEmpty ? selectedProfile.name : 'User',
+                      selectedProfile.name.isNotEmpty
+                          ? selectedProfile.name
+                          : 'User',
                       style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.grey.shade800,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.grey.shade800,
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                       ),
@@ -388,7 +447,9 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                   // Settings Icon
                   Icon(
                     Icons.settings,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade400
+                        : Colors.grey.shade600,
                     size: 20,
                   ),
                 ],
@@ -398,6 +459,61 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
         );
 
         return settingsRow;
+      },
+    );
+  }
+
+  Widget _buildKnowledgeHubSection() {
+    return Consumer<SubscriptionService>(
+      builder: (context, subscriptionService, _) {
+        return Container(
+          margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade800
+                : Colors.blue.shade50,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade700
+                  : Colors.blue.shade100,
+            ),
+          ),
+          child: ListTile(
+            leading: Icon(
+              Icons.auto_stories_outlined,
+              color: const Color(0xFF0078D4),
+            ),
+            title: const Text('Knowledge Hub'),
+            subtitle: Text(
+              subscriptionService.isPremium
+                  ? 'Manage saved memory'
+                  : 'Premium feature',
+            ),
+            trailing: !subscriptionService.isPremium
+                ? Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade100,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      'PRO',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.amber.shade900,
+                      ),
+                    ),
+                  )
+                : const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.pushNamed(context, '/knowledge-hub');
+            },
+          ),
+        );
       },
     );
   }

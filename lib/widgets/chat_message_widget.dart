@@ -43,6 +43,7 @@ class ChatMessageWidget extends StatefulWidget {
   final Function(String) onPlayAudio;
   final Function(ChatMessage)? onSpeakWithHighlight;
   final Function()? onReviewRequested;
+  final Function(ChatMessage)? onSaveToKnowledgeHub;
 
   const ChatMessageWidget({
     super.key,
@@ -62,6 +63,7 @@ class ChatMessageWidget extends StatefulWidget {
     this.onSpeakWithHighlight,
     this.onShare,
     this.onReviewRequested,
+    this.onSaveToKnowledgeHub,
   });
 
   @override
@@ -1025,6 +1027,14 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
           // 4. More (translate actions only)
           SizedBox(width: 4),
+          if (widget.onSaveToKnowledgeHub != null) ...[
+            _buildActionButton(
+              icon: Icons.bookmark_add_outlined,
+              tooltip: "Save to Knowledge Hub",
+              onTap: () => widget.onSaveToKnowledgeHub!(widget.message),
+            ),
+            SizedBox(width: 4),
+          ],
           _buildTranslateMoreButton(),
         ],
       ),
@@ -1363,8 +1373,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     final RenderBox? overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
-    final double panelWidth = 320;
-    final double panelHeight = 80;
+    final double panelWidth = 410;
+    final double panelHeight = 92;
     final double left = (_lastTapPosition!.dx - panelWidth / 2)
         .clamp(12.0, overlay.size.width - panelWidth - 12.0);
     final double top = (_lastTapPosition!.dy - panelHeight - 12)
@@ -1431,6 +1441,16 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                         onTap: () {
                           Navigator.of(context).pop();
                           widget.onDelete(message);
+                        },
+                      ),
+                      _ActionButton(
+                        icon: Icons.bookmark_add_outlined,
+                        label: 'Save',
+                        onTap: () {
+                          Navigator.of(context).pop();
+                          if (widget.onSaveToKnowledgeHub != null) {
+                            widget.onSaveToKnowledgeHub!(message);
+                          }
                         },
                       ),
                       _ActionButton(

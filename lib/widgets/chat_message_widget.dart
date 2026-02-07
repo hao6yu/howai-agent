@@ -1142,8 +1142,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.bookmark_add_outlined),
-                  title: const Text('Quick save to Memory'),
-                  subtitle: const Text('Save now with auto-filled details'),
+                  title: const Text('Add to Memory'),
+                  subtitle: const Text('Save instantly from this message'),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     if (widget.onQuickSaveToKnowledgeHub != null) {
@@ -1156,8 +1156,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                 if (widget.onSaveToKnowledgeHub != null)
                   ListTile(
                     leading: const Icon(Icons.edit_note_outlined),
-                    title: const Text('Save with details'),
-                    subtitle: const Text('Choose type, tags, and edit content'),
+                    title: const Text('Review & Save'),
+                    subtitle: const Text('Edit title, content, type, and tags'),
                     onTap: () {
                       Navigator.of(sheetContext).pop();
                       widget.onSaveToKnowledgeHub!(widget.message);
@@ -1413,7 +1413,14 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     final RenderBox? overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
-    final double panelWidth = 410;
+    final bool hasQuickSave = widget.onQuickSaveToKnowledgeHub != null;
+    final bool hasDetailedSave = widget.onSaveToKnowledgeHub != null;
+    final int actionCount =
+        3 + (hasQuickSave ? 1 : 0) + (hasDetailedSave ? 1 : 0);
+    final double desiredPanelWidth = actionCount >= 5 ? 520 : 410;
+    final double panelWidth = desiredPanelWidth < (overlay.size.width - 24)
+        ? desiredPanelWidth
+        : (overlay.size.width - 24);
     final double panelHeight = 92;
     final double left = (_lastTapPosition!.dx - panelWidth / 2)
         .clamp(12.0, overlay.size.width - panelWidth - 12.0);
@@ -1484,18 +1491,6 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                         },
                       ),
                       _ActionButton(
-                        icon: Icons.bookmark_add_outlined,
-                        label: 'Save',
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          if (widget.onQuickSaveToKnowledgeHub != null) {
-                            widget.onQuickSaveToKnowledgeHub!(message);
-                          } else if (widget.onSaveToKnowledgeHub != null) {
-                            widget.onSaveToKnowledgeHub!(message);
-                          }
-                        },
-                      ),
-                      _ActionButton(
                         icon: Icons.translate,
                         label: AppLocalizations.of(context)!.translate,
                         onTap: () {
@@ -1503,6 +1498,29 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                           widget.onTranslate(message);
                         },
                       ),
+                      if (widget.onQuickSaveToKnowledgeHub != null ||
+                          widget.onSaveToKnowledgeHub != null)
+                        _ActionButton(
+                          icon: Icons.bookmark_add_outlined,
+                          label: 'Add to Memory',
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            if (widget.onQuickSaveToKnowledgeHub != null) {
+                              widget.onQuickSaveToKnowledgeHub!(message);
+                            } else if (widget.onSaveToKnowledgeHub != null) {
+                              widget.onSaveToKnowledgeHub!(message);
+                            }
+                          },
+                        ),
+                      if (widget.onSaveToKnowledgeHub != null)
+                        _ActionButton(
+                          icon: Icons.edit_note_outlined,
+                          label: 'Review & Save',
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            widget.onSaveToKnowledgeHub!(message);
+                          },
+                        ),
                     ],
                   ),
                 ),

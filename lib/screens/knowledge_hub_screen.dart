@@ -33,6 +33,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   bool _isLoading = false;
   List<KnowledgeItem> _items = [];
   MemoryType? _filterType;
+  bool _showPinnedOnly = false;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
   bool _hasShownEntryUpgradeDialog = false;
 
   @override
@@ -42,6 +45,12 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       _handleEntryAccessGate();
       _loadItems();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   void _handleEntryAccessGate() {
@@ -112,7 +121,6 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     try {
       final items = await _knowledgeHubService.getKnowledgeItemsForProfile(
         profileId,
-        memoryType: _filterType,
       );
       if (!mounted) return;
       setState(() {
@@ -1315,37 +1323,104 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     );
   }
 
+  List<KnowledgeItem> _visibleItems() {
+    final query = _searchQuery.trim().toLowerCase();
+    return _items.where((item) {
+      if (_showPinnedOnly && !item.isPinned) {
+        return false;
+      }
+      if (_filterType != null && item.memoryType != _filterType) {
+        return false;
+      }
+      if (query.isEmpty) {
+        return true;
+      }
+
+      final titleMatch = item.title.toLowerCase().contains(query);
+      final contentMatch = item.content.toLowerCase().contains(query);
+      final tagMatch =
+          item.tags.any((tag) => tag.toLowerCase().contains(query));
+      return titleMatch || contentMatch || tagMatch;
+    }).toList();
+  }
+
+  Future<void> _showFilterSheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('All Types'),
+                trailing: _filterType == null
+                    ? const Icon(Icons.check, color: Color(0xFF0078D4))
+                    : null,
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  setState(() {
+                    _filterType = null;
+                  });
+                },
+              ),
+              ...MemoryType.values.map(
+                (type) => ListTile(
+                  title: Text(_memoryTypeLabel(type)),
+                  trailing: _filterType == type
+                      ? const Icon(Icons.check, color: Color(0xFF0078D4))
+                      : null,
+                  onTap: () {
+                    Navigator.pop(sheetContext);
+                    setState(() {
+                      _filterType = type;
+                    });
+                  },
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Pinned Only'),
+                value: _showPinnedOnly,
+                onChanged: (value) {
+                  setState(() {
+                    _showPinnedOnly = value;
+                  });
+                  Navigator.pop(sheetContext);
+                },
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  setState(() {
+                    _filterType = null;
+                    _showPinnedOnly = false;
+                  });
+                },
+                child: const Text('Clear Filters'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
     final subscriptionService = Provider.of<SubscriptionService>(context);
+    final visibleItems = _visibleItems();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Knowledge Hub'),
         actions: [
           if (subscriptionService.isPremium)
-            PopupMenuButton<MemoryType?>(
+            IconButton(
               icon: const Icon(Icons.filter_list),
-              initialValue: _filterType,
-              onSelected: (value) {
-                setState(() {
-                  _filterType = value;
-                });
-                _loadItems();
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem<MemoryType?>(
-                  value: null,
-                  child: Text('All types'),
-                ),
-                ...MemoryType.values.map(
-                  (type) => PopupMenuItem<MemoryType?>(
-                    value: type,
-                    child: Text(_memoryTypeLabel(type)),
-                  ),
-                ),
-              ],
+              tooltip: 'Filters',
+              onPressed: _showFilterSheet,
             ),
         ],
       ),
@@ -1356,95 +1431,207 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : _items.isEmpty
                       ? _buildPremiumEmptyState(settings)
-                      : ListView.separated(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemCount: _items.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(height: 8),
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 90),
-                          itemBuilder: (context, index) {
-                            final item = _items[index];
-                            return Card(
-                              child: ListTile(
-                                contentPadding:
-                                    const EdgeInsets.fromLTRB(14, 10, 10, 10),
-                                title: Text(
-                                  item.title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                subtitle: Padding(
-                                  padding: const EdgeInsets.only(top: 6),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        item.content,
-                                        maxLines: 3,
-                                        overflow: TextOverflow.ellipsis,
+                      : Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                              child: Column(
+                                children: [
+                                  TextField(
+                                    controller: _searchController,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _searchQuery = value;
+                                      });
+                                    },
+                                    decoration: InputDecoration(
+                                      hintText: 'Search memory',
+                                      prefixIcon: const Icon(Icons.search),
+                                      suffixIcon: _searchQuery.isNotEmpty
+                                          ? IconButton(
+                                              icon: const Icon(Icons.close),
+                                              onPressed: () {
+                                                _searchController.clear();
+                                                setState(() {
+                                                  _searchQuery = '';
+                                                });
+                                              },
+                                            )
+                                          : null,
+                                      isDense: true,
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12),
                                       ),
-                                      const SizedBox(height: 6),
-                                      Wrap(
-                                        spacing: 6,
-                                        runSpacing: 6,
-                                        children: [
-                                          Chip(
-                                            label: Text(_memoryTypeLabel(
-                                                item.memoryType)),
-                                            visualDensity:
-                                                VisualDensity.compact,
-                                          ),
-                                          ...item.tags.take(3).map(
-                                                (tag) => Chip(
-                                                  label: Text(tag),
-                                                  visualDensity:
-                                                      VisualDensity.compact,
-                                                ),
-                                              ),
-                                        ],
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                ),
-                                trailing: PopupMenuButton<String>(
-                                  onSelected: (action) {
-                                    if (action == 'edit') {
-                                      _editItem(item);
-                                    } else if (action == 'pin') {
-                                      _togglePinned(item);
-                                    } else if (action == 'active') {
-                                      _toggleActive(item);
-                                    } else if (action == 'delete') {
-                                      _deleteItem(item);
-                                    }
-                                  },
-                                  itemBuilder: (context) => [
-                                    const PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text('Edit'),
+                                  const SizedBox(height: 8),
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: Row(
+                                      children: [
+                                        FilterChip(
+                                          label: const Text('All'),
+                                          selected: _filterType == null &&
+                                              !_showPinnedOnly,
+                                          onSelected: (_) {
+                                            setState(() {
+                                              _filterType = null;
+                                              _showPinnedOnly = false;
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(width: 8),
+                                        FilterChip(
+                                          label: const Text('Pinned'),
+                                          selected: _showPinnedOnly,
+                                          onSelected: (value) {
+                                            setState(() {
+                                              _showPinnedOnly = value;
+                                            });
+                                          },
+                                        ),
+                                        const SizedBox(width: 8),
+                                        ...MemoryType.values.map((type) {
+                                          final selected = _filterType == type;
+                                          return Padding(
+                                            padding:
+                                                const EdgeInsets.only(right: 8),
+                                            child: FilterChip(
+                                              label:
+                                                  Text(_memoryTypeLabel(type)),
+                                              selected: selected,
+                                              onSelected: (value) {
+                                                setState(() {
+                                                  _filterType =
+                                                      value ? type : null;
+                                                });
+                                              },
+                                            ),
+                                          );
+                                        }),
+                                      ],
                                     ),
-                                    PopupMenuItem(
-                                      value: 'pin',
-                                      child:
-                                          Text(item.isPinned ? 'Unpin' : 'Pin'),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'active',
-                                      child: Text(item.isActive
-                                          ? 'Disable in context'
-                                          : 'Enable in context'),
-                                    ),
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text('Delete'),
-                                    ),
-                                  ],
-                                ),
-                                onTap: () => _editItem(item),
+                                  ),
+                                ],
                               ),
-                            );
-                          },
+                            ),
+                            Expanded(
+                              child: visibleItems.isEmpty
+                                  ? ListView(
+                                      physics:
+                                          const AlwaysScrollableScrollPhysics(),
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 24, 16, 100),
+                                      children: const [
+                                        Center(
+                                          child: Text(
+                                              'No memory items match your filters.'),
+                                        ),
+                                      ],
+                                    )
+                                  : ListView.separated(
+                                      physics:
+                                          const AlwaysScrollableScrollPhysics(),
+                                      itemCount: visibleItems.length,
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(height: 6),
+                                      padding: const EdgeInsets.fromLTRB(
+                                          12, 0, 12, 90),
+                                      itemBuilder: (context, index) {
+                                        final item = visibleItems[index];
+                                        return Card(
+                                          child: ListTile(
+                                            dense: true,
+                                            contentPadding:
+                                                const EdgeInsets.fromLTRB(
+                                                    14, 8, 6, 8),
+                                            title: Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Text(
+                                                    item.title,
+                                                    maxLines: 1,
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
+                                                ),
+                                                if (item.isPinned)
+                                                  const Padding(
+                                                    padding: EdgeInsets.only(
+                                                        left: 8.0),
+                                                    child: Icon(
+                                                      Icons.push_pin,
+                                                      size: 16,
+                                                      color: Color(0xFF0078D4),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            subtitle: Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 6.0),
+                                              child: Wrap(
+                                                spacing: 6,
+                                                runSpacing: 6,
+                                                children: [
+                                                  Chip(
+                                                    label: Text(
+                                                        _memoryTypeLabel(
+                                                            item.memoryType)),
+                                                    visualDensity:
+                                                        VisualDensity.compact,
+                                                  ),
+                                                  if (!item.isActive)
+                                                    const Chip(
+                                                      label: Text('Disabled'),
+                                                      visualDensity:
+                                                          VisualDensity.compact,
+                                                    ),
+                                                ],
+                                              ),
+                                            ),
+                                            trailing: PopupMenuButton<String>(
+                                              onSelected: (action) {
+                                                if (action == 'edit') {
+                                                  _editItem(item);
+                                                } else if (action == 'pin') {
+                                                  _togglePinned(item);
+                                                } else if (action == 'active') {
+                                                  _toggleActive(item);
+                                                } else if (action == 'delete') {
+                                                  _deleteItem(item);
+                                                }
+                                              },
+                                              itemBuilder: (context) => [
+                                                const PopupMenuItem(
+                                                  value: 'edit',
+                                                  child: Text('Edit'),
+                                                ),
+                                                PopupMenuItem(
+                                                  value: 'pin',
+                                                  child: Text(item.isPinned
+                                                      ? 'Unpin'
+                                                      : 'Pin'),
+                                                ),
+                                                PopupMenuItem(
+                                                  value: 'active',
+                                                  child: Text(item.isActive
+                                                      ? 'Disable in context'
+                                                      : 'Enable in context'),
+                                                ),
+                                                const PopupMenuItem(
+                                                  value: 'delete',
+                                                  child: Text('Delete'),
+                                                ),
+                                              ],
+                                            ),
+                                            onTap: () => _editItem(item),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
                         ),
             )
           : _buildPremiumBlockedView(settings),

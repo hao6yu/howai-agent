@@ -3,13 +3,14 @@ import 'package:path/path.dart';
 import '../models/profile.dart';
 import '../models/chat_message.dart';
 import '../models/conversation.dart';
+import '../models/knowledge_item.dart';
 import 'dart:convert';
 import 'sync_service.dart';
 
 class DatabaseService {
   static final DatabaseService _instance = DatabaseService._internal();
   static Database? _database;
-  
+
   // Lazy initialization for sync service to avoid circular dependencies
   SyncService? _syncService;
   SyncService get syncService {
@@ -31,7 +32,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'haogpt.db');
     final db = await openDatabase(
       path,
-      version: 15,
+      version: 16,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
       onConfigure: (db) async {
@@ -49,16 +50,19 @@ class DatabaseService {
   Future<void> _optimizeDatabase(Database db) async {
     try {
       // Optimize SQLite settings for performance
-      await db.execute('PRAGMA synchronous = NORMAL'); // Balance safety/performance
-      await db.execute('PRAGMA cache_size = 10000');    // 40MB cache
-      await db.execute('PRAGMA temp_store = MEMORY');   // Keep temp tables in memory
+      await db
+          .execute('PRAGMA synchronous = NORMAL'); // Balance safety/performance
+      await db.execute('PRAGMA cache_size = 10000'); // 40MB cache
+      await db
+          .execute('PRAGMA temp_store = MEMORY'); // Keep temp tables in memory
 
       // Try WAL mode, but handle gracefully if not supported
       try {
-        await db.execute('PRAGMA journal_mode = WAL');    // Write-Ahead Logging
+        await db.execute('PRAGMA journal_mode = WAL'); // Write-Ahead Logging
       } catch (e) {
         // WAL mode might not be supported on all platforms, use default mode
-        print('[DatabaseService] WAL mode not supported, using default journal mode');
+        print(
+            '[DatabaseService] WAL mode not supported, using default journal mode');
       }
     } catch (e) {
       // If any optimization fails, log but don't crash
@@ -99,13 +103,17 @@ class DatabaseService {
     // Create content_reports table
     await _createContentReportsTable(db);
 
+    // Create knowledge_items table
+    await _createKnowledgeItemsTable(db);
+
     // Preload default profiles
     await _preloadDefaultProfiles(db);
   }
 
   Future<void> _preloadDefaultProfiles(Database db) async {
     // Check if profiles already exist
-    final count = Sqflite.firstIntValue(await db.rawQuery('SELECT COUNT(*) FROM profiles'));
+    final count = Sqflite.firstIntValue(
+        await db.rawQuery('SELECT COUNT(*) FROM profiles'));
     if (count == 0) {
       // Add User's profile
       await db.insert('profiles', {
@@ -125,7 +133,8 @@ class DatabaseService {
 
     if (oldVersion < 7) {
       try {
-        await db.execute('ALTER TABLE chat_messages ADD COLUMN is_welcome_message INTEGER DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE chat_messages ADD COLUMN is_welcome_message INTEGER DEFAULT 0');
         // print('Added is_welcome_message column to chat_messages table');
       } catch (e) {
         // print('Error adding is_welcome_message column: $e');
@@ -147,7 +156,8 @@ class DatabaseService {
       ''');
       // 2. Add conversation_id to chat_messages
       try {
-        await db.execute('ALTER TABLE chat_messages ADD COLUMN conversation_id INTEGER');
+        await db.execute(
+            'ALTER TABLE chat_messages ADD COLUMN conversation_id INTEGER');
       } catch (e) {
         // print('Column conversation_id may already exist: $e');
       }
@@ -164,7 +174,8 @@ class DatabaseService {
         await db.update(
           'chat_messages',
           {'conversation_id': convId},
-          where: 'profile_id = ? AND (conversation_id IS NULL OR conversation_id = 0)',
+          where:
+              'profile_id = ? AND (conversation_id IS NULL OR conversation_id = 0)',
           whereArgs: [profile['id']],
         );
       }
@@ -173,7 +184,8 @@ class DatabaseService {
     // Add file_paths column for file attachments support
     if (oldVersion < 9) {
       try {
-        await db.execute('ALTER TABLE chat_messages ADD COLUMN file_paths TEXT');
+        await db
+            .execute('ALTER TABLE chat_messages ADD COLUMN file_paths TEXT');
         // print('Added file_paths column to chat_messages table');
       } catch (e) {
         // print('Error adding file_paths column: $e');
@@ -183,7 +195,8 @@ class DatabaseService {
     // Add location_results column for local discovery feature
     if (oldVersion < 10) {
       try {
-        await db.execute('ALTER TABLE chat_messages ADD COLUMN location_results TEXT');
+        await db.execute(
+            'ALTER TABLE chat_messages ADD COLUMN location_results TEXT');
         // print('Added location_results column to chat_messages table');
       } catch (e) {
         // print('Error adding location_results column: $e');
@@ -193,7 +206,8 @@ class DatabaseService {
     // Add message_type column for review request messages
     if (oldVersion < 11) {
       try {
-        await db.execute('ALTER TABLE chat_messages ADD COLUMN message_type INTEGER DEFAULT 0');
+        await db.execute(
+            'ALTER TABLE chat_messages ADD COLUMN message_type INTEGER DEFAULT 0');
         // print('Added message_type column to chat_messages table');
       } catch (e) {
         // print('Error adding message_type column: $e');
@@ -213,7 +227,8 @@ class DatabaseService {
     // Add avatar_path column to ai_personalities table
     if (oldVersion < 13) {
       try {
-        await db.execute('ALTER TABLE ai_personalities ADD COLUMN avatar_path TEXT');
+        await db.execute(
+            'ALTER TABLE ai_personalities ADD COLUMN avatar_path TEXT');
         // print('Added avatar_path column to ai_personalities table');
       } catch (e) {
         // print('Error adding avatar_path column to ai_personalities table: $e');
@@ -233,10 +248,19 @@ class DatabaseService {
     // Add image_urls column for Supabase cloud storage URLs
     if (oldVersion < 15) {
       try {
-        await db.execute('ALTER TABLE chat_messages ADD COLUMN image_urls TEXT');
+        await db
+            .execute('ALTER TABLE chat_messages ADD COLUMN image_urls TEXT');
         // print('Added image_urls column to chat_messages table');
       } catch (e) {
         // print('Error adding image_urls column: $e');
+      }
+    }
+
+    if (oldVersion < 16) {
+      try {
+        await _createKnowledgeItemsTable(db);
+      } catch (e) {
+        // print('Error adding knowledge_items table: $e');
       }
     }
 
@@ -313,6 +337,38 @@ class DatabaseService {
         resolution_action TEXT,
         FOREIGN KEY (message_id) REFERENCES chat_messages (id) ON DELETE CASCADE
       )
+    ''');
+  }
+
+  Future<void> _createKnowledgeItemsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS knowledge_items(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL,
+        conversation_id INTEGER,
+        source_message_id INTEGER,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        memory_type TEXT NOT NULL,
+        tags_json TEXT,
+        is_pinned INTEGER NOT NULL DEFAULT 0,
+        is_active INTEGER NOT NULL DEFAULT 1,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (profile_id) REFERENCES profiles (id) ON DELETE CASCADE,
+        FOREIGN KEY (conversation_id) REFERENCES conversations (id) ON DELETE SET NULL,
+        FOREIGN KEY (source_message_id) REFERENCES chat_messages (id) ON DELETE SET NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_knowledge_items_profile_active
+      ON knowledge_items(profile_id, is_active, updated_at)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_knowledge_items_profile_type
+      ON knowledge_items(profile_id, memory_type)
     ''');
   }
 
@@ -411,12 +467,14 @@ class DatabaseService {
     }
 
     // IMPORTANT: Also check filePaths to avoid treating messages with different files as duplicates
-    final serializedFilePaths = message.filePaths != null ? jsonEncode(message.filePaths) : null;
+    final serializedFilePaths =
+        message.filePaths != null ? jsonEncode(message.filePaths) : null;
     if (serializedFilePaths != null) {
       whereClause += ' AND file_paths = ?';
       whereArgs.add(serializedFilePaths);
     } else {
-      whereClause += ' AND (file_paths IS NULL OR file_paths = "[]" OR file_paths = "")';
+      whereClause +=
+          ' AND (file_paths IS NULL OR file_paths = "[]" OR file_paths = "")';
     }
 
     final existingMessages = await db.query(
@@ -449,13 +507,13 @@ class DatabaseService {
 
     final insertedId = await db.insert('chat_messages', message.toMap());
     // print('[DatabaseInsert] New message inserted with ID: $insertedId, ConversationID: ${message.conversationId}, UserMessage: ${message.isUserMessage}');
-    
+
     // Sync to Supabase in background (silent, non-blocking)
     _syncMessageToSupabase(message.copyWith(id: insertedId));
-    
+
     return insertedId;
   }
-  
+
   // Silent background sync for messages
   void _syncMessageToSupabase(ChatMessage message) {
     // Run in background, don't await
@@ -479,9 +537,16 @@ class DatabaseService {
     await db.transaction((txn) async {
       for (final message in messages) {
         // Check for duplicates within the transaction (simplified check for performance)
-        String whereClause = 'message = ? AND is_user_message = ? AND timestamp > ?';
-        final timeThreshold = DateTime.parse(message.timestamp).subtract(Duration(seconds: 10)).toIso8601String();
-        List<dynamic> whereArgs = [message.message, message.isUserMessage ? 1 : 0, timeThreshold];
+        String whereClause =
+            'message = ? AND is_user_message = ? AND timestamp > ?';
+        final timeThreshold = DateTime.parse(message.timestamp)
+            .subtract(Duration(seconds: 10))
+            .toIso8601String();
+        List<dynamic> whereArgs = [
+          message.message,
+          message.isUserMessage ? 1 : 0,
+          timeThreshold
+        ];
 
         // Handle conversation_id
         if (message.conversationId != null) {
@@ -513,7 +578,8 @@ class DatabaseService {
     });
 
     final elapsed = stopwatch.elapsedMilliseconds;
-    print('[DatabaseService] Batch inserted ${messages.length} messages in ${elapsed}ms');
+    print(
+        '[DatabaseService] Batch inserted ${messages.length} messages in ${elapsed}ms');
 
     return insertedIds;
   }
@@ -564,7 +630,8 @@ class DatabaseService {
     });
 
     final elapsed = stopwatch.elapsedMilliseconds;
-    print('[DatabaseService] Batch updated ${messages.length} messages in ${elapsed}ms');
+    print(
+        '[DatabaseService] Batch updated ${messages.length} messages in ${elapsed}ms');
   }
 
   Future<int> updateChatMessage(ChatMessage message) async {
@@ -577,7 +644,8 @@ class DatabaseService {
     );
   }
 
-  Future<List<ChatMessage>> getChatMessages({int? profileId, int limit = 100, int offset = 0}) async {
+  Future<List<ChatMessage>> getChatMessages(
+      {int? profileId, int limit = 100, int offset = 0}) async {
     final db = await database;
     final List<Map<String, dynamic>> maps;
 
@@ -599,7 +667,8 @@ class DatabaseService {
       );
     }
 
-    final messages = List.generate(maps.length, (i) => ChatMessage.fromMap(maps[i]));
+    final messages =
+        List.generate(maps.length, (i) => ChatMessage.fromMap(maps[i]));
     return messages.reversed.toList(); // Return in chronological order
   }
 
@@ -650,7 +719,8 @@ class DatabaseService {
       final db = await database;
 
       // Check if chat_messages table exists
-      final tableCheck = await db.rawQuery("SELECT name FROM sqlite_master WHERE type='table' AND name='chat_messages'");
+      final tableCheck = await db.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='chat_messages'");
 
       if (tableCheck.isEmpty) {
         // print('chat_messages table missing, resetting database');
@@ -690,10 +760,12 @@ class DatabaseService {
   }
 
   // Add methods to update specific aspects of the profile
-  Future<void> updateProfileCharacteristics(int profileId, Map<String, dynamic> characteristics) async {
+  Future<void> updateProfileCharacteristics(
+      int profileId, Map<String, dynamic> characteristics) async {
     final profile = await getProfile(profileId);
     if (profile != null) {
-      final updatedCharacteristics = Map<String, dynamic>.from(profile.characteristics);
+      final updatedCharacteristics =
+          Map<String, dynamic>.from(profile.characteristics);
       updatedCharacteristics.addAll(characteristics);
 
       final updatedProfile = profile.copyWith(
@@ -704,7 +776,8 @@ class DatabaseService {
     }
   }
 
-  Future<void> updateProfilePreferences(int profileId, Map<String, dynamic> preferences) async {
+  Future<void> updateProfilePreferences(
+      int profileId, Map<String, dynamic> preferences) async {
     final profile = await getProfile(profileId);
     if (profile != null) {
       final updatedPreferences = Map<String, dynamic>.from(profile.preferences);
@@ -722,15 +795,16 @@ class DatabaseService {
   Future<int> insertConversation(Map<String, dynamic> conversation) async {
     final db = await database;
     final insertedId = await db.insert('conversations', conversation);
-    
+
     // Sync to Supabase in background (silent, non-blocking)
     _syncConversationToSupabase(conversation, insertedId);
-    
+
     return insertedId;
   }
-  
+
   // Silent background sync for conversations
-  void _syncConversationToSupabase(Map<String, dynamic> conversationData, int localId) {
+  void _syncConversationToSupabase(
+      Map<String, dynamic> conversationData, int localId) {
     // Run in background, don't await
     Future.microtask(() async {
       try {
@@ -761,9 +835,11 @@ class DatabaseService {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getConversations({int? profileId, bool pinnedFirst = true}) async {
+  Future<List<Map<String, dynamic>>> getConversations(
+      {int? profileId, bool pinnedFirst = true}) async {
     final db = await database;
-    String orderBy = pinnedFirst ? 'is_pinned DESC, updated_at DESC' : 'updated_at DESC';
+    String orderBy =
+        pinnedFirst ? 'is_pinned DESC, updated_at DESC' : 'updated_at DESC';
     if (profileId != null) {
       return await db.query(
         'conversations',
@@ -781,16 +857,18 @@ class DatabaseService {
     final db = await database;
     return await db.query('conversations', orderBy: 'created_at ASC');
   }
-  
+
   // Get a single conversation by ID
   Future<Map<String, dynamic>?> getConversation(int id) async {
     final db = await database;
-    final results = await db.query('conversations', where: 'id = ?', whereArgs: [id], limit: 1);
+    final results = await db.query('conversations',
+        where: 'id = ?', whereArgs: [id], limit: 1);
     return results.isNotEmpty ? results.first : null;
   }
-  
+
   // Get messages for a specific conversation
-  Future<List<Map<String, dynamic>>> getConversationMessages(int conversationId) async {
+  Future<List<Map<String, dynamic>>> getConversationMessages(
+      int conversationId) async {
     final db = await database;
     return await db.query(
       'chat_messages',
@@ -854,13 +932,92 @@ class DatabaseService {
     );
   }
 
-  Future<List<Map<String, dynamic>>> getAIPersonalitiesForProfile(int profileId) async {
+  Future<List<Map<String, dynamic>>> getAIPersonalitiesForProfile(
+      int profileId) async {
     final db = await database;
     return await db.query(
       'ai_personalities',
       where: 'profile_id = ?',
       whereArgs: [profileId],
       orderBy: 'is_active DESC, updated_at DESC',
+    );
+  }
+
+  // Knowledge Hub CRUD operations
+  Future<int> insertKnowledgeItem(KnowledgeItem item) async {
+    final db = await database;
+    return await db.insert('knowledge_items', item.toMap());
+  }
+
+  Future<List<KnowledgeItem>> getKnowledgeItemsForProfile(
+    int profileId, {
+    bool activeOnly = false,
+    int? limit,
+    String? memoryType,
+  }) async {
+    final db = await database;
+    final where = <String>['profile_id = ?'];
+    final args = <dynamic>[profileId];
+
+    if (activeOnly) {
+      where.add('is_active = 1');
+    }
+
+    if (memoryType != null && memoryType.isNotEmpty) {
+      where.add('memory_type = ?');
+      args.add(memoryType);
+    }
+
+    final maps = await db.query(
+      'knowledge_items',
+      where: where.join(' AND '),
+      whereArgs: args,
+      orderBy: 'is_pinned DESC, updated_at DESC',
+      limit: limit,
+    );
+
+    return maps.map(KnowledgeItem.fromMap).toList();
+  }
+
+  Future<KnowledgeItem?> getKnowledgeItemById(int id) async {
+    final db = await database;
+    final maps = await db.query(
+      'knowledge_items',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    return KnowledgeItem.fromMap(maps.first);
+  }
+
+  Future<int> updateKnowledgeItem(KnowledgeItem item) async {
+    final db = await database;
+    if (item.id == null) return 0;
+    return await db.update(
+      'knowledge_items',
+      item.toMap(),
+      where: 'id = ?',
+      whereArgs: [item.id],
+    );
+  }
+
+  Future<int> deleteKnowledgeItem(int id) async {
+    final db = await database;
+    return await db.delete(
+      'knowledge_items',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> clearKnowledgeItemsForProfile(int profileId) async {
+    final db = await database;
+    return await db.delete(
+      'knowledge_items',
+      where: 'profile_id = ?',
+      whereArgs: [profileId],
     );
   }
 }

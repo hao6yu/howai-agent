@@ -21,6 +21,7 @@ import 'screens/subscription_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/instructions_screen.dart';
 import 'screens/auth_screen.dart';
+import 'screens/knowledge_hub_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -117,18 +118,30 @@ class HowAIMainApp extends StatelessWidget {
               ),
             ),
             textTheme: GoogleFonts.robotoTextTheme().copyWith(
-              bodyLarge: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(16)),
-              bodyMedium: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
-              bodySmall: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(12)),
-              headlineLarge: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(32)),
-              headlineMedium: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(28)),
-              headlineSmall: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(24)),
-              titleLarge: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(22)),
-              titleMedium: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(16)),
-              titleSmall: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
-              labelLarge: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
-              labelMedium: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(12)),
-              labelSmall: GoogleFonts.roboto(fontSize: settings.getScaledFontSize(11)),
+              bodyLarge:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(16)),
+              bodyMedium:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
+              bodySmall:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(12)),
+              headlineLarge:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(32)),
+              headlineMedium:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(28)),
+              headlineSmall:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(24)),
+              titleLarge:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(22)),
+              titleMedium:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(16)),
+              titleSmall:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
+              labelLarge:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
+              labelMedium:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(12)),
+              labelSmall:
+                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(11)),
             ),
             useMaterial3: true,
           ),
@@ -160,7 +173,8 @@ class HowAIMainApp extends StatelessWidget {
             bottomSheetTheme: const BottomSheetThemeData(
               backgroundColor: Color(0xFF2C2C2E),
             ),
-            textTheme: GoogleFonts.robotoTextTheme(ThemeData.dark().textTheme).copyWith(
+            textTheme: GoogleFonts.robotoTextTheme(ThemeData.dark().textTheme)
+                .copyWith(
               bodyLarge: GoogleFonts.roboto(
                 fontSize: settings.getScaledFontSize(16),
                 color: Colors.white,
@@ -243,7 +257,9 @@ class HowAIMainApp extends StatelessWidget {
             '/auth': (context) => const AuthScreen(),
             '/home': (context) => const MainTabScaffold(),
             '/subscription': (context) => const SubscriptionScreen(),
-            '/settings': (context) => SettingsScreen(onBack: () => Navigator.pop(context)),
+            '/settings': (context) =>
+                SettingsScreen(onBack: () => Navigator.pop(context)),
+            '/knowledge-hub': (context) => const KnowledgeHubScreen(),
           },
         );
       },

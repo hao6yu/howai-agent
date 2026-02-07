@@ -29,7 +29,8 @@ class MessageService {
       );
 
       // Filter for this conversation
-      final conversationMessages = allMessages.where((m) => m.conversationId == conversationId).toList();
+      final conversationMessages =
+          allMessages.where((m) => m.conversationId == conversationId).toList();
 
       // Sort messages by timestamp
       conversationMessages.sort((a, b) {
@@ -101,12 +102,15 @@ class MessageService {
       } else if (msg.conversationId != null) {
         // Messages without ID but with conversationId
         final contentHash = msg.message.hashCode;
-        final timestampSec = DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/ 1000;
-        key = 'conv_${msg.conversationId}_${contentHash}_${msg.isUserMessage}_${timestampSec}';
+        final timestampSec =
+            DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/ 1000;
+        key =
+            'conv_${msg.conversationId}_${contentHash}_${msg.isUserMessage}_${timestampSec}';
       } else {
         // Messages without either ID (temporary messages)
         final contentHash = msg.message.hashCode;
-        final timestampSec = DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/ 1000;
+        final timestampSec =
+            DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/ 1000;
         key = 'temp_${contentHash}_${msg.isUserMessage}_${timestampSec}';
       }
 
@@ -120,10 +124,75 @@ class MessageService {
 
     // Convert back to list and sort by timestamp
     final cleanedMessages = uniqueMessages.values.toList();
-    cleanedMessages.sort((a, b) => DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)));
+    cleanedMessages.sort((a, b) =>
+        DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)));
+
+    // Second-pass semantic dedupe:
+    // Collapse near-identical assistant duplicates even if they have different IDs
+    // (can happen with local insert + sync callback races).
+    final List<ChatMessage> semanticallyDeduped = [];
+    for (final msg in cleanedMessages) {
+      bool isDuplicate = false;
+
+      if (!msg.isUserMessage && msg.message.trim().isNotEmpty) {
+        for (int i = semanticallyDeduped.length - 1; i >= 0; i--) {
+          final prev = semanticallyDeduped[i];
+          if (prev.isUserMessage) {
+            continue;
+          }
+
+          // Only compare within the same conversation/profile scope.
+          if (prev.conversationId != msg.conversationId ||
+              prev.profileId != msg.profileId) {
+            continue;
+          }
+
+          final sameText = prev.message.trim() == msg.message.trim();
+          final sameFiles = _jsonListEquals(prev.filePaths, msg.filePaths);
+          final sameImages = _jsonListEquals(prev.imagePaths, msg.imagePaths);
+          final closeInTime = (DateTime.parse(msg.timestamp)
+                      .difference(DateTime.parse(prev.timestamp))
+                      .inSeconds)
+                  .abs() <=
+              90;
+
+          if (sameText && sameFiles && sameImages && closeInTime) {
+            // Keep the message with an ID if possible.
+            if (msg.id != null && prev.id == null) {
+              semanticallyDeduped[i] = msg;
+            }
+            isDuplicate = true;
+            break;
+          }
+
+          // List is time-ordered; stop searching if we're too far back.
+          if ((DateTime.parse(msg.timestamp)
+                      .difference(DateTime.parse(prev.timestamp))
+                      .inMinutes)
+                  .abs() >
+              5) {
+            break;
+          }
+        }
+      }
+
+      if (!isDuplicate) {
+        semanticallyDeduped.add(msg);
+      }
+    }
 
     // print('[Cleanup] Finished message cleanup. After: ${cleanedMessages.length} messages');
-    return cleanedMessages;
+    return semanticallyDeduped;
+  }
+
+  static bool _jsonListEquals(List<String>? a, List<String>? b) {
+    final aNorm = a ?? const <String>[];
+    final bNorm = b ?? const <String>[];
+    if (aNorm.length != bNorm.length) return false;
+    for (int i = 0; i < aNorm.length; i++) {
+      if (aNorm[i] != bNorm[i]) return false;
+    }
+    return true;
   }
 
   /// Filter messages by conversation ID
@@ -143,7 +212,8 @@ class MessageService {
       } else {
         // Return messages for this conversation
         // Plus temporary messages if includeTemporary is true
-        return msg.conversationId == conversationId || (includeTemporary && msg.conversationId == null);
+        return msg.conversationId == conversationId ||
+            (includeTemporary && msg.conversationId == null);
       }
     }).toList();
   }
@@ -158,7 +228,8 @@ class MessageService {
         key = 'id_${msg.id}';
       } else {
         final contentHash = msg.message.hashCode;
-        final timestampSec = DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/ 1000;
+        final timestampSec =
+            DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/ 1000;
         key = 'content_${contentHash}_${msg.isUserMessage}_${timestampSec}';
       }
 
@@ -191,13 +262,29 @@ class MessageService {
   /// Generate conversation title from message text
   static String generateConversationTitle(String message) {
     // Remove common filler words
-    final fillerWords = ['a', 'an', 'the', 'this', 'that', 'these', 'those', 'is', 'are', 'was', 'were', 'be', 'been', 'being'];
+    final fillerWords = [
+      'a',
+      'an',
+      'the',
+      'this',
+      'that',
+      'these',
+      'those',
+      'is',
+      'are',
+      'was',
+      'were',
+      'be',
+      'been',
+      'being'
+    ];
 
     // Split into words, remove punctuation, and filter out filler words
     final words = message
         .replaceAll(RegExp(r'[^\w\s]'), '') // Remove punctuation
         .split(' ')
-        .where((word) => word.isNotEmpty && !fillerWords.contains(word.toLowerCase()))
+        .where((word) =>
+            word.isNotEmpty && !fillerWords.contains(word.toLowerCase()))
         .toList();
 
     // If we have 4 or fewer significant words, use those
@@ -221,8 +308,12 @@ class MessageService {
   }
 
   /// Check if a message exists in the list
-  static bool messageExists(List<ChatMessage> messages, ChatMessage targetMessage) {
-    return messages.any((existing) => existing.message == targetMessage.message && existing.isUserMessage == targetMessage.isUserMessage && existing.timestamp == targetMessage.timestamp);
+  static bool messageExists(
+      List<ChatMessage> messages, ChatMessage targetMessage) {
+    return messages.any((existing) =>
+        existing.message == targetMessage.message &&
+        existing.isUserMessage == targetMessage.isUserMessage &&
+        existing.timestamp == targetMessage.timestamp);
   }
 
   /// Get the latest messages for conversation history
@@ -232,10 +323,12 @@ class MessageService {
   }) {
     // Filter and sort messages by conversation
     final sortedMessages = List<ChatMessage>.from(messages);
-    sortedMessages.sort((a, b) => DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)));
+    sortedMessages.sort((a, b) =>
+        DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)));
 
     // Take the most recent messages
-    final recentMessages = sortedMessages.reversed.take(maxMessages).toList().reversed;
+    final recentMessages =
+        sortedMessages.reversed.take(maxMessages).toList().reversed;
 
     return recentMessages
         .map((msg) => {

@@ -20,7 +20,8 @@ class ConversationProvider with ChangeNotifier {
     // We'll leave the current selection as is or null
     if (_selectedConversation != null) {
       // If we had a selection, make sure it still exists in the updated list
-      final stillExists = _conversations.any((c) => c.id == _selectedConversation!.id);
+      final stillExists =
+          _conversations.any((c) => c.id == _selectedConversation!.id);
       if (!stillExists) {
         _selectedConversation = null;
         // print('ConversationProvider: Previously selected conversation no longer exists, clearing selection');
@@ -33,7 +34,8 @@ class ConversationProvider with ChangeNotifier {
   }
 
   // Helper method to ensure conversations are loaded for a profile
-  Future<void> ensureConversationsLoaded(BuildContext context, {int? profileId}) async {
+  Future<void> ensureConversationsLoaded(BuildContext context,
+      {int? profileId}) async {
     if (_conversations.isEmpty) {
       // Load conversations without auto-selecting any
       await loadConversations(profileId: profileId);
@@ -80,6 +82,40 @@ class ConversationProvider with ChangeNotifier {
     conversation.updatedAt = DateTime.now();
     await db.updateConversation(conversation.toMap());
     await loadConversations(profileId: conversation.profileId);
+    notifyListeners();
+  }
+
+  Future<void> updateConversationTitle({
+    required int conversationId,
+    required String title,
+    int? profileId,
+  }) async {
+    final trimmedTitle = title.trim();
+    if (trimmedTitle.isEmpty) return;
+
+    final db = DatabaseService();
+    final target = _conversations.firstWhere(
+      (c) => c.id == conversationId,
+      orElse: () => Conversation(
+        id: conversationId,
+        title: trimmedTitle,
+        isPinned: false,
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+        profileId: profileId,
+      ),
+    );
+
+    target.title = trimmedTitle;
+    target.updatedAt = DateTime.now();
+    await db.updateConversation(target.toMap());
+    await loadConversations(profileId: profileId);
+
+    final selected = _selectedConversation;
+    if (selected != null && selected.id == conversationId) {
+      _selectedConversation =
+          _conversations.firstWhere((c) => c.id == conversationId);
+    }
     notifyListeners();
   }
 

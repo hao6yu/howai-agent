@@ -136,10 +136,24 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     final profileId = profileProvider.selectedProfileId;
     if (profileId == null) return;
 
+    final mode = await _showNewMemoryModePicker();
+    if (mode == null) return;
+
+    _RecentMessageChoice? initialLinkedMessage;
+    if (mode == _NewMemoryMode.fromChat) {
+      initialLinkedMessage = await _pickRecentMessageForMemory();
+      if (initialLinkedMessage == null) return;
+    }
+
     final created = await _showItemEditorDialog(
       title: 'New Memory',
-      initialTitle: '',
-      initialContent: '',
+      initialTitle: mode == _NewMemoryMode.fromChat
+          ? _buildMemoryTitle(initialLinkedMessage!.content)
+          : '',
+      initialContent: mode == _NewMemoryMode.fromChat
+          ? _truncateWithEllipsis(
+              initialLinkedMessage!.content, _memoryContentMaxLength)
+          : '',
       initialType: MemoryType.fact,
       initialTags: const [],
       initialPinned: false,
@@ -147,6 +161,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       profileId: profileId,
       knowledgeItemId: null,
       initialSources: const [],
+      initialLinkedMessage: initialLinkedMessage,
+      showRecentMessageAction: mode == _NewMemoryMode.fromChat,
+      showAttachDocumentAction: mode == _NewMemoryMode.fromDocument,
+      showContentField: mode != _NewMemoryMode.fromDocument,
     );
 
     if (created == null) return;
@@ -204,6 +222,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       profileId: profileId,
       knowledgeItemId: item.id,
       initialSources: initialSources,
+      initialLinkedMessage: null,
+      showRecentMessageAction: true,
+      showAttachDocumentAction: true,
+      showContentField: true,
     );
 
     if (updatedDraft == null) return;
@@ -321,6 +343,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     required int profileId,
     required int? knowledgeItemId,
     required List<KnowledgeSource> initialSources,
+    required _RecentMessageChoice? initialLinkedMessage,
+    required bool showRecentMessageAction,
+    required bool showAttachDocumentAction,
+    required bool showContentField,
   }) async {
     final titleController = TextEditingController(text: initialTitle);
     final contentController = TextEditingController(text: initialContent);
@@ -329,7 +355,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     MemoryType selectedType = initialType;
     bool isPinned = initialPinned;
     bool isActive = initialActive;
-    _RecentMessageChoice? linkedMessage;
+    _RecentMessageChoice? linkedMessage = initialLinkedMessage;
     final sourceDrafts =
         initialSources.map((source) => _SourceDraft(source: source)).toList();
     final initialSourceIds =
@@ -359,104 +385,98 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () async {
-                          final selected = await _pickRecentMessageForMemory();
-                          if (selected == null) return;
-                          final clippedContent = _truncateWithEllipsis(
-                              selected.content, _memoryContentMaxLength);
-                          final wasTruncated =
-                              selected.content.length > _memoryContentMaxLength;
-                          setDialogState(() {
-                            linkedMessage = selected;
-                            contentController.text = clippedContent;
-                            if (titleController.text.trim().isEmpty) {
-                              titleController.text =
-                                  _buildMemoryTitle(clippedContent);
-                            }
-                          });
-                          if (wasTruncated && mounted) {
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Linked message was trimmed to fit memory length.',
+                    if (showRecentMessageAction)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () async {
+                            final selected =
+                                await _pickRecentMessageForMemory();
+                            if (selected == null) return;
+                            final clippedContent = _truncateWithEllipsis(
+                                selected.content, _memoryContentMaxLength);
+                            final wasTruncated = selected.content.length >
+                                _memoryContentMaxLength;
+                            setDialogState(() {
+                              linkedMessage = selected;
+                              contentController.text = clippedContent;
+                              if (titleController.text.trim().isEmpty) {
+                                titleController.text =
+                                    _buildMemoryTitle(clippedContent);
+                              }
+                            });
+                            if (wasTruncated && mounted) {
+                              ScaffoldMessenger.of(this.context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Linked message was trimmed to fit memory length.',
+                                  ),
+                                  duration: Duration(seconds: 2),
                                 ),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.link, size: 18),
-                        label: const Text('Use Recent Chat Message'),
-                      ),
-                    ),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: isAttachingSource
-                            ? null
-                            : () async {
-                                final file =
-                                    await FileService.pickDocumentFile();
-                                if (file == null) return;
-
-                                setDialogState(() {
-                                  isAttachingSource = true;
-                                });
-
-                                try {
-                                  final source = await _knowledgeSourceService
-                                      .ingestFileSource(
-                                    profileId: profileId,
-                                    file: file,
-                                    knowledgeItemId: knowledgeItemId,
-                                  );
-                                  if (!dialogContext.mounted) return;
-                                  final sourceSummary =
-                                      await _buildSourceSummaryContent(
-                                    profileId: profileId,
-                                    sourceId: source.id,
-                                  );
-                                  setDialogState(() {
-                                    sourceDrafts
-                                        .add(_SourceDraft(source: source));
-                                    if (titleController.text.trim().isEmpty) {
-                                      titleController.text =
-                                          _buildMemoryTitleFromSourceName(
-                                              source.displayName);
-                                    }
-                                    if (contentController.text.trim().isEmpty &&
-                                        sourceSummary.isNotEmpty) {
-                                      contentController.text = sourceSummary;
-                                    }
-                                  });
-                                } catch (_) {
-                                  if (!dialogContext.mounted) return;
-                                  ScaffoldMessenger.of(dialogContext)
-                                      .showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Failed to attach and extract document.'),
-                                    ),
-                                  );
-                                } finally {
-                                  if (dialogContext.mounted) {
-                                    setDialogState(() {
-                                      isAttachingSource = false;
-                                    });
-                                  }
-                                }
-                              },
-                        icon: const Icon(Icons.attach_file, size: 18),
-                        label: Text(
-                          isAttachingSource
-                              ? 'Attaching document...'
-                              : 'Attach Document',
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.link, size: 18),
+                          label: const Text('Use Recent Chat Message'),
                         ),
                       ),
-                    ),
+                    if (showAttachDocumentAction)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: isAttachingSource
+                              ? null
+                              : () async {
+                                  final file =
+                                      await FileService.pickDocumentFile();
+                                  if (file == null) return;
+
+                                  setDialogState(() {
+                                    isAttachingSource = true;
+                                  });
+
+                                  try {
+                                    final source = await _knowledgeSourceService
+                                        .ingestFileSource(
+                                      profileId: profileId,
+                                      file: file,
+                                      knowledgeItemId: knowledgeItemId,
+                                    );
+                                    if (!dialogContext.mounted) return;
+                                    setDialogState(() {
+                                      sourceDrafts
+                                          .add(_SourceDraft(source: source));
+                                      if (titleController.text.trim().isEmpty) {
+                                        titleController.text =
+                                            _buildMemoryTitleFromSourceName(
+                                                source.displayName);
+                                      }
+                                    });
+                                  } catch (_) {
+                                    if (!dialogContext.mounted) return;
+                                    ScaffoldMessenger.of(dialogContext)
+                                        .showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            'Failed to attach and extract document.'),
+                                      ),
+                                    );
+                                  } finally {
+                                    if (dialogContext.mounted) {
+                                      setDialogState(() {
+                                        isAttachingSource = false;
+                                      });
+                                    }
+                                  }
+                                },
+                          icon: const Icon(Icons.attach_file, size: 18),
+                          label: Text(
+                            isAttachingSource
+                                ? 'Attaching document...'
+                                : 'Attach Document',
+                          ),
+                        ),
+                      ),
                     if (sourceDrafts.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Container(
@@ -555,7 +575,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                         ),
                       ),
                     ],
-                    if (linkedMessage != null)
+                    if (linkedMessage != null && showRecentMessageAction)
                       Container(
                         width: double.infinity,
                         margin: const EdgeInsets.only(bottom: 8),
@@ -604,14 +624,31 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                       maxLength: _memoryTitleMaxLength,
                       maxLengthEnforcement: MaxLengthEnforcement.enforced,
                     ),
-                    TextField(
-                      controller: contentController,
-                      decoration: const InputDecoration(labelText: 'Content'),
-                      maxLength: _memoryContentMaxLength,
-                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                      minLines: 2,
-                      maxLines: 5,
-                    ),
+                    if (showContentField)
+                      TextField(
+                        controller: contentController,
+                        decoration: const InputDecoration(labelText: 'Content'),
+                        maxLength: _memoryContentMaxLength,
+                        maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                        minLines: 2,
+                        maxLines: 5,
+                      ),
+                    if (!showContentField)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(top: 8, bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Text(
+                          'Document text stays hidden here. HowAI will use extracted document content in memory context.',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
                     DropdownButtonFormField<MemoryType>(
                       initialValue: selectedType,
                       decoration: const InputDecoration(labelText: 'Type'),
@@ -817,6 +854,42 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                 ),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<_NewMemoryMode?> _showNewMemoryModePicker() async {
+    return showModalBottomSheet<_NewMemoryMode>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.forum_outlined),
+                title: const Text('From Chat'),
+                subtitle: const Text('Save a recent message as memory'),
+                onTap: () => Navigator.pop(context, _NewMemoryMode.fromChat),
+              ),
+              ListTile(
+                leading: const Icon(Icons.edit_note_outlined),
+                title: const Text('Type Manually'),
+                subtitle: const Text('Write a custom memory entry'),
+                onTap: () => Navigator.pop(context, _NewMemoryMode.manual),
+              ),
+              ListTile(
+                leading: const Icon(Icons.description_outlined),
+                title: const Text('From Document'),
+                subtitle:
+                    const Text('Attach file and store extracted knowledge'),
+                onTap: () =>
+                    Navigator.pop(context, _NewMemoryMode.fromDocument),
+              ),
+            ],
           ),
         );
       },
@@ -1408,6 +1481,12 @@ class _KnowledgeDraft {
     required this.isPinned,
     required this.isActive,
   });
+}
+
+enum _NewMemoryMode {
+  fromChat,
+  manual,
+  fromDocument,
 }
 
 class _SourceDraft {

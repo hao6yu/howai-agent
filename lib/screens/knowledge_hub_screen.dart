@@ -20,14 +20,70 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   bool _isLoading = false;
   List<KnowledgeItem> _items = [];
   MemoryType? _filterType;
+  bool _hasShownEntryUpgradeDialog = false;
 
   @override
   void initState() {
     super.initState();
-    _loadItems();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _handleEntryAccessGate();
+      _loadItems();
+    });
+  }
+
+  void _handleEntryAccessGate() {
+    if (_hasShownEntryUpgradeDialog || !mounted) return;
+
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
+    if (subscriptionService.isPremium) return;
+
+    _hasShownEntryUpgradeDialog = true;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Knowledge Hub (Premium)'),
+          content: const Text(
+            'Knowledge Hub helps HowAI remember your personal preferences, facts, and goals across conversations.\n\nUpgrade to Premium to use this feature.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                }
+              },
+              child: const Text('Return'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                Navigator.pushReplacementNamed(context, '/subscription');
+              },
+              child: const Text('Go to Subscription'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _loadItems() async {
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
+    if (!subscriptionService.isPremium) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _items = [];
+        });
+      }
+      return;
+    }
+
     final profileProvider =
         Provider.of<ProfileProvider>(context, listen: false);
     final profileId = profileProvider.selectedProfileId;
@@ -50,10 +106,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
         _items = items;
       });
     } catch (_) {
+      // Silence noisy load errors here; entry/access handling already informs user.
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to load Knowledge Hub items.')),
-      );
     } finally {
       if (mounted) {
         setState(() {

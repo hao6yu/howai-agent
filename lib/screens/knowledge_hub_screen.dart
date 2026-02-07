@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
 
 import '../models/knowledge_item.dart';
+import '../models/knowledge_source.dart';
 import '../providers/settings_provider.dart';
 import '../providers/profile_provider.dart';
 import '../services/database_service.dart';
+import '../services/file_service.dart';
 import '../services/knowledge_hub_service.dart';
+import '../services/knowledge_source_service.dart';
 import '../services/subscription_service.dart';
 
 class KnowledgeHubScreen extends StatefulWidget {
@@ -22,6 +26,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       KnowledgeHubLimits.contentMaxLength;
 
   final KnowledgeHubService _knowledgeHubService = KnowledgeHubService();
+  final KnowledgeSourceService _knowledgeSourceService =
+      KnowledgeSourceService();
   final DatabaseService _databaseService = DatabaseService();
 
   bool _isLoading = false;
@@ -138,12 +144,15 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       initialTags: const [],
       initialPinned: false,
       initialActive: true,
+      profileId: profileId,
+      knowledgeItemId: null,
+      initialSources: const [],
     );
 
     if (created == null) return;
 
     try {
-      await _knowledgeHubService.createKnowledgeItem(
+      final item = await _knowledgeHubService.createKnowledgeItem(
         profileId: profileId,
         conversationId: created.conversationId,
         sourceMessageId: created.sourceMessageId,
@@ -154,6 +163,12 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
         isPinned: created.isPinned,
         isActive: created.isActive,
       );
+      for (final sourceId in created.sourceIds) {
+        await _knowledgeSourceService.linkSourceToKnowledgeItem(
+          sourceId: sourceId,
+          knowledgeItemId: item.id!,
+        );
+      }
       await _loadItems();
     } on DuplicateKnowledgeItemException {
       if (!mounted) return;
@@ -169,6 +184,15 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   }
 
   Future<void> _editItem(KnowledgeItem item) async {
+    final profileProvider =
+        Provider.of<ProfileProvider>(context, listen: false);
+    final profileId = profileProvider.selectedProfileId;
+    if (profileId == null) return;
+    final initialSources = await _knowledgeSourceService.getSourcesForProfile(
+      profileId,
+      knowledgeItemId: item.id,
+    );
+
     final updatedDraft = await _showItemEditorDialog(
       title: 'Edit Memory',
       initialTitle: item.title,
@@ -177,6 +201,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       initialTags: item.tags,
       initialPinned: item.isPinned,
       initialActive: item.isActive,
+      profileId: profileId,
+      knowledgeItemId: item.id,
+      initialSources: initialSources,
     );
 
     if (updatedDraft == null) return;
@@ -192,6 +219,26 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
           isActive: updatedDraft.isActive,
         ),
       );
+
+      final existingIds =
+          initialSources.map((source) => source.id).whereType<int>().toSet();
+      final draftIds = updatedDraft.sourceIds.toSet();
+
+      final toAdd = draftIds.difference(existingIds);
+      final toRemove = existingIds.difference(draftIds);
+
+      for (final sourceId in toAdd) {
+        await _knowledgeSourceService.linkSourceToKnowledgeItem(
+          sourceId: sourceId,
+          knowledgeItemId: item.id!,
+        );
+      }
+      for (final sourceId in toRemove) {
+        await _knowledgeSourceService.unlinkSourceFromKnowledgeItem(
+          sourceId: sourceId,
+          knowledgeItemId: item.id!,
+        );
+      }
       await _loadItems();
     } catch (_) {
       if (!mounted) return;
@@ -271,6 +318,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     required List<String> initialTags,
     required bool initialPinned,
     required bool initialActive,
+    required int profileId,
+    required int? knowledgeItemId,
+    required List<KnowledgeSource> initialSources,
   }) async {
     final titleController = TextEditingController(text: initialTitle);
     final contentController = TextEditingController(text: initialContent);
@@ -280,9 +330,26 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     bool isPinned = initialPinned;
     bool isActive = initialActive;
     _RecentMessageChoice? linkedMessage;
+    final sourceDrafts =
+        initialSources.map((source) => _SourceDraft(source: source)).toList();
+    final initialSourceIds =
+        initialSources.map((source) => source.id).whereType<int>().toSet();
+    bool isAttachingSource = false;
+
+    Future<void> cleanupTransientSources() async {
+      final transientIds = sourceDrafts
+          .map((entry) => entry.source.id)
+          .whereType<int>()
+          .where((id) => !initialSourceIds.contains(id))
+          .toList();
+      for (final sourceId in transientIds) {
+        await _knowledgeSourceService.deleteSource(sourceId);
+      }
+    }
 
     return showDialog<_KnowledgeDraft>(
       context: context,
+      barrierDismissible: false,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -325,6 +392,155 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                         label: const Text('Use Recent Chat Message'),
                       ),
                     ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: isAttachingSource
+                            ? null
+                            : () async {
+                                final file =
+                                    await FileService.pickDocumentFile();
+                                if (file == null) return;
+
+                                setDialogState(() {
+                                  isAttachingSource = true;
+                                });
+
+                                try {
+                                  final source = await _knowledgeSourceService
+                                      .ingestFileSource(
+                                    profileId: profileId,
+                                    file: file,
+                                    knowledgeItemId: knowledgeItemId,
+                                  );
+                                  if (!dialogContext.mounted) return;
+                                  setDialogState(() {
+                                    sourceDrafts
+                                        .add(_SourceDraft(source: source));
+                                  });
+                                } catch (_) {
+                                  if (!dialogContext.mounted) return;
+                                  ScaffoldMessenger.of(dialogContext)
+                                      .showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Failed to attach and extract document.'),
+                                    ),
+                                  );
+                                } finally {
+                                  if (dialogContext.mounted) {
+                                    setDialogState(() {
+                                      isAttachingSource = false;
+                                    });
+                                  }
+                                }
+                              },
+                        icon: const Icon(Icons.attach_file, size: 18),
+                        label: Text(
+                          isAttachingSource
+                              ? 'Attaching document...'
+                              : 'Attach Document',
+                        ),
+                      ),
+                    ),
+                    if (sourceDrafts.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Attached sources',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            ...sourceDrafts.map((sourceDraft) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 6),
+                                  child: Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.description_outlined,
+                                        size: 16,
+                                        color: _sourceStatusColor(sourceDraft
+                                            .source.extractionStatus),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              sourceDraft.source.displayName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style:
+                                                  const TextStyle(fontSize: 12),
+                                            ),
+                                            Text(
+                                              _sourceStatusLabel(sourceDraft
+                                                  .source.extractionStatus),
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: _sourceStatusColor(
+                                                    sourceDraft.source
+                                                        .extractionStatus),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.open_in_new,
+                                            size: 16),
+                                        splashRadius: 14,
+                                        onPressed:
+                                            sourceDraft.source.localUri == null
+                                                ? null
+                                                : () async {
+                                                    await OpenFile.open(
+                                                        sourceDraft
+                                                            .source.localUri!);
+                                                  },
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.close, size: 16),
+                                        splashRadius: 14,
+                                        onPressed: () async {
+                                          final sourceId =
+                                              sourceDraft.source.id;
+                                          if (sourceId != null &&
+                                              !initialSourceIds
+                                                  .contains(sourceId)) {
+                                            await _knowledgeSourceService
+                                                .deleteSource(sourceId);
+                                          }
+                                          if (!dialogContext.mounted) return;
+                                          setDialogState(() {
+                                            sourceDrafts.remove(sourceDraft);
+                                          });
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                )),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (linkedMessage != null)
                       Container(
                         width: double.infinity,
@@ -432,7 +648,11 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(dialogContext),
+                  onPressed: () async {
+                    await cleanupTransientSources();
+                    if (!dialogContext.mounted) return;
+                    Navigator.pop(dialogContext);
+                  },
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
@@ -457,6 +677,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                         content: trimmedContent,
                         sourceMessageId: linkedMessage?.messageId,
                         conversationId: linkedMessage?.conversationId,
+                        sourceIds: sourceDrafts
+                            .map((entry) => entry.source.id)
+                            .whereType<int>()
+                            .toList(),
                         memoryType: selectedType,
                         tags: tags,
                         isPinned: isPinned,
@@ -586,6 +810,28 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
         return 'Constraint';
       case MemoryType.other:
         return 'Other';
+    }
+  }
+
+  String _sourceStatusLabel(KnowledgeExtractionStatus status) {
+    switch (status) {
+      case KnowledgeExtractionStatus.pending:
+        return 'Processing';
+      case KnowledgeExtractionStatus.ready:
+        return 'Ready';
+      case KnowledgeExtractionStatus.failed:
+        return 'Failed';
+    }
+  }
+
+  Color _sourceStatusColor(KnowledgeExtractionStatus status) {
+    switch (status) {
+      case KnowledgeExtractionStatus.pending:
+        return Colors.orange.shade700;
+      case KnowledgeExtractionStatus.ready:
+        return Colors.green.shade700;
+      case KnowledgeExtractionStatus.failed:
+        return Colors.red.shade700;
     }
   }
 
@@ -1079,6 +1325,7 @@ class _KnowledgeDraft {
   final String content;
   final int? sourceMessageId;
   final int? conversationId;
+  final List<int> sourceIds;
   final MemoryType memoryType;
   final List<String> tags;
   final bool isPinned;
@@ -1089,11 +1336,18 @@ class _KnowledgeDraft {
     required this.content,
     this.sourceMessageId,
     this.conversationId,
+    this.sourceIds = const [],
     required this.memoryType,
     required this.tags,
     required this.isPinned,
     required this.isActive,
   });
+}
+
+class _SourceDraft {
+  final KnowledgeSource source;
+
+  const _SourceDraft({required this.source});
 }
 
 class _RecentMessageChoice {

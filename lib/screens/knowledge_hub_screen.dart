@@ -514,6 +514,232 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     );
   }
 
+  Widget _buildPremiumEmptyState(SettingsProvider settings) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 110),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade700
+                  : Colors.grey.shade300,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.auto_stories_outlined,
+                  color: Color(0xFF0078D4), size: 24),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'What is Knowledge Hub?',
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(16),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'A personal memory space where you save key details once, so HowAI can use them in future replies.',
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(13),
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade700
+                  : Colors.grey.shade300,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'How to get started',
+                style: TextStyle(
+                  fontSize: settings.getScaledFontSize(16),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              _buildStep(
+                settings,
+                number: '1',
+                text: 'Tap New Memory or use Save from any chat message.',
+              ),
+              _buildStep(
+                settings,
+                number: '2',
+                text: 'Choose type (Preference, Goal, Fact, Constraint).',
+              ),
+              _buildStep(
+                settings,
+                number: '3',
+                text: 'Add tags to make memory easier to match later.',
+              ),
+              _buildStep(
+                settings,
+                number: '4',
+                text: 'Pin critical memories to prioritize them in context.',
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade700
+                  : Colors.grey.shade300,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Example memories',
+                style: TextStyle(
+                  fontSize: settings.getScaledFontSize(16),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 10),
+              _buildExampleMemory(
+                settings,
+                title: 'Preference',
+                content: 'Keep my summaries short and bullet-pointed.',
+              ),
+              const SizedBox(height: 8),
+              _buildExampleMemory(
+                settings,
+                title: 'Goal',
+                content: 'I am preparing for product manager interviews.',
+              ),
+              const SizedBox(height: 8),
+              _buildExampleMemory(
+                settings,
+                title: 'Constraint',
+                content:
+                    'Do not include local file paths in translated output.',
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStep(
+    SettingsProvider settings, {
+    required String number,
+    required String text,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0078D4),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: Text(
+              number,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: settings.getScaledFontSize(13),
+                height: 1.3,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExampleMemory(
+    SettingsProvider settings, {
+    required String title,
+    required String content,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(12),
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF0078D4),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(13),
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
@@ -554,37 +780,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _items.isEmpty
-                      ? ListView(
-                          children: [
-                            SizedBox(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.25),
-                            Icon(Icons.auto_stories_outlined,
-                                size: 52,
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.grey.shade500
-                                    : Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            Center(
-                              child: Text(
-                                'No saved memory yet',
-                                style: TextStyle(
-                                  fontSize: settings.getScaledFontSize(16),
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Center(
-                              child: Text(
-                                'Use Save in chat actions or add one here.',
-                                style: TextStyle(
-                                    fontSize: settings.getScaledFontSize(13)),
-                              ),
-                            ),
-                          ],
-                        )
+                      ? _buildPremiumEmptyState(settings)
                       : ListView.separated(
                           physics: const AlwaysScrollableScrollPhysics(),
                           itemCount: _items.length,

@@ -3367,7 +3367,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                         labelText: 'Title',
                         hintText: 'Short memory title',
                       ),
-                      maxLength: 80,
+                      maxLength: KnowledgeHubLimits.titleMaxLength,
                     ),
                     const SizedBox(height: 8),
                     TextField(
@@ -3378,7 +3378,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                       ),
                       maxLines: 4,
                       minLines: 2,
-                      maxLength: 500,
+                      maxLength: KnowledgeHubLimits.contentMaxLength,
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<MemoryType>(
@@ -3522,10 +3522,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     if (compact.isEmpty) {
       return '';
     }
-    if (compact.length <= 500) {
+    if (compact.length <= KnowledgeHubLimits.contentMaxLength) {
       return compact;
     }
-    return compact.substring(0, 500);
+    return compact.substring(0, KnowledgeHubLimits.contentMaxLength);
   }
 
   String _memoryTypeLabel(MemoryType type) {

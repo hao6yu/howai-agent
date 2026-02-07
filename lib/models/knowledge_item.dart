@@ -8,6 +8,11 @@ enum MemoryType {
   other,
 }
 
+class KnowledgeHubLimits {
+  static const int titleMaxLength = 80;
+  static const int contentMaxLength = 4000;
+}
+
 class KnowledgeItem {
   final int? id;
   final int profileId;

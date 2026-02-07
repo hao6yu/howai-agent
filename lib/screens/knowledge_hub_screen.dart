@@ -17,8 +17,9 @@ class KnowledgeHubScreen extends StatefulWidget {
 }
 
 class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
-  static const int _memoryTitleMaxLength = 80;
-  static const int _memoryContentMaxLength = 500;
+  static const int _memoryTitleMaxLength = KnowledgeHubLimits.titleMaxLength;
+  static const int _memoryContentMaxLength =
+      KnowledgeHubLimits.contentMaxLength;
 
   final KnowledgeHubService _knowledgeHubService = KnowledgeHubService();
   final DatabaseService _databaseService = DatabaseService();

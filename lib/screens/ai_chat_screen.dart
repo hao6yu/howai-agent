@@ -619,6 +619,12 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
   }
 
+  bool _isNearBottom({double threshold = 140}) {
+    if (!_scrollController.hasClients) return true;
+    final position = _scrollController.position;
+    return (position.maxScrollExtent - position.pixels) <= threshold;
+  }
+
   void _addWelcomeMessageIfNeeded() {
     if (_skipWelcomeMessage) {
       // Reset the flag for future app launches
@@ -758,8 +764,8 @@ class _AiChatScreenState extends State<AiChatScreen>
     String lastRenderedText = '';
     DateTime? lastUiUpdateAt;
     DateTime? lastAutoScrollAt;
-    const uiUpdateInterval = Duration(milliseconds: 80);
     const autoScrollInterval = Duration(milliseconds: 250);
+    bool shouldFollowStream = false;
 
     // Helper to strip title JSON from text
     String _stripTitleJson(String text) {
@@ -812,6 +818,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             if (displayText.trim().isNotEmpty) {
               if (!_streamingMessageAdded) {
                 // First real content - add the message to UI
+                shouldFollowStream = _isNearBottom();
                 setState(() {
                   final newMessage = ChatMessage(
                     message: displayText,
@@ -829,13 +836,20 @@ class _AiChatScreenState extends State<AiChatScreen>
                 lastRenderedText = displayText;
                 lastUiUpdateAt = DateTime.now();
                 lastAutoScrollAt = DateTime.now();
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  _scrollToBottom(animated: true);
-                });
+                if (shouldFollowStream) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _scrollToBottom(animated: true);
+                  });
+                }
               } else if (_streamingMessageIndex != null &&
                   _streamingMessageIndex! < _messages.length) {
                 // Throttle UI updates to avoid excessive full-list rebuilds/flicker.
                 final now = DateTime.now();
+                final uiUpdateInterval = displayText.length > 8000
+                    ? const Duration(milliseconds: 320)
+                    : displayText.length > 4000
+                        ? const Duration(milliseconds: 220)
+                        : const Duration(milliseconds: 80);
                 final shouldUpdateUi = lastUiUpdateAt == null ||
                     now.difference(lastUiUpdateAt!) >= uiUpdateInterval;
                 final isTextChanged = displayText != lastRenderedText;
@@ -857,7 +871,7 @@ class _AiChatScreenState extends State<AiChatScreen>
 
                   final shouldAutoScroll = lastAutoScrollAt == null ||
                       now.difference(lastAutoScrollAt!) >= autoScrollInterval;
-                  if (shouldAutoScroll) {
+                  if (shouldAutoScroll && shouldFollowStream) {
                     lastAutoScrollAt = now;
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       _scrollToBottom(animated: false);
@@ -928,7 +942,14 @@ class _AiChatScreenState extends State<AiChatScreen>
           _messages.removeAt(_streamingMessageIndex!);
         });
       }
+      // Fallback cleanup in case index tracking became stale during rebuilds.
       setState(() {
+        _messages.removeWhere((m) =>
+            !m.isUserMessage &&
+            m.id == null &&
+            (m.conversationId == conversationId ||
+                m.timestamp == timestamp ||
+                m.conversationId == null));
         _streamingMessageIndex = null;
         _streamingMessageAdded = false;
       });
@@ -939,6 +960,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         'title': title,
         'images': images,
         'files': files,
+        'streamTimestamp': timestamp,
       };
     } catch (e) {
       print('[ChatScreen] Streaming exception: $e');
@@ -1064,9 +1086,31 @@ class _AiChatScreenState extends State<AiChatScreen>
     final conversationProvider =
         Provider.of<ConversationProvider>(context, listen: false);
     bool isNewConversation = conversationProvider.selectedConversation == null;
+    final shouldGenerateAiTitle = isNewConversation;
     int? conversationId = isNewConversation
         ? null
         : conversationProvider.selectedConversation!.id;
+
+    // Create/select conversation immediately for first message so sidebar updates
+    // right away instead of waiting for the AI response round-trip.
+    if (isNewConversation) {
+      _isCreatingNewConversation = true;
+      final provisionalTitle = MessageService.generateConversationTitle(text);
+      await conversationProvider.createConversation(
+          provisionalTitle, _currentProfileId);
+      conversationId = conversationProvider.selectedConversation?.id;
+      if (conversationId == null) {
+        setState(() {
+          _isCreatingNewConversation = false;
+          _isSending = false;
+          _currentRequestId = null;
+        });
+        _showErrorSnackBar('Failed to create conversation.');
+        return;
+      }
+      _lastLoadedConversationId = conversationId;
+      isNewConversation = false;
+    }
 
     // Get the current settings and profile from the providers
     final settings = Provider.of<SettingsProvider>(context, listen: false);
@@ -1309,7 +1353,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           userName: currentProfileName,
           userCharacteristics: userCharacteristics,
           attachments: images,
-          generateTitle: isNewConversation,
+          generateTitle: shouldGenerateAiTitle,
           isPremiumUser: subscriptionService.isPremium,
           allowWebSearch: subscriptionService.canUseWebSearch,
           allowImageGeneration: true,
@@ -1329,7 +1373,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           userName: currentProfileName,
           userCharacteristics: userCharacteristics,
           attachments: images != null && images.isNotEmpty ? images : null,
-          generateTitle: isNewConversation,
+          generateTitle: shouldGenerateAiTitle,
           isPremiumUser: subscriptionService.isPremium,
           allowWebSearch: subscriptionService.canUseWebSearch,
           allowImageGeneration: true,
@@ -1390,6 +1434,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         String aiText = response['text'] as String? ?? '';
         List<String>? generatedImages = response['images'] as List<String>?;
         List<String>? generatedFiles = response['files'] as List<String>?;
+        final String? streamTimestamp = response['streamTimestamp'] as String?;
 
         // Strip any title JSON that may have leaked into the response text (anywhere in text)
         aiText = aiText
@@ -1407,22 +1452,19 @@ class _AiChatScreenState extends State<AiChatScreen>
           }
         }
 
-        // If this is a new conversation, create it with the AI-generated title
-        if (isNewConversation) {
+        // If this request started from a new conversation, update the provisional
+        // title with AI-generated title when available.
+        if (shouldGenerateAiTitle) {
           String? conversationTitle = response['title'] as String?;
-          if (conversationTitle != null && conversationTitle.isNotEmpty) {
-            await conversationProvider.createConversation(
-                conversationTitle, _currentProfileId);
-          } else {
-            // Fallback to local title generation if AI didn't provide one
-            String generatedTitle =
-                MessageService.generateConversationTitle(text);
-            await conversationProvider.createConversation(
-                generatedTitle, _currentProfileId);
+          if (conversationTitle != null &&
+              conversationTitle.isNotEmpty &&
+              conversationId != null) {
+            await conversationProvider.updateConversationTitle(
+              conversationId: conversationId,
+              title: conversationTitle,
+              profileId: _currentProfileId,
+            );
           }
-
-          // Now we have a conversation ID
-          conversationId = conversationProvider.selectedConversation!.id;
 
           // Update _lastLoadedConversationId immediately to prevent reload duplication
           _lastLoadedConversationId = conversationId;
@@ -1615,6 +1657,49 @@ class _AiChatScreenState extends State<AiChatScreen>
 
           // Only now, update the UI
           setState(() {
+            // Deterministically remove temporary assistant rows from in-memory UI.
+            // This guarantees the persisted assistant message does not coexist with
+            // any stream placeholder residue.
+            if (streamTimestamp != null && streamTimestamp.isNotEmpty) {
+              _messages.removeWhere((existing) =>
+                  !existing.isUserMessage &&
+                  existing.id == null &&
+                  (existing.conversationId == conversationId ||
+                      existing.conversationId == null ||
+                      existing.timestamp == streamTimestamp));
+            } else {
+              // Additional safeguard for non-streaming path.
+              _messages.removeWhere((existing) =>
+                  !existing.isUserMessage &&
+                  existing.id == null &&
+                  (existing.conversationId == conversationId ||
+                      existing.conversationId == null));
+            }
+
+            // Remove matching temporary assistant messages (typically streaming placeholders)
+            // so we don't show duplicate AI responses before a full reload.
+            for (final persisted in completedMessages) {
+              if (persisted.isUserMessage) continue;
+
+              _messages.removeWhere((existing) {
+                if (existing.isUserMessage) return false;
+                if (existing.id != null) return false; // keep persisted entries
+                if (existing.conversationId != persisted.conversationId) {
+                  return false;
+                }
+
+                final sameText =
+                    existing.message.trim() == persisted.message.trim();
+                final sameFiles = jsonEncode(existing.filePaths ?? const []) ==
+                    jsonEncode(persisted.filePaths ?? const []);
+                final sameImages =
+                    jsonEncode(existing.imagePaths ?? const []) ==
+                        jsonEncode(persisted.imagePaths ?? const []);
+
+                return sameText && sameFiles && sameImages;
+              });
+            }
+
             // Debug: Log before adding messages to state
             //// print('[ChatScreen] About to add ${completedMessages.length} messages to _messages state');
             for (int i = 0; i < completedMessages.length; i++) {
@@ -2376,14 +2461,11 @@ class _AiChatScreenState extends State<AiChatScreen>
                 displayMessages = [];
               }
             } else {
-              // For existing conversations, show all messages in this conversation
-              // Plus any pending messages that don't have a conversation ID yet (if sending)
+              // For existing conversations, only show messages in this conversation.
+              // Temporary null-conversation assistant rows can be stale stream
+              // placeholders and should never render here.
               displayMessages = _messages
-                  .where((msg) =>
-                      // Messages that belong to this conversation
-                      msg.conversationId == selectedConversation.id ||
-                      // OR messages without a conversation ID if we're in the process of sending
-                      (msg.conversationId == null && _isSending))
+                  .where((msg) => msg.conversationId == selectedConversation.id)
                   .toList();
             }
 
@@ -2619,14 +2701,26 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                 itemBuilder: (context, index) {
                                                   final message =
                                                       displayMessages[index];
-                                                  // Safer message key generation to avoid null check issues
-                                                  final messageIndex = _messages
-                                                      .indexOf(message);
                                                   final messageKey = message
                                                           .id ??
-                                                      (messageIndex >= 0
-                                                          ? messageIndex
-                                                          : message.hashCode);
+                                                      Object.hash(
+                                                        message.timestamp,
+                                                        message.isUserMessage,
+                                                        message.conversationId,
+                                                      );
+
+                                                  final isStreamingRow =
+                                                      _streamingMessageAdded &&
+                                                          _streamingMessageIndex !=
+                                                              null &&
+                                                          _streamingMessageIndex! <
+                                                              _messages
+                                                                  .length &&
+                                                          identical(
+                                                            message,
+                                                            _messages[
+                                                                _streamingMessageIndex!],
+                                                          );
 
                                                   // Check if this is a places widget message (has locationResults but no message text)
                                                   if (message.locationResults !=
@@ -2656,6 +2750,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                         '${messageKey}'),
                                                     message: message,
                                                     messageKey: messageKey,
+                                                    forcePlainText:
+                                                        isStreamingRow,
                                                     selectionMode:
                                                         _selectionMode,
                                                     selectedMessages:

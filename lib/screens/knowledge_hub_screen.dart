@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/knowledge_item.dart';
 import '../providers/settings_provider.dart';
 import '../providers/profile_provider.dart';
+import '../services/database_service.dart';
 import '../services/knowledge_hub_service.dart';
 import '../services/subscription_service.dart';
 
@@ -16,6 +17,7 @@ class KnowledgeHubScreen extends StatefulWidget {
 
 class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   final KnowledgeHubService _knowledgeHubService = KnowledgeHubService();
+  final DatabaseService _databaseService = DatabaseService();
 
   bool _isLoading = false;
   List<KnowledgeItem> _items = [];
@@ -138,6 +140,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     try {
       await _knowledgeHubService.createKnowledgeItem(
         profileId: profileId,
+        conversationId: created.conversationId,
+        sourceMessageId: created.sourceMessageId,
         title: created.title,
         content: created.content,
         memoryType: created.memoryType,
@@ -270,6 +274,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     MemoryType selectedType = initialType;
     bool isPinned = initialPinned;
     bool isActive = initialActive;
+    _RecentMessageChoice? linkedMessage;
 
     return showDialog<_KnowledgeDraft>(
       context: context,
@@ -282,6 +287,68 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          final selected = await _pickRecentMessageForMemory();
+                          if (selected == null) return;
+                          setDialogState(() {
+                            linkedMessage = selected;
+                            contentController.text = selected.content;
+                            if (titleController.text.trim().isEmpty) {
+                              titleController.text =
+                                  _buildMemoryTitle(selected.content);
+                            }
+                          });
+                        },
+                        icon: const Icon(Icons.link, size: 18),
+                        label: const Text('Use Recent Chat Message'),
+                      ),
+                    ),
+                    if (linkedMessage != null)
+                      Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.forum_outlined,
+                                color: Color(0xFF0078D4), size: 16),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                linkedMessage!.content,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey.shade200
+                                      : Colors.grey.shade800,
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 16),
+                              onPressed: () {
+                                setDialogState(() {
+                                  linkedMessage = null;
+                                });
+                              },
+                              splashRadius: 14,
+                            ),
+                          ],
+                        ),
+                      ),
                     TextField(
                       controller: titleController,
                       decoration: const InputDecoration(labelText: 'Title'),
@@ -367,6 +434,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                       _KnowledgeDraft(
                         title: trimmedTitle,
                         content: trimmedContent,
+                        sourceMessageId: linkedMessage?.messageId,
+                        conversationId: linkedMessage?.conversationId,
                         memoryType: selectedType,
                         tags: tags,
                         isPinned: isPinned,
@@ -382,6 +451,100 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
         );
       },
     );
+  }
+
+  Future<_RecentMessageChoice?> _pickRecentMessageForMemory() async {
+    final profileProvider =
+        Provider.of<ProfileProvider>(context, listen: false);
+    final profileId = profileProvider.selectedProfileId;
+    if (profileId == null) return null;
+
+    final messages = await _databaseService.getChatMessages(
+      profileId: profileId,
+      limit: 80,
+      offset: 0,
+    );
+
+    final recent = messages.reversed
+        .where((m) => m.message.trim().isNotEmpty)
+        .take(30)
+        .map((m) => _RecentMessageChoice(
+              messageId: m.id,
+              conversationId: m.conversationId,
+              isUser: m.isUserMessage,
+              content: m.message.trim(),
+            ))
+        .toList();
+
+    if (!mounted) return null;
+
+    if (recent.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No recent messages found.')),
+        );
+      }
+      return null;
+    }
+
+    return showModalBottomSheet<_RecentMessageChoice>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: SizedBox(
+            height: MediaQuery.of(context).size.height * 0.65,
+            child: Column(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Select a message to link',
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    itemCount: recent.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final item = recent[index];
+                      return ListTile(
+                        leading: Icon(
+                          item.isUser ? Icons.person_outline : Icons.smart_toy,
+                          color: item.isUser
+                              ? Colors.green.shade600
+                              : const Color(0xFF0078D4),
+                        ),
+                        title: Text(
+                          item.content,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(item.isUser ? 'You' : 'HowAI'),
+                        onTap: () => Navigator.pop(context, item),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _buildMemoryTitle(String text) {
+    final trimmed = text.replaceAll('\n', ' ').trim();
+    if (trimmed.isEmpty) return 'Saved Memory';
+    if (trimmed.length <= 48) return trimmed;
+    return '${trimmed.substring(0, 48)}...';
   }
 
   String _memoryTypeLabel(MemoryType type) {
@@ -887,6 +1050,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
 class _KnowledgeDraft {
   final String title;
   final String content;
+  final int? sourceMessageId;
+  final int? conversationId;
   final MemoryType memoryType;
   final List<String> tags;
   final bool isPinned;
@@ -895,9 +1060,25 @@ class _KnowledgeDraft {
   const _KnowledgeDraft({
     required this.title,
     required this.content,
+    this.sourceMessageId,
+    this.conversationId,
     required this.memoryType,
     required this.tags,
     required this.isPinned,
     required this.isActive,
+  });
+}
+
+class _RecentMessageChoice {
+  final int? messageId;
+  final int? conversationId;
+  final bool isUser;
+  final String content;
+
+  const _RecentMessageChoice({
+    required this.messageId,
+    required this.conversationId,
+    required this.isUser,
+    required this.content,
   });
 }

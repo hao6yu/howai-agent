@@ -726,6 +726,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   // Streaming message index tracker for updating the correct message
   int? _streamingMessageIndex;
   bool _streamingMessageAdded = false;
+  String? _activeStreamingMessageTimestamp;
 
   /// Handle streaming response from OpenAI
   /// Returns a Map compatible with the non-streaming response format
@@ -753,6 +754,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     setState(() {
       _streamingMessageAdded = false;
       _streamingMessageIndex = null;
+      _activeStreamingMessageTimestamp = timestamp;
       _isSending = true;
     });
     _startLoadingMessageRotation(aiName);
@@ -816,7 +818,16 @@ class _AiChatScreenState extends State<AiChatScreen>
 
             // Only show message once we have actual content (not just title JSON)
             if (displayText.trim().isNotEmpty) {
-              if (!_streamingMessageAdded) {
+              // Resolve placeholder index by timestamp so list shifts do not
+              // cause updates/removals to target the wrong message.
+              int placeholderIndex = _messages.lastIndexWhere((m) =>
+                  !m.isUserMessage &&
+                  m.id == null &&
+                  m.timestamp == timestamp &&
+                  (m.conversationId == conversationId ||
+                      m.conversationId == null));
+
+              if (!_streamingMessageAdded || placeholderIndex == -1) {
                 // First real content - add the message to UI
                 shouldFollowStream = _isNearBottom();
                 setState(() {
@@ -829,6 +840,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   );
                   _messages.add(newMessage);
                   _streamingMessageIndex = _messages.length - 1;
+                  _activeStreamingMessageTimestamp = timestamp;
                   _streamingMessageAdded = true;
                   _isSending =
                       false; // Hide typing indicator, show message instead
@@ -841,8 +853,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                     _scrollToBottom(animated: true);
                   });
                 }
-              } else if (_streamingMessageIndex != null &&
-                  _streamingMessageIndex! < _messages.length) {
+              } else {
+                _streamingMessageIndex = placeholderIndex;
                 // Throttle UI updates to avoid excessive full-list rebuilds/flicker.
                 final now = DateTime.now();
                 final uiUpdateInterval = displayText.length > 8000
@@ -863,7 +875,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                       profileId: _currentProfileId,
                       conversationId: conversationId,
                     );
-                    _messages[_streamingMessageIndex!] = updatedMessage;
+                    _messages[placeholderIndex] = updatedMessage;
                   });
 
                   lastRenderedText = displayText;
@@ -896,17 +908,19 @@ class _AiChatScreenState extends State<AiChatScreen>
 
           case StreamEventType.error:
             print('[ChatScreen] Streaming error: ${event.error}');
-            // Remove message on error if it was added
-            if (_streamingMessageAdded &&
-                _streamingMessageIndex != null &&
-                _streamingMessageIndex! < _messages.length) {
-              setState(() {
-                _messages.removeAt(_streamingMessageIndex!);
-              });
-            }
+            // Remove any leftover temporary streaming assistant rows.
+            setState(() {
+              _messages.removeWhere((m) =>
+                  !m.isUserMessage &&
+                  m.id == null &&
+                  (m.timestamp == timestamp ||
+                      m.conversationId == conversationId ||
+                      m.conversationId == null));
+            });
             setState(() {
               _streamingMessageIndex = null;
               _streamingMessageAdded = false;
+              _activeStreamingMessageTimestamp = null;
               _isSending = false;
             });
             return null;
@@ -917,9 +931,12 @@ class _AiChatScreenState extends State<AiChatScreen>
       String cleanedText = _stripTitleJson(fullText);
 
       // Ensure the latest streamed text is rendered before we remove the temporary message.
-      if (_streamingMessageAdded &&
-          _streamingMessageIndex != null &&
-          _streamingMessageIndex! < _messages.length &&
+      final finalPlaceholderIndex = _messages.lastIndexWhere((m) =>
+          !m.isUserMessage &&
+          m.id == null &&
+          m.timestamp == timestamp &&
+          (m.conversationId == conversationId || m.conversationId == null));
+      if (finalPlaceholderIndex != -1 &&
           cleanedText.trim().isNotEmpty &&
           cleanedText != lastRenderedText) {
         setState(() {
@@ -930,16 +947,14 @@ class _AiChatScreenState extends State<AiChatScreen>
             profileId: _currentProfileId,
             conversationId: conversationId,
           );
-          _messages[_streamingMessageIndex!] = finalUpdatedMessage;
+          _messages[finalPlaceholderIndex] = finalUpdatedMessage;
         });
       }
 
       // Remove the streaming message - it will be re-added by the normal flow with proper DB save
-      if (_streamingMessageAdded &&
-          _streamingMessageIndex != null &&
-          _streamingMessageIndex! < _messages.length) {
+      if (finalPlaceholderIndex != -1) {
         setState(() {
-          _messages.removeAt(_streamingMessageIndex!);
+          _messages.removeAt(finalPlaceholderIndex);
         });
       }
       // Fallback cleanup in case index tracking became stale during rebuilds.
@@ -952,6 +967,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 m.conversationId == null));
         _streamingMessageIndex = null;
         _streamingMessageAdded = false;
+        _activeStreamingMessageTimestamp = null;
       });
 
       // Return response in the same format as non-streaming
@@ -964,17 +980,19 @@ class _AiChatScreenState extends State<AiChatScreen>
       };
     } catch (e) {
       print('[ChatScreen] Streaming exception: $e');
-      // Remove message on exception if it was added
-      if (_streamingMessageAdded &&
-          _streamingMessageIndex != null &&
-          _streamingMessageIndex! < _messages.length) {
-        setState(() {
-          _messages.removeAt(_streamingMessageIndex!);
-        });
-      }
+      // Remove any leftover temporary streaming assistant rows.
+      setState(() {
+        _messages.removeWhere((m) =>
+            !m.isUserMessage &&
+            m.id == null &&
+            (m.timestamp == timestamp ||
+                m.conversationId == conversationId ||
+                m.conversationId == null));
+      });
       setState(() {
         _streamingMessageIndex = null;
         _streamingMessageAdded = false;
+        _activeStreamingMessageTimestamp = null;
         _isSending = false;
       });
       return null;
@@ -1710,6 +1728,7 @@ class _AiChatScreenState extends State<AiChatScreen>
 
             // Add all messages to state with their database IDs
             _messages.addAll(completedMessages);
+            _pruneStreamingGhostAssistantRows(conversationId: conversationId);
 
             // Debug: Log _messages state after adding
             //// print('[ChatScreen] _messages state now has ${_messages.length} total messages');
@@ -2711,16 +2730,13 @@ class _AiChatScreenState extends State<AiChatScreen>
 
                                                   final isStreamingRow =
                                                       _streamingMessageAdded &&
-                                                          _streamingMessageIndex !=
+                                                          _activeStreamingMessageTimestamp !=
                                                               null &&
-                                                          _streamingMessageIndex! <
-                                                              _messages
-                                                                  .length &&
-                                                          identical(
-                                                            message,
-                                                            _messages[
-                                                                _streamingMessageIndex!],
-                                                          );
+                                                          !message
+                                                              .isUserMessage &&
+                                                          message.id == null &&
+                                                          message.timestamp ==
+                                                              _activeStreamingMessageTimestamp;
 
                                                   // Check if this is a places widget message (has locationResults but no message text)
                                                   if (message.locationResults !=
@@ -4978,10 +4994,89 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
   }
 
+  void _pruneStreamingGhostAssistantRows({int? conversationId}) {
+    final persistedAssistants = _messages
+        .where((m) =>
+            !m.isUserMessage &&
+            m.id != null &&
+            (conversationId == null || m.conversationId == conversationId))
+        .toList();
+
+    if (persistedAssistants.isEmpty) {
+      return;
+    }
+
+    _messages.removeWhere((candidate) {
+      if (candidate.isUserMessage || candidate.id != null) {
+        return false;
+      }
+
+      if (conversationId != null &&
+          candidate.conversationId != null &&
+          candidate.conversationId != conversationId) {
+        return false;
+      }
+
+      final candidateText = candidate.message.trim();
+      if (candidateText.isEmpty) {
+        return true;
+      }
+
+      final candidateTime = DateTime.tryParse(candidate.timestamp);
+      final candidateFiles = jsonEncode(candidate.filePaths ?? const []);
+      final candidateImages = jsonEncode(candidate.imagePaths ?? const []);
+
+      for (final saved in persistedAssistants) {
+        final savedText = saved.message.trim();
+        if (savedText.isEmpty) {
+          continue;
+        }
+
+        final sameFiles =
+            candidateFiles == jsonEncode(saved.filePaths ?? const []);
+        final sameImages =
+            candidateImages == jsonEncode(saved.imagePaths ?? const []);
+        if (!sameFiles || !sameImages) {
+          continue;
+        }
+
+        final savedTime = DateTime.tryParse(saved.timestamp);
+        final closeInTime = candidateTime != null && savedTime != null
+            ? candidateTime.difference(savedTime).inSeconds.abs() <= 180
+            : true;
+        if (!closeInTime) {
+          continue;
+        }
+
+        if (candidateText == savedText) {
+          return true;
+        }
+
+        final shorter = candidateText.length <= savedText.length
+            ? candidateText
+            : savedText;
+        final longer =
+            candidateText.length > savedText.length ? candidateText : savedText;
+        final hasStrongContainment =
+            shorter.length >= 120 && longer.contains(shorter);
+        if (hasStrongContainment) {
+          return true;
+        }
+      }
+
+      return false;
+    });
+  }
+
   // Helper method to clean up duplicates using service
   void _cleanupMessagesList() {
+    final selectedConversationId =
+        Provider.of<ConversationProvider>(context, listen: false)
+            .selectedConversation
+            ?.id;
     setState(() {
       _messages = MessageService.cleanupMessagesList(_messages);
+      _pruneStreamingGhostAssistantRows(conversationId: selectedConversationId);
     });
   }
 

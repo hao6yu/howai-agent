@@ -43,7 +43,9 @@ class ChatMessageWidget extends StatefulWidget {
   final Function(String) onPlayAudio;
   final Function(ChatMessage)? onSpeakWithHighlight;
   final Function()? onReviewRequested;
+  final Function(ChatMessage)? onQuickSaveToKnowledgeHub;
   final Function(ChatMessage)? onSaveToKnowledgeHub;
+  final bool forcePlainText;
 
   const ChatMessageWidget({
     super.key,
@@ -63,7 +65,9 @@ class ChatMessageWidget extends StatefulWidget {
     this.onSpeakWithHighlight,
     this.onShare,
     this.onReviewRequested,
+    this.onQuickSaveToKnowledgeHub,
     this.onSaveToKnowledgeHub,
+    this.forcePlainText = false,
   });
 
   @override
@@ -73,6 +77,22 @@ class ChatMessageWidget extends StatefulWidget {
 class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   Offset? _lastTapPosition;
   String? _selectedText;
+  late Future<Map<String, dynamic>> _messageReportFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _messageReportFuture = _getMessageReportStatus();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatMessageWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.message.id != widget.message.id ||
+        oldWidget.message.message != widget.message.message) {
+      _messageReportFuture = _getMessageReportStatus();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -183,7 +203,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
   Widget _buildAIMessage() {
     return FutureBuilder<Map<String, dynamic>>(
-      future: _getMessageReportStatus(),
+      future: _messageReportFuture,
       builder: (context, snapshot) {
         final reportData =
             snapshot.data ?? {'isReported': false, 'shouldHide': false};
@@ -506,7 +526,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       ),
 
                     if (widget.message.message.isNotEmpty)
-                      isUserMessage
+                      isUserMessage || widget.forcePlainText
                           ? Text(
                               widget.message.message,
                               style: TextStyle(
@@ -1025,16 +1045,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           SizedBox(width: 4),
           _buildReportButton(),
 
-          // 4. More (translate actions only)
+          // 4. More (save + translate actions)
           SizedBox(width: 4),
-          if (widget.onSaveToKnowledgeHub != null) ...[
-            _buildActionButton(
-              icon: Icons.bookmark_add_outlined,
-              tooltip: "Save to Knowledge Hub",
-              onTap: () => widget.onSaveToKnowledgeHub!(widget.message),
-            ),
-            SizedBox(width: 4),
-          ],
           _buildTranslateMoreButton(),
         ],
       ),
@@ -1127,6 +1139,34 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                     color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(999),
                   ),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.bookmark_add_outlined),
+                  title: const Text('Quick save to Memory'),
+                  subtitle: const Text('Save now with auto-filled details'),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    if (widget.onQuickSaveToKnowledgeHub != null) {
+                      widget.onQuickSaveToKnowledgeHub!(widget.message);
+                    } else if (widget.onSaveToKnowledgeHub != null) {
+                      widget.onSaveToKnowledgeHub!(widget.message);
+                    }
+                  },
+                ),
+                if (widget.onSaveToKnowledgeHub != null)
+                  ListTile(
+                    leading: const Icon(Icons.edit_note_outlined),
+                    title: const Text('Save with details'),
+                    subtitle: const Text('Choose type, tags, and edit content'),
+                    onTap: () {
+                      Navigator.of(sheetContext).pop();
+                      widget.onSaveToKnowledgeHub!(widget.message);
+                    },
+                  ),
+                Divider(
+                  height: 8,
+                  thickness: 0.6,
+                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
                 ),
                 ListTile(
                   leading: Text(
@@ -1448,7 +1488,9 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                         label: 'Save',
                         onTap: () {
                           Navigator.of(context).pop();
-                          if (widget.onSaveToKnowledgeHub != null) {
+                          if (widget.onQuickSaveToKnowledgeHub != null) {
+                            widget.onQuickSaveToKnowledgeHub!(message);
+                          } else if (widget.onSaveToKnowledgeHub != null) {
                             widget.onSaveToKnowledgeHub!(message);
                           }
                         },

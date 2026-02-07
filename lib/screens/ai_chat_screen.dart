@@ -2827,6 +2827,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                         message.isUserMessage
                                                             ? null
                                                             : _speakMessage,
+                                                    onQuickSaveToKnowledgeHub:
+                                                        _quickSaveMessageToKnowledgeHub,
                                                     onSaveToKnowledgeHub:
                                                         _saveMessageToKnowledgeHub,
                                                     onReviewRequested:
@@ -3254,6 +3256,89 @@ class _AiChatScreenState extends State<AiChatScreen>
     await _showSaveToKnowledgeHubDialog(message);
   }
 
+  Future<void> _quickSaveMessageToKnowledgeHub(ChatMessage message) async {
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+
+    if (!subscriptionService.isPremium) {
+      _showKnowledgeHubUpgradeDialog();
+      return;
+    }
+
+    final content = _buildKnowledgeContent(message.message);
+    if (content.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Nothing to save from this message.',
+              style: TextStyle(fontSize: settings.getScaledFontSize(14)),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      return;
+    }
+
+    final title = _buildKnowledgeTitle(content);
+
+    try {
+      final knowledgeHubService = KnowledgeHubService();
+      await knowledgeHubService.createKnowledgeItem(
+        profileId: message.profileId ?? _currentProfileId ?? 1,
+        conversationId: message.conversationId,
+        sourceMessageId: message.id,
+        title: title,
+        content: content,
+        memoryType: MemoryType.fact,
+        tags: const [],
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Saved to Knowledge Hub.',
+              style: TextStyle(fontSize: settings.getScaledFontSize(14)),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } on PremiumRequiredException {
+      if (mounted) {
+        _showKnowledgeHubUpgradeDialog();
+      }
+    } on DuplicateKnowledgeItemException {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'This memory already exists in your Knowledge Hub.',
+              style: TextStyle(fontSize: settings.getScaledFontSize(14)),
+            ),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to save memory. Please try again.',
+              style: TextStyle(fontSize: settings.getScaledFontSize(14)),
+            ),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _showSaveToKnowledgeHubDialog(ChatMessage message) async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final titleController = TextEditingController(
@@ -3430,6 +3515,17 @@ class _AiChatScreenState extends State<AiChatScreen>
       return trimmed;
     }
     return '${trimmed.substring(0, 48)}...';
+  }
+
+  String _buildKnowledgeContent(String messageText) {
+    final compact = messageText.trim();
+    if (compact.isEmpty) {
+      return '';
+    }
+    if (compact.length <= 500) {
+      return compact;
+    }
+    return compact.substring(0, 500);
   }
 
   String _memoryTypeLabel(MemoryType type) {

@@ -414,9 +414,23 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                                     knowledgeItemId: knowledgeItemId,
                                   );
                                   if (!dialogContext.mounted) return;
+                                  final sourceSummary =
+                                      await _buildSourceSummaryContent(
+                                    profileId: profileId,
+                                    sourceId: source.id,
+                                  );
                                   setDialogState(() {
                                     sourceDrafts
                                         .add(_SourceDraft(source: source));
+                                    if (titleController.text.trim().isEmpty) {
+                                      titleController.text =
+                                          _buildMemoryTitleFromSourceName(
+                                              source.displayName);
+                                    }
+                                    if (contentController.text.trim().isEmpty &&
+                                        sourceSummary.isNotEmpty) {
+                                      contentController.text = sourceSummary;
+                                    }
                                   });
                                 } catch (_) {
                                   if (!dialogContext.mounted) return;
@@ -656,10 +670,33 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    final trimmedTitle = titleController.text.trim();
-                    final trimmedContent = contentController.text.trim();
+                  onPressed: () async {
+                    var trimmedTitle = titleController.text.trim();
+                    var trimmedContent = contentController.text.trim();
+
+                    if (trimmedContent.isEmpty && sourceDrafts.isNotEmpty) {
+                      final sourceId = sourceDrafts.first.source.id;
+                      trimmedContent = await _buildSourceSummaryContent(
+                        profileId: profileId,
+                        sourceId: sourceId,
+                      );
+                    }
+
+                    if (trimmedTitle.isEmpty && sourceDrafts.isNotEmpty) {
+                      trimmedTitle = _buildMemoryTitleFromSourceName(
+                        sourceDrafts.first.source.displayName,
+                      );
+                    }
+
                     if (trimmedTitle.isEmpty || trimmedContent.isEmpty) {
+                      if (!dialogContext.mounted) return;
+                      ScaffoldMessenger.of(dialogContext).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Add text or attach a readable document before saving.',
+                          ),
+                        ),
+                      );
                       return;
                     }
 
@@ -670,6 +707,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                         .toSet()
                         .toList();
 
+                    if (!dialogContext.mounted) return;
                     Navigator.pop(
                       dialogContext,
                       _KnowledgeDraft(
@@ -833,6 +871,34 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       case KnowledgeExtractionStatus.failed:
         return Colors.red.shade700;
     }
+  }
+
+  String _buildMemoryTitleFromSourceName(String displayName) {
+    final base = displayName.replaceAll(RegExp(r'\.[a-zA-Z0-9]+$'), '').trim();
+    if (base.isEmpty) return 'Document Memory';
+    if (base.length <= KnowledgeHubLimits.titleMaxLength) return base;
+    return '${base.substring(0, KnowledgeHubLimits.titleMaxLength - 3)}...';
+  }
+
+  Future<String> _buildSourceSummaryContent({
+    required int profileId,
+    required int? sourceId,
+  }) async {
+    if (sourceId == null) return '';
+    final chunks = await _databaseService.getKnowledgeSourceChunks(
+      profileId: profileId,
+      sourceId: sourceId,
+      limit: 3,
+    );
+    if (chunks.isEmpty) return '';
+    final merged = chunks
+        .map((chunk) => chunk.content.trim())
+        .where((t) => t.isNotEmpty)
+        .join('\n\n');
+    if (merged.length <= KnowledgeHubLimits.contentMaxLength) {
+      return merged;
+    }
+    return merged.substring(0, KnowledgeHubLimits.contentMaxLength);
   }
 
   Widget _buildPremiumBlockedView(SettingsProvider settings) {

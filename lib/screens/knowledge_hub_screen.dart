@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../models/knowledge_item.dart';
@@ -16,6 +17,9 @@ class KnowledgeHubScreen extends StatefulWidget {
 }
 
 class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
+  static const int _memoryTitleMaxLength = 80;
+  static const int _memoryContentMaxLength = 500;
+
   final KnowledgeHubService _knowledgeHubService = KnowledgeHubService();
   final DatabaseService _databaseService = DatabaseService();
 
@@ -293,14 +297,28 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                         onPressed: () async {
                           final selected = await _pickRecentMessageForMemory();
                           if (selected == null) return;
+                          final clippedContent = _truncateWithEllipsis(
+                              selected.content, _memoryContentMaxLength);
+                          final wasTruncated =
+                              selected.content.length > _memoryContentMaxLength;
                           setDialogState(() {
                             linkedMessage = selected;
-                            contentController.text = selected.content;
+                            contentController.text = clippedContent;
                             if (titleController.text.trim().isEmpty) {
                               titleController.text =
-                                  _buildMemoryTitle(selected.content);
+                                  _buildMemoryTitle(clippedContent);
                             }
                           });
+                          if (wasTruncated && mounted) {
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Linked message was trimmed to fit memory length.',
+                                ),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
                         },
                         icon: const Icon(Icons.link, size: 18),
                         label: const Text('Use Recent Chat Message'),
@@ -352,12 +370,14 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     TextField(
                       controller: titleController,
                       decoration: const InputDecoration(labelText: 'Title'),
-                      maxLength: 80,
+                      maxLength: _memoryTitleMaxLength,
+                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
                     ),
                     TextField(
                       controller: contentController,
                       decoration: const InputDecoration(labelText: 'Content'),
-                      maxLength: 500,
+                      maxLength: _memoryContentMaxLength,
+                      maxLengthEnforcement: MaxLengthEnforcement.enforced,
                       minLines: 2,
                       maxLines: 5,
                     ),
@@ -545,6 +565,12 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     if (trimmed.isEmpty) return 'Saved Memory';
     if (trimmed.length <= 48) return trimmed;
     return '${trimmed.substring(0, 48)}...';
+  }
+
+  String _truncateWithEllipsis(String value, int maxLength) {
+    if (value.length <= maxLength) return value;
+    if (maxLength <= 3) return value.substring(0, maxLength);
+    return '${value.substring(0, maxLength - 3)}...';
   }
 
   String _memoryTypeLabel(MemoryType type) {

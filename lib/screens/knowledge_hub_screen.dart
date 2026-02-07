@@ -400,36 +400,116 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   }
 
   Widget _buildPremiumBlockedView(SettingsProvider settings) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.workspace_premium,
-                size: 52, color: Color(0xFF0078D4)),
-            const SizedBox(height: 12),
-            Text(
-              'Knowledge Hub is a Premium feature',
-              style: TextStyle(
-                fontSize: settings.getScaledFontSize(18),
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 28),
+          const Icon(Icons.auto_stories_outlined,
+              size: 62, color: Color(0xFF0078D4)),
+          const SizedBox(height: 14),
+          Text(
+            'Knowledge Hub is a Premium feature',
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(20),
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Upgrade to save personal memory and reuse it across conversations.',
-              style: TextStyle(fontSize: settings.getScaledFontSize(14)),
-              textAlign: TextAlign.center,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Save key details once, and HowAI remembers them in future chats so you do not need to repeat yourself.',
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(14),
+              height: 1.4,
             ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () => Navigator.pushNamed(context, '/subscription'),
-              child: const Text('Upgrade to Premium'),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 22),
+          _buildFeatureCard(
+            settings,
+            icon: Icons.bookmark_add_outlined,
+            title: 'Capture what matters',
+            description:
+                'Save preferences, goals, and constraints directly from messages.',
+          ),
+          const SizedBox(height: 10),
+          _buildFeatureCard(
+            settings,
+            icon: Icons.psychology_outlined,
+            title: 'Get smarter replies',
+            description:
+                'Relevant memory is used in context so responses feel more personal and consistent.',
+          ),
+          const SizedBox(height: 10),
+          _buildFeatureCard(
+            settings,
+            icon: Icons.manage_search_outlined,
+            title: 'Control your memory',
+            description:
+                'Edit, pin, disable, or delete items any time from one place.',
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () => Navigator.pushNamed(context, '/subscription'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-          ],
+            child: const Text('Upgrade to Premium'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatureCard(
+    SettingsProvider settings, {
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade900
+            : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey.shade700
+              : Colors.grey.shade300,
         ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color(0xFF0078D4), size: 22),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: settings.getScaledFontSize(15),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: settings.getScaledFontSize(13),
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -730,6 +730,119 @@ Note: Could not extract text content from this file. Please describe what you'd 
           }
         }
 
+        // If the model spent the first turn on tool/reasoning tokens and hit the
+        // token limit before producing message text, automatically continue using
+        // previous_response_id until we get content (bounded retries).
+        if ((textContent == null || textContent.trim().isEmpty) &&
+            data['status'] == 'incomplete' &&
+            data['incomplete_details'] is Map &&
+            data['incomplete_details']['reason'] == 'max_output_tokens' &&
+            data['id'] != null) {
+          _log(
+              '[OpenAIService] 🔁 Auto-continuing incomplete response (reason=max_output_tokens)');
+
+          String previousResponseId = data['id'];
+          const int maxContinuationAttempts = 3;
+
+          for (int attempt = 1; attempt <= maxContinuationAttempts; attempt++) {
+            final continuationPayload = {
+              'model': modelToUse,
+              'previous_response_id': previousResponseId,
+              'input': [
+                {
+                  'role': 'user',
+                  'content':
+                      'Continue from where you left off and provide the final answer directly.'
+                }
+              ],
+              'max_output_tokens': 2000,
+              'reasoning': {
+                'effort': isDeepResearchMode ? 'high' : 'low',
+              },
+            };
+
+            final continuationResponse = await _httpPostWithTimeout(
+              _baseUrl,
+              _buildHeaders(),
+              jsonEncode(continuationPayload),
+              _followupTimeout,
+            );
+
+            _log(
+                '[OpenAIService] 🔁 Continuation attempt $attempt status: ${continuationResponse.statusCode}');
+
+            if (continuationResponse.statusCode != 200) {
+              _log(
+                  '[OpenAIService] ❌ Continuation failed: ${continuationResponse.body}');
+              break;
+            }
+
+            final continuationData = jsonDecode(continuationResponse.body);
+            if (continuationData['id'] != null) {
+              previousResponseId = continuationData['id'];
+            }
+
+            String? continuationText;
+
+            if (continuationData.containsKey('output') &&
+                continuationData['output'] is List) {
+              for (final item in continuationData['output']) {
+                final itemType = item['type'];
+
+                if (itemType == 'message' && item['content'] != null) {
+                  for (final content in item['content']) {
+                    if (content['type'] == 'output_text' &&
+                        content['text'] != null) {
+                      continuationText =
+                          (continuationText ?? '') + content['text'];
+                    } else if (content['type'] == 'text' &&
+                        content['text'] != null) {
+                      continuationText =
+                          (continuationText ?? '') + content['text'];
+                    } else if (content['type'] == 'image' &&
+                        content['image_url'] != null) {
+                      imageUrls.add(content['image_url']);
+                    }
+                  }
+                } else if (itemType == 'image_generation_call') {
+                  if (item['result'] != null) {
+                    String base64Data = item['result'].toString();
+                    if (base64Data.contains('base64,')) {
+                      base64Data = base64Data.split('base64,').last;
+                    }
+                    imageUrls.add('data:image/png;base64,$base64Data');
+                  }
+                }
+              }
+            }
+
+            if ((continuationText == null || continuationText.trim().isEmpty) &&
+                continuationData.containsKey('output_text') &&
+                continuationData['output_text'] != null) {
+              continuationText = continuationData['output_text'];
+            }
+
+            if (continuationText != null &&
+                continuationText.trim().isNotEmpty) {
+              textContent = continuationText;
+              _log(
+                  '[OpenAIService] ✅ Continuation returned final text on attempt $attempt');
+              break;
+            }
+
+            final isStillIncomplete =
+                continuationData['status'] == 'incomplete';
+            final incompleteReason =
+                continuationData['incomplete_details'] is Map
+                    ? continuationData['incomplete_details']['reason']
+                    : null;
+            if (!(isStillIncomplete &&
+                incompleteReason == 'max_output_tokens')) {
+              break;
+            }
+          }
+        }
+
         // Parse text content for title extraction
         if (textContent != null && textContent.isNotEmpty) {
           // Extract title if this is the first message of a conversation

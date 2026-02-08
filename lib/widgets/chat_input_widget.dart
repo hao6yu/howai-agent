@@ -1072,7 +1072,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
 
                                   return _buildPrimaryAttachmentOption(
                                     icon: Icons.photo_camera,
-                                    label: 'Photos',
+                                    label: AppLocalizations.of(context)!.quickActionAskFromPhoto,
                                     isPremium: true,
                                     canUse: canUse,
                                     onTap: () {
@@ -1094,7 +1094,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             Expanded(
                               child: _buildPrimaryAttachmentOption(
                                 icon: Icons.folder,
-                                label: 'Files',
+                                label: AppLocalizations.of(context)!.quickActionAskFromFile,
                                 onTap: () {
                                   Navigator.pop(context);
                                   setState(() {
@@ -1108,7 +1108,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             Expanded(
                               child: _buildPrimaryAttachmentOption(
                                 icon: Icons.picture_as_pdf,
-                                label: 'Photo to PDF',
+                                label: AppLocalizations.of(context)!.quickActionScanToPdf,
                                 onTap: () {
                                   Navigator.pop(context);
                                   setState(() {
@@ -1138,7 +1138,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
 
                                 return _buildChatGPTStyleOption(
                                   icon: Icons.brush,
-                                  title: 'Create an image',
+                                  title: AppLocalizations.of(context)!.quickActionGenerateImage,
                                   subtitle: null,
                                   isPremium: true,
                                   canUse: canUse,
@@ -1160,8 +1160,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             // Translation
                             _buildChatGPTStyleOption(
                               icon: Icons.translate,
-                              title: 'Translate',
-                              subtitle: 'Text & photos together',
+                              title: AppLocalizations.of(context)!.translate,
+                              subtitle: AppLocalizations.of(context)!.quickActionTranslateSubtitle,
                               onTap: () {
                                 Navigator.pop(context);
                                 setState(() {
@@ -1182,7 +1182,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
 
                                 return _buildChatGPTStyleOption(
                                   icon: Icons.explore,
-                                  title: 'Explore places',
+                                  title: AppLocalizations.of(context)!.quickActionFindPlaces,
                                   subtitle: null,
                                   isPremium: true,
                                   canUse: canUse,
@@ -1232,6 +1232,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isCompactWidth = screenWidth < 390;
         return Material(
           color: Colors.transparent,
           child: InkWell(
@@ -1282,12 +1284,12 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       Text(
                         subtitle != null ? '$label - $subtitle' : label,
                         style: TextStyle(
-                          fontSize: settings.getScaledFontSize(10),
+                          fontSize: settings.getScaledFontSize(isCompactWidth ? 9 : 10),
                           fontWeight: FontWeight.w500,
                           color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.white70 : Colors.grey.shade400) : (canUse ? Colors.grey.shade700 : Colors.grey.shade500),
                         ),
                         textAlign: TextAlign.center,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
@@ -1381,6 +1383,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                   fontWeight: FontWeight.w500,
                                   color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.white : Colors.grey.shade400) : (canUse ? Colors.black87 : Colors.grey.shade600),
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               if (isPremium) ...[
                                 SizedBox(width: 8),
@@ -1412,6 +1416,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                 fontSize: settings.getScaledFontSize(12),
                                 color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.grey.shade400 : Colors.grey.shade500) : (canUse ? Colors.grey.shade600 : Colors.grey.shade500),
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ],

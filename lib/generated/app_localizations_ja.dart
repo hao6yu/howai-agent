@@ -1770,6 +1770,24 @@ class AppLocalizationsJa extends AppLocalizations {
   String get featurePlacesExplorerDesc => 'Find restaurants, attractions & services nearby';
 
   @override
+  String get quickActionAskFromPhoto => 'Ask from photo';
+
+  @override
+  String get quickActionAskFromFile => 'Ask from file';
+
+  @override
+  String get quickActionScanToPdf => 'Scan to PDF';
+
+  @override
+  String get quickActionGenerateImage => 'Generate image';
+
+  @override
+  String get quickActionTranslateSubtitle => 'Text, photo, or file';
+
+  @override
+  String get quickActionFindPlaces => 'Find places';
+
+  @override
   String get featurePhotoToPdfTitle => 'Photo to PDF';
 
   @override

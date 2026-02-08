@@ -11,12 +11,13 @@ class DeviceTtsService {
     void Function()? onComplete,
     void Function()? onStart,
     void Function()? onCancel,
+    double speechRate = 1.0,
   }) async {
     try {
       final flutterTts = FlutterTts();
 
       await flutterTts.setLanguage('en-US');
-      await flutterTts.setSpeechRate(0.5);
+      await flutterTts.setSpeechRate(speechRate.clamp(0.5, 1.2));
       await flutterTts.setVolume(1.0);
       await flutterTts.setPitch(1.0);
 
@@ -48,6 +49,7 @@ class DeviceTtsService {
     required FlutterTts? flutterTts,
     required String message,
     Map<String, String>? selectedVoice,
+    double speechRate = 1.0,
   }) async {
     try {
       if (flutterTts == null) {
@@ -65,6 +67,7 @@ class DeviceTtsService {
         }
       }
 
+      await flutterTts.setSpeechRate(speechRate.clamp(0.5, 1.2));
       await flutterTts.speak(message);
       return 'device_tts';
     } catch (_) {

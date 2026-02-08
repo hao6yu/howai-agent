@@ -26,7 +26,11 @@ class AudioService {
   static Duration? get totalDuration => _audioPlayer?.duration;
 
   /// Play audio file with proper audio session configuration
-  static Future<void> playAudio(String audioPath, {bool useSpeakerOutput = true}) async {
+  static Future<void> playAudio(
+    String audioPath, {
+    bool useSpeakerOutput = true,
+    double playbackSpeed = 1.0,
+  }) async {
     try {
       // print('[Audio Debug] Starting audio playback for: $audioPath');
 
@@ -47,7 +51,8 @@ class AudioService {
           // print('[Audio Debug] 🔊 SPEAKER MODE - Using simple speaker configuration');
           await session.configure(AudioSessionConfiguration(
             avAudioSessionCategory: AVAudioSessionCategory.playback,
-            avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.defaultToSpeaker,
+            avAudioSessionCategoryOptions:
+                AVAudioSessionCategoryOptions.defaultToSpeaker,
             avAudioSessionMode: AVAudioSessionMode.defaultMode,
           ));
           // print('[Audio Debug] ✅ Speaker configuration applied');
@@ -80,8 +85,8 @@ class AudioService {
       // print('[Audio Debug] Audio file path set successfully');
 
       // Explicitly set normal speed and volume
-      // print('[Audio Debug] Setting playback speed to 1.0 (normal)');
-      await _audioPlayer!.setSpeed(1.0);
+      // print('[Audio Debug] Setting playback speed');
+      await _audioPlayer!.setSpeed(playbackSpeed.clamp(0.5, 1.5));
       // print('[Audio Debug] Setting volume to 1.0');
       await _audioPlayer!.setVolume(1.0);
 
@@ -132,7 +137,8 @@ class AudioService {
   }
 
   /// Prepare voice demo player
-  static Future<void> prepareVoiceDemoPlayer({bool useSpeakerOutput = true}) async {
+  static Future<void> prepareVoiceDemoPlayer(
+      {bool useSpeakerOutput = true}) async {
     try {
       // print('[VoiceDemo] Preparing welcome voice demo player');
       _voiceDemoPlayer?.dispose();
@@ -144,7 +150,8 @@ class AudioService {
       if (useSpeakerOutput) {
         await session.configure(AudioSessionConfiguration(
           avAudioSessionCategory: AVAudioSessionCategory.playback,
-          avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.defaultToSpeaker,
+          avAudioSessionCategoryOptions:
+              AVAudioSessionCategoryOptions.defaultToSpeaker,
           avAudioSessionMode: AVAudioSessionMode.defaultMode,
         ));
       } else {
@@ -165,7 +172,8 @@ class AudioService {
   }
 
   /// Play voice demo
-  static Future<void> playVoiceDemo(BuildContext context, {bool useSpeakerOutput = true}) async {
+  static Future<void> playVoiceDemo(BuildContext context,
+      {bool useSpeakerOutput = true}) async {
     try {
       // print('[VoiceDemo] Starting welcome voice demo');
       _voiceDemoPlayer?.dispose();
@@ -178,7 +186,8 @@ class AudioService {
       if (useSpeakerOutput) {
         await session.configure(AudioSessionConfiguration(
           avAudioSessionCategory: AVAudioSessionCategory.playback,
-          avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.defaultToSpeaker,
+          avAudioSessionCategoryOptions:
+              AVAudioSessionCategoryOptions.defaultToSpeaker,
           avAudioSessionMode: AVAudioSessionMode.defaultMode,
         ));
       } else {
@@ -201,7 +210,8 @@ class AudioService {
 
       _voiceDemoPlayer!.playerStateStream.listen((state) {
         // print('[VoiceDemo] Player state changed: ${state.processingState}, playing: ${state.playing}');
-        if (state.processingState == ProcessingState.completed || state.processingState == ProcessingState.idle) {
+        if (state.processingState == ProcessingState.completed ||
+            state.processingState == ProcessingState.idle) {
           _isVoiceDemoPlaying.value = false;
           _isVoiceDemoPaused.value = false;
         }

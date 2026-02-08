@@ -1770,6 +1770,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get featurePlacesExplorerDesc => '查找附近的餐厅、景点和服务';
 
   @override
+  String get quickActionAskFromPhoto => 'Ask from photo';
+
+  @override
+  String get quickActionAskFromFile => 'Ask from file';
+
+  @override
+  String get quickActionScanToPdf => 'Scan to PDF';
+
+  @override
+  String get quickActionGenerateImage => 'Generate image';
+
+  @override
+  String get quickActionTranslateSubtitle => 'Text, photo, or file';
+
+  @override
+  String get quickActionFindPlaces => 'Find places';
+
+  @override
   String get featurePhotoToPdfTitle => '照片转PDF';
 
   @override

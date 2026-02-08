@@ -4,6 +4,8 @@ import '../models/profile.dart';
 import '../models/chat_message.dart';
 import '../models/conversation.dart';
 import '../models/knowledge_item.dart';
+import '../models/knowledge_source.dart';
+import '../models/knowledge_source_chunk.dart';
 import 'dart:convert';
 import 'sync_service.dart';
 
@@ -32,7 +34,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'haogpt.db');
     final db = await openDatabase(
       path,
-      version: 16,
+      version: 17,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
       onConfigure: (db) async {
@@ -105,6 +107,7 @@ class DatabaseService {
 
     // Create knowledge_items table
     await _createKnowledgeItemsTable(db);
+    await _createKnowledgeSourcesTables(db);
 
     // Preload default profiles
     await _preloadDefaultProfiles(db);
@@ -264,6 +267,14 @@ class DatabaseService {
       }
     }
 
+    if (oldVersion < 17) {
+      try {
+        await _createKnowledgeSourcesTables(db);
+      } catch (e) {
+        // print('Error adding knowledge source tables: $e');
+      }
+    }
+
     // Add avatarPath and createdAt columns if missing
     final columns = await db.rawQuery("PRAGMA table_info(profiles)");
     final hasAvatarPath = columns.any((col) => col['name'] == 'avatarPath');
@@ -369,6 +380,87 @@ class DatabaseService {
     await db.execute('''
       CREATE INDEX IF NOT EXISTS idx_knowledge_items_profile_type
       ON knowledge_items(profile_id, memory_type)
+    ''');
+  }
+
+  Future<void> _createKnowledgeSourcesTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS knowledge_sources(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL,
+        knowledge_item_id INTEGER,
+        source_type TEXT NOT NULL,
+        display_name TEXT NOT NULL,
+        mime_type TEXT,
+        file_extension TEXT,
+        file_size_bytes INTEGER,
+        local_uri TEXT,
+        storage_key TEXT,
+        sha256 TEXT,
+        extraction_status TEXT NOT NULL DEFAULT 'pending',
+        extraction_error TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        FOREIGN KEY (profile_id) REFERENCES profiles (id) ON DELETE CASCADE,
+        FOREIGN KEY (knowledge_item_id) REFERENCES knowledge_items (id) ON DELETE SET NULL
+      )
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_knowledge_sources_profile_updated
+      ON knowledge_sources(profile_id, updated_at DESC)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_knowledge_sources_item
+      ON knowledge_sources(knowledge_item_id)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_knowledge_sources_sha256
+      ON knowledge_sources(sha256)
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS knowledge_source_chunks(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_id INTEGER NOT NULL,
+        profile_id INTEGER NOT NULL,
+        chunk_index INTEGER NOT NULL,
+        content TEXT NOT NULL,
+        content_hash TEXT,
+        token_estimate INTEGER,
+        metadata_json TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (source_id) REFERENCES knowledge_sources (id) ON DELETE CASCADE,
+        FOREIGN KEY (profile_id) REFERENCES profiles (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_index
+      ON knowledge_source_chunks(source_id, chunk_index)
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_profile_created
+      ON knowledge_source_chunks(profile_id, created_at DESC)
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS knowledge_item_sources(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        knowledge_item_id INTEGER NOT NULL,
+        source_id INTEGER NOT NULL,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (knowledge_item_id) REFERENCES knowledge_items (id) ON DELETE CASCADE,
+        FOREIGN KEY (source_id) REFERENCES knowledge_sources (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_knowledge_item_sources_unique
+      ON knowledge_item_sources(knowledge_item_id, source_id)
     ''');
   }
 
@@ -1019,5 +1111,157 @@ class DatabaseService {
       where: 'profile_id = ?',
       whereArgs: [profileId],
     );
+  }
+
+  // Knowledge source CRUD operations
+  Future<int> insertKnowledgeSource(KnowledgeSource source) async {
+    final db = await database;
+    return db.insert('knowledge_sources', source.toMap());
+  }
+
+  Future<KnowledgeSource?> getKnowledgeSourceById(int id) async {
+    final db = await database;
+    final maps = await db.query(
+      'knowledge_sources',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+
+    if (maps.isEmpty) return null;
+    return KnowledgeSource.fromMap(maps.first);
+  }
+
+  Future<List<KnowledgeSource>> getKnowledgeSourcesForProfile(
+    int profileId, {
+    int? knowledgeItemId,
+    KnowledgeExtractionStatus? extractionStatus,
+    int? limit,
+  }) async {
+    final db = await database;
+    final where = <String>['profile_id = ?'];
+    final args = <dynamic>[profileId];
+
+    if (knowledgeItemId != null) {
+      where.add('knowledge_item_id = ?');
+      args.add(knowledgeItemId);
+    }
+    if (extractionStatus != null) {
+      where.add('extraction_status = ?');
+      args.add(extractionStatus.name);
+    }
+
+    final maps = await db.query(
+      'knowledge_sources',
+      where: where.join(' AND '),
+      whereArgs: args,
+      orderBy: 'updated_at DESC',
+      limit: limit,
+    );
+
+    return maps.map(KnowledgeSource.fromMap).toList();
+  }
+
+  Future<int> updateKnowledgeSource(KnowledgeSource source) async {
+    if (source.id == null) return 0;
+    final db = await database;
+    return db.update(
+      'knowledge_sources',
+      source.toMap(),
+      where: 'id = ?',
+      whereArgs: [source.id],
+    );
+  }
+
+  Future<int> deleteKnowledgeSource(int id) async {
+    final db = await database;
+    return db.delete(
+      'knowledge_sources',
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<void> replaceKnowledgeSourceChunks(
+      int sourceId, List<KnowledgeSourceChunk> chunks) async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete(
+        'knowledge_source_chunks',
+        where: 'source_id = ?',
+        whereArgs: [sourceId],
+      );
+
+      for (final chunk in chunks) {
+        await txn.insert('knowledge_source_chunks', chunk.toMap());
+      }
+    });
+  }
+
+  Future<List<KnowledgeSourceChunk>> getKnowledgeSourceChunks({
+    required int profileId,
+    int? sourceId,
+    int? limit,
+  }) async {
+    final db = await database;
+    final where = <String>['profile_id = ?'];
+    final args = <dynamic>[profileId];
+
+    if (sourceId != null) {
+      where.add('source_id = ?');
+      args.add(sourceId);
+    }
+
+    final maps = await db.query(
+      'knowledge_source_chunks',
+      where: where.join(' AND '),
+      whereArgs: args,
+      orderBy: sourceId == null ? 'created_at DESC' : 'chunk_index ASC',
+      limit: limit,
+    );
+    return maps.map(KnowledgeSourceChunk.fromMap).toList();
+  }
+
+  Future<int> linkKnowledgeItemToSource({
+    required int knowledgeItemId,
+    required int sourceId,
+  }) async {
+    final db = await database;
+    return db.insert(
+      'knowledge_item_sources',
+      {
+        'knowledge_item_id': knowledgeItemId,
+        'source_id': sourceId,
+        'created_at': DateTime.now().toIso8601String(),
+      },
+      conflictAlgorithm: ConflictAlgorithm.ignore,
+    );
+  }
+
+  Future<int> unlinkKnowledgeItemFromSource({
+    required int knowledgeItemId,
+    required int sourceId,
+  }) async {
+    final db = await database;
+    return db.delete(
+      'knowledge_item_sources',
+      where: 'knowledge_item_id = ? AND source_id = ?',
+      whereArgs: [knowledgeItemId, sourceId],
+    );
+  }
+
+  Future<List<int>> getSourceIdsForKnowledgeItem(int knowledgeItemId) async {
+    final db = await database;
+    final rows = await db.query(
+      'knowledge_item_sources',
+      columns: ['source_id'],
+      where: 'knowledge_item_id = ?',
+      whereArgs: [knowledgeItemId],
+    );
+    return rows
+        .map((row) => row['source_id'])
+        .whereType<int>()
+        .toSet()
+        .toList();
   }
 }

@@ -570,6 +570,12 @@
   "featureSmartChatInput": "Hi! I'd like to chat about ",
   "featurePlacesExplorerTitle": "Places Explorer",
   "featurePlacesExplorerDesc": "Find restaurants, attractions & services nearby",
+  "quickActionAskFromPhoto": "Ask from photo",
+  "quickActionAskFromFile": "Ask from file",
+  "quickActionScanToPdf": "Scan to PDF",
+  "quickActionGenerateImage": "Generate image",
+  "quickActionTranslateSubtitle": "Text, photo, or file",
+  "quickActionFindPlaces": "Find places",
   "featurePhotoToPdfTitle": "Photo to PDF",
   "featurePhotoToPdfDesc": "Convert photos to organized PDF documents",
   "featurePhotoToPdfText": "Convert photos to PDF",
@@ -675,6 +681,7 @@
   "unlockAiInsights": "Unlock AI Insights",
   "upgradeToPremium": "Upgrade to Premium",
   "profileAndAbout": "Profile & About",
+  "about": "О приложении",
   "aboutHowAi": "About HowAI",
   "learnStoryBehindApp": "Learn the story behind the app",
   "user": "User",
@@ -740,9 +747,258 @@
   "placesExplorerTitle": "Places Explorer",
   "placesExplorerDesc": "Find restaurants, attractions & services anywhere with AI insights",
   "documentAnalysisTitle": "Document Analysis",
-  "about": "О приложении",
   "webSearchUpgradeTitle": "Веб-поиск",
   "webSearchUpgradeDesc": "Поиск информации в реальном времени",
   "deepResearchUpgradeTitle": "Глубокое исследование",
-  "deepResearchUpgradeDesc": "Глубокий анализ с несколькими источниками"
+  "deepResearchUpgradeDesc": "Глубокий анализ с несколькими источниками",
+  "hideKeyboard": "Скрыть клавиатуру",
+  "knowledgeHubTitle": "Центр знаний",
+  "knowledgeHubPremiumDialogTitle": "Центр знаний (Премиум)",
+  "knowledgeHubPremiumDialogMessage": "Центр знаний помогает HowAI запоминать ваши личные предпочтения, факты и цели во время разговоров.\n\nОбновите версию до Премиум, чтобы использовать эту функцию.",
+  "knowledgeHubReturn": "Возвращаться",
+  "knowledgeHubGoToSubscription": "Перейти к подписке",
+  "knowledgeHubNewMemoryTitle": "Новая память",
+  "knowledgeHubEditMemoryTitle": "Редактировать память",
+  "knowledgeHubDeleteDialogTitle": "Удалить память",
+  "knowledgeHubDeleteDialogMessage": "Удалить этот элемент памяти? Это невозможно отменить.",
+  "knowledgeHubUseRecentChatMessage": "Использовать последнее сообщение чата",
+  "knowledgeHubAttachDocument": "Прикрепить документ",
+  "knowledgeHubAttachingDocument": "Прикрепляю документ...",
+  "knowledgeHubAttachedSources": "Прикрепленные источники",
+  "knowledgeHubFieldTitle": "Заголовок",
+  "knowledgeHubFieldShortTitleHint": "Краткое название памяти",
+  "knowledgeHubFieldContent": "Содержание",
+  "knowledgeHubFieldRememberContentHint": "Что должен помнить HowAI?",
+  "knowledgeHubDocumentTextHidden": "Текст документа здесь остается скрытым. HowAI будет использовать извлеченное содержимое документа в контексте памяти.",
+  "knowledgeHubFieldType": "Тип",
+  "knowledgeHubFieldTags": "Теги",
+  "knowledgeHubFieldTagsOptional": "Теги (необязательно)",
+  "knowledgeHubFieldTagsHint": "запятая, разделенные, теги",
+  "knowledgeHubPinned": "Закреплено",
+  "knowledgeHubPinnedOnly": "Только закрепленные",
+  "knowledgeHubUseInContext": "Использование в контексте ИИ",
+  "knowledgeHubAllTypes": "Все типы",
+  "knowledgeHubApply": "Применять",
+  "knowledgeHubEdit": "Редактировать",
+  "knowledgeHubPin": "Приколоть",
+  "knowledgeHubUnpin": "Открепить",
+  "knowledgeHubDisableInContext": "Отключить в контексте",
+  "knowledgeHubEnableInContext": "Включить в контексте",
+  "knowledgeHubFiltersTitle": "Фильтры",
+  "knowledgeHubFiltersTooltip": "Фильтры",
+  "knowledgeHubSearchHint": "Поиск в памяти",
+  "knowledgeHubNoMatches": "Ни один элемент памяти не соответствует вашим фильтрам.",
+  "knowledgeHubModeFromChat": "Из чата",
+  "knowledgeHubModeFromChatDesc": "Сохранить недавнее сообщение в памяти",
+  "knowledgeHubModeTypeManually": "Введите вручную",
+  "knowledgeHubModeTypeManuallyDesc": "Напишите пользовательскую запись в памяти",
+  "knowledgeHubModeFromDocument": "Из документа",
+  "knowledgeHubModeFromDocumentDesc": "Прикрепите файл и сохраните извлеченные знания",
+  "knowledgeHubSelectMessageToLink": "Выберите сообщение для ссылки",
+  "knowledgeHubSpeakerYou": "Ты",
+  "knowledgeHubSpeakerHowAi": "КакИИ",
+  "knowledgeHubMemoryTypePreference": "Предпочтение",
+  "knowledgeHubMemoryTypeFact": "Факт",
+  "knowledgeHubMemoryTypeGoal": "Цель",
+  "knowledgeHubMemoryTypeConstraint": "Ограничение",
+  "knowledgeHubMemoryTypeOther": "Другой",
+  "knowledgeHubSourceStatusProcessing": "Обработка",
+  "knowledgeHubSourceStatusReady": "Готовый",
+  "knowledgeHubSourceStatusFailed": "Неуспешный",
+  "knowledgeHubDefaultSavedMemoryTitle": "Сохраненная память",
+  "knowledgeHubDefaultDocumentMemoryTitle": "Память документов",
+  "knowledgeHubPremiumBlockedTitle": "Центр знаний — это премиум-функция.",
+  "knowledgeHubPremiumBlockedDesc": "Сохраните ключевые детали один раз, и HowAI запомнит их в будущих чатах, поэтому вам не придется повторяться.",
+  "knowledgeHubFeatureCaptureTitle": "Снимайте то, что важно",
+  "knowledgeHubFeatureCaptureDesc": "Сохраняйте предпочтения, цели и ограничения прямо из сообщений.",
+  "knowledgeHubFeatureRepliesTitle": "Получайте более умные ответы",
+  "knowledgeHubFeatureRepliesDesc": "Соответствующая память используется в контексте, поэтому ответы кажутся более личными и последовательными.",
+  "knowledgeHubFeatureControlTitle": "Контролируйте свою память",
+  "knowledgeHubFeatureControlDesc": "Редактируйте, закрепляйте, отключайте или удаляйте элементы в любое время из одного места.",
+  "knowledgeHubUpgradeToPremium": "Обновите до Премиум",
+  "knowledgeHubWhatIsTitle": "Что такое Центр знаний?",
+  "knowledgeHubWhatIsDesc": "Личное пространство памяти, в котором вы один раз сохраняете ключевые детали, чтобы HowAI мог использовать их в будущих ответах.",
+  "knowledgeHubHowToStartTitle": "С чего начать",
+  "knowledgeHubStep1": "Нажмите «Новое воспоминание» или используйте «Сохранить» в любом сообщении чата.",
+  "knowledgeHubStep2": "Выберите тип (Предпочтение, Цель, Факт, Ограничение).",
+  "knowledgeHubStep3": "Добавьте теги, чтобы облегчить сопоставление памяти в дальнейшем.",
+  "knowledgeHubStep4": "Закрепите важные воспоминания, чтобы расставить их приоритеты в контексте.",
+  "knowledgeHubExampleTitle": "Примеры воспоминаний",
+  "knowledgeHubExamplePreferenceContent": "Делайте мои резюме краткими и конкретными.",
+  "knowledgeHubExampleGoalContent": "Готовлюсь к собеседованиям на менеджера по продукту.",
+  "knowledgeHubExampleConstraintContent": "Не включайте пути к локальным файлам в переведенный вывод.",
+  "knowledgeHubSnackDuplicateMemory": "Подобное воспоминание уже существует.",
+  "knowledgeHubSnackCreateFailed": "Не удалось создать память.",
+  "knowledgeHubSnackUpdateFailed": "Не удалось обновить память.",
+  "knowledgeHubSnackPinUpdateFailed": "Не удалось обновить статус PIN-кода.",
+  "knowledgeHubSnackActiveUpdateFailed": "Не удалось обновить активный статус.",
+  "knowledgeHubSnackDeleteFailed": "Не удалось удалить память.",
+  "knowledgeHubSnackLinkedTrimmed": "Связанное сообщение было обрезано в соответствии с размером памяти.",
+  "knowledgeHubSnackAttachExtractFailed": "Не удалось прикрепить и извлечь документ.",
+  "knowledgeHubSnackAddTextOrAttach": "Добавьте текст или прикрепите читаемый документ перед сохранением.",
+  "knowledgeHubNoRecentMessages": "Недавних сообщений не найдено.",
+  "knowledgeHubSnackNothingToSave": "Из этого сообщения нечего спасти.",
+  "knowledgeHubSnackSaved": "Сохранено в Центре знаний.",
+  "knowledgeHubSnackAlreadyExists": "Это воспоминание уже существует в вашем Центре знаний.",
+  "knowledgeHubSnackSaveFailed": "Не удалось сохранить память. Пожалуйста, попробуйте еще раз.",
+  "knowledgeHubSnackTitleContentRequired": "Необходимо указать название и содержание.",
+  "knowledgeHubSaveDialogTitle": "Сохранить в Центр знаний",
+  "knowledgeHubUpgradeLimitMessage": "Центр знаний — это премиум-функция. Обновите версию, чтобы сохранять и повторно использовать личные воспоминания в разговорах.",
+  "knowledgeHubUpgradeBenefit1": "Сохраните личную память из сообщений чата",
+  "knowledgeHubUpgradeBenefit2": "Используйте сохраненный контекст памяти в ответах ИИ",
+  "knowledgeHubUpgradeBenefit3": "Управляйте и организуйте свой центр знаний",
+  "knowledgeHubMoreActions": "Более",
+  "knowledgeHubAddToMemory": "Добавить в память",
+  "knowledgeHubAddToMemoryDesc": "Сохраните мгновенно из этого сообщения",
+  "knowledgeHubReviewAndSave": "Обзор и сохранение",
+  "knowledgeHubReviewAndSaveDesc": "Редактировать заголовок, содержимое, тип и теги",
+  "knowledgeHubQuickTranslate": "Быстрый перевод",
+  "knowledgeHubRecentTargets": "Недавние цели",
+  "knowledgeHubChooseLanguage": "Выберите язык",
+  "knowledgeHubTranslateToAnotherLanguage": "Перевести на другой язык",
+  "knowledgeHubTranslateTo": "Перевести на {language}",
+  "leaveReview": "Оставить отзыв",
+  "voiceSamplePreviewText": "Здравствуйте, это образец голосового предварительного просмотра от HowAI.",
+  "voiceSampleGenerateFailed": "Невозможно создать образец аудио.",
+  "voiceSampleUnavailable": "Образец голоса недоступен. Пожалуйста, проверьте настройку ElevenLabs.",
+  "voiceSamplePlayFailed": "Не удалось воспроизвести образец голоса.",
+  "voicePlaybackHowItWorksTitle": "Как работает воспроизведение голоса",
+  "voicePlaybackHowItWorksFree": "Бесплатно: используйте голос вашего устройства для воспроизведения сообщений.",
+  "voicePlaybackHowItWorksPremium": "Премиум: переключитесь на голоса ElevenLabs для более естественного звучания.",
+  "voicePlaybackHowItWorksTrySample": "Используйте кнопку воспроизведения образца, чтобы проверить голоса перед выбором.",
+  "voicePlaybackHowItWorksSpeedNote": "Скорость голосовой связи системы и скорость ElevenLabs настраиваются отдельно.",
+  "voiceFreeSystemTitle": "Бесплатная системная голосовая связь",
+  "voiceDeviceTtsTitle": "Преобразование текста в речь устройства",
+  "voiceDeviceTtsDescription": "Бесплатный голос, который читает ответы ИИ с помощью движка вашего устройства.",
+  "voiceStopSample": "Остановить выборку",
+  "voicePlaySample": "Воспроизвести образец",
+  "voiceLoadingVoices": "Загрузка доступных голосов...",
+  "voiceSystemSpeed": "Скорость голосовой связи системы ({speed}x)",
+  "voiceSystemSpeedDescription": "Используется для бесплатного преобразования текста в речь на устройстве.",
+  "voiceSpeedMinSystem": "0,5x",
+  "voiceSpeedMaxSystem": "1,2x",
+  "voicePremiumElevenLabsTitle": "Премиум-голоса ElevenLabs",
+  "voicePremiumElevenLabsDesc": "Голоса искусственного интеллекта студийного качества с более насыщенным тоном и четкостью.",
+  "voicePremiumEngineTitle": "Премиум-движок воспроизведения",
+  "voiceSystemTts": "Система ТТС",
+  "voiceElevenLabs": "ОдиннадцатьЛабс",
+  "voiceElevenLabsSpeed": "Скорость ElevenLabs ({speed}x)",
+  "voiceSpeedMinElevenLabs": "0,8x",
+  "voiceSpeedMaxElevenLabs": "1,5x",
+  "voicePremiumUpgradeDescription": "Перейдите на Премиум, чтобы разблокировать естественные голоса ElevenLabs и предварительный просмотр голоса.",
+  "@foundPlaces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@nearLocation": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@debugReviewThresholdSet": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorSaving": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@currentAiMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@currentThreshold": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@searchFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@knowledgeHubTranslateTo": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceSystemSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceElevenLabsSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "account": "Аккаунт",
+  "signedIn": "Выполнен вход",
+  "signIn": "Войти",
+  "signUp": "Регистрация",
+  "signInToHowAI": "Войти в HowAI",
+  "signUpToHowAI": "Зарегистрироваться в HowAI",
+  "continueWithGoogle": "Продолжить с Google",
+  "continueWithApple": "Продолжить с Apple",
+  "orContinueWithEmail": "Или продолжить по email",
+  "emailAddress": "Email адрес",
+  "emailPlaceholder": "you@example.com",
+  "password": "Пароль",
+  "pleaseEnterYourEmail": "Введите ваш email",
+  "pleaseEnterValidEmail": "Введите корректный email",
+  "pleaseEnterYourPassword": "Введите ваш пароль",
+  "passwordMustBeAtLeast6Characters": "Пароль должен содержать не менее 6 символов",
+  "alreadyHaveAnAccountSignIn": "Уже есть аккаунт? Войти",
+  "dontHaveAnAccountSignUp": "Нет аккаунта? Зарегистрироваться",
+  "continueWithoutAccount": "Продолжить без аккаунта",
+  "yourDataWillOnlyBeStoredLocallyOnThisDevice": "Ваши данные будут храниться только локально на этом устройстве",
+  "syncYourDataAcrossDevices": "Синхронизируйте данные между устройствами",
+  "userProfile": "Профиль пользователя",
+  "defaultUserName": "Пользователь",
+  "knowledgeHubManageSavedMemory": "Управление сохраненной памятью",
+  "chatLandingTitle": "Чем я могу помочь?",
+  "chatLandingSubtitle": "Печатайте или отправляйте голосом. Остальное я сделаю сам.",
+  "chatLandingTipCompact": "Совет: нажмите + для фото, файлов, PDF и инструментов изображений.",
+  "chatLandingTipFull": "Совет: нажмите +, чтобы использовать фото, файлы, скан в PDF, перевод и генерацию изображений.",
+  "premiumBannerTitle1": "Раскройте свой полный потенциал",
+  "premiumBannerSubtitle1": "Премиум-функции уже ждут вас",
+  "premiumBannerTitle2": "Готовы к безграничному творчеству?",
+  "premiumBannerSubtitle2": "Снимите все ограничения с Premium",
+  "premiumBannerTitle3": "Выведите ваш AI-опыт на новый уровень",
+  "premiumBannerSubtitle3": "Premium открывает всё",
+  "premiumBannerTitle4": "Откройте возможности Premium",
+  "premiumBannerSubtitle4": "Безлимитный доступ к продвинутому AI",
+  "premiumBannerTitle5": "Ускорьте рабочий процесс",
+  "premiumBannerSubtitle5": "С Premium возможно всё"
 }

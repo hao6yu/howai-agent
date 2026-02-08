@@ -4636,6 +4636,1044 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Deep Research Mode uses gpt-5.2 with high reasoning effort for more thorough analysis and insights. This premium feature provides comprehensive explanations, multiple perspectives, and deeper logical reasoning.\n\nUpgrade to access enhanced AI capabilities!'**
   String get deepResearchUpgradeDesc;
+
+  /// No description provided for @hideKeyboard.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide keyboard'**
+  String get hideKeyboard;
+
+  /// No description provided for @knowledgeHubTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge Hub'**
+  String get knowledgeHubTitle;
+
+  /// No description provided for @knowledgeHubPremiumDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge Hub (Premium)'**
+  String get knowledgeHubPremiumDialogTitle;
+
+  /// No description provided for @knowledgeHubPremiumDialogMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge Hub helps HowAI remember your personal preferences, facts, and goals across conversations.\n\nUpgrade to Premium to use this feature.'**
+  String get knowledgeHubPremiumDialogMessage;
+
+  /// No description provided for @knowledgeHubReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Return'**
+  String get knowledgeHubReturn;
+
+  /// No description provided for @knowledgeHubGoToSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to Subscription'**
+  String get knowledgeHubGoToSubscription;
+
+  /// No description provided for @knowledgeHubNewMemoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New Memory'**
+  String get knowledgeHubNewMemoryTitle;
+
+  /// No description provided for @knowledgeHubEditMemoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Memory'**
+  String get knowledgeHubEditMemoryTitle;
+
+  /// No description provided for @knowledgeHubDeleteDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Memory'**
+  String get knowledgeHubDeleteDialogTitle;
+
+  /// No description provided for @knowledgeHubDeleteDialogMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this memory item? This cannot be undone.'**
+  String get knowledgeHubDeleteDialogMessage;
+
+  /// No description provided for @knowledgeHubUseRecentChatMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Use Recent Chat Message'**
+  String get knowledgeHubUseRecentChatMessage;
+
+  /// No description provided for @knowledgeHubAttachDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach Document'**
+  String get knowledgeHubAttachDocument;
+
+  /// No description provided for @knowledgeHubAttachingDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'Attaching document...'**
+  String get knowledgeHubAttachingDocument;
+
+  /// No description provided for @knowledgeHubAttachedSources.
+  ///
+  /// In en, this message translates to:
+  /// **'Attached sources'**
+  String get knowledgeHubAttachedSources;
+
+  /// No description provided for @knowledgeHubFieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get knowledgeHubFieldTitle;
+
+  /// No description provided for @knowledgeHubFieldShortTitleHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Short memory title'**
+  String get knowledgeHubFieldShortTitleHint;
+
+  /// No description provided for @knowledgeHubFieldContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Content'**
+  String get knowledgeHubFieldContent;
+
+  /// No description provided for @knowledgeHubFieldRememberContentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What should HowAI remember?'**
+  String get knowledgeHubFieldRememberContentHint;
+
+  /// No description provided for @knowledgeHubDocumentTextHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Document text stays hidden here. HowAI will use extracted document content in memory context.'**
+  String get knowledgeHubDocumentTextHidden;
+
+  /// No description provided for @knowledgeHubFieldType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get knowledgeHubFieldType;
+
+  /// No description provided for @knowledgeHubFieldTags.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags'**
+  String get knowledgeHubFieldTags;
+
+  /// No description provided for @knowledgeHubFieldTagsOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Tags (optional)'**
+  String get knowledgeHubFieldTagsOptional;
+
+  /// No description provided for @knowledgeHubFieldTagsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'comma, separated, tags'**
+  String get knowledgeHubFieldTagsHint;
+
+  /// No description provided for @knowledgeHubPinned.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned'**
+  String get knowledgeHubPinned;
+
+  /// No description provided for @knowledgeHubPinnedOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Pinned only'**
+  String get knowledgeHubPinnedOnly;
+
+  /// No description provided for @knowledgeHubUseInContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Use in AI context'**
+  String get knowledgeHubUseInContext;
+
+  /// No description provided for @knowledgeHubAllTypes.
+  ///
+  /// In en, this message translates to:
+  /// **'All types'**
+  String get knowledgeHubAllTypes;
+
+  /// No description provided for @knowledgeHubApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get knowledgeHubApply;
+
+  /// No description provided for @knowledgeHubEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get knowledgeHubEdit;
+
+  /// No description provided for @knowledgeHubPin.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin'**
+  String get knowledgeHubPin;
+
+  /// No description provided for @knowledgeHubUnpin.
+  ///
+  /// In en, this message translates to:
+  /// **'Unpin'**
+  String get knowledgeHubUnpin;
+
+  /// No description provided for @knowledgeHubDisableInContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable in context'**
+  String get knowledgeHubDisableInContext;
+
+  /// No description provided for @knowledgeHubEnableInContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable in context'**
+  String get knowledgeHubEnableInContext;
+
+  /// No description provided for @knowledgeHubFiltersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get knowledgeHubFiltersTitle;
+
+  /// No description provided for @knowledgeHubFiltersTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Filters'**
+  String get knowledgeHubFiltersTooltip;
+
+  /// No description provided for @knowledgeHubSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search memory'**
+  String get knowledgeHubSearchHint;
+
+  /// No description provided for @knowledgeHubNoMatches.
+  ///
+  /// In en, this message translates to:
+  /// **'No memory items match your filters.'**
+  String get knowledgeHubNoMatches;
+
+  /// No description provided for @knowledgeHubModeFromChat.
+  ///
+  /// In en, this message translates to:
+  /// **'From Chat'**
+  String get knowledgeHubModeFromChat;
+
+  /// No description provided for @knowledgeHubModeFromChatDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Save a recent message as memory'**
+  String get knowledgeHubModeFromChatDesc;
+
+  /// No description provided for @knowledgeHubModeTypeManually.
+  ///
+  /// In en, this message translates to:
+  /// **'Type Manually'**
+  String get knowledgeHubModeTypeManually;
+
+  /// No description provided for @knowledgeHubModeTypeManuallyDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Write a custom memory entry'**
+  String get knowledgeHubModeTypeManuallyDesc;
+
+  /// No description provided for @knowledgeHubModeFromDocument.
+  ///
+  /// In en, this message translates to:
+  /// **'From Document'**
+  String get knowledgeHubModeFromDocument;
+
+  /// No description provided for @knowledgeHubModeFromDocumentDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Attach file and store extracted knowledge'**
+  String get knowledgeHubModeFromDocumentDesc;
+
+  /// No description provided for @knowledgeHubSelectMessageToLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a message to link'**
+  String get knowledgeHubSelectMessageToLink;
+
+  /// No description provided for @knowledgeHubSpeakerYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get knowledgeHubSpeakerYou;
+
+  /// No description provided for @knowledgeHubSpeakerHowAi.
+  ///
+  /// In en, this message translates to:
+  /// **'HowAI'**
+  String get knowledgeHubSpeakerHowAi;
+
+  /// No description provided for @knowledgeHubMemoryTypePreference.
+  ///
+  /// In en, this message translates to:
+  /// **'Preference'**
+  String get knowledgeHubMemoryTypePreference;
+
+  /// No description provided for @knowledgeHubMemoryTypeFact.
+  ///
+  /// In en, this message translates to:
+  /// **'Fact'**
+  String get knowledgeHubMemoryTypeFact;
+
+  /// No description provided for @knowledgeHubMemoryTypeGoal.
+  ///
+  /// In en, this message translates to:
+  /// **'Goal'**
+  String get knowledgeHubMemoryTypeGoal;
+
+  /// No description provided for @knowledgeHubMemoryTypeConstraint.
+  ///
+  /// In en, this message translates to:
+  /// **'Constraint'**
+  String get knowledgeHubMemoryTypeConstraint;
+
+  /// No description provided for @knowledgeHubMemoryTypeOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get knowledgeHubMemoryTypeOther;
+
+  /// No description provided for @knowledgeHubSourceStatusProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Processing'**
+  String get knowledgeHubSourceStatusProcessing;
+
+  /// No description provided for @knowledgeHubSourceStatusReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get knowledgeHubSourceStatusReady;
+
+  /// No description provided for @knowledgeHubSourceStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed'**
+  String get knowledgeHubSourceStatusFailed;
+
+  /// No description provided for @knowledgeHubDefaultSavedMemoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved Memory'**
+  String get knowledgeHubDefaultSavedMemoryTitle;
+
+  /// No description provided for @knowledgeHubDefaultDocumentMemoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Document Memory'**
+  String get knowledgeHubDefaultDocumentMemoryTitle;
+
+  /// No description provided for @knowledgeHubPremiumBlockedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge Hub is a Premium feature'**
+  String get knowledgeHubPremiumBlockedTitle;
+
+  /// No description provided for @knowledgeHubPremiumBlockedDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Save key details once, and HowAI remembers them in future chats so you do not need to repeat yourself.'**
+  String get knowledgeHubPremiumBlockedDesc;
+
+  /// No description provided for @knowledgeHubFeatureCaptureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture what matters'**
+  String get knowledgeHubFeatureCaptureTitle;
+
+  /// No description provided for @knowledgeHubFeatureCaptureDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Save preferences, goals, and constraints directly from messages.'**
+  String get knowledgeHubFeatureCaptureDesc;
+
+  /// No description provided for @knowledgeHubFeatureRepliesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get smarter replies'**
+  String get knowledgeHubFeatureRepliesTitle;
+
+  /// No description provided for @knowledgeHubFeatureRepliesDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Relevant memory is used in context so responses feel more personal and consistent.'**
+  String get knowledgeHubFeatureRepliesDesc;
+
+  /// No description provided for @knowledgeHubFeatureControlTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Control your memory'**
+  String get knowledgeHubFeatureControlTitle;
+
+  /// No description provided for @knowledgeHubFeatureControlDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit, pin, disable, or delete items any time from one place.'**
+  String get knowledgeHubFeatureControlDesc;
+
+  /// No description provided for @knowledgeHubUpgradeToPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to Premium'**
+  String get knowledgeHubUpgradeToPremium;
+
+  /// No description provided for @knowledgeHubWhatIsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What is Knowledge Hub?'**
+  String get knowledgeHubWhatIsTitle;
+
+  /// No description provided for @knowledgeHubWhatIsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'A personal memory space where you save key details once, so HowAI can use them in future replies.'**
+  String get knowledgeHubWhatIsDesc;
+
+  /// No description provided for @knowledgeHubHowToStartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How to get started'**
+  String get knowledgeHubHowToStartTitle;
+
+  /// No description provided for @knowledgeHubStep1.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap New Memory or use Save from any chat message.'**
+  String get knowledgeHubStep1;
+
+  /// No description provided for @knowledgeHubStep2.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose type (Preference, Goal, Fact, Constraint).'**
+  String get knowledgeHubStep2;
+
+  /// No description provided for @knowledgeHubStep3.
+  ///
+  /// In en, this message translates to:
+  /// **'Add tags to make memory easier to match later.'**
+  String get knowledgeHubStep3;
+
+  /// No description provided for @knowledgeHubStep4.
+  ///
+  /// In en, this message translates to:
+  /// **'Pin critical memories to prioritize them in context.'**
+  String get knowledgeHubStep4;
+
+  /// No description provided for @knowledgeHubExampleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Example memories'**
+  String get knowledgeHubExampleTitle;
+
+  /// No description provided for @knowledgeHubExamplePreferenceContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep my summaries short and bullet-pointed.'**
+  String get knowledgeHubExamplePreferenceContent;
+
+  /// No description provided for @knowledgeHubExampleGoalContent.
+  ///
+  /// In en, this message translates to:
+  /// **'I am preparing for product manager interviews.'**
+  String get knowledgeHubExampleGoalContent;
+
+  /// No description provided for @knowledgeHubExampleConstraintContent.
+  ///
+  /// In en, this message translates to:
+  /// **'Do not include local file paths in translated output.'**
+  String get knowledgeHubExampleConstraintContent;
+
+  /// No description provided for @knowledgeHubSnackDuplicateMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'A similar memory already exists.'**
+  String get knowledgeHubSnackDuplicateMemory;
+
+  /// No description provided for @knowledgeHubSnackCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create memory.'**
+  String get knowledgeHubSnackCreateFailed;
+
+  /// No description provided for @knowledgeHubSnackUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update memory.'**
+  String get knowledgeHubSnackUpdateFailed;
+
+  /// No description provided for @knowledgeHubSnackPinUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update pin status.'**
+  String get knowledgeHubSnackPinUpdateFailed;
+
+  /// No description provided for @knowledgeHubSnackActiveUpdateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update active status.'**
+  String get knowledgeHubSnackActiveUpdateFailed;
+
+  /// No description provided for @knowledgeHubSnackDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete memory.'**
+  String get knowledgeHubSnackDeleteFailed;
+
+  /// No description provided for @knowledgeHubSnackLinkedTrimmed.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked message was trimmed to fit memory length.'**
+  String get knowledgeHubSnackLinkedTrimmed;
+
+  /// No description provided for @knowledgeHubSnackAttachExtractFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to attach and extract document.'**
+  String get knowledgeHubSnackAttachExtractFailed;
+
+  /// No description provided for @knowledgeHubSnackAddTextOrAttach.
+  ///
+  /// In en, this message translates to:
+  /// **'Add text or attach a readable document before saving.'**
+  String get knowledgeHubSnackAddTextOrAttach;
+
+  /// No description provided for @knowledgeHubNoRecentMessages.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent messages found.'**
+  String get knowledgeHubNoRecentMessages;
+
+  /// No description provided for @knowledgeHubSnackNothingToSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing to save from this message.'**
+  String get knowledgeHubSnackNothingToSave;
+
+  /// No description provided for @knowledgeHubSnackSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved to Knowledge Hub.'**
+  String get knowledgeHubSnackSaved;
+
+  /// No description provided for @knowledgeHubSnackAlreadyExists.
+  ///
+  /// In en, this message translates to:
+  /// **'This memory already exists in your Knowledge Hub.'**
+  String get knowledgeHubSnackAlreadyExists;
+
+  /// No description provided for @knowledgeHubSnackSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save memory. Please try again.'**
+  String get knowledgeHubSnackSaveFailed;
+
+  /// No description provided for @knowledgeHubSnackTitleContentRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Title and content are required.'**
+  String get knowledgeHubSnackTitleContentRequired;
+
+  /// No description provided for @knowledgeHubSaveDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Save to Knowledge Hub'**
+  String get knowledgeHubSaveDialogTitle;
+
+  /// No description provided for @knowledgeHubUpgradeLimitMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge Hub is a Premium feature. Upgrade to save and reuse personal memories across conversations.'**
+  String get knowledgeHubUpgradeLimitMessage;
+
+  /// No description provided for @knowledgeHubUpgradeBenefit1.
+  ///
+  /// In en, this message translates to:
+  /// **'Save personal memory from chat messages'**
+  String get knowledgeHubUpgradeBenefit1;
+
+  /// No description provided for @knowledgeHubUpgradeBenefit2.
+  ///
+  /// In en, this message translates to:
+  /// **'Use saved memory context in AI responses'**
+  String get knowledgeHubUpgradeBenefit2;
+
+  /// No description provided for @knowledgeHubUpgradeBenefit3.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage and organize your knowledge hub'**
+  String get knowledgeHubUpgradeBenefit3;
+
+  /// No description provided for @knowledgeHubMoreActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get knowledgeHubMoreActions;
+
+  /// No description provided for @knowledgeHubAddToMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to Memory'**
+  String get knowledgeHubAddToMemory;
+
+  /// No description provided for @knowledgeHubAddToMemoryDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Save instantly from this message'**
+  String get knowledgeHubAddToMemoryDesc;
+
+  /// No description provided for @knowledgeHubReviewAndSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Review & Save'**
+  String get knowledgeHubReviewAndSave;
+
+  /// No description provided for @knowledgeHubReviewAndSaveDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit title, content, type, and tags'**
+  String get knowledgeHubReviewAndSaveDesc;
+
+  /// No description provided for @knowledgeHubQuickTranslate.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick translate'**
+  String get knowledgeHubQuickTranslate;
+
+  /// No description provided for @knowledgeHubRecentTargets.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent targets'**
+  String get knowledgeHubRecentTargets;
+
+  /// No description provided for @knowledgeHubChooseLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose language'**
+  String get knowledgeHubChooseLanguage;
+
+  /// No description provided for @knowledgeHubTranslateToAnotherLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate to another language'**
+  String get knowledgeHubTranslateToAnotherLanguage;
+
+  /// No description provided for @knowledgeHubTranslateTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Translate to {language}'**
+  String knowledgeHubTranslateTo(String language);
+
+  /// No description provided for @leaveReview.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave Review'**
+  String get leaveReview;
+
+  /// No description provided for @voiceSamplePreviewText.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, this is a sample voice preview from HowAI.'**
+  String get voiceSamplePreviewText;
+
+  /// No description provided for @voiceSampleGenerateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to generate sample audio.'**
+  String get voiceSampleGenerateFailed;
+
+  /// No description provided for @voiceSampleUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice sample is unavailable. Please check ElevenLabs setup.'**
+  String get voiceSampleUnavailable;
+
+  /// No description provided for @voiceSamplePlayFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not play voice sample.'**
+  String get voiceSamplePlayFailed;
+
+  /// No description provided for @voicePlaybackHowItWorksTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How voice playback works'**
+  String get voicePlaybackHowItWorksTitle;
+
+  /// No description provided for @voicePlaybackHowItWorksFree.
+  ///
+  /// In en, this message translates to:
+  /// **'Free: use your device voice for message playback.'**
+  String get voicePlaybackHowItWorksFree;
+
+  /// No description provided for @voicePlaybackHowItWorksPremium.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium: switch to ElevenLabs voices for more natural sound.'**
+  String get voicePlaybackHowItWorksPremium;
+
+  /// No description provided for @voicePlaybackHowItWorksTrySample.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the sample play button to test voices before choosing.'**
+  String get voicePlaybackHowItWorksTrySample;
+
+  /// No description provided for @voicePlaybackHowItWorksSpeedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'System voice speed and ElevenLabs speed are configured separately.'**
+  String get voicePlaybackHowItWorksSpeedNote;
+
+  /// No description provided for @voiceFreeSystemTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Free System Voice'**
+  String get voiceFreeSystemTitle;
+
+  /// No description provided for @voiceDeviceTtsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Text-to-Speech'**
+  String get voiceDeviceTtsTitle;
+
+  /// No description provided for @voiceDeviceTtsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Free voice that reads AI responses with your device engine.'**
+  String get voiceDeviceTtsDescription;
+
+  /// No description provided for @voiceStopSample.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop sample'**
+  String get voiceStopSample;
+
+  /// No description provided for @voicePlaySample.
+  ///
+  /// In en, this message translates to:
+  /// **'Play sample'**
+  String get voicePlaySample;
+
+  /// No description provided for @voiceLoadingVoices.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading available voices...'**
+  String get voiceLoadingVoices;
+
+  /// No description provided for @voiceSystemSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'System voice speed ({speed}x)'**
+  String voiceSystemSpeed(String speed);
+
+  /// No description provided for @voiceSystemSpeedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Used for free device text-to-speech playback.'**
+  String get voiceSystemSpeedDescription;
+
+  /// No description provided for @voiceSpeedMinSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'0.5x'**
+  String get voiceSpeedMinSystem;
+
+  /// No description provided for @voiceSpeedMaxSystem.
+  ///
+  /// In en, this message translates to:
+  /// **'1.2x'**
+  String get voiceSpeedMaxSystem;
+
+  /// No description provided for @voicePremiumElevenLabsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium ElevenLabs Voices'**
+  String get voicePremiumElevenLabsTitle;
+
+  /// No description provided for @voicePremiumElevenLabsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Studio-quality AI voices with richer tone and clarity.'**
+  String get voicePremiumElevenLabsDesc;
+
+  /// No description provided for @voicePremiumEngineTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium playback engine'**
+  String get voicePremiumEngineTitle;
+
+  /// No description provided for @voiceSystemTts.
+  ///
+  /// In en, this message translates to:
+  /// **'System TTS'**
+  String get voiceSystemTts;
+
+  /// No description provided for @voiceElevenLabs.
+  ///
+  /// In en, this message translates to:
+  /// **'ElevenLabs'**
+  String get voiceElevenLabs;
+
+  /// No description provided for @voiceElevenLabsSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'ElevenLabs speed ({speed}x)'**
+  String voiceElevenLabsSpeed(String speed);
+
+  /// No description provided for @voiceSpeedMinElevenLabs.
+  ///
+  /// In en, this message translates to:
+  /// **'0.8x'**
+  String get voiceSpeedMinElevenLabs;
+
+  /// No description provided for @voiceSpeedMaxElevenLabs.
+  ///
+  /// In en, this message translates to:
+  /// **'1.5x'**
+  String get voiceSpeedMaxElevenLabs;
+
+  /// No description provided for @voicePremiumUpgradeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade to Premium to unlock natural ElevenLabs voices and voice preview.'**
+  String get voicePremiumUpgradeDescription;
+
+  /// No description provided for @account.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get account;
+
+  /// No description provided for @signedIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed in'**
+  String get signedIn;
+
+  /// No description provided for @signIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get signIn;
+
+  /// No description provided for @signUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign Up'**
+  String get signUp;
+
+  /// No description provided for @signInToHowAI.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to HowAI'**
+  String get signInToHowAI;
+
+  /// No description provided for @signUpToHowAI.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign up to HowAI'**
+  String get signUpToHowAI;
+
+  /// No description provided for @continueWithGoogle.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Google'**
+  String get continueWithGoogle;
+
+  /// No description provided for @continueWithApple.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue with Apple'**
+  String get continueWithApple;
+
+  /// No description provided for @orContinueWithEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Or continue with email'**
+  String get orContinueWithEmail;
+
+  /// No description provided for @emailAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Email address'**
+  String get emailAddress;
+
+  /// No description provided for @emailPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'you@example.com'**
+  String get emailPlaceholder;
+
+  /// No description provided for @password.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get password;
+
+  /// No description provided for @pleaseEnterYourEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your email'**
+  String get pleaseEnterYourEmail;
+
+  /// No description provided for @pleaseEnterValidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email'**
+  String get pleaseEnterValidEmail;
+
+  /// No description provided for @pleaseEnterYourPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your password'**
+  String get pleaseEnterYourPassword;
+
+  /// No description provided for @passwordMustBeAtLeast6Characters.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 6 characters'**
+  String get passwordMustBeAtLeast6Characters;
+
+  /// No description provided for @alreadyHaveAnAccountSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Already have an account? Sign in'**
+  String get alreadyHaveAnAccountSignIn;
+
+  /// No description provided for @dontHaveAnAccountSignUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t have an account? Sign up'**
+  String get dontHaveAnAccountSignUp;
+
+  /// No description provided for @continueWithoutAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue without account'**
+  String get continueWithoutAccount;
+
+  /// No description provided for @yourDataWillOnlyBeStoredLocallyOnThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data will only be stored locally on this device'**
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice;
+
+  /// No description provided for @syncYourDataAcrossDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync your data across devices'**
+  String get syncYourDataAcrossDevices;
+
+  /// No description provided for @userProfile.
+  ///
+  /// In en, this message translates to:
+  /// **'User Profile'**
+  String get userProfile;
+
+  /// No description provided for @defaultUserName.
+  ///
+  /// In en, this message translates to:
+  /// **'User'**
+  String get defaultUserName;
+
+  /// No description provided for @knowledgeHubManageSavedMemory.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage saved memory'**
+  String get knowledgeHubManageSavedMemory;
+
+  /// No description provided for @chatLandingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What can I help you with?'**
+  String get chatLandingTitle;
+
+  /// No description provided for @chatLandingSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Type or send voice. I\'ll handle the rest.'**
+  String get chatLandingSubtitle;
+
+  /// No description provided for @chatLandingTipCompact.
+  ///
+  /// In en, this message translates to:
+  /// **'Tip: Tap + for photos, files, PDF, and image tools.'**
+  String get chatLandingTipCompact;
+
+  /// No description provided for @chatLandingTipFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Tip: Tap + to use photos, files, scan to PDF, translation, and image generation.'**
+  String get chatLandingTipFull;
+
+  /// No description provided for @premiumBannerTitle1.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock your full potential'**
+  String get premiumBannerTitle1;
+
+  /// No description provided for @premiumBannerSubtitle1.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium features are waiting for you'**
+  String get premiumBannerSubtitle1;
+
+  /// No description provided for @premiumBannerTitle2.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready for unlimited creativity?'**
+  String get premiumBannerTitle2;
+
+  /// No description provided for @premiumBannerSubtitle2.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove all limits with Premium'**
+  String get premiumBannerSubtitle2;
+
+  /// No description provided for @premiumBannerTitle3.
+  ///
+  /// In en, this message translates to:
+  /// **'Take your AI experience further'**
+  String get premiumBannerTitle3;
+
+  /// No description provided for @premiumBannerSubtitle3.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium unlocks everything'**
+  String get premiumBannerSubtitle3;
+
+  /// No description provided for @premiumBannerTitle4.
+  ///
+  /// In en, this message translates to:
+  /// **'Discover Premium features'**
+  String get premiumBannerTitle4;
+
+  /// No description provided for @premiumBannerSubtitle4.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited access to advanced AI'**
+  String get premiumBannerSubtitle4;
+
+  /// No description provided for @premiumBannerTitle5.
+  ///
+  /// In en, this message translates to:
+  /// **'Supercharge your workflow'**
+  String get premiumBannerTitle5;
+
+  /// No description provided for @premiumBannerSubtitle5.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium makes everything possible'**
+  String get premiumBannerSubtitle5;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

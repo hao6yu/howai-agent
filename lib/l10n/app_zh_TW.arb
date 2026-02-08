@@ -570,6 +570,12 @@
   "featureSmartChatInput": "你好！我想聊聊關於...",
   "featurePlacesExplorerTitle": "地點探索器",
   "featurePlacesExplorerDesc": "查找附近的餐廳、景點和服務",
+  "quickActionAskFromPhoto": "Ask from photo",
+  "quickActionAskFromFile": "Ask from file",
+  "quickActionScanToPdf": "Scan to PDF",
+  "quickActionGenerateImage": "Generate image",
+  "quickActionTranslateSubtitle": "Text, photo, or file",
+  "quickActionFindPlaces": "Find places",
   "featurePhotoToPdfTitle": "照片轉PDF",
   "featurePhotoToPdfDesc": "將照片轉換為有組織的PDF文檔",
   "featurePhotoToPdfText": "將照片轉換為PDF",
@@ -675,6 +681,7 @@
   "unlockAiInsights": "解鎖AI洞察",
   "upgradeToPremium": "升級到高級版",
   "profileAndAbout": "個人資料和關於",
+  "about": "關於",
   "aboutHowAi": "關於HowAI",
   "learnStoryBehindApp": "了解應用背後的故事",
   "user": "用戶",
@@ -744,5 +751,254 @@
   "webSearchUpgradeDesc": "此功能需要高級訂閱。請升級以使用此功能。",
   "deepResearchUpgradeTitle": "深度研究模式",
   "deepResearchUpgradeDesc": "深度研究模式使用gpt-5.2高級推理進行更全面的分析和洞察。此高級功能提供全面的解釋、多種觀點和更深層的邏輯推理。\n\n升級以獲得增強的AI功能！",
-  "about": "關於"
+  "hideKeyboard": "隱藏鍵盤",
+  "knowledgeHubTitle": "知識中心",
+  "knowledgeHubPremiumDialogTitle": "知識中心（高級）",
+  "knowledgeHubPremiumDialogMessage": "知識中心幫助 HowAI 在對話中記住您的個人偏好、事實和目標。\n\n升級到高級版才能使用此功能。",
+  "knowledgeHubReturn": "返回",
+  "knowledgeHubGoToSubscription": "前往訂閱",
+  "knowledgeHubNewMemoryTitle": "新記憶",
+  "knowledgeHubEditMemoryTitle": "編輯內存",
+  "knowledgeHubDeleteDialogTitle": "刪除內存",
+  "knowledgeHubDeleteDialogMessage": "刪除這個記憶項？此操作無法撤消。",
+  "knowledgeHubUseRecentChatMessage": "使用最近的聊天消息",
+  "knowledgeHubAttachDocument": "附上文件",
+  "knowledgeHubAttachingDocument": "附上文件...",
+  "knowledgeHubAttachedSources": "附來源",
+  "knowledgeHubFieldTitle": "標題",
+  "knowledgeHubFieldShortTitleHint": "短記憶標題",
+  "knowledgeHubFieldContent": "內容",
+  "knowledgeHubFieldRememberContentHint": "HowAI 應該記住什麼？",
+  "knowledgeHubDocumentTextHidden": "文檔文本隱藏在此處。 HowAI 將在內存上下文中使用提取的文檔內容。",
+  "knowledgeHubFieldType": "類型",
+  "knowledgeHubFieldTags": "標籤",
+  "knowledgeHubFieldTagsOptional": "標籤（可選）",
+  "knowledgeHubFieldTagsHint": "逗號、分隔、標籤",
+  "knowledgeHubPinned": "已固定",
+  "knowledgeHubPinnedOnly": "僅固定",
+  "knowledgeHubUseInContext": "在 AI 環境中使用",
+  "knowledgeHubAllTypes": "所有類型",
+  "knowledgeHubApply": "申請",
+  "knowledgeHubEdit": "編輯",
+  "knowledgeHubPin": "別針",
+  "knowledgeHubUnpin": "取消固定",
+  "knowledgeHubDisableInContext": "在上下文中禁用",
+  "knowledgeHubEnableInContext": "在上下文中啟用",
+  "knowledgeHubFiltersTitle": "過濾器",
+  "knowledgeHubFiltersTooltip": "過濾器",
+  "knowledgeHubSearchHint": "搜索記憶",
+  "knowledgeHubNoMatches": "沒有內存項目符合您的過濾條件。",
+  "knowledgeHubModeFromChat": "來自聊天",
+  "knowledgeHubModeFromChatDesc": "將最近的消息保存為內存",
+  "knowledgeHubModeTypeManually": "手動輸入",
+  "knowledgeHubModeTypeManuallyDesc": "編寫自定義內存條目",
+  "knowledgeHubModeFromDocument": "來自文檔",
+  "knowledgeHubModeFromDocumentDesc": "附加文件並存儲提取的知識",
+  "knowledgeHubSelectMessageToLink": "選擇要鏈接的消息",
+  "knowledgeHubSpeakerYou": "你",
+  "knowledgeHubSpeakerHowAi": "豪愛",
+  "knowledgeHubMemoryTypePreference": "偏愛",
+  "knowledgeHubMemoryTypeFact": "事實",
+  "knowledgeHubMemoryTypeGoal": "目標",
+  "knowledgeHubMemoryTypeConstraint": "約束",
+  "knowledgeHubMemoryTypeOther": "其他",
+  "knowledgeHubSourceStatusProcessing": "加工",
+  "knowledgeHubSourceStatusReady": "準備好",
+  "knowledgeHubSourceStatusFailed": "失敗的",
+  "knowledgeHubDefaultSavedMemoryTitle": "節省內存",
+  "knowledgeHubDefaultDocumentMemoryTitle": "文檔內存",
+  "knowledgeHubPremiumBlockedTitle": "知識中心是一項高級功能",
+  "knowledgeHubPremiumBlockedDesc": "保存一次關鍵詳細信息，HowAI 會在以後的聊天中記住它們，因此您無需重複。",
+  "knowledgeHubFeatureCaptureTitle": "捕捉重要內容",
+  "knowledgeHubFeatureCaptureDesc": "直接從消息中保存偏好、目標和約束。",
+  "knowledgeHubFeatureRepliesTitle": "獲得更明智的回复",
+  "knowledgeHubFeatureRepliesDesc": "相關記憶是在上下文中使用的，因此反應感覺更加個性化和一致。",
+  "knowledgeHubFeatureControlTitle": "控制你的記憶",
+  "knowledgeHubFeatureControlDesc": "隨時從一處編輯、固定、禁用或刪除項目。",
+  "knowledgeHubUpgradeToPremium": "升級至高級版",
+  "knowledgeHubWhatIsTitle": "什麼是知識中心？",
+  "knowledgeHubWhatIsDesc": "個人存儲空間，您可以在其中保存一次關鍵詳細信息，以便 HowAI 可以在將來的回復中使用它們。",
+  "knowledgeHubHowToStartTitle": "如何開始",
+  "knowledgeHubStep1": "點擊“新記憶”或使用任何聊天消息中的“保存”。",
+  "knowledgeHubStep2": "選擇類型（偏好、目標、事實、約束）。",
+  "knowledgeHubStep3": "添加標籤，方便以後記憶匹配。",
+  "knowledgeHubStep4": "固定重要的記憶，以便根據上下文對它們進行優先排序。",
+  "knowledgeHubExampleTitle": "記憶示例",
+  "knowledgeHubExamplePreferenceContent": "我的總結要簡短、重點突出。",
+  "knowledgeHubExampleGoalContent": "我正在準備產品經理面試。",
+  "knowledgeHubExampleConstraintContent": "不要在翻譯的輸出中包含本地文件路徑。",
+  "knowledgeHubSnackDuplicateMemory": "類似的記憶已經存在。",
+  "knowledgeHubSnackCreateFailed": "創建內存失敗。",
+  "knowledgeHubSnackUpdateFailed": "更新內存失敗。",
+  "knowledgeHubSnackPinUpdateFailed": "無法更新引腳狀態。",
+  "knowledgeHubSnackActiveUpdateFailed": "無法更新活動狀態。",
+  "knowledgeHubSnackDeleteFailed": "刪除內存失敗。",
+  "knowledgeHubSnackLinkedTrimmed": "鏈接的消息已被修剪以適合內存長度。",
+  "knowledgeHubSnackAttachExtractFailed": "無法附加和提取文檔。",
+  "knowledgeHubSnackAddTextOrAttach": "保存前添加文本或附加可讀文檔。",
+  "knowledgeHubNoRecentMessages": "沒有找到最近的消息。",
+  "knowledgeHubSnackNothingToSave": "此消息中沒有任何內容可保存。",
+  "knowledgeHubSnackSaved": "保存到知識中心。",
+  "knowledgeHubSnackAlreadyExists": "該內存已存在於您的知識中心中。",
+  "knowledgeHubSnackSaveFailed": "保存內存失敗。請再試一次。",
+  "knowledgeHubSnackTitleContentRequired": "標題和內容均為必填項。",
+  "knowledgeHubSaveDialogTitle": "保存到知識中心",
+  "knowledgeHubUpgradeLimitMessage": "知識中心是一項高級功能。升級後可在對話中保存和重複使用個人記憶。",
+  "knowledgeHubUpgradeBenefit1": "保存聊天消息中的個人記憶",
+  "knowledgeHubUpgradeBenefit2": "在 AI 響應中使用保存的內存上下文",
+  "knowledgeHubUpgradeBenefit3": "管理和組織您的知識中心",
+  "knowledgeHubMoreActions": "更多的",
+  "knowledgeHubAddToMemory": "添加到內存",
+  "knowledgeHubAddToMemoryDesc": "立即保存此消息",
+  "knowledgeHubReviewAndSave": "查看並保存",
+  "knowledgeHubReviewAndSaveDesc": "編輯標題、內容、類型和標籤",
+  "knowledgeHubQuickTranslate": "快速翻譯",
+  "knowledgeHubRecentTargets": "近期目標",
+  "knowledgeHubChooseLanguage": "選擇語言",
+  "knowledgeHubTranslateToAnotherLanguage": "翻譯成另一種語言",
+  "knowledgeHubTranslateTo": "翻譯為 {language}",
+  "leaveReview": "留下評論",
+  "voiceSamplePreviewText": "您好，這是 HowAI 的語音預覽示例。",
+  "voiceSampleGenerateFailed": "無法生成示例音頻。",
+  "voiceSampleUnavailable": "語音樣本不可用。請檢查 ElevenLabs 設置。",
+  "voiceSamplePlayFailed": "無法播放語音樣本。",
+  "voicePlaybackHowItWorksTitle": "語音播放的工作原理",
+  "voicePlaybackHowItWorksFree": "免費：使用您的設備語音播放消息。",
+  "voicePlaybackHowItWorksPremium": "高級：切換到 ElevenLabs 聲音以獲得更自然的聲音。",
+  "voicePlaybackHowItWorksTrySample": "在選擇之前使用示例播放按鈕測試聲音。",
+  "voicePlaybackHowItWorksSpeedNote": "系統語音速度和ElevenLabs速度單獨配置。",
+  "voiceFreeSystemTitle": "免費系統語音",
+  "voiceDeviceTtsTitle": "設備文本轉語音",
+  "voiceDeviceTtsDescription": "使用您的設備引擎讀取 AI 響應的免費語音。",
+  "voiceStopSample": "停止採樣",
+  "voicePlaySample": "播放樣本",
+  "voiceLoadingVoices": "正在加載可用的語音...",
+  "voiceSystemSpeed": "系統語音速度 ({speed}x)",
+  "voiceSystemSpeedDescription": "用於免費設備文本轉語音播放。",
+  "voiceSpeedMinSystem": "0.5倍",
+  "voiceSpeedMaxSystem": "1.2倍",
+  "voicePremiumElevenLabsTitle": "高級 ElevenLabs 聲音",
+  "voicePremiumElevenLabsDesc": "錄音室品質的人工智能語音，音調更豐富、更清晰。",
+  "voicePremiumEngineTitle": "高級播放引擎",
+  "voiceSystemTts": "系統語音合成",
+  "voiceElevenLabs": "十一實驗室",
+  "voiceElevenLabsSpeed": "ElevenLabs 速度 ({speed}x)",
+  "voiceSpeedMinElevenLabs": "0.8倍",
+  "voiceSpeedMaxElevenLabs": "1.5倍",
+  "voicePremiumUpgradeDescription": "升級到高級版即可解鎖自然的 ElevenLabs 語音和語音預覽。",
+  "@foundPlaces": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@nearLocation": {
+    "placeholders": {
+      "location": {
+        "type": "String"
+      }
+    }
+  },
+  "@debugReviewThresholdSet": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@errorSaving": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@resetFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@currentAiMessages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@currentThreshold": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@searchFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "@knowledgeHubTranslateTo": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceSystemSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceElevenLabsSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "account": "帳戶",
+  "signedIn": "已登入",
+  "signIn": "登入",
+  "signUp": "註冊",
+  "signInToHowAI": "登入 HowAI",
+  "signUpToHowAI": "註冊 HowAI",
+  "continueWithGoogle": "使用 Google 繼續",
+  "continueWithApple": "使用 Apple 繼續",
+  "orContinueWithEmail": "或使用電子郵件繼續",
+  "emailAddress": "電子郵件地址",
+  "emailPlaceholder": "you@example.com",
+  "password": "密碼",
+  "pleaseEnterYourEmail": "請輸入你的電子郵件",
+  "pleaseEnterValidEmail": "請輸入有效的電子郵件地址",
+  "pleaseEnterYourPassword": "請輸入你的密碼",
+  "passwordMustBeAtLeast6Characters": "密碼至少需要 6 個字元",
+  "alreadyHaveAnAccountSignIn": "已有帳戶？去登入",
+  "dontHaveAnAccountSignUp": "還沒有帳戶？去註冊",
+  "continueWithoutAccount": "不登入繼續使用",
+  "yourDataWillOnlyBeStoredLocallyOnThisDevice": "你的資料只會儲存在此裝置本機",
+  "syncYourDataAcrossDevices": "跨裝置同步你的資料",
+  "userProfile": "使用者資料",
+  "defaultUserName": "使用者",
+  "knowledgeHubManageSavedMemory": "管理已儲存記憶",
+  "chatLandingTitle": "我可以幫你做什麼？",
+  "chatLandingSubtitle": "輸入或傳送語音，剩下交給我。",
+  "chatLandingTipCompact": "提示：點擊 + 可使用照片、檔案、PDF 與圖片工具。",
+  "chatLandingTipFull": "提示：點擊 + 可使用照片、檔案、掃描成 PDF、翻譯與圖片生成。",
+  "premiumBannerTitle1": "解鎖你的全部潛力",
+  "premiumBannerSubtitle1": "進階功能等你開啟",
+  "premiumBannerTitle2": "準備好無限創意了嗎？",
+  "premiumBannerSubtitle2": "升級進階版，移除所有限制",
+  "premiumBannerTitle3": "讓你的 AI 體驗更進一步",
+  "premiumBannerSubtitle3": "進階版解鎖全部能力",
+  "premiumBannerTitle4": "探索進階功能",
+  "premiumBannerSubtitle4": "無限使用進階 AI 功能",
+  "premiumBannerTitle5": "為你的工作流程加速",
+  "premiumBannerSubtitle5": "進階版讓一切成為可能"
 }

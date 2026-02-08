@@ -2331,4 +2331,529 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => 'Deep Research Mode uses gpt-5.2 with high reasoning effort for more thorough analysis and insights. This premium feature provides comprehensive explanations, multiple perspectives, and deeper logical reasoning.\n\nUpgrade to access enhanced AI capabilities!';
+
+  @override
+  String get hideKeyboard => 'Hide keyboard';
+
+  @override
+  String get knowledgeHubTitle => 'Knowledge Hub';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => 'Knowledge Hub (Premium)';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => 'Knowledge Hub helps HowAI remember your personal preferences, facts, and goals across conversations.\n\nUpgrade to Premium to use this feature.';
+
+  @override
+  String get knowledgeHubReturn => 'Return';
+
+  @override
+  String get knowledgeHubGoToSubscription => 'Go to Subscription';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => 'New Memory';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => 'Edit Memory';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => 'Delete Memory';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => 'Delete this memory item? This cannot be undone.';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => 'Use Recent Chat Message';
+
+  @override
+  String get knowledgeHubAttachDocument => 'Attach Document';
+
+  @override
+  String get knowledgeHubAttachingDocument => 'Attaching document...';
+
+  @override
+  String get knowledgeHubAttachedSources => 'Attached sources';
+
+  @override
+  String get knowledgeHubFieldTitle => 'Title';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => 'Short memory title';
+
+  @override
+  String get knowledgeHubFieldContent => 'Content';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'What should HowAI remember?';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => 'Document text stays hidden here. HowAI will use extracted document content in memory context.';
+
+  @override
+  String get knowledgeHubFieldType => 'Type';
+
+  @override
+  String get knowledgeHubFieldTags => 'Tags';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => 'Tags (optional)';
+
+  @override
+  String get knowledgeHubFieldTagsHint => 'comma, separated, tags';
+
+  @override
+  String get knowledgeHubPinned => 'Pinned';
+
+  @override
+  String get knowledgeHubPinnedOnly => 'Pinned only';
+
+  @override
+  String get knowledgeHubUseInContext => 'Use in AI context';
+
+  @override
+  String get knowledgeHubAllTypes => 'All types';
+
+  @override
+  String get knowledgeHubApply => 'Apply';
+
+  @override
+  String get knowledgeHubEdit => 'Edit';
+
+  @override
+  String get knowledgeHubPin => 'Pin';
+
+  @override
+  String get knowledgeHubUnpin => 'Unpin';
+
+  @override
+  String get knowledgeHubDisableInContext => 'Disable in context';
+
+  @override
+  String get knowledgeHubEnableInContext => 'Enable in context';
+
+  @override
+  String get knowledgeHubFiltersTitle => 'Filters';
+
+  @override
+  String get knowledgeHubFiltersTooltip => 'Filters';
+
+  @override
+  String get knowledgeHubSearchHint => 'Search memory';
+
+  @override
+  String get knowledgeHubNoMatches => 'No memory items match your filters.';
+
+  @override
+  String get knowledgeHubModeFromChat => 'From Chat';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => 'Save a recent message as memory';
+
+  @override
+  String get knowledgeHubModeTypeManually => 'Type Manually';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => 'Write a custom memory entry';
+
+  @override
+  String get knowledgeHubModeFromDocument => 'From Document';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => 'Attach file and store extracted knowledge';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => 'Select a message to link';
+
+  @override
+  String get knowledgeHubSpeakerYou => 'You';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => 'HowAI';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => 'Preference';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => 'Fact';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => 'Goal';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => 'Constraint';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => 'Other';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => 'Processing';
+
+  @override
+  String get knowledgeHubSourceStatusReady => 'Ready';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => 'Failed';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => 'Saved Memory';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => 'Document Memory';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => 'Knowledge Hub is a Premium feature';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => 'Save key details once, and HowAI remembers them in future chats so you do not need to repeat yourself.';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => 'Capture what matters';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => 'Save preferences, goals, and constraints directly from messages.';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => 'Get smarter replies';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => 'Relevant memory is used in context so responses feel more personal and consistent.';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => 'Control your memory';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => 'Edit, pin, disable, or delete items any time from one place.';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => 'Upgrade to Premium';
+
+  @override
+  String get knowledgeHubWhatIsTitle => 'What is Knowledge Hub?';
+
+  @override
+  String get knowledgeHubWhatIsDesc => 'A personal memory space where you save key details once, so HowAI can use them in future replies.';
+
+  @override
+  String get knowledgeHubHowToStartTitle => 'How to get started';
+
+  @override
+  String get knowledgeHubStep1 => 'Tap New Memory or use Save from any chat message.';
+
+  @override
+  String get knowledgeHubStep2 => 'Choose type (Preference, Goal, Fact, Constraint).';
+
+  @override
+  String get knowledgeHubStep3 => 'Add tags to make memory easier to match later.';
+
+  @override
+  String get knowledgeHubStep4 => 'Pin critical memories to prioritize them in context.';
+
+  @override
+  String get knowledgeHubExampleTitle => 'Example memories';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => 'Keep my summaries short and bullet-pointed.';
+
+  @override
+  String get knowledgeHubExampleGoalContent => 'I am preparing for product manager interviews.';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => 'Do not include local file paths in translated output.';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => 'A similar memory already exists.';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => 'Failed to create memory.';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => 'Failed to update memory.';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => 'Failed to update pin status.';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => 'Failed to update active status.';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => 'Failed to delete memory.';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => 'Linked message was trimmed to fit memory length.';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => 'Failed to attach and extract document.';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => 'Add text or attach a readable document before saving.';
+
+  @override
+  String get knowledgeHubNoRecentMessages => 'No recent messages found.';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => 'Nothing to save from this message.';
+
+  @override
+  String get knowledgeHubSnackSaved => 'Saved to Knowledge Hub.';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => 'This memory already exists in your Knowledge Hub.';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => 'Failed to save memory. Please try again.';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => 'Title and content are required.';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => 'Save to Knowledge Hub';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => 'Knowledge Hub is a Premium feature. Upgrade to save and reuse personal memories across conversations.';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => 'Save personal memory from chat messages';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => 'Use saved memory context in AI responses';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => 'Manage and organize your knowledge hub';
+
+  @override
+  String get knowledgeHubMoreActions => 'More';
+
+  @override
+  String get knowledgeHubAddToMemory => 'Add to Memory';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => 'Save instantly from this message';
+
+  @override
+  String get knowledgeHubReviewAndSave => 'Review & Save';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => 'Edit title, content, type, and tags';
+
+  @override
+  String get knowledgeHubQuickTranslate => 'Quick translate';
+
+  @override
+  String get knowledgeHubRecentTargets => 'Recent targets';
+
+  @override
+  String get knowledgeHubChooseLanguage => 'Choose language';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => 'Translate to another language';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return 'Translate to $language';
+  }
+
+  @override
+  String get leaveReview => 'Leave Review';
+
+  @override
+  String get voiceSamplePreviewText => 'Hello, this is a sample voice preview from HowAI.';
+
+  @override
+  String get voiceSampleGenerateFailed => 'Unable to generate sample audio.';
+
+  @override
+  String get voiceSampleUnavailable => 'Voice sample is unavailable. Please check ElevenLabs setup.';
+
+  @override
+  String get voiceSamplePlayFailed => 'Could not play voice sample.';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => 'How voice playback works';
+
+  @override
+  String get voicePlaybackHowItWorksFree => 'Free: use your device voice for message playback.';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => 'Premium: switch to ElevenLabs voices for more natural sound.';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => 'Use the sample play button to test voices before choosing.';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => 'System voice speed and ElevenLabs speed are configured separately.';
+
+  @override
+  String get voiceFreeSystemTitle => 'Free System Voice';
+
+  @override
+  String get voiceDeviceTtsTitle => 'Device Text-to-Speech';
+
+  @override
+  String get voiceDeviceTtsDescription => 'Free voice that reads AI responses with your device engine.';
+
+  @override
+  String get voiceStopSample => 'Stop sample';
+
+  @override
+  String get voicePlaySample => 'Play sample';
+
+  @override
+  String get voiceLoadingVoices => 'Loading available voices...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return 'System voice speed (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => 'Used for free device text-to-speech playback.';
+
+  @override
+  String get voiceSpeedMinSystem => '0.5x';
+
+  @override
+  String get voiceSpeedMaxSystem => '1.2x';
+
+  @override
+  String get voicePremiumElevenLabsTitle => 'Premium ElevenLabs Voices';
+
+  @override
+  String get voicePremiumElevenLabsDesc => 'Studio-quality AI voices with richer tone and clarity.';
+
+  @override
+  String get voicePremiumEngineTitle => 'Premium playback engine';
+
+  @override
+  String get voiceSystemTts => 'System TTS';
+
+  @override
+  String get voiceElevenLabs => 'ElevenLabs';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'ElevenLabs speed (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0.8x';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1.5x';
+
+  @override
+  String get voicePremiumUpgradeDescription => 'Upgrade to Premium to unlock natural ElevenLabs voices and voice preview.';
+
+  @override
+  String get account => 'Account';
+
+  @override
+  String get signedIn => 'Signed in';
+
+  @override
+  String get signIn => 'Sign In';
+
+  @override
+  String get signUp => 'Sign Up';
+
+  @override
+  String get signInToHowAI => 'Sign in to HowAI';
+
+  @override
+  String get signUpToHowAI => 'Sign up to HowAI';
+
+  @override
+  String get continueWithGoogle => 'Continue with Google';
+
+  @override
+  String get continueWithApple => 'Continue with Apple';
+
+  @override
+  String get orContinueWithEmail => 'Or continue with email';
+
+  @override
+  String get emailAddress => 'Email address';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => 'Password';
+
+  @override
+  String get pleaseEnterYourEmail => 'Please enter your email';
+
+  @override
+  String get pleaseEnterValidEmail => 'Please enter a valid email';
+
+  @override
+  String get pleaseEnterYourPassword => 'Please enter your password';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => 'Password must be at least 6 characters';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => 'Already have an account? Sign in';
+
+  @override
+  String get dontHaveAnAccountSignUp => 'Don\'t have an account? Sign up';
+
+  @override
+  String get continueWithoutAccount => 'Continue without account';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => 'Your data will only be stored locally on this device';
+
+  @override
+  String get syncYourDataAcrossDevices => 'Sync your data across devices';
+
+  @override
+  String get userProfile => 'User Profile';
+
+  @override
+  String get defaultUserName => 'User';
+
+  @override
+  String get knowledgeHubManageSavedMemory => 'Manage saved memory';
+
+  @override
+  String get chatLandingTitle => 'What can I help you with?';
+
+  @override
+  String get chatLandingSubtitle => 'Type or send voice. I\'ll handle the rest.';
+
+  @override
+  String get chatLandingTipCompact => 'Tip: Tap + for photos, files, PDF, and image tools.';
+
+  @override
+  String get chatLandingTipFull => 'Tip: Tap + to use photos, files, scan to PDF, translation, and image generation.';
+
+  @override
+  String get premiumBannerTitle1 => 'Unlock your full potential';
+
+  @override
+  String get premiumBannerSubtitle1 => 'Premium features are waiting for you';
+
+  @override
+  String get premiumBannerTitle2 => 'Ready for unlimited creativity?';
+
+  @override
+  String get premiumBannerSubtitle2 => 'Remove all limits with Premium';
+
+  @override
+  String get premiumBannerTitle3 => 'Take your AI experience further';
+
+  @override
+  String get premiumBannerSubtitle3 => 'Premium unlocks everything';
+
+  @override
+  String get premiumBannerTitle4 => 'Discover Premium features';
+
+  @override
+  String get premiumBannerSubtitle4 => 'Unlimited access to advanced AI';
+
+  @override
+  String get premiumBannerTitle5 => 'Supercharge your workflow';
+
+  @override
+  String get premiumBannerSubtitle5 => 'Premium makes everything possible';
 }

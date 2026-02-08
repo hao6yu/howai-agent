@@ -139,7 +139,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get resume => 'Wznów';
 
   @override
-  String get stop => 'Stop';
+  String get stop => 'Zatrzymywać się';
 
   @override
   String get startFreeTrial => 'Rozpocznij Bezpłatny Okres Próbny';
@@ -323,7 +323,7 @@ class AppLocalizationsPl extends AppLocalizations {
   }
 
   @override
-  String get premiumTitle => 'HowAI Premium';
+  String get premiumTitle => 'JakAI ​​Premium';
 
   @override
   String get imageGeneration => 'Generowanie Obrazów';
@@ -823,7 +823,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get resumeTooltip => 'Wznów';
 
   @override
-  String get stopTooltip => 'Stop';
+  String get stopTooltip => 'Zatrzymywać się';
 
   @override
   String get selectSectionTooltip => 'Wybierz sekcję';
@@ -1102,7 +1102,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get currentStatus => 'Aktualny status:';
 
   @override
-  String get premium => 'Premium';
+  String get premium => 'Premia';
 
   @override
   String get free => 'Darmowy';
@@ -1360,7 +1360,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get alternativeRideshare => 'Alternatywna opcja wspólnych przejazdów';
 
   @override
-  String get streetView => 'Street View';
+  String get streetView => 'Widok ulicy';
 
   @override
   String get streetViewNotAvailable => 'Street View niedostępne';
@@ -1641,7 +1641,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get go => 'Jedź';
 
   @override
-  String get info => 'Info';
+  String get info => 'Informacje';
 
   @override
   String get street => 'Ulica';
@@ -1770,22 +1770,22 @@ class AppLocalizationsPl extends AppLocalizations {
   String get featurePlacesExplorerDesc => 'Znajdź restauracje, atrakcje i usługi w pobliżu';
 
   @override
-  String get quickActionAskFromPhoto => 'Ask from photo';
+  String get quickActionAskFromPhoto => 'Zapytaj ze zdjęcia';
 
   @override
-  String get quickActionAskFromFile => 'Ask from file';
+  String get quickActionAskFromFile => 'Zapytaj z pliku';
 
   @override
-  String get quickActionScanToPdf => 'Scan to PDF';
+  String get quickActionScanToPdf => 'Skanuj do pliku PDF';
 
   @override
-  String get quickActionGenerateImage => 'Generate image';
+  String get quickActionGenerateImage => 'Wygeneruj obraz';
 
   @override
-  String get quickActionTranslateSubtitle => 'Text, photo, or file';
+  String get quickActionTranslateSubtitle => 'Tekst, zdjęcie lub plik';
 
   @override
-  String get quickActionFindPlaces => 'Find places';
+  String get quickActionFindPlaces => 'Znajdź miejsca';
 
   @override
   String get featurePhotoToPdfTitle => 'Zdjęcie na PDF';
@@ -1872,7 +1872,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get featureEntertainmentGuideInput => 'Poleć filmy/książki/muzykę o ';
 
   @override
-  String get proBadge => 'PRO';
+  String get proBadge => 'ZAWODOWIEC';
 
   @override
   String get localRecommendationDetected => 'Wykryłem, że szukasz lokalnych rekomendacji!';
@@ -2071,7 +2071,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get failedUpdateAvatar => 'Nie udało się zaktualizować awatara. Spróbuj ponownie.';
 
   @override
-  String get premiumBadge => 'PREMIUM';
+  String get premiumBadge => 'PREMIA';
 
   @override
   String get howAiUnderstandsYou => 'Jak AI Cię rozumie';
@@ -2125,7 +2125,7 @@ class AppLocalizationsPl extends AppLocalizations {
   String get user => 'Użytkownik';
 
   @override
-  String get howAiAgent => 'HowAI Agent';
+  String get howAiAgent => 'Agent HowAI';
 
   @override
   String get resetUsageStatistics => 'Resetuj statystyki użycia';
@@ -2331,4 +2331,529 @@ class AppLocalizationsPl extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => 'Tryb głębokiego researchu używa gpt-5.2 z wysokim nakładem rozumowania dla bardziej dogłębnej analizy i wniosków. Ta funkcja premium zapewnia kompleksowe wyjaśnienia, wiele perspektyw i głębsze rozumowanie logiczne.\n\nUaktualnij, aby uzyskać dostęp do zaawansowanych możliwości AI!';
+
+  @override
+  String get hideKeyboard => 'Ukryj klawiaturę';
+
+  @override
+  String get knowledgeHubTitle => 'Centrum wiedzy';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => 'Centrum wiedzy (Premium)';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => 'Centrum wiedzy pomaga HowAI zapamiętać Twoje osobiste preferencje, fakty i cele podczas rozmów.\n\nAby korzystać z tej funkcji, przejdź na wersję Premium.';
+
+  @override
+  String get knowledgeHubReturn => 'Powrót';
+
+  @override
+  String get knowledgeHubGoToSubscription => 'Przejdź do Subskrypcja';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => 'Nowa pamięć';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => 'Edytuj pamięć';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => 'Usuń pamięć';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => 'Usunąć ten element pamięci? Tego nie można cofnąć.';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => 'Użyj ostatniej wiadomości czatu';
+
+  @override
+  String get knowledgeHubAttachDocument => 'Dołącz dokument';
+
+  @override
+  String get knowledgeHubAttachingDocument => 'Załączanie dokumentu...';
+
+  @override
+  String get knowledgeHubAttachedSources => 'Załączone źródła';
+
+  @override
+  String get knowledgeHubFieldTitle => 'Tytuł';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => 'Krótki tytuł pamięciowy';
+
+  @override
+  String get knowledgeHubFieldContent => 'Treść';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'O czym powinna pamiętać HowAI?';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => 'Tekst dokumentu pozostaje tutaj ukryty. HowAI wykorzysta wyodrębnioną treść dokumentu w kontekście pamięci.';
+
+  @override
+  String get knowledgeHubFieldType => 'Typ';
+
+  @override
+  String get knowledgeHubFieldTags => 'Tagi';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => 'Tagi (opcjonalnie)';
+
+  @override
+  String get knowledgeHubFieldTagsHint => 'przecinek, oddzielony, tagi';
+
+  @override
+  String get knowledgeHubPinned => 'Przypięty';
+
+  @override
+  String get knowledgeHubPinnedOnly => 'Tylko przypięte';
+
+  @override
+  String get knowledgeHubUseInContext => 'Użyj w kontekście sztucznej inteligencji';
+
+  @override
+  String get knowledgeHubAllTypes => 'Wszystkie typy';
+
+  @override
+  String get knowledgeHubApply => 'Stosować';
+
+  @override
+  String get knowledgeHubEdit => 'Redagować';
+
+  @override
+  String get knowledgeHubPin => 'Szpilka';
+
+  @override
+  String get knowledgeHubUnpin => 'Odpiąć';
+
+  @override
+  String get knowledgeHubDisableInContext => 'Wyłącz w kontekście';
+
+  @override
+  String get knowledgeHubEnableInContext => 'Włącz w kontekście';
+
+  @override
+  String get knowledgeHubFiltersTitle => 'Filtry';
+
+  @override
+  String get knowledgeHubFiltersTooltip => 'Filtry';
+
+  @override
+  String get knowledgeHubSearchHint => 'Przeszukaj pamięć';
+
+  @override
+  String get knowledgeHubNoMatches => 'Żadne elementy pamięci nie pasują do wybranych filtrów.';
+
+  @override
+  String get knowledgeHubModeFromChat => 'Z czatu';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => 'Zapisz ostatnią wiadomość jako pamięć';
+
+  @override
+  String get knowledgeHubModeTypeManually => 'Wpisz ręcznie';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => 'Zapisz niestandardowy wpis w pamięci';
+
+  @override
+  String get knowledgeHubModeFromDocument => 'Z dokumentu';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => 'Dołącz plik i przechowuj wyodrębnioną wiedzę';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => 'Wybierz wiadomość, którą chcesz połączyć';
+
+  @override
+  String get knowledgeHubSpeakerYou => 'Ty';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => 'JakAI';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => 'Pierwszeństwo';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => 'Fakt';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => 'Bramka';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => 'Ograniczenie';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => 'Inny';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => 'Przetwarzanie';
+
+  @override
+  String get knowledgeHubSourceStatusReady => 'Gotowy';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => 'Przegrany';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => 'Zapisana pamięć';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => 'Pamięć dokumentów';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => 'Centrum wiedzy to funkcja Premium';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => 'Zapisz kluczowe szczegóły raz, a HowAI zapamięta je w przyszłych rozmowach, dzięki czemu nie będziesz musiał się powtarzać.';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => 'Uchwyć to, co ważne';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => 'Zapisuj preferencje, cele i ograniczenia bezpośrednio z wiadomości.';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => 'Otrzymuj mądrzejsze odpowiedzi';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => 'Odpowiednia pamięć jest wykorzystywana w kontekście, dzięki czemu odpowiedzi wydają się bardziej osobiste i spójne.';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => 'Kontroluj swoją pamięć';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => 'Edytuj, przypinaj, wyłączaj lub usuwaj elementy w dowolnym momencie z jednego miejsca.';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => 'Uaktualnij do wersji Premium';
+
+  @override
+  String get knowledgeHubWhatIsTitle => 'Co to jest Centrum Wiedzy?';
+
+  @override
+  String get knowledgeHubWhatIsDesc => 'Osobista przestrzeń pamięci, w której raz zapisujesz kluczowe szczegóły, aby HowAI mogła z nich korzystać w przyszłych odpowiedziach.';
+
+  @override
+  String get knowledgeHubHowToStartTitle => 'Jak zacząć';
+
+  @override
+  String get knowledgeHubStep1 => 'Stuknij opcję Nowa pamięć lub użyj opcji Zapisz z dowolnej wiadomości czatu.';
+
+  @override
+  String get knowledgeHubStep2 => 'Wybierz typ (Preferencja, Cel, Fakt, Ograniczenie).';
+
+  @override
+  String get knowledgeHubStep3 => 'Dodaj tagi, aby ułatwić późniejsze dopasowanie pamięci.';
+
+  @override
+  String get knowledgeHubStep4 => 'Przypinaj najważniejsze wspomnienia, aby nadać im priorytet w kontekście.';
+
+  @override
+  String get knowledgeHubExampleTitle => 'Przykładowe wspomnienia';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => 'Staraj się, aby moje podsumowania były krótkie i punktowane.';
+
+  @override
+  String get knowledgeHubExampleGoalContent => 'Przygotowuję się do rozmów kwalifikacyjnych na menadżera produktu.';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => 'Nie uwzględniaj ścieżek plików lokalnych w przetłumaczonych wynikach.';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => 'Podobna pamięć już istnieje.';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => 'Nie udało się utworzyć pamięci.';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => 'Nie udało się zaktualizować pamięci.';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => 'Nie udało się zaktualizować statusu PINu.';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => 'Nie udało się zaktualizować statusu aktywnego.';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => 'Nie udało się usunąć pamięci.';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => 'Połączona wiadomość została przycięta w celu dopasowania do długości pamięci.';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => 'Nie udało się załączyć i wyodrębnić dokumentu.';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => 'Przed zapisaniem dodaj tekst lub załącz czytelny dokument.';
+
+  @override
+  String get knowledgeHubNoRecentMessages => 'Nie znaleziono żadnych ostatnich wiadomości.';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => 'W tej wiadomości nie ma nic do zapisania.';
+
+  @override
+  String get knowledgeHubSnackSaved => 'Zapisano w Centrum wiedzy.';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => 'To wspomnienie już istnieje w Twoim Centrum Wiedzy.';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => 'Nie udało się zapisać pamięci. Spróbuj ponownie.';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => 'Tytuł i treść są wymagane.';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => 'Zapisz w Centrum wiedzy';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => 'Centrum wiedzy to funkcja Premium. Uaktualnij, aby zapisywać i ponownie wykorzystywać osobiste wspomnienia podczas rozmów.';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => 'Zapisz pamięć osobistą z wiadomości czatu';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => 'Używaj zapisanego kontekstu pamięci w odpowiedziach AI';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => 'Zarządzaj i organizuj swoje centrum wiedzy';
+
+  @override
+  String get knowledgeHubMoreActions => 'Więcej';
+
+  @override
+  String get knowledgeHubAddToMemory => 'Dodaj do pamięci';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => 'Zapisz natychmiast z poziomu tej wiadomości';
+
+  @override
+  String get knowledgeHubReviewAndSave => 'Przejrzyj i zapisz';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => 'Edytuj tytuł, treść, typ i tagi';
+
+  @override
+  String get knowledgeHubQuickTranslate => 'Szybkie tłumaczenie';
+
+  @override
+  String get knowledgeHubRecentTargets => 'Ostatnie cele';
+
+  @override
+  String get knowledgeHubChooseLanguage => 'Wybierz język';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => 'Przetłumacz na inny język';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return 'Przetłumacz na $language';
+  }
+
+  @override
+  String get leaveReview => 'Opuść recenzję';
+
+  @override
+  String get voiceSamplePreviewText => 'Witaj, to jest przykładowy podgląd głosu z HowAI.';
+
+  @override
+  String get voiceSampleGenerateFailed => 'Nie można wygenerować przykładowego dźwięku.';
+
+  @override
+  String get voiceSampleUnavailable => 'Próbka głosu jest niedostępna. Sprawdź konfigurację ElevenLabs.';
+
+  @override
+  String get voiceSamplePlayFailed => 'Nie można odtworzyć próbki głosu.';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => 'Jak działa odtwarzanie głosu';
+
+  @override
+  String get voicePlaybackHowItWorksFree => 'Bezpłatnie: użyj głosu swojego urządzenia do odtwarzania wiadomości.';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => 'Premium: przełącz się na głosy ElevenLabs, aby uzyskać bardziej naturalny dźwięk.';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => 'Użyj przycisku odtwarzania próbki, aby przetestować głosy przed wybraniem.';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => 'Szybkość głosu systemu i szybkość ElevenLabs są konfigurowane osobno.';
+
+  @override
+  String get voiceFreeSystemTitle => 'Bezpłatny głos systemowy';
+
+  @override
+  String get voiceDeviceTtsTitle => 'Urządzenie do zamiany tekstu na mowę';
+
+  @override
+  String get voiceDeviceTtsDescription => 'Bezpłatny głos, który odczytuje odpowiedzi AI za pomocą silnika urządzenia.';
+
+  @override
+  String get voiceStopSample => 'Zatrzymaj próbkę';
+
+  @override
+  String get voicePlaySample => 'Odtwórz próbkę';
+
+  @override
+  String get voiceLoadingVoices => 'Ładowanie dostępnych głosów...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return 'Szybkość głosu systemu (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => 'Służy do bezpłatnego odtwarzania tekstu na mowę na urządzeniu.';
+
+  @override
+  String get voiceSpeedMinSystem => '0,5x';
+
+  @override
+  String get voiceSpeedMaxSystem => '1,2x';
+
+  @override
+  String get voicePremiumElevenLabsTitle => 'Premium głosy ElevenLabs';
+
+  @override
+  String get voicePremiumElevenLabsDesc => 'Studyjnej jakości głosy AI o bogatszym brzmieniu i przejrzystości.';
+
+  @override
+  String get voicePremiumEngineTitle => 'Wysokiej klasy silnik odtwarzania';
+
+  @override
+  String get voiceSystemTts => 'Systemowy TTS';
+
+  @override
+  String get voiceElevenLabs => 'Jedenaście laboratoriów';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'Szybkość ElevenLabs (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0,8x';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1,5x';
+
+  @override
+  String get voicePremiumUpgradeDescription => 'Uaktualnij do wersji Premium, aby odblokować naturalne głosy ElevenLabs i podgląd głosu.';
+
+  @override
+  String get account => 'Konto';
+
+  @override
+  String get signedIn => 'Zalogowano';
+
+  @override
+  String get signIn => 'Zaloguj się';
+
+  @override
+  String get signUp => 'Zarejestruj się';
+
+  @override
+  String get signInToHowAI => 'Zaloguj się do HowAI';
+
+  @override
+  String get signUpToHowAI => 'Zarejestruj się w HowAI';
+
+  @override
+  String get continueWithGoogle => 'Kontynuuj z Google';
+
+  @override
+  String get continueWithApple => 'Kontynuuj z Apple';
+
+  @override
+  String get orContinueWithEmail => 'Lub kontynuuj przez e-mail';
+
+  @override
+  String get emailAddress => 'Adres e-mail';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => 'Hasło';
+
+  @override
+  String get pleaseEnterYourEmail => 'Wpisz swój adres e-mail';
+
+  @override
+  String get pleaseEnterValidEmail => 'Wpisz prawidłowy adres e-mail';
+
+  @override
+  String get pleaseEnterYourPassword => 'Wpisz swoje hasło';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => 'Hasło musi mieć co najmniej 6 znaków';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => 'Masz już konto? Zaloguj się';
+
+  @override
+  String get dontHaveAnAccountSignUp => 'Nie masz konta? Zarejestruj się';
+
+  @override
+  String get continueWithoutAccount => 'Kontynuuj bez konta';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => 'Twoje dane będą przechowywane tylko lokalnie na tym urządzeniu';
+
+  @override
+  String get syncYourDataAcrossDevices => 'Synchronizuj dane między urządzeniami';
+
+  @override
+  String get userProfile => 'Profil użytkownika';
+
+  @override
+  String get defaultUserName => 'Użytkownik';
+
+  @override
+  String get knowledgeHubManageSavedMemory => 'Zarządzaj zapisaną pamięcią';
+
+  @override
+  String get chatLandingTitle => 'W czym mogę pomóc?';
+
+  @override
+  String get chatLandingSubtitle => 'Napisz lub wyślij głos. Resztą zajmę się ja.';
+
+  @override
+  String get chatLandingTipCompact => 'Wskazówka: stuknij +, aby użyć zdjęć, plików, PDF i narzędzi obrazów.';
+
+  @override
+  String get chatLandingTipFull => 'Wskazówka: stuknij +, aby użyć zdjęć, plików, skanowania do PDF, tłumaczenia i generowania obrazów.';
+
+  @override
+  String get premiumBannerTitle1 => 'Odblokuj swój pełny potencjał';
+
+  @override
+  String get premiumBannerSubtitle1 => 'Funkcje Premium czekają na Ciebie';
+
+  @override
+  String get premiumBannerTitle2 => 'Gotowy na nieograniczoną kreatywność?';
+
+  @override
+  String get premiumBannerSubtitle2 => 'Usuń wszystkie limity z Premium';
+
+  @override
+  String get premiumBannerTitle3 => 'Rozwijaj swoje doświadczenie AI';
+
+  @override
+  String get premiumBannerSubtitle3 => 'Premium odblokowuje wszystko';
+
+  @override
+  String get premiumBannerTitle4 => 'Odkryj funkcje Premium';
+
+  @override
+  String get premiumBannerSubtitle4 => 'Nielimitowany dostęp do zaawansowanej AI';
+
+  @override
+  String get premiumBannerTitle5 => 'Przyspiesz swój workflow';
+
+  @override
+  String get premiumBannerSubtitle5 => 'Premium sprawia, że wszystko jest możliwe';
 }

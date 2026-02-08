@@ -188,7 +188,8 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                           Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Text(
-                              'No conversations matching "$_searchQuery"',
+                              AppLocalizations.of(context)!
+                                  .noConversationsMatching(_searchQuery),
                               style: TextStyle(color: Colors.grey.shade600),
                               textAlign: TextAlign.center,
                             ),
@@ -336,8 +337,16 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
       builder: (context, profileProvider, child) {
         final selectedProfile = profileProvider.profiles.firstWhere(
           (p) => p.id == profileProvider.selectedProfileId,
-          orElse: () => Profile(id: 0, name: 'User', createdAt: null),
+          orElse: () => Profile(
+            id: 0,
+            name: AppLocalizations.of(context)!.defaultUserName,
+            createdAt: null,
+          ),
         );
+        final displayName = selectedProfile.name.trim().isEmpty ||
+                selectedProfile.name == 'User'
+            ? AppLocalizations.of(context)!.defaultUserName
+            : selectedProfile.name;
 
         final settingsRow = Container(
           margin: const EdgeInsets.only(bottom: 20.0),
@@ -406,11 +415,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                           radius: 18,
                           backgroundColor: Colors.transparent,
                           child: Text(
-                            selectedProfile.name.isNotEmpty
-                                ? selectedProfile.name
-                                    .substring(0, 1)
-                                    .toUpperCase()
-                                : 'U',
+                            displayName.substring(0, 1).toUpperCase(),
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
@@ -430,9 +435,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                   // User Name
                   Expanded(
                     child: Text(
-                      selectedProfile.name.isNotEmpty
-                          ? selectedProfile.name
-                          : 'User',
+                      displayName,
                       style: TextStyle(
                         color: Theme.of(context).brightness == Brightness.dark
                             ? Colors.white
@@ -484,11 +487,11 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
               Icons.auto_stories_outlined,
               color: const Color(0xFF0078D4),
             ),
-            title: const Text('Knowledge Hub'),
+            title: Text(AppLocalizations.of(context)!.knowledgeHubTitle),
             subtitle: Text(
               subscriptionService.isPremium
-                  ? 'Manage saved memory'
-                  : 'Premium feature',
+                  ? AppLocalizations.of(context)!.knowledgeHubManageSavedMemory
+                  : AppLocalizations.of(context)!.premiumFeature,
             ),
             trailing: !subscriptionService.isPremium
                 ? Container(

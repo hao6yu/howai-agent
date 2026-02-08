@@ -2331,4 +2331,529 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => 'Глубокий анализ с несколькими источниками';
+
+  @override
+  String get hideKeyboard => 'Скрыть клавиатуру';
+
+  @override
+  String get knowledgeHubTitle => 'Центр знаний';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => 'Центр знаний (Премиум)';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => 'Центр знаний помогает HowAI запоминать ваши личные предпочтения, факты и цели во время разговоров.\n\nОбновите версию до Премиум, чтобы использовать эту функцию.';
+
+  @override
+  String get knowledgeHubReturn => 'Возвращаться';
+
+  @override
+  String get knowledgeHubGoToSubscription => 'Перейти к подписке';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => 'Новая память';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => 'Редактировать память';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => 'Удалить память';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => 'Удалить этот элемент памяти? Это невозможно отменить.';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => 'Использовать последнее сообщение чата';
+
+  @override
+  String get knowledgeHubAttachDocument => 'Прикрепить документ';
+
+  @override
+  String get knowledgeHubAttachingDocument => 'Прикрепляю документ...';
+
+  @override
+  String get knowledgeHubAttachedSources => 'Прикрепленные источники';
+
+  @override
+  String get knowledgeHubFieldTitle => 'Заголовок';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => 'Краткое название памяти';
+
+  @override
+  String get knowledgeHubFieldContent => 'Содержание';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'Что должен помнить HowAI?';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => 'Текст документа здесь остается скрытым. HowAI будет использовать извлеченное содержимое документа в контексте памяти.';
+
+  @override
+  String get knowledgeHubFieldType => 'Тип';
+
+  @override
+  String get knowledgeHubFieldTags => 'Теги';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => 'Теги (необязательно)';
+
+  @override
+  String get knowledgeHubFieldTagsHint => 'запятая, разделенные, теги';
+
+  @override
+  String get knowledgeHubPinned => 'Закреплено';
+
+  @override
+  String get knowledgeHubPinnedOnly => 'Только закрепленные';
+
+  @override
+  String get knowledgeHubUseInContext => 'Использование в контексте ИИ';
+
+  @override
+  String get knowledgeHubAllTypes => 'Все типы';
+
+  @override
+  String get knowledgeHubApply => 'Применять';
+
+  @override
+  String get knowledgeHubEdit => 'Редактировать';
+
+  @override
+  String get knowledgeHubPin => 'Приколоть';
+
+  @override
+  String get knowledgeHubUnpin => 'Открепить';
+
+  @override
+  String get knowledgeHubDisableInContext => 'Отключить в контексте';
+
+  @override
+  String get knowledgeHubEnableInContext => 'Включить в контексте';
+
+  @override
+  String get knowledgeHubFiltersTitle => 'Фильтры';
+
+  @override
+  String get knowledgeHubFiltersTooltip => 'Фильтры';
+
+  @override
+  String get knowledgeHubSearchHint => 'Поиск в памяти';
+
+  @override
+  String get knowledgeHubNoMatches => 'Ни один элемент памяти не соответствует вашим фильтрам.';
+
+  @override
+  String get knowledgeHubModeFromChat => 'Из чата';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => 'Сохранить недавнее сообщение в памяти';
+
+  @override
+  String get knowledgeHubModeTypeManually => 'Введите вручную';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => 'Напишите пользовательскую запись в памяти';
+
+  @override
+  String get knowledgeHubModeFromDocument => 'Из документа';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => 'Прикрепите файл и сохраните извлеченные знания';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => 'Выберите сообщение для ссылки';
+
+  @override
+  String get knowledgeHubSpeakerYou => 'Ты';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => 'КакИИ';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => 'Предпочтение';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => 'Факт';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => 'Цель';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => 'Ограничение';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => 'Другой';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => 'Обработка';
+
+  @override
+  String get knowledgeHubSourceStatusReady => 'Готовый';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => 'Неуспешный';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => 'Сохраненная память';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => 'Память документов';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => 'Центр знаний — это премиум-функция.';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => 'Сохраните ключевые детали один раз, и HowAI запомнит их в будущих чатах, поэтому вам не придется повторяться.';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => 'Снимайте то, что важно';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => 'Сохраняйте предпочтения, цели и ограничения прямо из сообщений.';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => 'Получайте более умные ответы';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => 'Соответствующая память используется в контексте, поэтому ответы кажутся более личными и последовательными.';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => 'Контролируйте свою память';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => 'Редактируйте, закрепляйте, отключайте или удаляйте элементы в любое время из одного места.';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => 'Обновите до Премиум';
+
+  @override
+  String get knowledgeHubWhatIsTitle => 'Что такое Центр знаний?';
+
+  @override
+  String get knowledgeHubWhatIsDesc => 'Личное пространство памяти, в котором вы один раз сохраняете ключевые детали, чтобы HowAI мог использовать их в будущих ответах.';
+
+  @override
+  String get knowledgeHubHowToStartTitle => 'С чего начать';
+
+  @override
+  String get knowledgeHubStep1 => 'Нажмите «Новое воспоминание» или используйте «Сохранить» в любом сообщении чата.';
+
+  @override
+  String get knowledgeHubStep2 => 'Выберите тип (Предпочтение, Цель, Факт, Ограничение).';
+
+  @override
+  String get knowledgeHubStep3 => 'Добавьте теги, чтобы облегчить сопоставление памяти в дальнейшем.';
+
+  @override
+  String get knowledgeHubStep4 => 'Закрепите важные воспоминания, чтобы расставить их приоритеты в контексте.';
+
+  @override
+  String get knowledgeHubExampleTitle => 'Примеры воспоминаний';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => 'Делайте мои резюме краткими и конкретными.';
+
+  @override
+  String get knowledgeHubExampleGoalContent => 'Готовлюсь к собеседованиям на менеджера по продукту.';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => 'Не включайте пути к локальным файлам в переведенный вывод.';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => 'Подобное воспоминание уже существует.';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => 'Не удалось создать память.';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => 'Не удалось обновить память.';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => 'Не удалось обновить статус PIN-кода.';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => 'Не удалось обновить активный статус.';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => 'Не удалось удалить память.';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => 'Связанное сообщение было обрезано в соответствии с размером памяти.';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => 'Не удалось прикрепить и извлечь документ.';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => 'Добавьте текст или прикрепите читаемый документ перед сохранением.';
+
+  @override
+  String get knowledgeHubNoRecentMessages => 'Недавних сообщений не найдено.';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => 'Из этого сообщения нечего спасти.';
+
+  @override
+  String get knowledgeHubSnackSaved => 'Сохранено в Центре знаний.';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => 'Это воспоминание уже существует в вашем Центре знаний.';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => 'Не удалось сохранить память. Пожалуйста, попробуйте еще раз.';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => 'Необходимо указать название и содержание.';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => 'Сохранить в Центр знаний';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => 'Центр знаний — это премиум-функция. Обновите версию, чтобы сохранять и повторно использовать личные воспоминания в разговорах.';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => 'Сохраните личную память из сообщений чата';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => 'Используйте сохраненный контекст памяти в ответах ИИ';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => 'Управляйте и организуйте свой центр знаний';
+
+  @override
+  String get knowledgeHubMoreActions => 'Более';
+
+  @override
+  String get knowledgeHubAddToMemory => 'Добавить в память';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => 'Сохраните мгновенно из этого сообщения';
+
+  @override
+  String get knowledgeHubReviewAndSave => 'Обзор и сохранение';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => 'Редактировать заголовок, содержимое, тип и теги';
+
+  @override
+  String get knowledgeHubQuickTranslate => 'Быстрый перевод';
+
+  @override
+  String get knowledgeHubRecentTargets => 'Недавние цели';
+
+  @override
+  String get knowledgeHubChooseLanguage => 'Выберите язык';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => 'Перевести на другой язык';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return 'Перевести на $language';
+  }
+
+  @override
+  String get leaveReview => 'Оставить отзыв';
+
+  @override
+  String get voiceSamplePreviewText => 'Здравствуйте, это образец голосового предварительного просмотра от HowAI.';
+
+  @override
+  String get voiceSampleGenerateFailed => 'Невозможно создать образец аудио.';
+
+  @override
+  String get voiceSampleUnavailable => 'Образец голоса недоступен. Пожалуйста, проверьте настройку ElevenLabs.';
+
+  @override
+  String get voiceSamplePlayFailed => 'Не удалось воспроизвести образец голоса.';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => 'Как работает воспроизведение голоса';
+
+  @override
+  String get voicePlaybackHowItWorksFree => 'Бесплатно: используйте голос вашего устройства для воспроизведения сообщений.';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => 'Премиум: переключитесь на голоса ElevenLabs для более естественного звучания.';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => 'Используйте кнопку воспроизведения образца, чтобы проверить голоса перед выбором.';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => 'Скорость голосовой связи системы и скорость ElevenLabs настраиваются отдельно.';
+
+  @override
+  String get voiceFreeSystemTitle => 'Бесплатная системная голосовая связь';
+
+  @override
+  String get voiceDeviceTtsTitle => 'Преобразование текста в речь устройства';
+
+  @override
+  String get voiceDeviceTtsDescription => 'Бесплатный голос, который читает ответы ИИ с помощью движка вашего устройства.';
+
+  @override
+  String get voiceStopSample => 'Остановить выборку';
+
+  @override
+  String get voicePlaySample => 'Воспроизвести образец';
+
+  @override
+  String get voiceLoadingVoices => 'Загрузка доступных голосов...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return 'Скорость голосовой связи системы (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => 'Используется для бесплатного преобразования текста в речь на устройстве.';
+
+  @override
+  String get voiceSpeedMinSystem => '0,5x';
+
+  @override
+  String get voiceSpeedMaxSystem => '1,2x';
+
+  @override
+  String get voicePremiumElevenLabsTitle => 'Премиум-голоса ElevenLabs';
+
+  @override
+  String get voicePremiumElevenLabsDesc => 'Голоса искусственного интеллекта студийного качества с более насыщенным тоном и четкостью.';
+
+  @override
+  String get voicePremiumEngineTitle => 'Премиум-движок воспроизведения';
+
+  @override
+  String get voiceSystemTts => 'Система ТТС';
+
+  @override
+  String get voiceElevenLabs => 'ОдиннадцатьЛабс';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'Скорость ElevenLabs (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0,8x';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1,5x';
+
+  @override
+  String get voicePremiumUpgradeDescription => 'Перейдите на Премиум, чтобы разблокировать естественные голоса ElevenLabs и предварительный просмотр голоса.';
+
+  @override
+  String get account => 'Аккаунт';
+
+  @override
+  String get signedIn => 'Выполнен вход';
+
+  @override
+  String get signIn => 'Войти';
+
+  @override
+  String get signUp => 'Регистрация';
+
+  @override
+  String get signInToHowAI => 'Войти в HowAI';
+
+  @override
+  String get signUpToHowAI => 'Зарегистрироваться в HowAI';
+
+  @override
+  String get continueWithGoogle => 'Продолжить с Google';
+
+  @override
+  String get continueWithApple => 'Продолжить с Apple';
+
+  @override
+  String get orContinueWithEmail => 'Или продолжить по email';
+
+  @override
+  String get emailAddress => 'Email адрес';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => 'Пароль';
+
+  @override
+  String get pleaseEnterYourEmail => 'Введите ваш email';
+
+  @override
+  String get pleaseEnterValidEmail => 'Введите корректный email';
+
+  @override
+  String get pleaseEnterYourPassword => 'Введите ваш пароль';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => 'Пароль должен содержать не менее 6 символов';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => 'Уже есть аккаунт? Войти';
+
+  @override
+  String get dontHaveAnAccountSignUp => 'Нет аккаунта? Зарегистрироваться';
+
+  @override
+  String get continueWithoutAccount => 'Продолжить без аккаунта';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => 'Ваши данные будут храниться только локально на этом устройстве';
+
+  @override
+  String get syncYourDataAcrossDevices => 'Синхронизируйте данные между устройствами';
+
+  @override
+  String get userProfile => 'Профиль пользователя';
+
+  @override
+  String get defaultUserName => 'Пользователь';
+
+  @override
+  String get knowledgeHubManageSavedMemory => 'Управление сохраненной памятью';
+
+  @override
+  String get chatLandingTitle => 'Чем я могу помочь?';
+
+  @override
+  String get chatLandingSubtitle => 'Печатайте или отправляйте голосом. Остальное я сделаю сам.';
+
+  @override
+  String get chatLandingTipCompact => 'Совет: нажмите + для фото, файлов, PDF и инструментов изображений.';
+
+  @override
+  String get chatLandingTipFull => 'Совет: нажмите +, чтобы использовать фото, файлы, скан в PDF, перевод и генерацию изображений.';
+
+  @override
+  String get premiumBannerTitle1 => 'Раскройте свой полный потенциал';
+
+  @override
+  String get premiumBannerSubtitle1 => 'Премиум-функции уже ждут вас';
+
+  @override
+  String get premiumBannerTitle2 => 'Готовы к безграничному творчеству?';
+
+  @override
+  String get premiumBannerSubtitle2 => 'Снимите все ограничения с Premium';
+
+  @override
+  String get premiumBannerTitle3 => 'Выведите ваш AI-опыт на новый уровень';
+
+  @override
+  String get premiumBannerSubtitle3 => 'Premium открывает всё';
+
+  @override
+  String get premiumBannerTitle4 => 'Откройте возможности Premium';
+
+  @override
+  String get premiumBannerSubtitle4 => 'Безлимитный доступ к продвинутому AI';
+
+  @override
+  String get premiumBannerTitle5 => 'Ускорьте рабочий процесс';
+
+  @override
+  String get premiumBannerSubtitle5 => 'С Premium возможно всё';
 }

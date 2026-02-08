@@ -2331,4 +2331,529 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => 'Chế độ Nghiên cứu Chuyên sâu sử dụng gpt-5.2 với nỗ lực suy luận cao để phân tích và hiểu biết kỹ lưỡng hơn. Tính năng premium này cung cấp giải thích toàn diện, nhiều góc nhìn, và suy luận logic sâu hơn.\n\nNâng cấp để truy cập khả năng AI nâng cao!';
+
+  @override
+  String get hideKeyboard => 'Ẩn bàn phím';
+
+  @override
+  String get knowledgeHubTitle => 'Trung tâm kiến ​​thức';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => 'Trung tâm kiến ​​thức (Cao cấp)';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => 'Trung tâm Kiến thức giúp HowAI ghi nhớ các sở thích, sự kiện và mục tiêu cá nhân của bạn trong các cuộc trò chuyện.\n\nNâng cấp lên Premium để sử dụng tính năng này.';
+
+  @override
+  String get knowledgeHubReturn => 'Trở lại';
+
+  @override
+  String get knowledgeHubGoToSubscription => 'Đi tới Đăng ký';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => 'Bộ nhớ mới';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => 'Chỉnh sửa bộ nhớ';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => 'Xóa bộ nhớ';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => 'Xóa mục kỷ niệm này? Điều này không thể hoàn tác được.';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => 'Sử dụng tin nhắn trò chuyện gần đây';
+
+  @override
+  String get knowledgeHubAttachDocument => 'Đính kèm tài liệu';
+
+  @override
+  String get knowledgeHubAttachingDocument => 'Đang đính kèm tài liệu...';
+
+  @override
+  String get knowledgeHubAttachedSources => 'Nguồn đính kèm';
+
+  @override
+  String get knowledgeHubFieldTitle => 'Tiêu đề';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => 'Tiêu đề bộ nhớ ngắn';
+
+  @override
+  String get knowledgeHubFieldContent => 'Nội dung';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'HowAI nên nhớ những gì?';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => 'Văn bản tài liệu vẫn bị ẩn ở đây. HowAI sẽ sử dụng nội dung tài liệu được trích xuất trong ngữ cảnh bộ nhớ.';
+
+  @override
+  String get knowledgeHubFieldType => 'Kiểu';
+
+  @override
+  String get knowledgeHubFieldTags => 'Thẻ';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => 'Thẻ (tùy chọn)';
+
+  @override
+  String get knowledgeHubFieldTagsHint => 'dấu phẩy, phân tách, thẻ';
+
+  @override
+  String get knowledgeHubPinned => 'Đã ghim';
+
+  @override
+  String get knowledgeHubPinnedOnly => 'Chỉ được ghim';
+
+  @override
+  String get knowledgeHubUseInContext => 'Sử dụng trong bối cảnh AI';
+
+  @override
+  String get knowledgeHubAllTypes => 'Tất cả các loại';
+
+  @override
+  String get knowledgeHubApply => 'Áp dụng';
+
+  @override
+  String get knowledgeHubEdit => 'Biên tập';
+
+  @override
+  String get knowledgeHubPin => 'Ghim';
+
+  @override
+  String get knowledgeHubUnpin => 'Bỏ ghim';
+
+  @override
+  String get knowledgeHubDisableInContext => 'Vô hiệu hóa trong ngữ cảnh';
+
+  @override
+  String get knowledgeHubEnableInContext => 'Kích hoạt trong ngữ cảnh';
+
+  @override
+  String get knowledgeHubFiltersTitle => 'Bộ lọc';
+
+  @override
+  String get knowledgeHubFiltersTooltip => 'Bộ lọc';
+
+  @override
+  String get knowledgeHubSearchHint => 'Tìm kiếm bộ nhớ';
+
+  @override
+  String get knowledgeHubNoMatches => 'Không có mục bộ nhớ nào phù hợp với bộ lọc của bạn.';
+
+  @override
+  String get knowledgeHubModeFromChat => 'Từ Trò chuyện';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => 'Lưu tin nhắn gần đây làm bộ nhớ';
+
+  @override
+  String get knowledgeHubModeTypeManually => 'Nhập thủ công';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => 'Viết một mục bộ nhớ tùy chỉnh';
+
+  @override
+  String get knowledgeHubModeFromDocument => 'Từ tài liệu';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => 'Đính kèm file và lưu trữ kiến ​​thức đã trích xuất';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => 'Chọn tin nhắn để liên kết';
+
+  @override
+  String get knowledgeHubSpeakerYou => 'Bạn';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => 'AI thế nào';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => 'Sự ưa thích';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => 'Sự thật';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => 'Mục tiêu';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => 'ràng buộc';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => 'Khác';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => 'Xử lý';
+
+  @override
+  String get knowledgeHubSourceStatusReady => 'Sẵn sàng';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => 'Thất bại';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => 'Bộ nhớ đã lưu';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => 'Bộ nhớ tài liệu';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => 'Trung tâm kiến ​​thức là một tính năng cao cấp';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => 'Lưu các chi tiết chính một lần và HowAI sẽ ghi nhớ chúng trong các cuộc trò chuyện trong tương lai để bạn không cần phải lặp lại.';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => 'Nắm bắt những gì quan trọng';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => 'Lưu tùy chọn, mục tiêu và ràng buộc trực tiếp từ tin nhắn.';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => 'Nhận câu trả lời thông minh hơn';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => 'Trí nhớ liên quan được sử dụng theo ngữ cảnh để các câu trả lời mang lại cảm giác cá nhân và nhất quán hơn.';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => 'Kiểm soát trí nhớ của bạn';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => 'Chỉnh sửa, ghim, vô hiệu hóa hoặc xóa các mục bất kỳ lúc nào từ một nơi.';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => 'Nâng cấp lên Premium';
+
+  @override
+  String get knowledgeHubWhatIsTitle => 'Trung tâm Kiến thức là gì?';
+
+  @override
+  String get knowledgeHubWhatIsDesc => 'Không gian bộ nhớ cá nhân nơi bạn lưu các chi tiết chính một lần để HowAI có thể sử dụng chúng trong các câu trả lời trong tương lai.';
+
+  @override
+  String get knowledgeHubHowToStartTitle => 'Làm thế nào để bắt đầu';
+
+  @override
+  String get knowledgeHubStep1 => 'Nhấn vào Kỷ niệm mới hoặc sử dụng Lưu từ bất kỳ tin nhắn trò chuyện nào.';
+
+  @override
+  String get knowledgeHubStep2 => 'Chọn loại (Ưu tiên, Mục tiêu, Thực tế, Ràng buộc).';
+
+  @override
+  String get knowledgeHubStep3 => 'Thêm thẻ để giúp bộ nhớ dễ dàng khớp hơn sau này.';
+
+  @override
+  String get knowledgeHubStep4 => 'Ghim những kỷ niệm quan trọng để ưu tiên chúng theo ngữ cảnh.';
+
+  @override
+  String get knowledgeHubExampleTitle => 'Ký ức mẫu';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => 'Giữ cho phần tóm tắt của tôi ngắn gọn và có dấu đầu dòng.';
+
+  @override
+  String get knowledgeHubExampleGoalContent => 'Tôi đang chuẩn bị cho cuộc phỏng vấn giám đốc sản phẩm.';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => 'Không bao gồm đường dẫn tệp cục bộ trong bản dịch đầu ra.';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => 'Một ký ức tương tự đã tồn tại.';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => 'Không tạo được bộ nhớ.';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => 'Không thể cập nhật bộ nhớ.';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => 'Không cập nhật được trạng thái mã pin.';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => 'Không cập nhật được trạng thái hoạt động.';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => 'Không thể xóa bộ nhớ.';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => 'Tin nhắn được liên kết đã được cắt bớt để phù hợp với độ dài bộ nhớ.';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => 'Không thể đính kèm và trích xuất tài liệu.';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => 'Thêm văn bản hoặc đính kèm tài liệu có thể đọc được trước khi lưu.';
+
+  @override
+  String get knowledgeHubNoRecentMessages => 'Không tìm thấy tin nhắn gần đây.';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => 'Không có gì để lưu từ tin nhắn này.';
+
+  @override
+  String get knowledgeHubSnackSaved => 'Đã lưu vào Trung tâm kiến ​​thức.';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => 'Bộ nhớ này đã tồn tại trong Trung tâm Kiến thức của bạn.';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => 'Không lưu được bộ nhớ. Vui lòng thử lại.';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => 'Tiêu đề và nội dung là bắt buộc.';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => 'Lưu vào Trung tâm kiến ​​thức';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => 'Trung tâm Kiến thức là một tính năng Cao cấp. Nâng cấp để lưu và sử dụng lại những kỷ niệm cá nhân trong các cuộc trò chuyện.';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => 'Lưu bộ nhớ cá nhân từ tin nhắn trò chuyện';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => 'Sử dụng bối cảnh bộ nhớ đã lưu trong phản hồi AI';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => 'Quản lý và sắp xếp trung tâm kiến ​​thức của bạn';
+
+  @override
+  String get knowledgeHubMoreActions => 'Hơn';
+
+  @override
+  String get knowledgeHubAddToMemory => 'Thêm vào bộ nhớ';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => 'Lưu ngay lập tức từ tin nhắn này';
+
+  @override
+  String get knowledgeHubReviewAndSave => 'Xem lại và lưu';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => 'Chỉnh sửa tiêu đề, nội dung, loại và thẻ';
+
+  @override
+  String get knowledgeHubQuickTranslate => 'Dịch nhanh';
+
+  @override
+  String get knowledgeHubRecentTargets => 'Mục tiêu gần đây';
+
+  @override
+  String get knowledgeHubChooseLanguage => 'Chọn ngôn ngữ';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => 'Dịch sang ngôn ngữ khác';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return 'Dịch sang $language';
+  }
+
+  @override
+  String get leaveReview => 'Để lại đánh giá';
+
+  @override
+  String get voiceSamplePreviewText => 'Xin chào, đây là bản xem trước giọng nói mẫu từ HowAI.';
+
+  @override
+  String get voiceSampleGenerateFailed => 'Không thể tạo âm thanh mẫu.';
+
+  @override
+  String get voiceSampleUnavailable => 'Mẫu giọng nói không có sẵn. Vui lòng kiểm tra thiết lập ElevenLabs.';
+
+  @override
+  String get voiceSamplePlayFailed => 'Không thể phát mẫu giọng nói.';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => 'Cách phát lại giọng nói hoạt động';
+
+  @override
+  String get voicePlaybackHowItWorksFree => 'Miễn phí: sử dụng giọng nói của thiết bị để phát lại tin nhắn.';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => 'Premium: chuyển sang giọng nói của ElevenLabs để có âm thanh tự nhiên hơn.';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => 'Sử dụng nút phát mẫu để kiểm tra giọng nói trước khi chọn.';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => 'Tốc độ giọng nói của hệ thống và tốc độ ElevenLabs được cấu hình riêng.';
+
+  @override
+  String get voiceFreeSystemTitle => 'Giọng nói hệ thống miễn phí';
+
+  @override
+  String get voiceDeviceTtsTitle => 'Chuyển văn bản thành giọng nói của thiết bị';
+
+  @override
+  String get voiceDeviceTtsDescription => 'Giọng nói miễn phí đọc phản hồi AI bằng công cụ thiết bị của bạn.';
+
+  @override
+  String get voiceStopSample => 'Dừng mẫu';
+
+  @override
+  String get voicePlaySample => 'Chơi mẫu';
+
+  @override
+  String get voiceLoadingVoices => 'Đang tải các giọng nói có sẵn...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return 'Tốc độ giọng nói của hệ thống (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => 'Được sử dụng để phát lại văn bản thành giọng nói miễn phí trên thiết bị.';
+
+  @override
+  String get voiceSpeedMinSystem => '0,5 lần';
+
+  @override
+  String get voiceSpeedMaxSystem => '1,2 lần';
+
+  @override
+  String get voicePremiumElevenLabsTitle => 'Giọng nói ElevenLabs cao cấp';
+
+  @override
+  String get voicePremiumElevenLabsDesc => 'Giọng nói AI chất lượng phòng thu với âm sắc phong phú và rõ ràng hơn.';
+
+  @override
+  String get voicePremiumEngineTitle => 'Công cụ phát lại cao cấp';
+
+  @override
+  String get voiceSystemTts => 'TTS hệ thống';
+
+  @override
+  String get voiceElevenLabs => 'ElevenLabs';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'Tốc độ ElevenLabs (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0,8 lần';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1,5 lần';
+
+  @override
+  String get voicePremiumUpgradeDescription => 'Nâng cấp lên Premium để mở khóa giọng nói ElevenLabs tự nhiên và xem trước giọng nói.';
+
+  @override
+  String get account => 'Tài khoản';
+
+  @override
+  String get signedIn => 'Đã đăng nhập';
+
+  @override
+  String get signIn => 'Đăng nhập';
+
+  @override
+  String get signUp => 'Đăng ký';
+
+  @override
+  String get signInToHowAI => 'Đăng nhập vào HowAI';
+
+  @override
+  String get signUpToHowAI => 'Đăng ký HowAI';
+
+  @override
+  String get continueWithGoogle => 'Tiếp tục với Google';
+
+  @override
+  String get continueWithApple => 'Tiếp tục với Apple';
+
+  @override
+  String get orContinueWithEmail => 'Hoặc tiếp tục bằng email';
+
+  @override
+  String get emailAddress => 'Địa chỉ email';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => 'Mật khẩu';
+
+  @override
+  String get pleaseEnterYourEmail => 'Vui lòng nhập email của bạn';
+
+  @override
+  String get pleaseEnterValidEmail => 'Vui lòng nhập email hợp lệ';
+
+  @override
+  String get pleaseEnterYourPassword => 'Vui lòng nhập mật khẩu của bạn';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => 'Mật khẩu phải có ít nhất 6 ký tự';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => 'Đã có tài khoản? Đăng nhập';
+
+  @override
+  String get dontHaveAnAccountSignUp => 'Chưa có tài khoản? Đăng ký';
+
+  @override
+  String get continueWithoutAccount => 'Tiếp tục không cần tài khoản';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => 'Dữ liệu của bạn sẽ chỉ được lưu cục bộ trên thiết bị này';
+
+  @override
+  String get syncYourDataAcrossDevices => 'Đồng bộ dữ liệu của bạn trên các thiết bị';
+
+  @override
+  String get userProfile => 'Hồ sơ người dùng';
+
+  @override
+  String get defaultUserName => 'Người dùng';
+
+  @override
+  String get knowledgeHubManageSavedMemory => 'Quản lý bộ nhớ đã lưu';
+
+  @override
+  String get chatLandingTitle => 'Tôi có thể giúp gì cho bạn?';
+
+  @override
+  String get chatLandingSubtitle => 'Nhập hoặc gửi giọng nói. Tôi sẽ xử lý phần còn lại.';
+
+  @override
+  String get chatLandingTipCompact => 'Mẹo: Nhấn + để dùng ảnh, tệp, PDF và công cụ hình ảnh.';
+
+  @override
+  String get chatLandingTipFull => 'Mẹo: Nhấn + để dùng ảnh, tệp, quét sang PDF, dịch và tạo hình ảnh.';
+
+  @override
+  String get premiumBannerTitle1 => 'Mở khóa toàn bộ tiềm năng của bạn';
+
+  @override
+  String get premiumBannerSubtitle1 => 'Các tính năng Premium đang chờ bạn';
+
+  @override
+  String get premiumBannerTitle2 => 'Sẵn sàng cho sự sáng tạo không giới hạn?';
+
+  @override
+  String get premiumBannerSubtitle2 => 'Gỡ mọi giới hạn với Premium';
+
+  @override
+  String get premiumBannerTitle3 => 'Nâng tầm trải nghiệm AI của bạn';
+
+  @override
+  String get premiumBannerSubtitle3 => 'Premium mở khóa mọi thứ';
+
+  @override
+  String get premiumBannerTitle4 => 'Khám phá các tính năng Premium';
+
+  @override
+  String get premiumBannerSubtitle4 => 'Truy cập không giới hạn vào AI nâng cao';
+
+  @override
+  String get premiumBannerTitle5 => 'Tăng tốc quy trình làm việc';
+
+  @override
+  String get premiumBannerSubtitle5 => 'Premium giúp mọi thứ trở nên khả thi';
 }

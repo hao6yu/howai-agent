@@ -2331,4 +2331,529 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => 'Mode Riset Mendalam menggunakan gpt-5.2 dengan upaya penalaran tinggi untuk analisis dan wawasan yang lebih menyeluruh. Fitur premium ini menyediakan penjelasan komprehensif, berbagai perspektif, dan penalaran logis yang lebih dalam.\n\nUpgrade untuk mengakses kemampuan AI yang ditingkatkan!';
+
+  @override
+  String get hideKeyboard => 'Sembunyikan papan ketik';
+
+  @override
+  String get knowledgeHubTitle => 'Pusat Pengetahuan';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => 'Pusat Pengetahuan (Premium)';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => 'Knowledge Hub membantu HowAI mengingat preferensi pribadi Anda, fakta, dan tujuan di seluruh percakapan.\n\nTingkatkan ke Premium untuk menggunakan fitur ini.';
+
+  @override
+  String get knowledgeHubReturn => 'Kembali';
+
+  @override
+  String get knowledgeHubGoToSubscription => 'Buka Berlangganan';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => 'Memori Baru';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => 'Sunting Memori';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => 'Hapus Memori';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => 'Hapus item memori ini? Hal ini tidak dapat dibatalkan.';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => 'Gunakan Pesan Obrolan Terbaru';
+
+  @override
+  String get knowledgeHubAttachDocument => 'Lampirkan Dokumen';
+
+  @override
+  String get knowledgeHubAttachingDocument => 'Melampirkan dokumen...';
+
+  @override
+  String get knowledgeHubAttachedSources => 'Sumber terlampir';
+
+  @override
+  String get knowledgeHubFieldTitle => 'Judul';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => 'Judul memori pendek';
+
+  @override
+  String get knowledgeHubFieldContent => 'Isi';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'Apa yang harus diingat HowAI?';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => 'Teks dokumen tetap tersembunyi di sini. HowAI akan menggunakan konten dokumen yang diekstraksi dalam konteks memori.';
+
+  @override
+  String get knowledgeHubFieldType => 'Jenis';
+
+  @override
+  String get knowledgeHubFieldTags => 'Tag';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => 'Tag (opsional)';
+
+  @override
+  String get knowledgeHubFieldTagsHint => 'koma, dipisahkan, tag';
+
+  @override
+  String get knowledgeHubPinned => 'Disematkan';
+
+  @override
+  String get knowledgeHubPinnedOnly => 'Hanya dipasangi pin';
+
+  @override
+  String get knowledgeHubUseInContext => 'Gunakan dalam konteks AI';
+
+  @override
+  String get knowledgeHubAllTypes => 'Semua tipe';
+
+  @override
+  String get knowledgeHubApply => 'Menerapkan';
+
+  @override
+  String get knowledgeHubEdit => 'Sunting';
+
+  @override
+  String get knowledgeHubPin => 'Sematkan';
+
+  @override
+  String get knowledgeHubUnpin => 'Membuka peniti';
+
+  @override
+  String get knowledgeHubDisableInContext => 'Nonaktifkan dalam konteks';
+
+  @override
+  String get knowledgeHubEnableInContext => 'Aktifkan dalam konteks';
+
+  @override
+  String get knowledgeHubFiltersTitle => 'Filter';
+
+  @override
+  String get knowledgeHubFiltersTooltip => 'Filter';
+
+  @override
+  String get knowledgeHubSearchHint => 'Cari memori';
+
+  @override
+  String get knowledgeHubNoMatches => 'Tidak ada item memori yang cocok dengan filter Anda.';
+
+  @override
+  String get knowledgeHubModeFromChat => 'Dari Obrolan';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => 'Simpan pesan terbaru sebagai memori';
+
+  @override
+  String get knowledgeHubModeTypeManually => 'Ketik Secara Manual';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => 'Tulis entri memori khusus';
+
+  @override
+  String get knowledgeHubModeFromDocument => 'Dari Dokumen';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => 'Lampirkan file dan simpan pengetahuan yang diekstraksi';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => 'Pilih pesan untuk ditautkan';
+
+  @override
+  String get knowledgeHubSpeakerYou => 'Anda';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => 'Bagaimana AI';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => 'Preferensi';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => 'Fakta';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => 'Sasaran';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => 'Kendala';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => 'Lainnya';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => 'Pengolahan';
+
+  @override
+  String get knowledgeHubSourceStatusReady => 'Siap';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => 'Gagal';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => 'Memori Tersimpan';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => 'Memori Dokumen';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => 'Pusat Pengetahuan adalah fitur Premium';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => 'Simpan detail penting satu kali, dan HowAI akan mengingatnya dalam obrolan berikutnya sehingga Anda tidak perlu mengulanginya lagi.';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => 'Tangkap apa yang penting';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => 'Simpan preferensi, sasaran, dan batasan langsung dari pesan.';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => 'Dapatkan balasan yang lebih cerdas';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => 'Memori yang relevan digunakan dalam konteks sehingga tanggapan terasa lebih pribadi dan konsisten.';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => 'Kontrol ingatan Anda';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => 'Edit, sematkan, nonaktifkan, atau hapus item kapan saja dari satu tempat.';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => 'Tingkatkan ke Premium';
+
+  @override
+  String get knowledgeHubWhatIsTitle => 'Apa itu Pusat Pengetahuan?';
+
+  @override
+  String get knowledgeHubWhatIsDesc => 'Ruang memori pribadi tempat Anda menyimpan detail penting satu kali, sehingga HowAI dapat menggunakannya dalam balasan mendatang.';
+
+  @override
+  String get knowledgeHubHowToStartTitle => 'Bagaimana memulainya';
+
+  @override
+  String get knowledgeHubStep1 => 'Ketuk Memori Baru atau gunakan Simpan dari pesan obrolan apa pun.';
+
+  @override
+  String get knowledgeHubStep2 => 'Pilih jenis (Preferensi, Sasaran, Fakta, Kendala).';
+
+  @override
+  String get knowledgeHubStep3 => 'Tambahkan tag agar memori lebih mudah dicocokkan nanti.';
+
+  @override
+  String get knowledgeHubStep4 => 'Sematkan kenangan penting untuk memprioritaskannya dalam konteks.';
+
+  @override
+  String get knowledgeHubExampleTitle => 'Contoh kenangan';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => 'Buat ringkasan saya singkat dan ringkas.';
+
+  @override
+  String get knowledgeHubExampleGoalContent => 'Saya sedang mempersiapkan wawancara manajer produk.';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => 'Jangan sertakan jalur file lokal dalam keluaran yang diterjemahkan.';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => 'Memori serupa sudah ada.';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => 'Gagal membuat memori.';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => 'Gagal memperbarui memori.';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => 'Gagal memperbarui status pin.';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => 'Gagal memperbarui status aktif.';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => 'Gagal menghapus memori.';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => 'Pesan tertaut dipangkas agar sesuai dengan panjang memori.';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => 'Gagal melampirkan dan mengekstrak dokumen.';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => 'Tambahkan teks atau lampirkan dokumen yang dapat dibaca sebelum disimpan.';
+
+  @override
+  String get knowledgeHubNoRecentMessages => 'Tidak ada pesan terbaru yang ditemukan.';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => 'Tidak ada yang bisa diselamatkan dari pesan ini.';
+
+  @override
+  String get knowledgeHubSnackSaved => 'Disimpan ke Pusat Pengetahuan.';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => 'Memori ini sudah ada di Pusat Pengetahuan Anda.';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => 'Gagal menyimpan memori. Silakan coba lagi.';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => 'Judul dan konten diperlukan.';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => 'Simpan ke Pusat Pengetahuan';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => 'Pusat Pengetahuan adalah fitur Premium. Tingkatkan versi untuk menyimpan dan menggunakan kembali kenangan pribadi di seluruh percakapan.';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => 'Simpan memori pribadi dari pesan obrolan';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => 'Gunakan konteks memori tersimpan dalam respons AI';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => 'Kelola dan atur pusat pengetahuan Anda';
+
+  @override
+  String get knowledgeHubMoreActions => 'Lagi';
+
+  @override
+  String get knowledgeHubAddToMemory => 'Tambahkan ke Memori';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => 'Simpan langsung dari pesan ini';
+
+  @override
+  String get knowledgeHubReviewAndSave => 'Tinjau & Simpan';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => 'Edit judul, konten, jenis, dan tag';
+
+  @override
+  String get knowledgeHubQuickTranslate => 'Terjemahan cepat';
+
+  @override
+  String get knowledgeHubRecentTargets => 'Target terkini';
+
+  @override
+  String get knowledgeHubChooseLanguage => 'Pilih bahasa';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => 'Terjemahkan ke bahasa lain';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return 'Terjemahkan ke $language';
+  }
+
+  @override
+  String get leaveReview => 'Tinggalkan Ulasan';
+
+  @override
+  String get voiceSamplePreviewText => 'Halo, ini adalah contoh pratinjau suara dari HowAI.';
+
+  @override
+  String get voiceSampleGenerateFailed => 'Tidak dapat membuat sampel audio.';
+
+  @override
+  String get voiceSampleUnavailable => 'Sampel suara tidak tersedia. Silakan periksa pengaturan ElevenLabs.';
+
+  @override
+  String get voiceSamplePlayFailed => 'Tidak dapat memutar sampel suara.';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => 'Cara kerja pemutaran suara';
+
+  @override
+  String get voicePlaybackHowItWorksFree => 'Gratis: gunakan suara perangkat Anda untuk memutar pesan.';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => 'Premium: beralih ke suara ElevenLabs untuk suara yang lebih alami.';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => 'Gunakan tombol putar sampel untuk menguji suara sebelum memilih.';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => 'Kecepatan suara sistem dan kecepatan ElevenLabs dikonfigurasi secara terpisah.';
+
+  @override
+  String get voiceFreeSystemTitle => 'Suara Sistem Gratis';
+
+  @override
+  String get voiceDeviceTtsTitle => 'Perangkat Text-to-Speech';
+
+  @override
+  String get voiceDeviceTtsDescription => 'Suara gratis yang membaca respons AI dengan mesin perangkat Anda.';
+
+  @override
+  String get voiceStopSample => 'Hentikan sampel';
+
+  @override
+  String get voicePlaySample => 'Mainkan sampel';
+
+  @override
+  String get voiceLoadingVoices => 'Memuat suara yang tersedia...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return 'Kecepatan suara sistem (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => 'Digunakan untuk pemutaran text-to-speech perangkat gratis.';
+
+  @override
+  String get voiceSpeedMinSystem => '0,5x';
+
+  @override
+  String get voiceSpeedMaxSystem => '1,2x';
+
+  @override
+  String get voicePremiumElevenLabsTitle => 'Suara ElevenLabs Premium';
+
+  @override
+  String get voicePremiumElevenLabsDesc => 'Suara AI berkualitas studio dengan nada lebih kaya dan jernih.';
+
+  @override
+  String get voicePremiumEngineTitle => 'Mesin pemutaran premium';
+
+  @override
+  String get voiceSystemTts => 'Sistem TTS';
+
+  @override
+  String get voiceElevenLabs => 'SebelasLabs';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'Kecepatan ElevenLabs (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0,8x';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1,5x';
+
+  @override
+  String get voicePremiumUpgradeDescription => 'Tingkatkan ke Premium untuk membuka suara alami ElevenLabs dan pratinjau suara.';
+
+  @override
+  String get account => 'Akun';
+
+  @override
+  String get signedIn => 'Masuk';
+
+  @override
+  String get signIn => 'Masuk';
+
+  @override
+  String get signUp => 'Daftar';
+
+  @override
+  String get signInToHowAI => 'Masuk ke HowAI';
+
+  @override
+  String get signUpToHowAI => 'Daftar ke HowAI';
+
+  @override
+  String get continueWithGoogle => 'Lanjutkan dengan Google';
+
+  @override
+  String get continueWithApple => 'Lanjutkan dengan Apple';
+
+  @override
+  String get orContinueWithEmail => 'Atau lanjutkan dengan email';
+
+  @override
+  String get emailAddress => 'Alamat email';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => 'Kata sandi';
+
+  @override
+  String get pleaseEnterYourEmail => 'Silakan masukkan email Anda';
+
+  @override
+  String get pleaseEnterValidEmail => 'Silakan masukkan email yang valid';
+
+  @override
+  String get pleaseEnterYourPassword => 'Silakan masukkan kata sandi Anda';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => 'Kata sandi harus minimal 6 karakter';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => 'Sudah punya akun? Masuk';
+
+  @override
+  String get dontHaveAnAccountSignUp => 'Belum punya akun? Daftar';
+
+  @override
+  String get continueWithoutAccount => 'Lanjutkan tanpa akun';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => 'Data Anda hanya akan disimpan secara lokal di perangkat ini';
+
+  @override
+  String get syncYourDataAcrossDevices => 'Sinkronkan data Anda di berbagai perangkat';
+
+  @override
+  String get userProfile => 'Profil pengguna';
+
+  @override
+  String get defaultUserName => 'Pengguna';
+
+  @override
+  String get knowledgeHubManageSavedMemory => 'Kelola memori tersimpan';
+
+  @override
+  String get chatLandingTitle => 'Apa yang bisa saya bantu?';
+
+  @override
+  String get chatLandingSubtitle => 'Ketik atau kirim suara. Saya yang tangani sisanya.';
+
+  @override
+  String get chatLandingTipCompact => 'Tip: Ketuk + untuk foto, file, PDF, dan alat gambar.';
+
+  @override
+  String get chatLandingTipFull => 'Tip: Ketuk + untuk menggunakan foto, file, pindai ke PDF, terjemahan, dan pembuatan gambar.';
+
+  @override
+  String get premiumBannerTitle1 => 'Buka potensi penuh Anda';
+
+  @override
+  String get premiumBannerSubtitle1 => 'Fitur premium menunggu Anda';
+
+  @override
+  String get premiumBannerTitle2 => 'Siap untuk kreativitas tanpa batas?';
+
+  @override
+  String get premiumBannerSubtitle2 => 'Hapus semua batasan dengan Premium';
+
+  @override
+  String get premiumBannerTitle3 => 'Tingkatkan pengalaman AI Anda';
+
+  @override
+  String get premiumBannerSubtitle3 => 'Premium membuka semuanya';
+
+  @override
+  String get premiumBannerTitle4 => 'Temukan fitur Premium';
+
+  @override
+  String get premiumBannerSubtitle4 => 'Akses tanpa batas ke AI canggih';
+
+  @override
+  String get premiumBannerTitle5 => 'Percepat alur kerja Anda';
+
+  @override
+  String get premiumBannerSubtitle5 => 'Premium membuat semuanya mungkin';
 }

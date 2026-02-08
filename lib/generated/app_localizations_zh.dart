@@ -2331,6 +2331,531 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => '深度研究模式使用gpt-5.2高级推理进行更全面的分析和洞察。此高级功能提供全面的解释、多种观点和更深层的逻辑推理。\n\n升级以获得增强的AI功能！';
+
+  @override
+  String get hideKeyboard => '隐藏键盘';
+
+  @override
+  String get knowledgeHubTitle => '知识中心';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => '知识中心（高级）';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => '知识中心帮助 HowAI 在对话中记住您的个人偏好、事实和目标。\n\n升级到高级版才能使用此功能。';
+
+  @override
+  String get knowledgeHubReturn => '返回';
+
+  @override
+  String get knowledgeHubGoToSubscription => '前往订阅';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => '新记忆';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => '编辑内存';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => '删除内存';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => '删除这个记忆项？此操作无法撤消。';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => '使用最近的聊天消息';
+
+  @override
+  String get knowledgeHubAttachDocument => '附上文件';
+
+  @override
+  String get knowledgeHubAttachingDocument => '附上文件...';
+
+  @override
+  String get knowledgeHubAttachedSources => '附来源';
+
+  @override
+  String get knowledgeHubFieldTitle => '标题';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => '短记忆标题';
+
+  @override
+  String get knowledgeHubFieldContent => '内容';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'HowAI 应该记住什么？';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => '文档文本隐藏在此处。 HowAI 将在内存上下文中使用提取的文档内容。';
+
+  @override
+  String get knowledgeHubFieldType => '类型';
+
+  @override
+  String get knowledgeHubFieldTags => '标签';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => '标签（可选）';
+
+  @override
+  String get knowledgeHubFieldTagsHint => '逗号、分隔、标签';
+
+  @override
+  String get knowledgeHubPinned => '已固定';
+
+  @override
+  String get knowledgeHubPinnedOnly => '仅固定';
+
+  @override
+  String get knowledgeHubUseInContext => '在 AI 环境中使用';
+
+  @override
+  String get knowledgeHubAllTypes => '所有类型';
+
+  @override
+  String get knowledgeHubApply => '申请';
+
+  @override
+  String get knowledgeHubEdit => '编辑';
+
+  @override
+  String get knowledgeHubPin => '别针';
+
+  @override
+  String get knowledgeHubUnpin => '取消固定';
+
+  @override
+  String get knowledgeHubDisableInContext => '在上下文中禁用';
+
+  @override
+  String get knowledgeHubEnableInContext => '在上下文中启用';
+
+  @override
+  String get knowledgeHubFiltersTitle => '过滤器';
+
+  @override
+  String get knowledgeHubFiltersTooltip => '过滤器';
+
+  @override
+  String get knowledgeHubSearchHint => '搜索记忆';
+
+  @override
+  String get knowledgeHubNoMatches => '没有内存项目符合您的过滤条件。';
+
+  @override
+  String get knowledgeHubModeFromChat => '来自聊天';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => '将最近的消息保存为内存';
+
+  @override
+  String get knowledgeHubModeTypeManually => '手动输入';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => '编写自定义内存条目';
+
+  @override
+  String get knowledgeHubModeFromDocument => '来自文档';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => '附加文件并存储提取的知识';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => '选择要链接的消息';
+
+  @override
+  String get knowledgeHubSpeakerYou => '你';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => '豪爱';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => '偏爱';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => '事实';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => '目标';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => '约束';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => '其他';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => '加工';
+
+  @override
+  String get knowledgeHubSourceStatusReady => '准备好';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => '失败的';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => '节省内存';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => '文档内存';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => '知识中心是一项高级功能';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => '保存一次关键详细信息，HowAI 会在以后的聊天中记住它们，因此您无需重复。';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => '捕捉重要内容';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => '直接从消息中保存偏好、目标和约束。';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => '获得更明智的回复';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => '相关记忆是在上下文中使用的，因此反应感觉更加个性化和一致。';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => '控制你的记忆';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => '随时从一处编辑、固定、禁用或删除项目。';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => '升级至高级版';
+
+  @override
+  String get knowledgeHubWhatIsTitle => '什么是知识中心？';
+
+  @override
+  String get knowledgeHubWhatIsDesc => '个人存储空间，您可以在其中保存一次关键详细信息，以便 HowAI 可以在将来的回复中使用它们。';
+
+  @override
+  String get knowledgeHubHowToStartTitle => '如何开始';
+
+  @override
+  String get knowledgeHubStep1 => '点击“新记忆”或使用任何聊天消息中的“保存”。';
+
+  @override
+  String get knowledgeHubStep2 => '选择类型（偏好、目标、事实、约束）。';
+
+  @override
+  String get knowledgeHubStep3 => '添加标签，方便以后记忆匹配。';
+
+  @override
+  String get knowledgeHubStep4 => '固定重要的记忆，以便根据上下文对它们进行优先排序。';
+
+  @override
+  String get knowledgeHubExampleTitle => '记忆示例';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => '我的总结要简短、重点突出。';
+
+  @override
+  String get knowledgeHubExampleGoalContent => '我正在准备产品经理面试。';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => '不要在翻译的输出中包含本地文件路径。';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => '类似的记忆已经存在。';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => '创建内存失败。';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => '更新内存失败。';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => '无法更新引脚状态。';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => '无法更新活动状态。';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => '删除内存失败。';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => '链接的消息已被修剪以适合内存长度。';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => '无法附加和提取文档。';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => '保存前添加文本或附加可读文档。';
+
+  @override
+  String get knowledgeHubNoRecentMessages => '没有找到最近的消息。';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => '此消息中没有任何内容可保存。';
+
+  @override
+  String get knowledgeHubSnackSaved => '保存到知识中心。';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => '该内存已存在于您的知识中心中。';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => '保存内存失败。请再试一次。';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => '标题和内容均为必填项。';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => '保存到知识中心';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => '知识中心是一项高级功能。升级后可在对话中保存和重复使用个人记忆。';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => '保存聊天消息中的个人记忆';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => '在 AI 响应中使用保存的内存上下文';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => '管理和组织您的知识中心';
+
+  @override
+  String get knowledgeHubMoreActions => '更多的';
+
+  @override
+  String get knowledgeHubAddToMemory => '添加到内存';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => '立即保存此消息';
+
+  @override
+  String get knowledgeHubReviewAndSave => '查看并保存';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => '编辑标题、内容、类型和标签';
+
+  @override
+  String get knowledgeHubQuickTranslate => '快速翻译';
+
+  @override
+  String get knowledgeHubRecentTargets => '近期目标';
+
+  @override
+  String get knowledgeHubChooseLanguage => '选择语言';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => '翻译成另一种语言';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return '翻译为 $language';
+  }
+
+  @override
+  String get leaveReview => '留下评论';
+
+  @override
+  String get voiceSamplePreviewText => '您好，这是 HowAI 的语音预览示例。';
+
+  @override
+  String get voiceSampleGenerateFailed => '无法生成示例音频。';
+
+  @override
+  String get voiceSampleUnavailable => '语音样本不可用。请检查 ElevenLabs 设置。';
+
+  @override
+  String get voiceSamplePlayFailed => '无法播放语音样本。';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => '语音播放的工作原理';
+
+  @override
+  String get voicePlaybackHowItWorksFree => '免费：使用您的设备语音播放消息。';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => '高级：切换到 ElevenLabs 声音以获得更自然的声音。';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => '在选择之前使用示例播放按钮测试声音。';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => '系统语音速度和ElevenLabs速度单独配置。';
+
+  @override
+  String get voiceFreeSystemTitle => '免费系统语音';
+
+  @override
+  String get voiceDeviceTtsTitle => '设备文本转语音';
+
+  @override
+  String get voiceDeviceTtsDescription => '使用您的设备引擎读取 AI 响应的免费语音。';
+
+  @override
+  String get voiceStopSample => '停止采样';
+
+  @override
+  String get voicePlaySample => '播放样本';
+
+  @override
+  String get voiceLoadingVoices => '正在加载可用的语音...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return '系统语音速度 (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => '用于免费设备文本转语音播放。';
+
+  @override
+  String get voiceSpeedMinSystem => '0.5x';
+
+  @override
+  String get voiceSpeedMaxSystem => '1.2倍';
+
+  @override
+  String get voicePremiumElevenLabsTitle => '高级 ElevenLabs 声音';
+
+  @override
+  String get voicePremiumElevenLabsDesc => '录音室品质的人工智能语音，音调更丰富、更清晰。';
+
+  @override
+  String get voicePremiumEngineTitle => '高级播放引擎';
+
+  @override
+  String get voiceSystemTts => '系统语音合成';
+
+  @override
+  String get voiceElevenLabs => '十一实验室';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'ElevenLabs 速度 (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0.8倍';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1.5倍';
+
+  @override
+  String get voicePremiumUpgradeDescription => '升级到高级版即可解锁自然的 ElevenLabs 语音和语音预览。';
+
+  @override
+  String get account => '账户';
+
+  @override
+  String get signedIn => '已登录';
+
+  @override
+  String get signIn => '登录';
+
+  @override
+  String get signUp => '注册';
+
+  @override
+  String get signInToHowAI => '登录 HowAI';
+
+  @override
+  String get signUpToHowAI => '注册 HowAI';
+
+  @override
+  String get continueWithGoogle => '使用 Google 继续';
+
+  @override
+  String get continueWithApple => '使用 Apple 继续';
+
+  @override
+  String get orContinueWithEmail => '或使用邮箱继续';
+
+  @override
+  String get emailAddress => '邮箱地址';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => '密码';
+
+  @override
+  String get pleaseEnterYourEmail => '请输入你的邮箱';
+
+  @override
+  String get pleaseEnterValidEmail => '请输入有效的邮箱地址';
+
+  @override
+  String get pleaseEnterYourPassword => '请输入你的密码';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => '密码至少需要 6 个字符';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => '已有账号？去登录';
+
+  @override
+  String get dontHaveAnAccountSignUp => '还没有账号？去注册';
+
+  @override
+  String get continueWithoutAccount => '不登录继续使用';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => '你的数据只会存储在此设备本地';
+
+  @override
+  String get syncYourDataAcrossDevices => '跨设备同步你的数据';
+
+  @override
+  String get userProfile => '用户资料';
+
+  @override
+  String get defaultUserName => '用户';
+
+  @override
+  String get knowledgeHubManageSavedMemory => '管理已保存记忆';
+
+  @override
+  String get chatLandingTitle => '我可以帮你做什么？';
+
+  @override
+  String get chatLandingSubtitle => '输入文字或发送语音，其余交给我。';
+
+  @override
+  String get chatLandingTipCompact => '提示：点按 + 可使用照片、文件、PDF 和图像工具。';
+
+  @override
+  String get chatLandingTipFull => '提示：点按 + 可使用照片、文件、扫描转 PDF、翻译和图像生成。';
+
+  @override
+  String get premiumBannerTitle1 => '解锁你的全部潜力';
+
+  @override
+  String get premiumBannerSubtitle1 => '高级功能等你开启';
+
+  @override
+  String get premiumBannerTitle2 => '准备好无限创意了吗？';
+
+  @override
+  String get premiumBannerSubtitle2 => '升级高级版，移除所有限制';
+
+  @override
+  String get premiumBannerTitle3 => '让你的 AI 体验更进一步';
+
+  @override
+  String get premiumBannerSubtitle3 => '高级版解锁全部能力';
+
+  @override
+  String get premiumBannerTitle4 => '探索高级功能';
+
+  @override
+  String get premiumBannerSubtitle4 => '无限使用高级 AI 功能';
+
+  @override
+  String get premiumBannerTitle5 => '为你的工作流加速';
+
+  @override
+  String get premiumBannerSubtitle5 => '高级版让一切成为可能';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -4099,6 +4624,24 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get featurePlacesExplorerDesc => '查找附近的餐廳、景點和服務';
 
   @override
+  String get quickActionAskFromPhoto => 'Ask from photo';
+
+  @override
+  String get quickActionAskFromFile => 'Ask from file';
+
+  @override
+  String get quickActionScanToPdf => 'Scan to PDF';
+
+  @override
+  String get quickActionGenerateImage => 'Generate image';
+
+  @override
+  String get quickActionTranslateSubtitle => 'Text, photo, or file';
+
+  @override
+  String get quickActionFindPlaces => 'Find places';
+
+  @override
   String get featurePhotoToPdfTitle => '照片轉PDF';
 
   @override
@@ -4642,4 +5185,529 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get deepResearchUpgradeDesc => '深度研究模式使用gpt-5.2高級推理進行更全面的分析和洞察。此高級功能提供全面的解釋、多種觀點和更深層的邏輯推理。\n\n升級以獲得增強的AI功能！';
+
+  @override
+  String get hideKeyboard => '隱藏鍵盤';
+
+  @override
+  String get knowledgeHubTitle => '知識中心';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => '知識中心（高級）';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => '知識中心幫助 HowAI 在對話中記住您的個人偏好、事實和目標。\n\n升級到高級版才能使用此功能。';
+
+  @override
+  String get knowledgeHubReturn => '返回';
+
+  @override
+  String get knowledgeHubGoToSubscription => '前往訂閱';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => '新記憶';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => '編輯內存';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => '刪除內存';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => '刪除這個記憶項？此操作無法撤消。';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => '使用最近的聊天消息';
+
+  @override
+  String get knowledgeHubAttachDocument => '附上文件';
+
+  @override
+  String get knowledgeHubAttachingDocument => '附上文件...';
+
+  @override
+  String get knowledgeHubAttachedSources => '附來源';
+
+  @override
+  String get knowledgeHubFieldTitle => '標題';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => '短記憶標題';
+
+  @override
+  String get knowledgeHubFieldContent => '內容';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'HowAI 應該記住什麼？';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => '文檔文本隱藏在此處。 HowAI 將在內存上下文中使用提取的文檔內容。';
+
+  @override
+  String get knowledgeHubFieldType => '類型';
+
+  @override
+  String get knowledgeHubFieldTags => '標籤';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => '標籤（可選）';
+
+  @override
+  String get knowledgeHubFieldTagsHint => '逗號、分隔、標籤';
+
+  @override
+  String get knowledgeHubPinned => '已固定';
+
+  @override
+  String get knowledgeHubPinnedOnly => '僅固定';
+
+  @override
+  String get knowledgeHubUseInContext => '在 AI 環境中使用';
+
+  @override
+  String get knowledgeHubAllTypes => '所有類型';
+
+  @override
+  String get knowledgeHubApply => '申請';
+
+  @override
+  String get knowledgeHubEdit => '編輯';
+
+  @override
+  String get knowledgeHubPin => '別針';
+
+  @override
+  String get knowledgeHubUnpin => '取消固定';
+
+  @override
+  String get knowledgeHubDisableInContext => '在上下文中禁用';
+
+  @override
+  String get knowledgeHubEnableInContext => '在上下文中啟用';
+
+  @override
+  String get knowledgeHubFiltersTitle => '過濾器';
+
+  @override
+  String get knowledgeHubFiltersTooltip => '過濾器';
+
+  @override
+  String get knowledgeHubSearchHint => '搜索記憶';
+
+  @override
+  String get knowledgeHubNoMatches => '沒有內存項目符合您的過濾條件。';
+
+  @override
+  String get knowledgeHubModeFromChat => '來自聊天';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => '將最近的消息保存為內存';
+
+  @override
+  String get knowledgeHubModeTypeManually => '手動輸入';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => '編寫自定義內存條目';
+
+  @override
+  String get knowledgeHubModeFromDocument => '來自文檔';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => '附加文件並存儲提取的知識';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => '選擇要鏈接的消息';
+
+  @override
+  String get knowledgeHubSpeakerYou => '你';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => '豪愛';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => '偏愛';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => '事實';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => '目標';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => '約束';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => '其他';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => '加工';
+
+  @override
+  String get knowledgeHubSourceStatusReady => '準備好';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => '失敗的';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => '節省內存';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => '文檔內存';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => '知識中心是一項高級功能';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => '保存一次關鍵詳細信息，HowAI 會在以後的聊天中記住它們，因此您無需重複。';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => '捕捉重要內容';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => '直接從消息中保存偏好、目標和約束。';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => '獲得更明智的回复';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => '相關記憶是在上下文中使用的，因此反應感覺更加個性化和一致。';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => '控制你的記憶';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => '隨時從一處編輯、固定、禁用或刪除項目。';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => '升級至高級版';
+
+  @override
+  String get knowledgeHubWhatIsTitle => '什麼是知識中心？';
+
+  @override
+  String get knowledgeHubWhatIsDesc => '個人存儲空間，您可以在其中保存一次關鍵詳細信息，以便 HowAI 可以在將來的回復中使用它們。';
+
+  @override
+  String get knowledgeHubHowToStartTitle => '如何開始';
+
+  @override
+  String get knowledgeHubStep1 => '點擊“新記憶”或使用任何聊天消息中的“保存”。';
+
+  @override
+  String get knowledgeHubStep2 => '選擇類型（偏好、目標、事實、約束）。';
+
+  @override
+  String get knowledgeHubStep3 => '添加標籤，方便以後記憶匹配。';
+
+  @override
+  String get knowledgeHubStep4 => '固定重要的記憶，以便根據上下文對它們進行優先排序。';
+
+  @override
+  String get knowledgeHubExampleTitle => '記憶示例';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => '我的總結要簡短、重點突出。';
+
+  @override
+  String get knowledgeHubExampleGoalContent => '我正在準備產品經理面試。';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => '不要在翻譯的輸出中包含本地文件路徑。';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => '類似的記憶已經存在。';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => '創建內存失敗。';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => '更新內存失敗。';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => '無法更新引腳狀態。';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => '無法更新活動狀態。';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => '刪除內存失敗。';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => '鏈接的消息已被修剪以適合內存長度。';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => '無法附加和提取文檔。';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => '保存前添加文本或附加可讀文檔。';
+
+  @override
+  String get knowledgeHubNoRecentMessages => '沒有找到最近的消息。';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => '此消息中沒有任何內容可保存。';
+
+  @override
+  String get knowledgeHubSnackSaved => '保存到知識中心。';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => '該內存已存在於您的知識中心中。';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => '保存內存失敗。請再試一次。';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => '標題和內容均為必填項。';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => '保存到知識中心';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => '知識中心是一項高級功能。升級後可在對話中保存和重複使用個人記憶。';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => '保存聊天消息中的個人記憶';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => '在 AI 響應中使用保存的內存上下文';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => '管理和組織您的知識中心';
+
+  @override
+  String get knowledgeHubMoreActions => '更多的';
+
+  @override
+  String get knowledgeHubAddToMemory => '添加到內存';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => '立即保存此消息';
+
+  @override
+  String get knowledgeHubReviewAndSave => '查看並保存';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => '編輯標題、內容、類型和標籤';
+
+  @override
+  String get knowledgeHubQuickTranslate => '快速翻譯';
+
+  @override
+  String get knowledgeHubRecentTargets => '近期目標';
+
+  @override
+  String get knowledgeHubChooseLanguage => '選擇語言';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => '翻譯成另一種語言';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return '翻譯為 $language';
+  }
+
+  @override
+  String get leaveReview => '留下評論';
+
+  @override
+  String get voiceSamplePreviewText => '您好，這是 HowAI 的語音預覽示例。';
+
+  @override
+  String get voiceSampleGenerateFailed => '無法生成示例音頻。';
+
+  @override
+  String get voiceSampleUnavailable => '語音樣本不可用。請檢查 ElevenLabs 設置。';
+
+  @override
+  String get voiceSamplePlayFailed => '無法播放語音樣本。';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => '語音播放的工作原理';
+
+  @override
+  String get voicePlaybackHowItWorksFree => '免費：使用您的設備語音播放消息。';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => '高級：切換到 ElevenLabs 聲音以獲得更自然的聲音。';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => '在選擇之前使用示例播放按鈕測試聲音。';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => '系統語音速度和ElevenLabs速度單獨配置。';
+
+  @override
+  String get voiceFreeSystemTitle => '免費系統語音';
+
+  @override
+  String get voiceDeviceTtsTitle => '設備文本轉語音';
+
+  @override
+  String get voiceDeviceTtsDescription => '使用您的設備引擎讀取 AI 響應的免費語音。';
+
+  @override
+  String get voiceStopSample => '停止採樣';
+
+  @override
+  String get voicePlaySample => '播放樣本';
+
+  @override
+  String get voiceLoadingVoices => '正在加載可用的語音...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return '系統語音速度 (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => '用於免費設備文本轉語音播放。';
+
+  @override
+  String get voiceSpeedMinSystem => '0.5倍';
+
+  @override
+  String get voiceSpeedMaxSystem => '1.2倍';
+
+  @override
+  String get voicePremiumElevenLabsTitle => '高級 ElevenLabs 聲音';
+
+  @override
+  String get voicePremiumElevenLabsDesc => '錄音室品質的人工智能語音，音調更豐富、更清晰。';
+
+  @override
+  String get voicePremiumEngineTitle => '高級播放引擎';
+
+  @override
+  String get voiceSystemTts => '系統語音合成';
+
+  @override
+  String get voiceElevenLabs => '十一實驗室';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'ElevenLabs 速度 (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0.8倍';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1.5倍';
+
+  @override
+  String get voicePremiumUpgradeDescription => '升級到高級版即可解鎖自然的 ElevenLabs 語音和語音預覽。';
+
+  @override
+  String get account => '帳戶';
+
+  @override
+  String get signedIn => '已登入';
+
+  @override
+  String get signIn => '登入';
+
+  @override
+  String get signUp => '註冊';
+
+  @override
+  String get signInToHowAI => '登入 HowAI';
+
+  @override
+  String get signUpToHowAI => '註冊 HowAI';
+
+  @override
+  String get continueWithGoogle => '使用 Google 繼續';
+
+  @override
+  String get continueWithApple => '使用 Apple 繼續';
+
+  @override
+  String get orContinueWithEmail => '或使用電子郵件繼續';
+
+  @override
+  String get emailAddress => '電子郵件地址';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => '密碼';
+
+  @override
+  String get pleaseEnterYourEmail => '請輸入你的電子郵件';
+
+  @override
+  String get pleaseEnterValidEmail => '請輸入有效的電子郵件地址';
+
+  @override
+  String get pleaseEnterYourPassword => '請輸入你的密碼';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => '密碼至少需要 6 個字元';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => '已有帳戶？去登入';
+
+  @override
+  String get dontHaveAnAccountSignUp => '還沒有帳戶？去註冊';
+
+  @override
+  String get continueWithoutAccount => '不登入繼續使用';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => '你的資料只會儲存在此裝置本機';
+
+  @override
+  String get syncYourDataAcrossDevices => '跨裝置同步你的資料';
+
+  @override
+  String get userProfile => '使用者資料';
+
+  @override
+  String get defaultUserName => '使用者';
+
+  @override
+  String get knowledgeHubManageSavedMemory => '管理已儲存記憶';
+
+  @override
+  String get chatLandingTitle => '我可以幫你做什麼？';
+
+  @override
+  String get chatLandingSubtitle => '輸入或傳送語音，剩下交給我。';
+
+  @override
+  String get chatLandingTipCompact => '提示：點擊 + 可使用照片、檔案、PDF 與圖片工具。';
+
+  @override
+  String get chatLandingTipFull => '提示：點擊 + 可使用照片、檔案、掃描成 PDF、翻譯與圖片生成。';
+
+  @override
+  String get premiumBannerTitle1 => '解鎖你的全部潛力';
+
+  @override
+  String get premiumBannerSubtitle1 => '進階功能等你開啟';
+
+  @override
+  String get premiumBannerTitle2 => '準備好無限創意了嗎？';
+
+  @override
+  String get premiumBannerSubtitle2 => '升級進階版，移除所有限制';
+
+  @override
+  String get premiumBannerTitle3 => '讓你的 AI 體驗更進一步';
+
+  @override
+  String get premiumBannerSubtitle3 => '進階版解鎖全部能力';
+
+  @override
+  String get premiumBannerTitle4 => '探索進階功能';
+
+  @override
+  String get premiumBannerSubtitle4 => '無限使用進階 AI 功能';
+
+  @override
+  String get premiumBannerTitle5 => '為你的工作流程加速';
+
+  @override
+  String get premiumBannerSubtitle5 => '進階版讓一切成為可能';
 }

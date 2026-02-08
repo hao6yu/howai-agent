@@ -44,8 +44,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadAIPersonality() async {
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-    final aiPersonalityProvider = Provider.of<AIPersonalityProvider>(context, listen: false);
+    final profileProvider =
+        Provider.of<ProfileProvider>(context, listen: false);
+    final aiPersonalityProvider =
+        Provider.of<AIPersonalityProvider>(context, listen: false);
     final currentProfileId = profileProvider.selectedProfileId;
     if (currentProfileId != null) {
       await aiPersonalityProvider.loadPersonalityForProfile(currentProfileId);
@@ -107,13 +109,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: Icons.format_size_rounded,
           title: AppLocalizations.of(context)!.textSize,
           trailing: _buildTextSizePreview(),
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FontSizeScreen())),
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const FontSizeScreen())),
         ),
         _buildDivider(),
         _buildNavItem(
           icon: Icons.record_voice_over_rounded,
           title: AppLocalizations.of(context)!.voiceSettings,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceSettingsScreen())),
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const VoiceSettingsScreen())),
         ),
         _buildDivider(),
         Consumer<SettingsProvider>(
@@ -142,7 +146,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _buildNavItem(
           icon: Icons.analytics_rounded,
           title: AppLocalizations.of(context)!.usageStatistics,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const UsageStatisticsScreen())),
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const UsageStatisticsScreen())),
         ),
         _buildDivider(),
         _buildNavItem(
@@ -168,13 +173,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _buildNavItem(
           icon: Icons.help_outline_rounded,
           title: AppLocalizations.of(context)!.helpAndInstructions,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const InstructionsScreen())),
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const InstructionsScreen())),
         ),
         _buildDivider(),
         _buildNavItem(
           icon: Icons.info_outline_rounded,
           title: AppLocalizations.of(context)!.aboutHowAi,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AboutPage())),
+          onTap: () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => const AboutPage())),
         ),
       ],
     );
@@ -193,10 +200,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onChanged: (value) async {
               if (value) {
                 await sub.setDebugPremiumOverride(true);
-                if (mounted) _showSnackBar('Debug: Premium mode enabled', Colors.green);
+                if (mounted)
+                  _showSnackBar('Debug: Premium mode enabled', Colors.green);
               } else {
                 await sub.clearDebugOverride();
-                if (mounted) _showSnackBar('Debug: Using real subscription', Colors.blue);
+                if (mounted)
+                  _showSnackBar('Debug: Using real subscription', Colors.blue);
               }
             },
           ),
@@ -206,9 +215,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: Icons.science,
           title: 'Test Free Mode',
           onTap: () async {
-            final sub = Provider.of<SubscriptionService>(context, listen: false);
+            final sub =
+                Provider.of<SubscriptionService>(context, listen: false);
             await sub.setDebugFreeOverride();
-            if (mounted) _showSnackBar('Debug: Free mode enabled', Colors.orange);
+            if (mounted)
+              _showSnackBar('Debug: Free mode enabled', Colors.orange);
           },
         ),
         _buildDivider(),
@@ -223,7 +234,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           title: 'Review Threshold',
           trailing: FutureBuilder<int>(
             future: ReviewService.getReviewThreshold(),
-            builder: (context, snapshot) => _buildBadge('${snapshot.data ?? 5}'),
+            builder: (context, snapshot) =>
+                _buildBadge('${snapshot.data ?? 5}'),
           ),
           onTap: _showReviewThresholdDialog,
         ),
@@ -245,16 +257,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
         if (auth.isAuthenticated) {
           return _buildNavItem(
             icon: Icons.account_circle,
-            title: auth.user?.email ?? 'Account',
-            subtitle: 'Signed in',
+            title: auth.user?.email ?? AppLocalizations.of(context)!.account,
+            subtitle: AppLocalizations.of(context)!.signedIn,
             trailing: Icon(Icons.logout, color: Colors.grey.shade400, size: 20),
             onTap: () => _showSignOutDialog(),
           );
         }
         return _buildNavItem(
           icon: Icons.login,
-          title: 'Sign In',
-          subtitle: 'Sync your data across devices',
+          title: AppLocalizations.of(context)!.signIn,
+          subtitle: AppLocalizations.of(context)!.syncYourDataAcrossDevices,
           onTap: () => Navigator.pushNamed(context, '/auth'),
         );
       },
@@ -266,13 +278,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context, profileProvider, _) {
         final profile = profileProvider.profiles.firstWhere(
           (p) => p.id == profileProvider.selectedProfileId,
-          orElse: () => Profile(id: 0, name: 'User', createdAt: null),
+          orElse: () => Profile(
+              id: 0,
+              name: AppLocalizations.of(context)!.defaultUserName,
+              createdAt: null),
         );
+        final displayName =
+            profile.name.trim().isEmpty || profile.name == 'User'
+                ? AppLocalizations.of(context)!.defaultUserName
+                : profile.name;
         return _buildNavItem(
           icon: Icons.person_outline_rounded,
-          title: 'User Profile',
-          subtitle: profile.name,
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileScreen())),
+          title: AppLocalizations.of(context)!.userProfile,
+          subtitle: displayName,
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const ProfileScreen())),
         );
       },
     );
@@ -282,12 +302,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Consumer2<ProfileProvider, AIPersonalityProvider>(
       builder: (context, profileProvider, aiProvider, _) {
         final profileId = profileProvider.selectedProfileId;
-        final personality = profileId != null ? aiProvider.getPersonalityForProfile(profileId) : null;
+        final personality = profileId != null
+            ? aiProvider.getPersonalityForProfile(profileId)
+            : null;
         return _buildNavItem(
           icon: Icons.smart_toy_outlined,
-          title: 'AI Personality',
+          title: AppLocalizations.of(context)!.aiPersonality,
           subtitle: personality?.aiName ?? 'HowAI Agent',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AIPersonalityScreen())),
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const AIPersonalityScreen())),
         );
       },
     );
@@ -322,8 +345,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildThemeSegmentedControl(SettingsProvider settings) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark 
-            ? Colors.grey.shade800 
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
             : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
       ),
@@ -430,8 +453,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark 
-            ? Colors.grey.shade800 
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
             : Colors.grey.shade100,
         borderRadius: BorderRadius.circular(8),
       ),
@@ -443,10 +466,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             fontSize: settings.getScaledFontSize(14),
             color: Theme.of(context).textTheme.bodyMedium?.color,
           ),
-          items: languages.entries.map((e) => DropdownMenuItem(
-            value: e.key,
-            child: Text(e.value),
-          )).toList(),
+          items: languages.entries
+              .map((e) => DropdownMenuItem(
+                    value: e.key,
+                    child: Text(e.value),
+                  ))
+              .toList(),
           onChanged: (value) => settings.setSelectedLocale(value),
         ),
       ),
@@ -539,7 +564,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
-                  trailing ?? Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400),
+                  trailing ??
+                      Icon(Icons.chevron_right_rounded,
+                          color: Colors.grey.shade400),
                 ],
               ),
             ),
@@ -613,25 +640,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('A', style: TextStyle(
-              fontSize: 12,
-              color: scale <= 0.9 ? const Color(0xFF0078D4) : Colors.grey.shade400,
-              fontWeight: scale <= 0.9 ? FontWeight.w600 : FontWeight.normal,
-            )),
+            Text('A',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: scale <= 0.9
+                      ? const Color(0xFF0078D4)
+                      : Colors.grey.shade400,
+                  fontWeight:
+                      scale <= 0.9 ? FontWeight.w600 : FontWeight.normal,
+                )),
             const SizedBox(width: 2),
-            Text('A', style: TextStyle(
-              fontSize: 16,
-              color: scale > 0.9 && scale <= 1.1 ? const Color(0xFF0078D4) : Colors.grey.shade400,
-              fontWeight: scale > 0.9 && scale <= 1.1 ? FontWeight.w600 : FontWeight.normal,
-            )),
+            Text('A',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: scale > 0.9 && scale <= 1.1
+                      ? const Color(0xFF0078D4)
+                      : Colors.grey.shade400,
+                  fontWeight: scale > 0.9 && scale <= 1.1
+                      ? FontWeight.w600
+                      : FontWeight.normal,
+                )),
             const SizedBox(width: 2),
-            Text('A', style: TextStyle(
-              fontSize: 20,
-              color: scale > 1.1 ? const Color(0xFF0078D4) : Colors.grey.shade400,
-              fontWeight: scale > 1.1 ? FontWeight.w600 : FontWeight.normal,
-            )),
+            Text('A',
+                style: TextStyle(
+                  fontSize: 20,
+                  color: scale > 1.1
+                      ? const Color(0xFF0078D4)
+                      : Colors.grey.shade400,
+                  fontWeight: scale > 1.1 ? FontWeight.w600 : FontWeight.normal,
+                )),
             const SizedBox(width: 8),
-            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20),
+            Icon(Icons.chevron_right_rounded,
+                color: Colors.grey.shade400, size: 20),
           ],
         );
       },
@@ -646,18 +686,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(colors: [Color(0xFF0078D4), Color(0xFF106ebe)]),
+                  gradient: const LinearGradient(
+                      colors: [Color(0xFF0078D4), Color(0xFF106ebe)]),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   AppLocalizations.of(context)!.premium,
-                  style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20),
+              Icon(Icons.chevron_right_rounded,
+                  color: Colors.grey.shade400, size: 20),
             ],
           );
         }
@@ -672,11 +718,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
               child: Text(
                 AppLocalizations.of(context)!.free,
-                style: TextStyle(color: Colors.orange.shade700, fontSize: 11, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.orange.shade700,
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold),
               ),
             ),
             const SizedBox(width: 8),
-            Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20),
+            Icon(Icons.chevron_right_rounded,
+                color: Colors.grey.shade400, size: 20),
           ],
         );
       },
@@ -703,7 +753,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        Icon(Icons.chevron_right_rounded, color: Colors.grey.shade400, size: 20),
+        Icon(Icons.chevron_right_rounded,
+            color: Colors.grey.shade400, size: 20),
       ],
     );
   }
@@ -715,7 +766,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Sign Out'),
-        content: const Text('Are you sure you want to sign out? Your data will remain on this device.'),
+        content: const Text(
+            'Are you sure you want to sign out? Your data will remain on this device.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -725,7 +777,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               Navigator.pop(context);
               await Provider.of<AuthProvider>(context, listen: false).signOut();
-              if (mounted) _showSnackBar('Signed out successfully', Colors.green);
+              if (mounted)
+                _showSnackBar('Signed out successfully', Colors.green);
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Sign Out'),
@@ -736,13 +789,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showClearChatDialog() {
-    final isAuthenticated = Provider.of<AuthProvider>(context, listen: false).isAuthenticated;
+    final isAuthenticated =
+        Provider.of<AuthProvider>(context, listen: false).isAuthenticated;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context)!.clearChatHistoryTitle),
         content: Text(
-          isAuthenticated 
+          isAuthenticated
               ? 'This will permanently delete all your conversations from both this device and the cloud.'
               : AppLocalizations.of(context)!.clearChatHistoryWarning,
         ),
@@ -756,7 +810,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.pop(context);
               await _clearChatHistory();
             },
-            child: Text(AppLocalizations.of(context)!.clear, style: const TextStyle(color: Colors.red)),
+            child: Text(AppLocalizations.of(context)!.clear,
+                style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -779,7 +834,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.pop(context);
               await _clearCache();
             },
-            child: Text(AppLocalizations.of(context)!.clear, style: const TextStyle(color: Colors.red)),
+            child: Text(AppLocalizations.of(context)!.clear,
+                style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -791,7 +847,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Reset Usage Statistics'),
-        content: const Text('This will reset all usage counters for testing purposes.'),
+        content: const Text(
+            'This will reset all usage counters for testing purposes.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -800,8 +857,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await Provider.of<SubscriptionService>(context, listen: false).resetUsageStats();
-              if (mounted) _showSnackBar('Usage statistics reset', Colors.green);
+              await Provider.of<SubscriptionService>(context, listen: false)
+                  .resetUsageStats();
+              if (mounted)
+                _showSnackBar('Usage statistics reset', Colors.green);
             },
             child: const Text('Reset', style: TextStyle(color: Colors.orange)),
           ),
@@ -843,21 +902,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
               await ReviewService.resetThresholdToDefault();
               Navigator.pop(context);
               setState(() {});
-              if (mounted) _showSnackBar('Threshold reset to default (5)', Colors.blue);
+              if (mounted)
+                _showSnackBar('Threshold reset to default (5)', Colors.blue);
             },
             child: const Text('Reset'),
           ),
           TextButton(
             onPressed: () async {
               final newThreshold = int.tryParse(controller.text.trim());
-              if (newThreshold != null && newThreshold >= 1 && newThreshold <= 20) {
+              if (newThreshold != null &&
+                  newThreshold >= 1 &&
+                  newThreshold <= 20) {
                 await ReviewService.setDebugReviewThreshold(newThreshold);
                 Navigator.pop(context);
                 setState(() {});
-                if (mounted) _showSnackBar('Threshold set to $newThreshold', Colors.green);
+                if (mounted)
+                  _showSnackBar('Threshold set to $newThreshold', Colors.green);
               }
             },
-            child: const Text('Set', style: TextStyle(color: Color(0xFF0078D4))),
+            child:
+                const Text('Set', style: TextStyle(color: Color(0xFF0078D4))),
           ),
         ],
       ),
@@ -869,7 +933,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Reset Feature Showcase'),
-        content: const Text('The showcase will appear next time you navigate to the chat screen.'),
+        content: const Text(
+            'The showcase will appear next time you navigate to the chat screen.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -879,9 +944,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () async {
               await FeatureShowcaseService.resetShowcaseForTesting();
               Navigator.pop(context);
-              if (mounted) _showSnackBar('Feature showcase reset', Colors.green);
+              if (mounted)
+                _showSnackBar('Feature showcase reset', Colors.green);
             },
-            child: const Text('Reset', style: TextStyle(color: Color(0xFF0078D4))),
+            child:
+                const Text('Reset', style: TextStyle(color: Color(0xFF0078D4))),
           ),
         ],
       ),
@@ -892,8 +959,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _clearChatHistory() async {
     try {
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+      final profileProvider =
+          Provider.of<ProfileProvider>(context, listen: false);
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final currentProfileId = profileProvider.selectedProfileId;
 
@@ -902,21 +971,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final supabase = SupabaseService();
           final userId = supabase.currentUser?.id;
           if (userId != null) {
-            await supabase.client.from('conversations').delete().eq('user_id', userId);
+            await supabase.client
+                .from('conversations')
+                .delete()
+                .eq('user_id', userId);
           }
         }
 
-        await _databaseService.deleteAllChatMessages(profileId: currentProfileId);
-        await _databaseService.deleteAllConversations(profileId: currentProfileId);
+        await _databaseService.deleteAllChatMessages(
+            profileId: currentProfileId);
+        await _databaseService.deleteAllConversations(
+            profileId: currentProfileId);
 
         profileProvider.clearChatHistoryNotify();
         conversationProvider.clearSelection();
-        await conversationProvider.loadConversations(profileId: currentProfileId);
+        await conversationProvider.loadConversations(
+            profileId: currentProfileId);
 
-        if (mounted) _showSnackBar(AppLocalizations.of(context)!.chatHistoryCleared, Colors.green);
+        if (mounted)
+          _showSnackBar(
+              AppLocalizations.of(context)!.chatHistoryCleared, Colors.green);
       }
     } catch (e) {
-      if (mounted) _showSnackBar(AppLocalizations.of(context)!.failedToClearChat, Colors.red);
+      if (mounted)
+        _showSnackBar(
+            AppLocalizations.of(context)!.failedToClearChat, Colors.red);
     }
   }
 
@@ -925,23 +1004,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
       int deletedCount = 0;
 
       final docsDir = await getApplicationDocumentsDirectory();
-      final pdfFiles = docsDir.listSync().where((f) => f is File && f.path.endsWith('.pdf') && f.path.contains('howai_'));
+      final pdfFiles = docsDir.listSync().where((f) =>
+          f is File && f.path.endsWith('.pdf') && f.path.contains('howai_'));
       for (final file in pdfFiles) {
         await (file as File).delete();
         deletedCount++;
       }
 
       final cacheDir = await getTemporaryDirectory();
-      final imageFiles = cacheDir.listSync(recursive: true).where((f) => 
-        f is File && (f.path.endsWith('.jpg') || f.path.endsWith('.jpeg') || f.path.endsWith('.png')) && f.path.contains('howai_'));
+      final imageFiles = cacheDir.listSync(recursive: true).where((f) =>
+          f is File &&
+          (f.path.endsWith('.jpg') ||
+              f.path.endsWith('.jpeg') ||
+              f.path.endsWith('.png')) &&
+          f.path.contains('howai_'));
       for (final file in imageFiles) {
         await (file as File).delete();
         deletedCount++;
       }
 
-      if (mounted) _showSnackBar(AppLocalizations.of(context)!.cleanedCachedFiles(deletedCount), Colors.green);
+      if (mounted)
+        _showSnackBar(
+            AppLocalizations.of(context)!.cleanedCachedFiles(deletedCount),
+            Colors.green);
     } catch (e) {
-      if (mounted) _showSnackBar(AppLocalizations.of(context)!.failedToCleanCache, Colors.red);
+      if (mounted)
+        _showSnackBar(
+            AppLocalizations.of(context)!.failedToCleanCache, Colors.red);
     }
   }
 

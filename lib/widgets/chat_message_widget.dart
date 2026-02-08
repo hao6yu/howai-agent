@@ -1004,12 +1004,12 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           // 1. Copy
           _buildActionButton(
             icon: Icons.copy,
-            tooltip: "Copy",
+            tooltip: AppLocalizations.of(context)!.copy,
             onTap: () {
               Clipboard.setData(ClipboardData(text: widget.message.message));
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text("Copied to clipboard"),
+                  content: Text(AppLocalizations.of(context)!.copied),
                   duration: Duration(seconds: 1),
                 ),
               );
@@ -1025,8 +1025,10 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       : Icons.pause_circle_outline)
                   : Icons.play_circle_outline,
               tooltip: widget.isPlayingAudio
-                  ? (widget.isPlayingDeviceTts ? "Stop audio" : "Pause audio")
-                  : "Play audio",
+                  ? (widget.isPlayingDeviceTts
+                      ? AppLocalizations.of(context)!.stop
+                      : AppLocalizations.of(context)!.pause)
+                  : AppLocalizations.of(context)!.play,
               onTap: () {
                 if (widget.isPlayingAudio) {
                   widget.onSpeakWithHighlight!(widget.message);
@@ -1063,7 +1065,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               }
             },
             icon: const Icon(Icons.star, size: 18),
-            label: const Text('Leave Review'),
+            label: Text(AppLocalizations.of(context)!.leaveReview),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF007AFF),
               foregroundColor: Colors.white,
@@ -1087,8 +1089,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               ),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             ),
-            child: const Text(
-              'Maybe Later',
+            child: Text(
+              AppLocalizations.of(context)!.maybeLater,
               style: TextStyle(fontSize: 14),
             ),
           ),
@@ -1100,7 +1102,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   Widget _buildTranslateMoreButton() {
     return _buildActionButton(
       icon: Icons.more_horiz,
-      tooltip: "More",
+      tooltip: AppLocalizations.of(context)!.knowledgeHubMoreActions,
       onTap: _showTranslateActionsSheet,
     );
   }
@@ -1138,8 +1140,10 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.bookmark_add_outlined),
-                  title: const Text('Add to Memory'),
-                  subtitle: const Text('Save instantly from this message'),
+                  title: Text(
+                      AppLocalizations.of(context)!.knowledgeHubAddToMemory),
+                  subtitle: Text(AppLocalizations.of(context)!
+                      .knowledgeHubAddToMemoryDesc),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     if (widget.onQuickSaveToKnowledgeHub != null) {
@@ -1152,8 +1156,10 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                 if (widget.onSaveToKnowledgeHub != null)
                   ListTile(
                     leading: const Icon(Icons.edit_note_outlined),
-                    title: const Text('Review & Save'),
-                    subtitle: const Text('Edit title, content, type, and tags'),
+                    title: Text(AppLocalizations.of(context)!
+                        .knowledgeHubReviewAndSave),
+                    subtitle: Text(AppLocalizations.of(context)!
+                        .knowledgeHubReviewAndSaveDesc),
                     onTap: () {
                       Navigator.of(sheetContext).pop();
                       widget.onSaveToKnowledgeHub!(widget.message);
@@ -1169,8 +1175,10 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                     targetLanguageFlag,
                     style: const TextStyle(fontSize: 20),
                   ),
-                  title: Text('Translate to $targetLanguage'),
-                  subtitle: const Text('Quick translate'),
+                  title: Text(AppLocalizations.of(context)!
+                      .knowledgeHubTranslateTo(targetLanguage)),
+                  subtitle: Text(
+                      AppLocalizations.of(context)!.knowledgeHubQuickTranslate),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     if (widget.onQuickTranslate != null) {
@@ -1187,7 +1195,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Recent targets',
+                        AppLocalizations.of(context)!.knowledgeHubRecentTargets,
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -1208,7 +1216,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       recentFlag,
                       style: const TextStyle(fontSize: 20),
                     ),
-                    title: Text('Translate to $recentLanguage'),
+                    title: Text(AppLocalizations.of(context)!
+                        .knowledgeHubTranslateTo(recentLanguage)),
                     onTap: () {
                       Navigator.of(sheetContext).pop();
                       if (widget.onQuickTranslate != null) {
@@ -1227,8 +1236,10 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.tune),
-                  title: const Text('Choose language'),
-                  subtitle: const Text('Translate to another language'),
+                  title: Text(
+                      AppLocalizations.of(context)!.knowledgeHubChooseLanguage),
+                  subtitle: Text(AppLocalizations.of(context)!
+                      .knowledgeHubTranslateToAnotherLanguage),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
                     if (widget.onSelectTranslationLanguage != null) {
@@ -1498,7 +1509,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                           widget.onSaveToKnowledgeHub != null)
                         _ActionButton(
                           icon: Icons.bookmark_add_outlined,
-                          label: 'Add to Memory',
+                          label: AppLocalizations.of(context)!
+                              .knowledgeHubAddToMemory,
                           onTap: () {
                             Navigator.of(context).pop();
                             if (widget.onQuickSaveToKnowledgeHub != null) {
@@ -1511,7 +1523,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       if (widget.onSaveToKnowledgeHub != null)
                         _ActionButton(
                           icon: Icons.edit_note_outlined,
-                          label: 'Review & Save',
+                          label: AppLocalizations.of(context)!
+                              .knowledgeHubReviewAndSave,
                           onTap: () {
                             Navigator.of(context).pop();
                             widget.onSaveToKnowledgeHub!(message);

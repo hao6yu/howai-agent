@@ -3223,7 +3223,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Nothing to save from this message.',
+              AppLocalizations.of(context)!.knowledgeHubSnackNothingToSave,
               style: TextStyle(fontSize: settings.getScaledFontSize(14)),
             ),
             duration: const Duration(seconds: 2),
@@ -3251,7 +3251,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Saved to Knowledge Hub.',
+              AppLocalizations.of(context)!.knowledgeHubSnackSaved,
               style: TextStyle(fontSize: settings.getScaledFontSize(14)),
             ),
             duration: const Duration(seconds: 2),
@@ -3267,7 +3267,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'This memory already exists in your Knowledge Hub.',
+              AppLocalizations.of(context)!.knowledgeHubSnackAlreadyExists,
               style: TextStyle(fontSize: settings.getScaledFontSize(14)),
             ),
             duration: const Duration(seconds: 2),
@@ -3279,7 +3279,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to save memory. Please try again.',
+              AppLocalizations.of(context)!.knowledgeHubSnackSaveFailed,
               style: TextStyle(fontSize: settings.getScaledFontSize(14)),
             ),
             duration: const Duration(seconds: 2),
@@ -3306,7 +3306,8 @@ class _AiChatScreenState extends State<AiChatScreen>
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Save to Knowledge Hub'),
+              title: Text(
+                  AppLocalizations.of(context)!.knowledgeHubSaveDialogTitle),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -3314,18 +3315,22 @@ class _AiChatScreenState extends State<AiChatScreen>
                   children: [
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(
-                        labelText: 'Title',
-                        hintText: 'Short memory title',
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context)!
+                            .knowledgeHubFieldTitle,
+                        hintText: AppLocalizations.of(context)!
+                            .knowledgeHubFieldShortTitleHint,
                       ),
                       maxLength: KnowledgeHubLimits.titleMaxLength,
                     ),
                     const SizedBox(height: 8),
                     TextField(
                       controller: contentController,
-                      decoration: const InputDecoration(
-                        labelText: 'Content',
-                        hintText: 'What should HowAI remember?',
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context)!
+                            .knowledgeHubFieldContent,
+                        hintText: AppLocalizations.of(context)!
+                            .knowledgeHubFieldRememberContentHint,
                       ),
                       maxLines: 4,
                       minLines: 2,
@@ -3334,7 +3339,10 @@ class _AiChatScreenState extends State<AiChatScreen>
                     const SizedBox(height: 8),
                     DropdownButtonFormField<MemoryType>(
                       initialValue: selectedType,
-                      decoration: const InputDecoration(labelText: 'Type'),
+                      decoration: InputDecoration(
+                        labelText:
+                            AppLocalizations.of(context)!.knowledgeHubFieldType,
+                      ),
                       items: MemoryType.values
                           .map((type) => DropdownMenuItem<MemoryType>(
                                 value: type,
@@ -3351,9 +3359,11 @@ class _AiChatScreenState extends State<AiChatScreen>
                     const SizedBox(height: 8),
                     TextField(
                       controller: tagsController,
-                      decoration: const InputDecoration(
-                        labelText: 'Tags (optional)',
-                        hintText: 'comma, separated, tags',
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context)!
+                            .knowledgeHubFieldTagsOptional,
+                        hintText: AppLocalizations.of(context)!
+                            .knowledgeHubFieldTagsHint,
                       ),
                     ),
                   ],
@@ -3362,7 +3372,7 @@ class _AiChatScreenState extends State<AiChatScreen>
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -3372,7 +3382,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Title and content are required.',
+                            AppLocalizations.of(context)!
+                                .knowledgeHubSnackTitleContentRequired,
                             style: TextStyle(
                                 fontSize: settings.getScaledFontSize(14)),
                           ),
@@ -3405,7 +3416,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Saved to Knowledge Hub.',
+                              AppLocalizations.of(context)!
+                                  .knowledgeHubSnackSaved,
                               style: TextStyle(
                                   fontSize: settings.getScaledFontSize(14)),
                             ),
@@ -3423,7 +3435,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'This memory already exists in your Knowledge Hub.',
+                              AppLocalizations.of(context)!
+                                  .knowledgeHubSnackAlreadyExists,
                               style: TextStyle(
                                   fontSize: settings.getScaledFontSize(14)),
                             ),
@@ -3436,7 +3449,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              'Failed to save memory. Please try again.',
+                              AppLocalizations.of(context)!
+                                  .knowledgeHubSnackSaveFailed,
                               style: TextStyle(
                                   fontSize: settings.getScaledFontSize(14)),
                             ),
@@ -3447,7 +3461,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                       }
                     }
                   },
-                  child: const Text('Save'),
+                  child: Text(AppLocalizations.of(context)!.save),
                 ),
               ],
             );
@@ -3460,7 +3474,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   String _buildKnowledgeTitle(String messageText) {
     final trimmed = messageText.trim().replaceAll('\n', ' ');
     if (trimmed.isEmpty) {
-      return 'Saved Memory';
+      return AppLocalizations.of(context)!.knowledgeHubDefaultSavedMemoryTitle;
     }
     if (trimmed.length <= 48) {
       return trimmed;
@@ -3482,15 +3496,15 @@ class _AiChatScreenState extends State<AiChatScreen>
   String _memoryTypeLabel(MemoryType type) {
     switch (type) {
       case MemoryType.preference:
-        return 'Preference';
+        return AppLocalizations.of(context)!.knowledgeHubMemoryTypePreference;
       case MemoryType.fact:
-        return 'Fact';
+        return AppLocalizations.of(context)!.knowledgeHubMemoryTypeFact;
       case MemoryType.goal:
-        return 'Goal';
+        return AppLocalizations.of(context)!.knowledgeHubMemoryTypeGoal;
       case MemoryType.constraint:
-        return 'Constraint';
+        return AppLocalizations.of(context)!.knowledgeHubMemoryTypeConstraint;
       case MemoryType.other:
-        return 'Other';
+        return AppLocalizations.of(context)!.knowledgeHubMemoryTypeOther;
     }
   }
 
@@ -3499,13 +3513,13 @@ class _AiChatScreenState extends State<AiChatScreen>
       context: context,
       barrierDismissible: true,
       builder: (context) => UpgradeDialog(
-        featureName: 'Knowledge Hub',
+        featureName: AppLocalizations.of(context)!.knowledgeHubTitle,
         limitMessage:
-            'Knowledge Hub is a Premium feature. Upgrade to save and reuse personal memories across conversations.',
-        premiumBenefits: const [
-          'Save personal memory from chat messages',
-          'Use saved memory context in AI responses',
-          'Manage and organize your knowledge hub',
+            AppLocalizations.of(context)!.knowledgeHubUpgradeLimitMessage,
+        premiumBenefits: [
+          AppLocalizations.of(context)!.knowledgeHubUpgradeBenefit1,
+          AppLocalizations.of(context)!.knowledgeHubUpgradeBenefit2,
+          AppLocalizations.of(context)!.knowledgeHubUpgradeBenefit3,
         ],
         onUpgradePressed: () => Navigator.pushNamed(context, '/subscription'),
       ),
@@ -5297,7 +5311,7 @@ class _AiChatScreenState extends State<AiChatScreen>
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Text(
-                  "What can I help you with?",
+                  AppLocalizations.of(context)!.chatLandingTitle,
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(24),
                     fontWeight: FontWeight.w600,
@@ -5307,7 +5321,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  "Type or send voice. I'll handle the rest.",
+                  AppLocalizations.of(context)!.chatLandingSubtitle,
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(16),
                     color: Colors.grey.shade600,
@@ -5322,8 +5336,9 @@ class _AiChatScreenState extends State<AiChatScreen>
                     children: [
                       Text(
                         isCompactPhone
-                            ? "Tip: Tap + for photos, files, PDF, and image tools."
-                            : "Tip: Tap + to use photos, files, scan to PDF, translation, and image generation.",
+                            ? AppLocalizations.of(context)!
+                                .chatLandingTipCompact
+                            : AppLocalizations.of(context)!.chatLandingTipFull,
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(13),
                           color: Colors.grey.shade600,

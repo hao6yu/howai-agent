@@ -39,7 +39,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get subscription => 'サブスクリプション';
 
   @override
-  String get usageStatistics => 'Usage Statistics';
+  String get usageStatistics => '使用統計';
 
   @override
   String get usageStatisticsDesc => '週間使用量と制限を表示';
@@ -72,7 +72,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get copy => 'コピー';
 
   @override
-  String get share => 'Share';
+  String get share => '共有';
 
   @override
   String get select => '選択';
@@ -84,7 +84,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get confirm => '確認';
 
   @override
-  String get ok => 'OK';
+  String get ok => 'わかりました';
 
   @override
   String get holdToTalk => '長押しで話す';
@@ -517,7 +517,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get featureSmartChatDesc => '文脈理解を持つ自然なAI会話';
 
   @override
-  String get featureLocalDiscovery => 'Local Discovery';
+  String get featureLocalDiscovery => 'ローカルディスカバリ';
 
   @override
   String get featureLocalDiscoveryDesc => 'AIインサイトを使って近くのレストラン、アトラクション、サービスを見つける';
@@ -529,7 +529,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get featurePhotoAnalysisDesc => '高度な画像認識、OCR、視覚的理解';
 
   @override
-  String get featureDocumentAnalysis => 'Document Analysis';
+  String get featureDocumentAnalysis => '文書分析';
 
   @override
   String get featureDocumentAnalysisDesc => 'PDF、Wordドキュメント、スプレッドシートなどを高度なAIで分析';
@@ -682,10 +682,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get inputRecommendMovies => '次についての映画や本を推薦して ';
 
   @override
-  String get premiumFeatureTitle => 'Premium Feature';
+  String get premiumFeatureTitle => 'プレミアム機能';
 
   @override
-  String get premiumFeatureDesc => 'This feature requires a premium subscription. Upgrade to unlock advanced capabilities and enhanced AI features.';
+  String get premiumFeatureDesc => 'この機能にはプレミアム サブスクリプションが必要です。アップグレードすると、高度な機能と強化された AI 機能が利用可能になります。';
 
   @override
   String get maybeLater => '後で';
@@ -1004,28 +1004,28 @@ class AppLocalizationsJa extends AppLocalizations {
   String get unlimitedChatMessages => '無制限チャットメッセージ';
 
   @override
-  String get translationFeatures => 'Translation Features';
+  String get translationFeatures => '翻訳機能';
 
   @override
   String get basicVoiceDeviceTts => '基本音声（デバイスTTS）';
 
   @override
-  String get pdfCreationTools => 'PDF Creation Tools';
+  String get pdfCreationTools => 'PDF作成ツール';
 
   @override
-  String get profileUpdates => 'Profile Updates';
+  String get profileUpdates => 'プロフィールの更新';
 
   @override
-  String get shareMessageAsPdf => 'Share Message as PDF';
+  String get shareMessageAsPdf => 'メッセージを PDF として共有';
 
   @override
-  String get premiumAiVoice => 'Premium AI Voice';
+  String get premiumAiVoice => 'プレミアムAIボイス';
 
   @override
   String get fiveTotalLimit => '合計5個';
 
   @override
-  String get tenTotalLimit => '10 total';
+  String get tenTotalLimit => '合計10個';
 
   @override
   String get unlimited => '無制限';
@@ -1035,20 +1035,20 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String startFreeTrialThenPrice(Object price) {
-    return 'Start Free Trial, then $price/month';
+    return '無料トライアルを開始し、その後は$price/月';
   }
 
   @override
-  String get termsOfUse => 'Terms of Use';
+  String get termsOfUse => '利用規約';
 
   @override
-  String get privacyPolicy => 'Privacy Policy';
+  String get privacyPolicy => 'プライバシーポリシー';
 
   @override
   String get editProfileAndInsights => 'プロフィールとAIインサイトを編集';
 
   @override
-  String get quickActions => 'Quick Actions';
+  String get quickActions => 'クイックアクション';
 
   @override
   String get quickActionTranslate => '翻訳';
@@ -1072,13 +1072,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get textSize => 'テキストサイズ';
 
   @override
-  String get preferences => 'Preferences';
+  String get preferences => '設定';
 
   @override
-  String get speakerAudio => 'Speaker Audio';
+  String get speakerAudio => 'スピーカーオーディオ';
 
   @override
-  String get speakerAudioDesc => 'Use device speaker for audio';
+  String get speakerAudioDesc => 'オーディオにデバイスのスピーカーを使用する';
 
   @override
   String get advanced => '高度';
@@ -1102,7 +1102,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get currentStatus => '現在のステータス：';
 
   @override
-  String get premium => 'Premium';
+  String get premium => 'プレミアム';
 
   @override
   String get free => '無料';
@@ -1126,10 +1126,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get helpAndInstructions => 'ヘルプと説明';
 
   @override
-  String get learnHowToUseHowAI => 'Learn how to use HowAI effectively';
+  String get learnHowToUseHowAI => 'HowAI を効果的に使用する方法を学ぶ';
 
   @override
-  String get language => 'Language';
+  String get language => '言語';
 
   @override
   String get russian => 'ロシア語';
@@ -1162,7 +1162,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get small => '小';
 
   @override
-  String get smallPlus => 'Small+';
+  String get smallPlus => '小+';
 
   @override
   String get defaultSize => 'デフォルト';
@@ -1171,16 +1171,16 @@ class AppLocalizationsJa extends AppLocalizations {
   String get large => '大';
 
   @override
-  String get largePlus => 'Large+';
+  String get largePlus => '大+';
 
   @override
   String get extraLarge => '特大';
 
   @override
-  String get premiumFeaturesActive => 'Premium features active';
+  String get premiumFeaturesActive => 'プレミアム機能が有効になっている';
 
   @override
-  String get upgradeToUnlockFeatures => 'Upgrade to unlock all features';
+  String get upgradeToUnlockFeatures => 'アップグレードしてすべての機能をロック解除する';
 
   @override
   String get manualVoicePlayback => '手動音声再生';
@@ -1201,14 +1201,14 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String nearLocation(String location) {
-    return 'Near $location';
+    return '$location付近';
   }
 
   @override
   String get places => '場所';
 
   @override
-  String get map => 'Map';
+  String get map => '地図';
 
   @override
   String get restaurants => 'レストラン';
@@ -1220,7 +1220,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get attractions => 'アトラクション';
 
   @override
-  String get shopping => 'Shopping';
+  String get shopping => '買い物';
 
   @override
   String get directions => '方向';
@@ -1236,7 +1236,7 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String navigateTo(Object placeName) {
-    return 'Navigate to $placeName';
+    return '$placeName に移動します';
   }
 
   @override
@@ -1246,22 +1246,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get noPlacesFound => 'お問い合わせの場所が見つかりませんでした。';
 
   @override
-  String get trySearchingElse => 'Try searching for something else or check your location settings.';
+  String get trySearchingElse => '別の検索を試すか、位置情報の設定を確認してください。';
 
   @override
-  String get tryAgain => 'Try Again';
+  String get tryAgain => 'もう一度やり直してください';
 
   @override
-  String get restaurantDining => '🍽️ Restaurant & Dining';
+  String get restaurantDining => '🍽️ レストラン&ダイニング';
 
   @override
   String get accommodationLodging => '🏨 宿泊施設';
 
   @override
-  String get touristAttractionCulture => '🎭 Tourist Attraction & Culture';
+  String get touristAttractionCulture => '🎭 観光名所と文化';
 
   @override
-  String get shoppingRetail => '🛍️ Shopping & Retail';
+  String get shoppingRetail => '🛍️ ショッピングと小売';
 
   @override
   String get healthcareMedical => '🏥 ヘルスケア・医療';
@@ -1282,7 +1282,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get placesOfWorship => '⛪ 礼拝所';
 
   @override
-  String get parksRecreation => '🌳 Parks & Recreation';
+  String get parksRecreation => '🌳 公園とレクリエーション';
 
   @override
   String get entertainmentNightlife => '🎬 エンターテイメント・ナイトライフ';
@@ -1303,7 +1303,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get closed => '閉店';
 
   @override
-  String get mapsNavigation => '🗺️ Maps & Navigation';
+  String get mapsNavigation => '🗺️ 地図とナビゲーション';
 
   @override
   String get googleMaps => 'Google Maps';
@@ -1360,7 +1360,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get alternativeRideshare => '代替のライドシェアオプション';
 
   @override
-  String get streetView => 'Street View';
+  String get streetView => 'ストリートビュー';
 
   @override
   String get streetViewNotAvailable => 'ストリートビューは利用できません';
@@ -1390,10 +1390,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get distance => '距離';
 
   @override
-  String get priceLevel => 'Price Level';
+  String get priceLevel => '価格レベル';
 
   @override
-  String get reviews => 'reviews';
+  String get reviews => 'レビュー';
 
   @override
   String get inexpensive => '安価';
@@ -1408,7 +1408,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get veryExpensive => '非常に高価';
 
   @override
-  String get status => 'Status';
+  String get status => '状態';
 
   @override
   String get unknownPriceLevel => '不明';
@@ -1420,7 +1420,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get shareGetDirections => '🗺️ 道順を取得：';
 
   @override
-  String get unlockBestAIExperience => 'Unlock the best AI Agent experience!';
+  String get unlockBestAIExperience => '最高の AI エージェント エクスペリエンスのロックを解除してください!';
 
   @override
   String get advancedAIMultiplePlatforms => '高度なAI • 複数プラットフォーム • 無限の可能性';
@@ -1429,13 +1429,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chooseYourPlan => 'プランを選択';
 
   @override
-  String get tapPlanToSubscribe => 'Tap on a plan to subscribe';
+  String get tapPlanToSubscribe => 'プランをタップして購読します';
 
   @override
-  String get yearlyPlan => 'Yearly Plan';
+  String get yearlyPlan => '年間計画';
 
   @override
-  String get monthlyPlan => 'Monthly Plan';
+  String get monthlyPlan => '月額プラン';
 
   @override
   String get perYear => '年間';
@@ -1447,13 +1447,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get saveThreeMonthsBestValue => '3ヶ月節約 - 最高の価値！';
 
   @override
-  String get recommended => 'Recommended';
+  String get recommended => '推奨';
 
   @override
-  String get startFreeMonthToday => 'Start your FREE month today • Cancel anytime';
+  String get startFreeMonthToday => '今すぐ無料月を始めましょう • いつでもキャンセル可能';
 
   @override
-  String get moreAIFeaturesWeekly => 'More AI Agent features coming weekly!';
+  String get moreAIFeaturesWeekly => 'AI エージェントの機能は毎週追加されます。';
 
   @override
   String get constantlyRollingOut => '新機能と改善を継続的にリリースしています。クールなAI機能のアイデアがありますか？ぜひお聞かせください！';
@@ -1465,7 +1465,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get fullAccessToFeatures => 'すべてのプレミアム機能にフルアクセスできます';
 
   @override
-  String get planType => 'Plan Type';
+  String get planType => 'プランタイプ';
 
   @override
   String get active => 'アクティブ';
@@ -1489,22 +1489,22 @@ class AppLocalizationsJa extends AppLocalizations {
   String get imageAnalysis => '画像分析';
 
   @override
-  String get pdfGenerations => 'PDF Generations';
+  String get pdfGenerations => 'PDF の生成';
 
   @override
   String get voiceGenerations => '音声生成';
 
   @override
-  String get yourPremiumFeatures => 'Your Premium Features';
+  String get yourPremiumFeatures => 'プレミアム機能';
 
   @override
-  String get unlimitedAiImageGeneration => 'Unlimited AI Image Generation';
+  String get unlimitedAiImageGeneration => '無制限の AI 画像生成';
 
   @override
   String get createStunningImages => '高度なAIで美しい画像を作成';
 
   @override
-  String get unlimitedImageAnalysis => 'Unlimited Image Analysis';
+  String get unlimitedImageAnalysis => '無制限の画像分析';
 
   @override
   String get analyzePhotosWithAi => '高度なAIで写真を分析';
@@ -1528,7 +1528,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get findNearbyPlaces => '近くの場所を見つけて推奨を取得';
 
   @override
-  String get subscriptionManagedMessage => 'Your subscription is managed through the App Store. To modify or cancel your subscription, please use the App Store settings.';
+  String get subscriptionManagedMessage => 'サブスクリプションは App Store を通じて管理されます。サブスクリプションを変更またはキャンセルするには、App Store の設定を使用してください。';
 
   @override
   String get manageInAppStore => 'App Storeで管理';
@@ -1635,7 +1635,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get transit => '交通機関';
 
   @override
-  String get drive => 'Drive';
+  String get drive => 'ドライブ';
 
   @override
   String get go => '実行';
@@ -1653,7 +1653,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get mapsAndNavigation => 'マップとナビゲーション';
 
   @override
-  String get waze => 'Waze';
+  String get waze => 'ワゼ';
 
   @override
   String get walking => '歩行中';
@@ -1662,7 +1662,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get cycling => 'サイクリング';
 
   @override
-  String get rideshare => 'Rideshare';
+  String get rideshare => 'ライドシェア';
 
   @override
   String get locationAndContact => '場所と連絡先';
@@ -1755,49 +1755,49 @@ class AppLocalizationsJa extends AppLocalizations {
   String get viewThisLocationInTheNativeGoogleMapsApp => 'ネイティブGoogle Mapsアプリでこの場所を表示';
 
   @override
-  String get featureSmartChatTitle => 'Smart Chat';
+  String get featureSmartChatTitle => 'スマートチャット';
 
   @override
-  String get featureSmartChatText => 'Start chatting';
+  String get featureSmartChatText => 'チャットを開始する';
 
   @override
-  String get featureSmartChatInput => 'Hi! I\'d like to chat about ';
+  String get featureSmartChatInput => 'こんにちは！について話したいのですが';
 
   @override
-  String get featurePlacesExplorerTitle => 'Places Explorer';
+  String get featurePlacesExplorerTitle => 'プレイスエクスプローラー';
 
   @override
-  String get featurePlacesExplorerDesc => 'Find restaurants, attractions & services nearby';
+  String get featurePlacesExplorerDesc => '近くのレストラン、観光スポット、サービスを探す';
 
   @override
-  String get quickActionAskFromPhoto => 'Ask from photo';
+  String get quickActionAskFromPhoto => '写真から聞く';
 
   @override
-  String get quickActionAskFromFile => 'Ask from file';
+  String get quickActionAskFromFile => 'ファイルから質問する';
 
   @override
-  String get quickActionScanToPdf => 'Scan to PDF';
+  String get quickActionScanToPdf => 'スキャンして PDF に保存';
 
   @override
-  String get quickActionGenerateImage => 'Generate image';
+  String get quickActionGenerateImage => '画像の生成';
 
   @override
-  String get quickActionTranslateSubtitle => 'Text, photo, or file';
+  String get quickActionTranslateSubtitle => 'テキスト、写真、またはファイル';
 
   @override
-  String get quickActionFindPlaces => 'Find places';
+  String get quickActionFindPlaces => '場所を探す';
 
   @override
-  String get featurePhotoToPdfTitle => 'Photo to PDF';
+  String get featurePhotoToPdfTitle => '写真からPDFへ';
 
   @override
-  String get featurePhotoToPdfDesc => 'Convert photos to organized PDF documents';
+  String get featurePhotoToPdfDesc => '写真を整理された PDF ドキュメントに変換する';
 
   @override
-  String get featurePhotoToPdfText => 'Convert photos to PDF';
+  String get featurePhotoToPdfText => '写真を PDF に変換する';
 
   @override
-  String get featurePhotoToPdfInput => 'Convert photos to PDF';
+  String get featurePhotoToPdfInput => '写真を PDF に変換する';
 
   @override
   String get featurePresentationMakerTitle => 'プレゼンテーションメーカー';
@@ -1857,10 +1857,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get featureSmartPlanningTitle => 'スマートプランニング';
 
   @override
-  String get featureSmartPlanningText => 'Help with planning';
+  String get featureSmartPlanningText => '計画のお手伝い';
 
   @override
-  String get featureSmartPlanningInput => 'Help me plan my ';
+  String get featureSmartPlanningInput => '計画を立てるのを手伝ってください';
 
   @override
   String get featureEntertainmentGuideTitle => 'エンターテイメントガイド';
@@ -1938,7 +1938,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get aiImagePremiumDesc => 'あなたの想像力から素晴らしいアートワークや画像を作成します。この機能はプレミアム購読者のみ利用可能です。';
 
   @override
-  String get aiPersonality => 'AI Personality';
+  String get aiPersonality => 'AIのパーソナリティ';
 
   @override
   String get resetToDefault => 'デフォルトにリセット';
@@ -1947,7 +1947,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get resetToDefaultConfirm => 'AI性格設定をデフォルトにリセットしてもよろしいですか？これによりすべてのカスタム設定が上書きされます。';
 
   @override
-  String get aiPersonalitySettingsSaved => 'AI personality settings saved';
+  String get aiPersonalitySettingsSaved => 'AI の性格設定が保存されました';
 
   @override
   String get saveFailedTryAgain => '保存に失敗しました。もう一度お試しください';
@@ -2125,7 +2125,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get user => 'ユーザー';
 
   @override
-  String get howAiAgent => 'HowAI Agent';
+  String get howAiAgent => 'HowAIエージェント';
 
   @override
   String get resetUsageStatistics => '使用統計をリセット';
@@ -2177,19 +2177,19 @@ class AppLocalizationsJa extends AppLocalizations {
   String get weeklyUsageLimitsApply => '週間使用制限が適用されます';
 
   @override
-  String get featureAccess => 'Feature Access';
+  String get featureAccess => '機能へのアクセス';
 
   @override
   String get weeklyUsage => '週間使用量';
 
   @override
-  String get pdfGeneration => 'PDF Generation';
+  String get pdfGeneration => 'PDF の生成';
 
   @override
-  String get placesExplorer => 'Places Explorer';
+  String get placesExplorer => 'プレイスエクスプローラー';
 
   @override
-  String get presentationMaker => 'Presentation Maker';
+  String get presentationMaker => 'プレゼンテーションメーカー';
 
   @override
   String get sharesDocumentAnalysisQuota => 'ドキュメント分析クォータを共有';
@@ -2331,4 +2331,529 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => '深層研究モードは、より徹底的な分析と洞察のためにgpt-5.2の高度推論を使用します。このプレミアム機能は、包括的な説明、複数の視点、より深い論理的推論を提供します。\n\n強化されたAI機能にアクセスするためにアップグレードしてください！';
+
+  @override
+  String get hideKeyboard => 'キーボードを隠す';
+
+  @override
+  String get knowledgeHubTitle => 'ナレッジハブ';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => 'ナレッジハブ (プレミアム)';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => 'Knowledge Hub は、会話を通じて HowAI があなたの個人的な好み、事実、目標を記憶するのに役立ちます。\n\nこの機能を使用するには、プレミアムにアップグレードしてください。';
+
+  @override
+  String get knowledgeHubReturn => '戻る';
+
+  @override
+  String get knowledgeHubGoToSubscription => 'サブスクリプションに移動';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => '新しい記憶';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => 'メモリの編集';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => 'メモリの削除';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => 'このメモリ項目を削除しますか?これを元に戻すことはできません。';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => '最近のチャットメッセージを使用する';
+
+  @override
+  String get knowledgeHubAttachDocument => '文書を添付';
+
+  @override
+  String get knowledgeHubAttachingDocument => '文書を添付中...';
+
+  @override
+  String get knowledgeHubAttachedSources => '添付資料';
+
+  @override
+  String get knowledgeHubFieldTitle => 'タイトル';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => '短い思い出のタイトル';
+
+  @override
+  String get knowledgeHubFieldContent => 'コンテンツ';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'HowAI は何を覚えるべきでしょうか?';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => 'ドキュメントのテキストはここでは非表示のままです。 HowAI は抽出されたドキュメント コンテンツをメモリ コンテキストで使用します。';
+
+  @override
+  String get knowledgeHubFieldType => 'タイプ';
+
+  @override
+  String get knowledgeHubFieldTags => 'タグ';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => 'タグ (オプション)';
+
+  @override
+  String get knowledgeHubFieldTagsHint => 'カンマ、区切り、タグ';
+
+  @override
+  String get knowledgeHubPinned => '固定された';
+
+  @override
+  String get knowledgeHubPinnedOnly => '固定のみ';
+
+  @override
+  String get knowledgeHubUseInContext => 'AI コンテキストでの使用';
+
+  @override
+  String get knowledgeHubAllTypes => '全種類';
+
+  @override
+  String get knowledgeHubApply => '適用する';
+
+  @override
+  String get knowledgeHubEdit => '編集';
+
+  @override
+  String get knowledgeHubPin => 'ピン';
+
+  @override
+  String get knowledgeHubUnpin => '固定を解除する';
+
+  @override
+  String get knowledgeHubDisableInContext => 'コンテキスト内で無効にする';
+
+  @override
+  String get knowledgeHubEnableInContext => 'コンテキスト内で有効にする';
+
+  @override
+  String get knowledgeHubFiltersTitle => 'フィルター';
+
+  @override
+  String get knowledgeHubFiltersTooltip => 'フィルター';
+
+  @override
+  String get knowledgeHubSearchHint => 'メモリの検索';
+
+  @override
+  String get knowledgeHubNoMatches => 'フィルタに一致するメモリ項目はありません。';
+
+  @override
+  String get knowledgeHubModeFromChat => 'チャットから';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => '最近のメッセージをメモリとして保存する';
+
+  @override
+  String get knowledgeHubModeTypeManually => '手動で入力する';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => 'カスタムメモリエントリを書き込む';
+
+  @override
+  String get knowledgeHubModeFromDocument => 'ドキュメントから';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => 'ファイルを添付して抽出したナレッジを保存する';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => 'リンクするメッセージを選択してください';
+
+  @override
+  String get knowledgeHubSpeakerYou => 'あなた';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => 'HowAI';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => '好み';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => '事実';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => 'ゴール';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => '制約';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => '他の';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => '処理';
+
+  @override
+  String get knowledgeHubSourceStatusReady => '準備ができて';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => '失敗した';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => '保存されたメモリ';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => 'ドキュメントメモリ';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => 'ナレッジハブはプレミアム機能です';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => '主要な詳細を一度保存​​すると、HowAI が今後のチャットでそれらを記憶するため、同じことを繰り返す必要はありません。';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => '重要なものをキャプチャする';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => '設定、目標、制約をメッセージから直接保存します。';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => 'より賢い返信を得る';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => '関連する記憶が文脈の中で使用されるため、応答はより個人的で一貫したものに感じられます。';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => '記憶をコントロールする';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => 'いつでも 1 か所からアイテムを編集、固定、無効化、または削除できます。';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => 'プレミアムにアップグレード';
+
+  @override
+  String get knowledgeHubWhatIsTitle => 'ナレッジハブとは何ですか?';
+
+  @override
+  String get knowledgeHubWhatIsDesc => '主要な詳細を一度保存​​し、HowAI が今後の返信でそれらを使用できるようにする個人用メモリ領域。';
+
+  @override
+  String get knowledgeHubHowToStartTitle => '始め方';
+
+  @override
+  String get knowledgeHubStep1 => '[新しいメモリ] をタップするか、チャット メッセージから [保存] を使用します。';
+
+  @override
+  String get knowledgeHubStep2 => 'タイプ (プリファレンス、目標、事実、制約) を選択します。';
+
+  @override
+  String get knowledgeHubStep3 => '後で記憶を照合しやすくするためにタグを追加します。';
+
+  @override
+  String get knowledgeHubStep4 => '重要な思い出を固定して、コンテキスト内で優先順位を付けます。';
+
+  @override
+  String get knowledgeHubExampleTitle => '思い出の例';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => '要約は短く箇条書きにしてください。';
+
+  @override
+  String get knowledgeHubExampleGoalContent => 'プロダクトマネージャーの面接の準備をしています。';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => '翻訳された出力にはローカル ファイル パスを含めないでください。';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => '同様の記憶はすでに存在します。';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => 'メモリの作成に失敗しました。';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => 'メモリの更新に失敗しました。';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => 'ピンのステータスを更新できませんでした。';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => 'アクティブステータスの更新に失敗しました。';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => 'メモリの削除に失敗しました。';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => 'リンクされたメッセージはメモリ長に合わせてトリミングされました。';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => 'ドキュメントの添付と抽出に失敗しました。';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => '保存する前にテキストを追加するか、読み取り可能な文書を添付してください。';
+
+  @override
+  String get knowledgeHubNoRecentMessages => '最近のメッセージは見つかりませんでした。';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => 'このメッセージからは何も保存できません。';
+
+  @override
+  String get knowledgeHubSnackSaved => 'ナレッジハブに保存されました。';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => 'このメモリはすでにナレッジ ハブに存在します。';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => 'メモリの保存に失敗しました。もう一度試してください。';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => 'タイトルと内容は必須です。';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => 'ナレッジハブに保存';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => 'ナレッジ ハブはプレミアム機能です。アップグレードすると、会話全体で個人的な思い出を保存して再利用できます。';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => 'チャット メッセージから個人的な思い出を保存する';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => 'AI 応答で保存されたメモリ コンテキストを使用する';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => 'ナレッジハブを管理および整理する';
+
+  @override
+  String get knowledgeHubMoreActions => 'もっと';
+
+  @override
+  String get knowledgeHubAddToMemory => 'メモリに追加';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => 'このメッセージからすぐに保存します';
+
+  @override
+  String get knowledgeHubReviewAndSave => '確認して保存';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => 'タイトル、コンテンツ、タイプ、タグを編集する';
+
+  @override
+  String get knowledgeHubQuickTranslate => 'クイック翻訳';
+
+  @override
+  String get knowledgeHubRecentTargets => '最近の目標';
+
+  @override
+  String get knowledgeHubChooseLanguage => '言語を選択してください';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => '別の言語に翻訳する';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return '$language に翻訳';
+  }
+
+  @override
+  String get leaveReview => 'レビューを残す';
+
+  @override
+  String get voiceSamplePreviewText => 'こんにちは、これは HowAI のサンプル音声プレビューです。';
+
+  @override
+  String get voiceSampleGenerateFailed => 'サンプル音声を生成できません。';
+
+  @override
+  String get voiceSampleUnavailable => 'ボイスサンプルはありません。イレブンラボの設定を確認してください。';
+
+  @override
+  String get voiceSamplePlayFailed => 'ボイスサンプルを再生できませんでした。';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => '音声再生の仕組み';
+
+  @override
+  String get voicePlaybackHowItWorksFree => '無料: メッセージの再生にデバイスの音声を使用します。';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => 'プレミアム: イレブンラボの音声に切り替えて、より自然なサウンドを実現します。';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => '選択する前に、サンプル再生ボタンを使用して音声をテストします。';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => 'システムの音声速度と イレブンラボの速度は個別に設定されます。';
+
+  @override
+  String get voiceFreeSystemTitle => '無料システムボイス';
+
+  @override
+  String get voiceDeviceTtsTitle => 'デバイスのテキスト読み上げ';
+
+  @override
+  String get voiceDeviceTtsDescription => 'デバイス エンジンで AI 応答を読み上げる無料の音声。';
+
+  @override
+  String get voiceStopSample => 'サンプルの停止';
+
+  @override
+  String get voicePlaySample => 'サンプルを再生する';
+
+  @override
+  String get voiceLoadingVoices => '利用可能な音声をロードしています...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return 'システム音声速度 (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => '無料のデバイスのテキスト読み上げ再生に使用されます。';
+
+  @override
+  String get voiceSpeedMinSystem => '0.5倍';
+
+  @override
+  String get voiceSpeedMaxSystem => '1.2倍';
+
+  @override
+  String get voicePremiumElevenLabsTitle => 'プレミアム イレブンラボの声';
+
+  @override
+  String get voicePremiumElevenLabsDesc => 'より豊かなトーンと明瞭さを備えたスタジオ品質の AI 音声。';
+
+  @override
+  String get voicePremiumEngineTitle => 'プレミアム再生エンジン';
+
+  @override
+  String get voiceSystemTts => 'システムTTS';
+
+  @override
+  String get voiceElevenLabs => 'イレブンラボ';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'イレブンラボの速度 (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0.8倍';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1.5倍';
+
+  @override
+  String get voicePremiumUpgradeDescription => 'プレミアムにアップグレードすると、自然な イレブンラボの音声と音声プレビューのロックが解除されます。';
+
+  @override
+  String get account => 'アカウント';
+
+  @override
+  String get signedIn => 'サインイン済み';
+
+  @override
+  String get signIn => 'サインイン';
+
+  @override
+  String get signUp => 'サインアップ';
+
+  @override
+  String get signInToHowAI => 'HowAI にサインイン';
+
+  @override
+  String get signUpToHowAI => 'HowAI にサインアップ';
+
+  @override
+  String get continueWithGoogle => 'Google で続行';
+
+  @override
+  String get continueWithApple => 'Apple で続行';
+
+  @override
+  String get orContinueWithEmail => 'またはメールで続行';
+
+  @override
+  String get emailAddress => 'メールアドレス';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => 'パスワード';
+
+  @override
+  String get pleaseEnterYourEmail => 'メールアドレスを入力してください';
+
+  @override
+  String get pleaseEnterValidEmail => '有効なメールアドレスを入力してください';
+
+  @override
+  String get pleaseEnterYourPassword => 'パスワードを入力してください';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => 'パスワードは6文字以上で入力してください';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => 'すでにアカウントをお持ちですか？サインイン';
+
+  @override
+  String get dontHaveAnAccountSignUp => 'アカウントをお持ちでないですか？サインアップ';
+
+  @override
+  String get continueWithoutAccount => 'アカウントなしで続行';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => 'データはこの端末内にのみ保存されます';
+
+  @override
+  String get syncYourDataAcrossDevices => 'データをデバイス間で同期';
+
+  @override
+  String get userProfile => 'ユーザープロフィール';
+
+  @override
+  String get defaultUserName => 'ユーザー';
+
+  @override
+  String get knowledgeHubManageSavedMemory => '保存済みメモリを管理';
+
+  @override
+  String get chatLandingTitle => '何をお手伝いできますか？';
+
+  @override
+  String get chatLandingSubtitle => '入力または音声で送信してください。あとは私が対応します。';
+
+  @override
+  String get chatLandingTipCompact => 'ヒント: + をタップして写真、ファイル、PDF、画像ツールを使えます。';
+
+  @override
+  String get chatLandingTipFull => 'ヒント: + をタップすると、写真・ファイル・PDFスキャン・翻訳・画像生成が使えます。';
+
+  @override
+  String get premiumBannerTitle1 => 'あなたの可能性を最大化';
+
+  @override
+  String get premiumBannerSubtitle1 => 'プレミアム機能があなたを待っています';
+
+  @override
+  String get premiumBannerTitle2 => '無限の創造性を始めましょう';
+
+  @override
+  String get premiumBannerSubtitle2 => 'プレミアムですべての制限を解除';
+
+  @override
+  String get premiumBannerTitle3 => 'AI体験をさらに進化';
+
+  @override
+  String get premiumBannerSubtitle3 => 'プレミアムですべてを解放';
+
+  @override
+  String get premiumBannerTitle4 => 'プレミアム機能を発見';
+
+  @override
+  String get premiumBannerSubtitle4 => '高度なAI機能を無制限で利用';
+
+  @override
+  String get premiumBannerTitle5 => 'ワークフローを加速';
+
+  @override
+  String get premiumBannerSubtitle5 => 'プレミアムですべてがもっと便利に';
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:haogpt/generated/app_localizations.dart';
 import '../services/subscription_service.dart';
 import '../providers/settings_provider.dart';
 import '../providers/profile_provider.dart';
@@ -44,39 +45,40 @@ class _SubscriptionBannerState extends State<SubscriptionBanner> {
 
   Widget _buildCreativeUpgradeBanner(BuildContext context, SubscriptionService subscriptionService) {
     // Rotate between different creative messages with improved readability
+    final l10n = AppLocalizations.of(context)!;
     final messages = [
       {
         'emoji': '🚀',
-        'title': 'Unlock your full potential',
-        'subtitle': 'Premium features are waiting for you',
+        'title': l10n.premiumBannerTitle1,
+        'subtitle': l10n.premiumBannerSubtitle1,
         'gradient': [Color(0xFF667eea), Color(0xFF764ba2)],
         'buttonTextColor': Color(0xFF667eea),
       },
       {
         'emoji': '✨',
-        'title': 'Ready for unlimited creativity?',
-        'subtitle': 'Remove all limits with Premium',
+        'title': l10n.premiumBannerTitle2,
+        'subtitle': l10n.premiumBannerSubtitle2,
         'gradient': [Color(0xFFe91e63), Color(0xFF9c27b0)], // Improved contrast with darker colors
         'buttonTextColor': Color(0xFFe91e63),
       },
       {
         'emoji': '🎯',
-        'title': 'Take your AI experience further',
-        'subtitle': 'Premium unlocks everything',
+        'title': l10n.premiumBannerTitle3,
+        'subtitle': l10n.premiumBannerSubtitle3,
         'gradient': [Color(0xFF2196f3), Color(0xFF00bcd4)], // Better blue contrast
         'buttonTextColor': Color(0xFF2196f3),
       },
       {
         'emoji': '💎',
-        'title': 'Discover Premium features',
-        'subtitle': 'Unlimited access to advanced AI',
+        'title': l10n.premiumBannerTitle4,
+        'subtitle': l10n.premiumBannerSubtitle4,
         'gradient': [Color(0xFF4caf50), Color(0xFF009688)], // Better green contrast
         'buttonTextColor': Color(0xFF4caf50),
       },
       {
         'emoji': '🌟',
-        'title': 'Supercharge your workflow',
-        'subtitle': 'Premium makes everything possible',
+        'title': l10n.premiumBannerTitle5,
+        'subtitle': l10n.premiumBannerSubtitle5,
         'gradient': [Color(0xFFff9800), Color(0xFFf57c00)], // Replaced yellow with orange for better contrast
         'buttonTextColor': Color(0xFFff9800),
       },
@@ -203,7 +205,7 @@ class _SubscriptionBannerState extends State<SubscriptionBanner> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'Upgrade',
+                                l10n.upgrade,
                                 style: TextStyle(
                                   color: message['buttonTextColor'] as Color,
                                   fontWeight: FontWeight.bold,
@@ -268,6 +270,7 @@ class CompactSubscriptionBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Consumer<SubscriptionService>(
       builder: (context, subscriptionService, child) {
         if (subscriptionService.isPremium) {
@@ -296,7 +299,7 @@ class CompactSubscriptionBadge extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        'Premium',
+                        l10n.premium,
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: settings.getScaledFontSize(12),
@@ -339,7 +342,7 @@ class CompactSubscriptionBadge extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Free',
+                      l10n.free,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: settings.getScaledFontSize(12),
@@ -367,6 +370,7 @@ class BrandedAppTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Consumer<SubscriptionService>(
       builder: (context, subscriptionService, child) {
         return Consumer<SettingsProvider>(
@@ -382,24 +386,33 @@ class BrandedAppTitle extends StatelessWidget {
                     aiName = personality.aiName;
                   }
                 }
+                final badgeLabel = subscriptionService.isPremium ? l10n.premium : l10n.free;
+                final titleStyle = TextStyle(
+                  fontSize: settings.getScaledFontSize(20),
+                  fontWeight: FontWeight.w600,
+                );
+                final titlePainter = TextPainter(
+                  text: TextSpan(text: aiName, style: titleStyle),
+                  textDirection: Directionality.of(context),
+                  textScaler: MediaQuery.textScalerOf(context),
+                  maxLines: 1,
+                )..layout();
+                final titleWidth = titlePainter.width;
 
                 return GestureDetector(
                   onTap: onTap,
                   child: Stack(
                     clipBehavior: Clip.none,
+                    alignment: Alignment.center,
                     children: [
-                      // Main app title
                       Text(
                         aiName,
-                        style: TextStyle(
-                          fontSize: settings.getScaledFontSize(20),
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: titleStyle,
+                        textAlign: TextAlign.center,
                       ),
-                      // Status badge positioned at top-right corner
                       Positioned(
-                        top: -settings.getScaledFontSize(4),
-                        right: -settings.getScaledFontSize(28),
+                        top: -settings.getScaledFontSize(9),
+                        left: (titleWidth / 1.2),
                         child: Container(
                           padding: EdgeInsets.symmetric(
                             horizontal: settings.getScaledFontSize(3),
@@ -429,7 +442,7 @@ class BrandedAppTitle extends StatelessWidget {
                             ],
                           ),
                           child: Text(
-                            subscriptionService.isPremium ? 'PRO' : 'FREE',
+                            badgeLabel,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: settings.getScaledFontSize(8),

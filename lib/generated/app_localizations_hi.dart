@@ -1653,7 +1653,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get mapsAndNavigation => 'मैप्स और नेविगेशन';
 
   @override
-  String get waze => 'Waze';
+  String get waze => 'वेज़';
 
   @override
   String get walking => 'पैदल';
@@ -1770,22 +1770,22 @@ class AppLocalizationsHi extends AppLocalizations {
   String get featurePlacesExplorerDesc => 'आस-पास रेस्तरां, आकर्षण और सेवाएं खोजें';
 
   @override
-  String get quickActionAskFromPhoto => 'Ask from photo';
+  String get quickActionAskFromPhoto => 'फोटो से पूछो';
 
   @override
-  String get quickActionAskFromFile => 'Ask from file';
+  String get quickActionAskFromFile => 'फ़ाइल से पूछें';
 
   @override
-  String get quickActionScanToPdf => 'Scan to PDF';
+  String get quickActionScanToPdf => 'पीडीएफ पर स्कैन करें';
 
   @override
-  String get quickActionGenerateImage => 'Generate image';
+  String get quickActionGenerateImage => 'छवि उत्पन्न करें';
 
   @override
-  String get quickActionTranslateSubtitle => 'Text, photo, or file';
+  String get quickActionTranslateSubtitle => 'टेक्स्ट, फ़ोटो, या फ़ाइल';
 
   @override
-  String get quickActionFindPlaces => 'Find places';
+  String get quickActionFindPlaces => 'स्थान खोजें';
 
   @override
   String get featurePhotoToPdfTitle => 'फोटो से PDF';
@@ -1872,7 +1872,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get featureEntertainmentGuideInput => 'इस बारे में फिल्में/किताबें/संगीत की सिफारिश करें ';
 
   @override
-  String get proBadge => 'PRO';
+  String get proBadge => 'प्रो';
 
   @override
   String get localRecommendationDetected => 'मैंने पाया कि आप स्थानीय सिफारिशें खोज रहे हैं!';
@@ -2331,4 +2331,529 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => 'डीप रिसर्च मोड अधिक संपूर्ण विश्लेषण और अंतर्दृष्टि के लिए उच्च रीज़निंग प्रयास के साथ gpt-5.2 का उपयोग करता है। यह प्रीमियम सुविधा व्यापक स्पष्टीकरण, एकाधिक दृष्टिकोण और गहन तार्किक रीज़निंग प्रदान करती है।\n\nउन्नत AI क्षमताओं तक पहुंचने के लिए अपग्रेड करें!';
+
+  @override
+  String get hideKeyboard => 'कीबोर्ड छुपाएं';
+
+  @override
+  String get knowledgeHubTitle => 'नॉलेज हब';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => 'नॉलेज हब (प्रीमियम)';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => 'नॉलेज हब बातचीत के दौरान आपकी व्यक्तिगत प्राथमिकताओं, तथ्यों और लक्ष्यों को याद रखने में HowAI की मदद करता है।\n\nइस सुविधा का उपयोग करने के लिए प्रीमियम में अपग्रेड करें।';
+
+  @override
+  String get knowledgeHubReturn => 'वापस करना';
+
+  @override
+  String get knowledgeHubGoToSubscription => 'सब्सक्रिप्शन पर जाएं';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => 'नई स्मृति';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => 'मेमोरी संपादित करें';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => 'मेमोरी हटाएँ';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => 'यह मेमोरी आइटम हटाएं? इसे असंपादित नहीं किया जा सकता है।';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => 'हालिया चैट संदेश का उपयोग करें';
+
+  @override
+  String get knowledgeHubAttachDocument => 'दस्तावेज़ संलग्न करें';
+
+  @override
+  String get knowledgeHubAttachingDocument => 'दस्तावेज़ संलग्न किया जा रहा है...';
+
+  @override
+  String get knowledgeHubAttachedSources => 'संलग्न स्रोत';
+
+  @override
+  String get knowledgeHubFieldTitle => 'शीर्षक';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => 'संक्षिप्त स्मृति शीर्षक';
+
+  @override
+  String get knowledgeHubFieldContent => 'सामग्री';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'HowAI को क्या याद रखना चाहिए?';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => 'दस्तावेज़ का टेक्स्ट यहां छिपा रहता है. हाउएआई मेमोरी संदर्भ में निकाली गई दस्तावेज़ सामग्री का उपयोग करेगा।';
+
+  @override
+  String get knowledgeHubFieldType => 'प्रकार';
+
+  @override
+  String get knowledgeHubFieldTags => 'टैग';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => 'टैग (वैकल्पिक)';
+
+  @override
+  String get knowledgeHubFieldTagsHint => 'अल्पविराम, अलग, टैग';
+
+  @override
+  String get knowledgeHubPinned => 'पिन की गई';
+
+  @override
+  String get knowledgeHubPinnedOnly => 'केवल पिन किया गया';
+
+  @override
+  String get knowledgeHubUseInContext => 'एआई संदर्भ में उपयोग करें';
+
+  @override
+  String get knowledgeHubAllTypes => 'सभी प्रकार के';
+
+  @override
+  String get knowledgeHubApply => 'आवेदन करना';
+
+  @override
+  String get knowledgeHubEdit => 'संपादन करना';
+
+  @override
+  String get knowledgeHubPin => 'नत्थी करना';
+
+  @override
+  String get knowledgeHubUnpin => 'अनपिन';
+
+  @override
+  String get knowledgeHubDisableInContext => 'संदर्भ में अक्षम करें';
+
+  @override
+  String get knowledgeHubEnableInContext => 'संदर्भ में सक्षम करें';
+
+  @override
+  String get knowledgeHubFiltersTitle => 'फिल्टर';
+
+  @override
+  String get knowledgeHubFiltersTooltip => 'फिल्टर';
+
+  @override
+  String get knowledgeHubSearchHint => 'स्मृति खोजें';
+
+  @override
+  String get knowledgeHubNoMatches => 'कोई भी मेमोरी आइटम आपके फ़िल्टर से मेल नहीं खाता.';
+
+  @override
+  String get knowledgeHubModeFromChat => 'चैट से';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => 'किसी हालिया संदेश को स्मृति के रूप में सहेजें';
+
+  @override
+  String get knowledgeHubModeTypeManually => 'मैन्युअल रूप से टाइप करें';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => 'एक कस्टम मेमोरी प्रविष्टि लिखें';
+
+  @override
+  String get knowledgeHubModeFromDocument => 'दस्तावेज़ से';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => 'फ़ाइल संलग्न करें और निकाले गए ज्ञान को संग्रहीत करें';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => 'लिंक करने के लिए एक संदेश चुनें';
+
+  @override
+  String get knowledgeHubSpeakerYou => 'आप';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => 'हाउएआई';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => 'वरीयता';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => 'तथ्य';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => 'लक्ष्य';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => 'बाधा';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => 'अन्य';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => 'प्रसंस्करण';
+
+  @override
+  String get knowledgeHubSourceStatusReady => 'तैयार';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => 'असफल';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => 'सहेजी गई मेमोरी';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => 'दस्तावेज़ स्मृति';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => 'नॉलेज हब एक प्रीमियम सुविधा है';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => 'मुख्य विवरण एक बार सहेजें, और HowAI उन्हें भविष्य की चैट में याद रखता है ताकि आपको खुद को दोहराने की आवश्यकता न हो।';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => 'जो मायने रखता है उसे पकड़ें';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => 'प्राथमिकताओं, लक्ष्यों और बाधाओं को सीधे संदेशों से सहेजें।';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => 'बेहतर उत्तर प्राप्त करें';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => 'प्रासंगिक स्मृति का उपयोग संदर्भ में किया जाता है इसलिए प्रतिक्रियाएँ अधिक व्यक्तिगत और सुसंगत लगती हैं।';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => 'अपनी याददाश्त पर नियंत्रण रखें';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => 'किसी भी समय एक ही स्थान से आइटम संपादित करें, पिन करें, अक्षम करें या हटाएं।';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => 'प्रीमियम में अपग्रेड करें';
+
+  @override
+  String get knowledgeHubWhatIsTitle => 'नॉलेज हब क्या है?';
+
+  @override
+  String get knowledgeHubWhatIsDesc => 'एक व्यक्तिगत मेमोरी स्पेस जहां आप मुख्य विवरण एक बार सहेजते हैं, ताकि हाउएआई भविष्य के उत्तरों में उनका उपयोग कर सके।';
+
+  @override
+  String get knowledgeHubHowToStartTitle => 'शुरुआत कैसे करें';
+
+  @override
+  String get knowledgeHubStep1 => 'नई मेमोरी टैप करें या किसी भी चैट संदेश से सेव का उपयोग करें।';
+
+  @override
+  String get knowledgeHubStep2 => 'प्रकार चुनें (वरीयता, लक्ष्य, तथ्य, बाधा)।';
+
+  @override
+  String get knowledgeHubStep3 => 'मेमोरी को बाद में मिलान करना आसान बनाने के लिए टैग जोड़ें।';
+
+  @override
+  String get knowledgeHubStep4 => 'महत्वपूर्ण यादों को संदर्भ में प्राथमिकता देने के लिए उन्हें पिन करें।';
+
+  @override
+  String get knowledgeHubExampleTitle => 'उदाहरण यादें';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => 'मेरे सारांश संक्षिप्त और सटीक रखें।';
+
+  @override
+  String get knowledgeHubExampleGoalContent => 'मैं उत्पाद प्रबंधक साक्षात्कार की तैयारी कर रहा हूं।';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => 'अनुवादित आउटपुट में स्थानीय फ़ाइल पथ शामिल न करें।';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => 'ऐसी ही एक स्मृति पहले से मौजूद है.';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => 'स्मृति बनाने में विफल.';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => 'मेमोरी अपडेट करने में विफल.';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => 'पिन स्थिति अपडेट करने में विफल.';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => 'सक्रिय स्थिति अपडेट करने में विफल.';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => 'स्मृति हटाने में विफल.';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => 'लिंक किए गए संदेश को मेमोरी की लंबाई के अनुसार छोटा कर दिया गया था।';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => 'दस्तावेज़ संलग्न करने और निकालने में विफल.';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => 'सहेजने से पहले टेक्स्ट जोड़ें या पढ़ने योग्य दस्तावेज़ संलग्न करें।';
+
+  @override
+  String get knowledgeHubNoRecentMessages => 'कोई हालिया संदेश नहीं मिला.';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => 'इस संदेश से बचाने के लिए कुछ भी नहीं है.';
+
+  @override
+  String get knowledgeHubSnackSaved => 'नॉलेज हब में सहेजा गया.';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => 'यह मेमोरी आपके नॉलेज हब में पहले से मौजूद है।';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => 'स्मृति सहेजने में विफल. कृपया पुन: प्रयास करें।';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => 'शीर्षक और सामग्री आवश्यक है.';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => 'नॉलेज हब में सहेजें';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => 'नॉलेज हब एक प्रीमियम सुविधा है। बातचीत के दौरान व्यक्तिगत यादों को सहेजने और उनका पुन: उपयोग करने के लिए अपग्रेड करें।';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => 'चैट संदेशों से व्यक्तिगत स्मृति सहेजें';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => 'एआई प्रतिक्रियाओं में सहेजे गए मेमोरी संदर्भ का उपयोग करें';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => 'अपने ज्ञान केंद्र को प्रबंधित और व्यवस्थित करें';
+
+  @override
+  String get knowledgeHubMoreActions => 'अधिक';
+
+  @override
+  String get knowledgeHubAddToMemory => 'मेमोरी में जोड़ें';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => 'इस संदेश से तुरंत सेव करें';
+
+  @override
+  String get knowledgeHubReviewAndSave => 'समीक्षा करें और सहेजें';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => 'शीर्षक, सामग्री, प्रकार और टैग संपादित करें';
+
+  @override
+  String get knowledgeHubQuickTranslate => 'त्वरित अनुवाद';
+
+  @override
+  String get knowledgeHubRecentTargets => 'हाल के लक्ष्य';
+
+  @override
+  String get knowledgeHubChooseLanguage => 'भाषा चुनें';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => 'किसी अन्य भाषा में अनुवाद करें';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return '$language में अनुवाद करें';
+  }
+
+  @override
+  String get leaveReview => 'समीक्षा छोड़ें';
+
+  @override
+  String get voiceSamplePreviewText => 'नमस्ते, यह हाउएआई की ओर से एक नमूना ध्वनि पूर्वावलोकन है।';
+
+  @override
+  String get voiceSampleGenerateFailed => 'नमूना ऑडियो उत्पन्न करने में असमर्थ.';
+
+  @override
+  String get voiceSampleUnavailable => 'आवाज का नमूना उपलब्ध नहीं है. कृपया इलेवनलैब्स सेटअप की जाँच करें।';
+
+  @override
+  String get voiceSamplePlayFailed => 'आवाज का नमूना नहीं चलाया जा सका.';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => 'वॉइस प्लेबैक कैसे काम करता है';
+
+  @override
+  String get voicePlaybackHowItWorksFree => 'निःशुल्क: संदेश प्लेबैक के लिए अपने डिवाइस की आवाज़ का उपयोग करें।';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => 'प्रीमियम: अधिक प्राकृतिक ध्वनि के लिए इलेवनलैब्स आवाज़ों पर स्विच करें।';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => 'चुनने से पहले आवाज़ों का परीक्षण करने के लिए नमूना प्ले बटन का उपयोग करें।';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => 'सिस्टम वॉयस स्पीड और इलेवनलैब्स स्पीड को अलग से कॉन्फ़िगर किया गया है।';
+
+  @override
+  String get voiceFreeSystemTitle => 'फ्री सिस्टम वॉयस';
+
+  @override
+  String get voiceDeviceTtsTitle => 'डिवाइस टेक्स्ट-टू-स्पीच';
+
+  @override
+  String get voiceDeviceTtsDescription => 'मुफ़्त आवाज़ जो आपके डिवाइस इंजन के साथ AI प्रतिक्रियाओं को पढ़ती है।';
+
+  @override
+  String get voiceStopSample => 'नमूना बंद करो';
+
+  @override
+  String get voicePlaySample => 'नमूना खेलें';
+
+  @override
+  String get voiceLoadingVoices => 'उपलब्ध आवाजें लोड हो रही हैं...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return 'सिस्टम ध्वनि गति (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => 'निःशुल्क डिवाइस टेक्स्ट-टू-स्पीच प्लेबैक के लिए उपयोग किया जाता है।';
+
+  @override
+  String get voiceSpeedMinSystem => '0.5x';
+
+  @override
+  String get voiceSpeedMaxSystem => '1.2x';
+
+  @override
+  String get voicePremiumElevenLabsTitle => 'प्रीमियम इलेवनलैब्स वॉयस';
+
+  @override
+  String get voicePremiumElevenLabsDesc => 'समृद्ध स्वर और स्पष्टता के साथ स्टूडियो-गुणवत्ता वाली AI आवाज़ें।';
+
+  @override
+  String get voicePremiumEngineTitle => 'प्रीमियम प्लेबैक इंजन';
+
+  @override
+  String get voiceSystemTts => 'सिस्टम टीटीएस';
+
+  @override
+  String get voiceElevenLabs => 'इलेवनलैब्स';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'इलेवनलैब्स गति (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0.8x';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1.5x';
+
+  @override
+  String get voicePremiumUpgradeDescription => 'प्राकृतिक इलेवनलैब्स आवाज़ों और ध्वनि पूर्वावलोकन को अनलॉक करने के लिए प्रीमियम में अपग्रेड करें।';
+
+  @override
+  String get account => 'खाता';
+
+  @override
+  String get signedIn => 'साइन इन है';
+
+  @override
+  String get signIn => 'साइन इन';
+
+  @override
+  String get signUp => 'साइन अप';
+
+  @override
+  String get signInToHowAI => 'HowAI में साइन इन करें';
+
+  @override
+  String get signUpToHowAI => 'HowAI में साइन अप करें';
+
+  @override
+  String get continueWithGoogle => 'Google के साथ जारी रखें';
+
+  @override
+  String get continueWithApple => 'Apple के साथ जारी रखें';
+
+  @override
+  String get orContinueWithEmail => 'या ईमेल से जारी रखें';
+
+  @override
+  String get emailAddress => 'ईमेल पता';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => 'पासवर्ड';
+
+  @override
+  String get pleaseEnterYourEmail => 'कृपया अपना ईमेल दर्ज करें';
+
+  @override
+  String get pleaseEnterValidEmail => 'कृपया मान्य ईमेल दर्ज करें';
+
+  @override
+  String get pleaseEnterYourPassword => 'कृपया अपना पासवर्ड दर्ज करें';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => 'पासवर्ड कम से कम 6 अक्षरों का होना चाहिए';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => 'क्या आपका पहले से खाता है? साइन इन करें';
+
+  @override
+  String get dontHaveAnAccountSignUp => 'खाता नहीं है? साइन अप करें';
+
+  @override
+  String get continueWithoutAccount => 'बिना खाते के जारी रखें';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => 'आपका डेटा केवल इस डिवाइस पर स्थानीय रूप से संग्रहीत होगा';
+
+  @override
+  String get syncYourDataAcrossDevices => 'अपने डेटा को सभी डिवाइसों में सिंक करें';
+
+  @override
+  String get userProfile => 'यूज़र प्रोफ़ाइल';
+
+  @override
+  String get defaultUserName => 'यूज़र';
+
+  @override
+  String get knowledgeHubManageSavedMemory => 'सहेजी गई मेमोरी प्रबंधित करें';
+
+  @override
+  String get chatLandingTitle => 'मैं आपकी कैसे मदद कर सकता हूँ?';
+
+  @override
+  String get chatLandingSubtitle => 'टाइप करें या आवाज भेजें। बाकी मैं संभाल लूंगा।';
+
+  @override
+  String get chatLandingTipCompact => 'टिप: फ़ोटो, फाइलें, PDF और इमेज टूल्स के लिए + दबाएं।';
+
+  @override
+  String get chatLandingTipFull => 'टिप: फ़ोटो, फाइलें, PDF स्कैन, अनुवाद और इमेज जनरेशन के लिए + दबाएं।';
+
+  @override
+  String get premiumBannerTitle1 => 'अपनी पूरी क्षमता खोलें';
+
+  @override
+  String get premiumBannerSubtitle1 => 'प्रीमियम फीचर्स आपका इंतज़ार कर रहे हैं';
+
+  @override
+  String get premiumBannerTitle2 => 'असीमित रचनात्मकता के लिए तैयार हैं?';
+
+  @override
+  String get premiumBannerSubtitle2 => 'प्रीमियम के साथ सभी सीमाएँ हटाएँ';
+
+  @override
+  String get premiumBannerTitle3 => 'अपना AI अनुभव और आगे बढ़ाएँ';
+
+  @override
+  String get premiumBannerSubtitle3 => 'प्रीमियम सब कुछ अनलॉक करता है';
+
+  @override
+  String get premiumBannerTitle4 => 'प्रीमियम फीचर्स खोजें';
+
+  @override
+  String get premiumBannerSubtitle4 => 'उन्नत AI तक असीमित पहुंच';
+
+  @override
+  String get premiumBannerTitle5 => 'अपने वर्कफ़्लो को तेज करें';
+
+  @override
+  String get premiumBannerSubtitle5 => 'प्रीमियम सब कुछ संभव बनाता है';
 }

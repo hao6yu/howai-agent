@@ -116,7 +116,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
 
   // Helper method to send message - centralizes send logic
   void _sendMessage() {
-    if (widget.textController.text.trim().isEmpty && widget.pendingImages.isEmpty && widget.pendingFiles.isEmpty) {
+    if (widget.textController.text.trim().isEmpty &&
+        widget.pendingImages.isEmpty &&
+        widget.pendingFiles.isEmpty) {
       return; // Nothing to send
     }
 
@@ -151,7 +153,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     final orientation = MediaQuery.of(context).orientation;
     final isLandscape = orientation == Orientation.landscape;
     final screenWidth = MediaQuery.of(context).size.width;
-    final shortestSide = MediaQuery.of(context).size.height < screenWidth ? MediaQuery.of(context).size.height : screenWidth;
+    final shortestSide = MediaQuery.of(context).size.height < screenWidth
+        ? MediaQuery.of(context).size.height
+        : screenWidth;
     final isTablet = shortestSide >= 600;
     final isPhoneLandscape = !isTablet && isLandscape;
 
@@ -170,7 +174,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
           ),
         ],
       ),
-      padding: EdgeInsets.fromLTRB(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding),
+      padding: EdgeInsets.fromLTRB(horizontalPadding, verticalPadding,
+          horizontalPadding, verticalPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -189,12 +194,18 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade300,
               ),
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.white,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade800
+                  : Colors.white,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: widget.isVoiceInputMode ? _buildVoiceInputButton() : _buildTextInputField(),
+            child: widget.isVoiceInputMode
+                ? _buildVoiceInputButton()
+                : _buildTextInputField(),
           ),
 
           SizedBox(height: isPhoneLandscape ? 4 : 8),
@@ -247,7 +258,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                           color: Colors.black.withOpacity(0.6),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.close, color: Colors.white, size: 18),
+                        child: const Icon(Icons.close,
+                            color: Colors.white, size: 18),
                       ),
                     ),
                   ),
@@ -264,11 +276,18 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(24),
-                  onTap: widget.pdfCountdown > 0 ? widget.onCancelPdfAutoConversion : (widget.pendingImages.isNotEmpty ? widget.onConvertToPdf : null),
+                  onTap: widget.pdfCountdown > 0
+                      ? widget.onCancelPdfAutoConversion
+                      : (widget.pendingImages.isNotEmpty
+                          ? widget.onConvertToPdf
+                          : null),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: widget.pdfCountdown > 0 ? Colors.orange : const Color(0xFF0078D4),
+                      color: widget.pdfCountdown > 0
+                          ? Colors.orange
+                          : const Color(0xFF0078D4),
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
@@ -281,13 +300,21 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (widget.pdfCountdown > 0) ...[
-                          const Icon(Icons.timer, color: Colors.white, size: 20),
+                          const Icon(Icons.timer,
+                              color: Colors.white, size: 20),
                           const SizedBox(width: 6),
-                          Text("Auto PDF in ${widget.pdfCountdown}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          Text("Auto PDF in ${widget.pdfCountdown}",
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
                         ] else ...[
-                          const Icon(Icons.picture_as_pdf, color: Colors.white, size: 20),
+                          const Icon(Icons.picture_as_pdf,
+                              color: Colors.white, size: 20),
                           const SizedBox(width: 6),
-                          Text(AppLocalizations.of(context)!.convertToPdf, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          Text(AppLocalizations.of(context)!.convertToPdf,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
                         ],
                       ],
                     ),
@@ -314,10 +341,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
               margin: const EdgeInsets.only(bottom: 8),
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade200,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade700
+                      : Colors.grey.shade200,
                 ),
               ),
               child: Row(
@@ -418,7 +449,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
               height: scaledHeight,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: widget.isRecording ? Colors.red.shade50 : Colors.grey.shade100,
+                color: widget.isRecording
+                    ? Colors.red.shade50
+                    : Colors.grey.shade100,
                 gradient: widget.isRecording
                     ? null
                     : LinearGradient(
@@ -431,7 +464,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       ),
                 borderRadius: BorderRadius.circular(scaledBorderRadius),
                 border: Border.all(
-                  color: widget.isRecording ? Colors.red : const Color(0xFF0078D4).withOpacity(0.3),
+                  color: widget.isRecording
+                      ? Colors.red
+                      : const Color(0xFF0078D4).withOpacity(0.3),
                   width: widget.isRecording ? 1.5 : 1,
                 ),
                 boxShadow: [
@@ -456,10 +491,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                         builder: (context, child) {
                           return Container(
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(scaledBorderRadius),
+                              borderRadius:
+                                  BorderRadius.circular(scaledBorderRadius),
                               border: Border.all(
-                                color: Colors.red.withOpacity(0.5 * (1 - widget.recordingPulseController.value)),
-                                width: 3.0 * (1 - widget.recordingPulseController.value),
+                                color: Colors.red.withOpacity(0.5 *
+                                    (1 -
+                                        widget.recordingPulseController.value)),
+                                width: 3.0 *
+                                    (1 - widget.recordingPulseController.value),
                               ),
                             ),
                           );
@@ -471,20 +510,28 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       Positioned(
                         top: 0,
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: scaledSpacing, vertical: settings.getScaledFontSize(2)),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: scaledSpacing,
+                              vertical: settings.getScaledFontSize(2)),
                           decoration: BoxDecoration(
-                            color: widget.isCancelingRecording ? Colors.red : Colors.grey.shade700,
+                            color: widget.isCancelingRecording
+                                ? Colors.red
+                                : Colors.grey.shade700,
                             borderRadius: BorderRadius.only(
                               bottomLeft: Radius.circular(scaledSpacing),
                               bottomRight: Radius.circular(scaledSpacing),
                             ),
                           ),
                           child: Text(
-                            widget.isCancelingRecording ? AppLocalizations.of(context)!.releaseToCancel : AppLocalizations.of(context)!.swipeUpToCancel,
+                            widget.isCancelingRecording
+                                ? AppLocalizations.of(context)!.releaseToCancel
+                                : AppLocalizations.of(context)!.swipeUpToCancel,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: settings.getScaledFontSize(10),
-                              fontWeight: widget.isCancelingRecording ? FontWeight.bold : FontWeight.normal,
+                              fontWeight: widget.isCancelingRecording
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                             ),
                           ),
                         ),
@@ -504,12 +551,15 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                   size: scaledIconSize,
                                   color: const Color(0xFF0078D4),
                                 ),
-                              if (!widget.isRecording) SizedBox(width: scaledSpacing),
+                              if (!widget.isRecording)
+                                SizedBox(width: scaledSpacing),
                               Text(
                                 widget.isRecording
                                     ? widget.isCancelingRecording
-                                        ? AppLocalizations.of(context)!.cancelRecording
-                                        : AppLocalizations.of(context)!.listening
+                                        ? AppLocalizations.of(context)!
+                                            .cancelRecording
+                                        : AppLocalizations.of(context)!
+                                            .listening
                                     : AppLocalizations.of(context)!.holdToTalk,
                                 style: TextStyle(
                                   color: widget.isCancelingRecording
@@ -542,7 +592,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       Positioned(
                         right: scaledPadding,
                         child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: scaledSpacing, vertical: settings.getScaledFontSize(2)),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: scaledSpacing,
+                              vertical: settings.getScaledFontSize(2)),
                           decoration: BoxDecoration(
                             color: Colors.red.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(scaledPadding),
@@ -555,7 +607,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                 builder: (context, child) {
                                   return Icon(
                                     Icons.mic,
-                                    color: Colors.red.withOpacity(0.7 + 0.3 * widget.micAnimationController.value),
+                                    color: Colors.red.withOpacity(0.7 +
+                                        0.3 *
+                                            widget
+                                                .micAnimationController.value),
                                     size: settings.getScaledFontSize(16),
                                   );
                                 },
@@ -588,7 +643,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
       builder: (context, settings, child) {
         return Focus(
           onKeyEvent: (FocusNode node, KeyEvent event) {
-            if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.enter) {
+            if (event is KeyDownEvent &&
+                event.logicalKey == LogicalKeyboardKey.enter) {
               // Check if shift key is pressed
               final isShiftPressed = HardwareKeyboard.instance.isShiftPressed;
 
@@ -641,12 +697,16 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
           builder: (context, constraints) {
             // Check if we're in a narrow layout (keyboard is showing or small screen)
             final isNarrow = constraints.maxWidth < 280;
-            final buttonSpacing = settings.getScaledFontSize(isNarrow ? 4.0 : (isPhoneLandscape ? 8 : 12));
+            final buttonSpacing = settings.getScaledFontSize(
+                isNarrow ? 4.0 : (isPhoneLandscape ? 8 : 12));
 
             // Adjust button size based on available width and font scale
-            final buttonSize = settings.getScaledFontSize(isNarrow ? 32.0 : (isPhoneLandscape ? 32.0 : 40.0));
-            final sendButtonSize = settings.getScaledFontSize(isNarrow ? 32.0 : (isPhoneLandscape ? 32.0 : 40.0));
-            final sendIconSize = settings.getScaledFontSize(isNarrow ? 14.0 : (isPhoneLandscape ? 16.0 : 20.0));
+            final buttonSize = settings.getScaledFontSize(
+                isNarrow ? 32.0 : (isPhoneLandscape ? 32.0 : 40.0));
+            final sendButtonSize = settings.getScaledFontSize(
+                isNarrow ? 32.0 : (isPhoneLandscape ? 32.0 : 40.0));
+            final sendIconSize = settings.getScaledFontSize(
+                isNarrow ? 14.0 : (isPhoneLandscape ? 16.0 : 20.0));
 
             return Container(
               height: isNarrow ? 36 : (isPhoneLandscape ? 36 : 48),
@@ -669,7 +729,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                               _showFeaturesMenu();
                             }
                           },
-                          tooltip: _isMenuExpanded ? 'Close menu' : 'More options',
+                          tooltip:
+                              _isMenuExpanded ? 'Close menu' : 'More options',
                           isPhoneLandscape: isPhoneLandscape,
                           size: buttonSize,
                         );
@@ -678,8 +739,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                         if (widget.quickActionsKey != null) {
                           return Showcase(
                             key: widget.quickActionsKey!,
-                            title: AppLocalizations.of(context)!.featureShowcaseQuickActionsTitle,
-                            description: AppLocalizations.of(context)!.featureShowcaseQuickActionsDesc,
+                            title: AppLocalizations.of(context)!
+                                .featureShowcaseQuickActionsTitle,
+                            description: AppLocalizations.of(context)!
+                                .featureShowcaseQuickActionsDesc,
                             targetBorderRadius: BorderRadius.circular(8),
                             tooltipBackgroundColor: const Color(0xFFEF4444),
                             textColor: Colors.white,
@@ -704,15 +767,18 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       // Deep research/thinking mode toggle button (premium feature)
                       Consumer<SubscriptionService>(
                         builder: (context, subscriptionService, child) {
-                          final canUseDeepResearch = subscriptionService.isPremium; // Premium only
-                          final isEnabled = widget.forceDeepResearch && canUseDeepResearch;
+                          final canUseDeepResearch =
+                              subscriptionService.isPremium; // Premium only
+                          final isEnabled =
+                              widget.forceDeepResearch && canUseDeepResearch;
 
                           final button = _buildDeepResearchButton(
                             isEnabled: isEnabled,
                             canUseDeepResearch: canUseDeepResearch,
                             onTap: () {
                               if (canUseDeepResearch) {
-                                widget.onDeepResearchToggle(!widget.forceDeepResearch);
+                                widget.onDeepResearchToggle(
+                                    !widget.forceDeepResearch);
                               } else {
                                 _showDeepResearchUpgradeDialog();
                               }
@@ -725,8 +791,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                           if (widget.deepResearchKey != null) {
                             return Showcase(
                               key: widget.deepResearchKey!,
-                              title: AppLocalizations.of(context)!.featureShowcaseDeepResearchTitle,
-                              description: AppLocalizations.of(context)!.featureShowcaseDeepResearchDesc,
+                              title: AppLocalizations.of(context)!
+                                  .featureShowcaseDeepResearchTitle,
+                              description: AppLocalizations.of(context)!
+                                  .featureShowcaseDeepResearchDesc,
                               targetBorderRadius: BorderRadius.circular(8),
                               tooltipBackgroundColor: const Color(0xFF8E6CFF),
                               textColor: Colors.white,
@@ -755,40 +823,53 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                     children: [
                       // Voice/keyboard toggle - moved to far right
                       _buildActionButton(
-                        icon: widget.isVoiceInputMode ? Icons.keyboard_alt_outlined : Icons.settings_voice,
+                        icon: widget.isVoiceInputMode
+                            ? Icons.keyboard_alt_outlined
+                            : Icons.settings_voice,
                         onTap: widget.onToggleInputMode,
-                        tooltip: widget.isVoiceInputMode ? AppLocalizations.of(context)!.switchToKeyboard : AppLocalizations.of(context)!.switchToVoiceInput,
+                        tooltip: widget.isVoiceInputMode
+                            ? AppLocalizations.of(context)!.switchToKeyboard
+                            : AppLocalizations.of(context)!.switchToVoiceInput,
                         isPhoneLandscape: isPhoneLandscape,
                         size: buttonSize,
                       ),
 
                       // Add spacing only if keyboard close button will be shown
-                      if (!widget.isVoiceInputMode && widget.textInputFocusNode.hasFocus) SizedBox(width: buttonSpacing.toDouble()),
+                      if (!widget.isVoiceInputMode &&
+                          widget.textInputFocusNode.hasFocus)
+                        SizedBox(width: buttonSpacing.toDouble()),
 
                       // Keyboard close button (only when keyboard is focused and in text mode)
-                      if (!widget.isVoiceInputMode && widget.textInputFocusNode.hasFocus)
+                      if (!widget.isVoiceInputMode &&
+                          widget.textInputFocusNode.hasFocus)
                         Container(
                           width: sendButtonSize,
                           height: sendButtonSize,
                           child: _buildActionButton(
                             icon: Icons.keyboard_hide,
                             onTap: _closeKeyboard,
-                            tooltip: 'Hide keyboard',
+                            tooltip: AppLocalizations.of(context)!.hideKeyboard,
                             isPhoneLandscape: isPhoneLandscape,
                             size: buttonSize,
                           ),
                         ),
 
                       // Add spacing only if send button will be shown
-                      if (widget.textController.text.trim().isNotEmpty || widget.pendingImages.isNotEmpty || widget.pendingFiles.isNotEmpty) SizedBox(width: buttonSpacing.toDouble()),
+                      if (widget.textController.text.trim().isNotEmpty ||
+                          widget.pendingImages.isNotEmpty ||
+                          widget.pendingFiles.isNotEmpty)
+                        SizedBox(width: buttonSpacing.toDouble()),
 
                       // Send button (when there's content to send)
-                      if (widget.textController.text.trim().isNotEmpty || widget.pendingImages.isNotEmpty || widget.pendingFiles.isNotEmpty)
+                      if (widget.textController.text.trim().isNotEmpty ||
+                          widget.pendingImages.isNotEmpty ||
+                          widget.pendingFiles.isNotEmpty)
                         AnimatedBuilder(
                           animation: widget.sendButtonController,
                           builder: (context, child) {
                             return Transform.scale(
-                              scale: 1.0 + (widget.sendButtonController.value * 0.1),
+                              scale: 1.0 +
+                                  (widget.sendButtonController.value * 0.1),
                               child: Container(
                                 width: sendButtonSize,
                                 height: sendButtonSize,
@@ -797,7 +878,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                   shape: BoxShape.circle,
                                 ),
                                 child: IconButton(
-                                  icon: Icon(Icons.send_rounded, size: sendIconSize),
+                                  icon: Icon(Icons.send_rounded,
+                                      size: sendIconSize),
                                   color: Colors.white,
                                   padding: EdgeInsets.zero,
                                   onPressed: _sendMessage,
@@ -828,15 +910,19 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        final scaledButtonSize = size ?? settings.getScaledFontSize(isPhoneLandscape ? 32.0 : 40.0);
-        final scaledIconSize = settings.getScaledFontSize(isPhoneLandscape ? 18.0 : 22.0);
+        final scaledButtonSize =
+            size ?? settings.getScaledFontSize(isPhoneLandscape ? 32.0 : 40.0);
+        final scaledIconSize =
+            settings.getScaledFontSize(isPhoneLandscape ? 18.0 : 22.0);
         final scaledBorderRadius = settings.getScaledFontSize(4);
 
         return Container(
           width: scaledButtonSize,
           height: scaledButtonSize,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade100,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(scaledBorderRadius),
           ),
           child: Tooltip(
@@ -849,7 +935,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                 child: Center(
                   child: Icon(
                     icon,
-                    color: iconColor ?? (Theme.of(context).brightness == Brightness.dark ? Colors.white70 : const Color(0xFF0078D4)),
+                    color: iconColor ??
+                        (Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : const Color(0xFF0078D4)),
                     size: scaledIconSize,
                   ),
                 ),
@@ -909,42 +998,48 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       icon: Icons.translate,
                       label: 'Translate',
                       color: Colors.blue,
-                      onTap: () => _handleQuickAction('Please identify and translate any text you can see in this image to English. If the text is already in English, translate it to the most appropriate language based on the context.'),
+                      onTap: () => _handleQuickAction(
+                          'Please identify and translate any text you can see in this image to English. If the text is already in English, translate it to the most appropriate language based on the context.'),
                     ),
                     const SizedBox(width: 8),
                     _buildQuickActionChip(
                       icon: Icons.analytics,
                       label: 'Analyze',
                       color: Colors.green,
-                      onTap: () => _handleQuickAction('Please provide a detailed analysis of this image, including what you see, the context, any notable features, and your insights about the content.'),
+                      onTap: () => _handleQuickAction(
+                          'Please provide a detailed analysis of this image, including what you see, the context, any notable features, and your insights about the content.'),
                     ),
                     const SizedBox(width: 8),
                     _buildQuickActionChip(
                       icon: Icons.description,
                       label: 'Describe',
                       color: Colors.orange,
-                      onTap: () => _handleQuickAction('Please describe this image in detail, including the setting, objects, people, colors, composition, and overall atmosphere of the scene.'),
+                      onTap: () => _handleQuickAction(
+                          'Please describe this image in detail, including the setting, objects, people, colors, composition, and overall atmosphere of the scene.'),
                     ),
                     const SizedBox(width: 8),
                     _buildQuickActionChip(
                       icon: Icons.text_fields,
                       label: 'Extract Text',
                       color: Colors.purple,
-                      onTap: () => _handleQuickAction('Please extract and transcribe all the text you can see in this image, maintaining the original formatting and structure as much as possible.'),
+                      onTap: () => _handleQuickAction(
+                          'Please extract and transcribe all the text you can see in this image, maintaining the original formatting and structure as much as possible.'),
                     ),
                     const SizedBox(width: 8),
                     _buildQuickActionChip(
                       icon: Icons.help_outline,
                       label: 'Explain',
                       color: Colors.teal,
-                      onTap: () => _handleQuickAction('Please explain what\'s happening in this image and provide context, background information, or educational insights about what you see.'),
+                      onTap: () => _handleQuickAction(
+                          'Please explain what\'s happening in this image and provide context, background information, or educational insights about what you see.'),
                     ),
                     const SizedBox(width: 8),
                     _buildQuickActionChip(
                       icon: Icons.search,
                       label: 'Identify',
                       color: Colors.indigo,
-                      onTap: () => _handleQuickAction('Please identify and name all the objects, people, places, or items you can see in this image. Provide specific names and details where possible.'),
+                      onTap: () => _handleQuickAction(
+                          'Please identify and name all the objects, people, places, or items you can see in this image. Provide specific names and details where possible.'),
                     ),
                   ],
                 ),
@@ -1051,7 +1146,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                           width: 36,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade600
+                                    : Colors.grey.shade300,
                             borderRadius: BorderRadius.circular(2),
                           ),
                         ),
@@ -1066,13 +1164,17 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             Expanded(
                               child: Consumer<SubscriptionService>(
                                 builder: (context, subscriptionService, child) {
-                                  final remaining = subscriptionService.remainingImageAnalysis;
-                                  final isPremium = subscriptionService.isPremium;
-                                  final canUse = isPremium || subscriptionService.canUseImageAnalysis;
+                                  final remaining = subscriptionService
+                                      .remainingImageAnalysis;
+                                  final isPremium =
+                                      subscriptionService.isPremium;
+                                  final canUse = isPremium ||
+                                      subscriptionService.canUseImageAnalysis;
 
                                   return _buildPrimaryAttachmentOption(
                                     icon: Icons.photo_camera,
-                                    label: AppLocalizations.of(context)!.quickActionAskFromPhoto,
+                                    label: AppLocalizations.of(context)!
+                                        .quickActionAskFromPhoto,
                                     isPremium: true,
                                     canUse: canUse,
                                     onTap: () {
@@ -1094,7 +1196,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             Expanded(
                               child: _buildPrimaryAttachmentOption(
                                 icon: Icons.folder,
-                                label: AppLocalizations.of(context)!.quickActionAskFromFile,
+                                label: AppLocalizations.of(context)!
+                                    .quickActionAskFromFile,
                                 onTap: () {
                                   Navigator.pop(context);
                                   setState(() {
@@ -1108,7 +1211,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             Expanded(
                               child: _buildPrimaryAttachmentOption(
                                 icon: Icons.picture_as_pdf,
-                                label: AppLocalizations.of(context)!.quickActionScanToPdf,
+                                label: AppLocalizations.of(context)!
+                                    .quickActionScanToPdf,
                                 onTap: () {
                                   Navigator.pop(context);
                                   setState(() {
@@ -1132,13 +1236,16 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             // Image Generation
                             Consumer<SubscriptionService>(
                               builder: (context, subscriptionService, child) {
-                                final remaining = subscriptionService.remainingImageGenerations;
+                                final remaining = subscriptionService
+                                    .remainingImageGenerations;
                                 final isPremium = subscriptionService.isPremium;
-                                final canUse = isPremium || subscriptionService.canUseImageGeneration;
+                                final canUse = isPremium ||
+                                    subscriptionService.canUseImageGeneration;
 
                                 return _buildChatGPTStyleOption(
                                   icon: Icons.brush,
-                                  title: AppLocalizations.of(context)!.quickActionGenerateImage,
+                                  title: AppLocalizations.of(context)!
+                                      .quickActionGenerateImage,
                                   subtitle: null,
                                   isPremium: true,
                                   canUse: canUse,
@@ -1147,7 +1254,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                     setState(() {
                                       _isMenuExpanded = false;
                                     });
-                                    if (canUse && widget.onShowImageGenerationDialog != null) {
+                                    if (canUse &&
+                                        widget.onShowImageGenerationDialog !=
+                                            null) {
                                       widget.onShowImageGenerationDialog!();
                                     } else if (!canUse) {
                                       _showUpgradeDialog(context);
@@ -1161,7 +1270,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             _buildChatGPTStyleOption(
                               icon: Icons.translate,
                               title: AppLocalizations.of(context)!.translate,
-                              subtitle: AppLocalizations.of(context)!.quickActionTranslateSubtitle,
+                              subtitle: AppLocalizations.of(context)!
+                                  .quickActionTranslateSubtitle,
                               onTap: () {
                                 Navigator.pop(context);
                                 setState(() {
@@ -1176,13 +1286,16 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             // Places Explorer
                             Consumer<SubscriptionService>(
                               builder: (context, subscriptionService, child) {
-                                final remaining = subscriptionService.remainingPlacesExplorer;
+                                final remaining =
+                                    subscriptionService.remainingPlacesExplorer;
                                 final isPremium = subscriptionService.isPremium;
-                                final canUse = isPremium || subscriptionService.canUsePlacesExplorer;
+                                final canUse = isPremium ||
+                                    subscriptionService.canUsePlacesExplorer;
 
                                 return _buildChatGPTStyleOption(
                                   icon: Icons.explore,
-                                  title: AppLocalizations.of(context)!.quickActionFindPlaces,
+                                  title: AppLocalizations.of(context)!
+                                      .quickActionFindPlaces,
                                   subtitle: null,
                                   isPremium: true,
                                   canUse: canUse,
@@ -1191,7 +1304,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                     setState(() {
                                       _isMenuExpanded = false;
                                     });
-                                    if (canUse && widget.onLocationDiscovery != null) {
+                                    if (canUse &&
+                                        widget.onLocationDiscovery != null) {
                                       widget.onLocationDiscovery!();
                                     } else if (!canUse) {
                                       _showUpgradeDialog(context);
@@ -1243,10 +1357,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
               height: 60, // Reduced height since we combined title and subtitle
               padding: EdgeInsets.symmetric(vertical: 4, horizontal: 6),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.grey.shade800 : Colors.grey.shade700) : (canUse ? Colors.grey.shade50 : Colors.grey.shade100),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? (canUse ? Colors.grey.shade800 : Colors.grey.shade700)
+                    : (canUse ? Colors.grey.shade50 : Colors.grey.shade100),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.grey.shade600 : Colors.grey.shade500) : (canUse ? Colors.grey.shade200 : Colors.grey.shade300),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? (canUse ? Colors.grey.shade600 : Colors.grey.shade500)
+                      : (canUse ? Colors.grey.shade200 : Colors.grey.shade300),
                 ),
               ),
               child: Stack(
@@ -1261,7 +1379,11 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                         width: 28,
                         height: 28,
                         decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.grey.shade700 : Colors.grey.shade600) : (canUse ? Colors.white : Colors.grey.shade200),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? (canUse
+                                  ? Colors.grey.shade700
+                                  : Colors.grey.shade600)
+                              : (canUse ? Colors.white : Colors.grey.shade200),
                           borderRadius: BorderRadius.circular(7),
                           boxShadow: canUse
                               ? [
@@ -1276,7 +1398,11 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                         child: Icon(
                           icon,
                           size: 14,
-                          color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.white70 : Colors.grey.shade400) : (canUse ? Colors.grey.shade700 : Colors.grey.shade500),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? (canUse ? Colors.white70 : Colors.grey.shade400)
+                              : (canUse
+                                  ? Colors.grey.shade700
+                                  : Colors.grey.shade500),
                         ),
                       ),
                       SizedBox(height: 4),
@@ -1284,9 +1410,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       Text(
                         subtitle != null ? '$label - $subtitle' : label,
                         style: TextStyle(
-                          fontSize: settings.getScaledFontSize(isCompactWidth ? 9 : 10),
+                          fontSize: settings
+                              .getScaledFontSize(isCompactWidth ? 9 : 10),
                           fontWeight: FontWeight.w500,
-                          color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.white70 : Colors.grey.shade400) : (canUse ? Colors.grey.shade700 : Colors.grey.shade500),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? (canUse ? Colors.white70 : Colors.grey.shade400)
+                              : (canUse
+                                  ? Colors.grey.shade700
+                                  : Colors.grey.shade500),
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -1301,7 +1432,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       top: 3,
                       right: 3,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 4, vertical: 1),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -1348,7 +1480,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.grey.shade800 : Colors.grey.shade700) : (canUse ? Colors.white : Colors.grey.shade50),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? (canUse ? Colors.grey.shade800 : Colors.grey.shade700)
+                      : (canUse ? Colors.white : Colors.grey.shade50),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -1358,13 +1492,23 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       width: 28,
                       height: 28,
                       decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.grey.shade700 : Colors.grey.shade600) : (canUse ? Colors.grey.shade100 : Colors.grey.shade200),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? (canUse
+                                ? Colors.grey.shade700
+                                : Colors.grey.shade600)
+                            : (canUse
+                                ? Colors.grey.shade100
+                                : Colors.grey.shade200),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Icon(
                         icon,
                         size: 16,
-                        color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.white70 : Colors.grey.shade400) : (canUse ? Colors.grey.shade700 : Colors.grey.shade500),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? (canUse ? Colors.white70 : Colors.grey.shade400)
+                            : (canUse
+                                ? Colors.grey.shade700
+                                : Colors.grey.shade500),
                       ),
                     ),
                     SizedBox(width: 12),
@@ -1381,7 +1525,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                 style: TextStyle(
                                   fontSize: settings.getScaledFontSize(14),
                                   fontWeight: FontWeight.w500,
-                                  color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.white : Colors.grey.shade400) : (canUse ? Colors.black87 : Colors.grey.shade600),
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? (canUse
+                                          ? Colors.white
+                                          : Colors.grey.shade400)
+                                      : (canUse
+                                          ? Colors.black87
+                                          : Colors.grey.shade600),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -1389,10 +1540,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                               if (isPremium) ...[
                                 SizedBox(width: 8),
                                 Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 1),
                                   decoration: BoxDecoration(
                                     gradient: LinearGradient(
-                                      colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                                      colors: [
+                                        Color(0xFFFFD700),
+                                        Color(0xFFFFA500)
+                                      ],
                                     ),
                                     borderRadius: BorderRadius.circular(3),
                                   ),
@@ -1414,7 +1569,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                               subtitle,
                               style: TextStyle(
                                 fontSize: settings.getScaledFontSize(12),
-                                color: Theme.of(context).brightness == Brightness.dark ? (canUse ? Colors.grey.shade400 : Colors.grey.shade500) : (canUse ? Colors.grey.shade600 : Colors.grey.shade500),
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? (canUse
+                                        ? Colors.grey.shade400
+                                        : Colors.grey.shade500)
+                                    : (canUse
+                                        ? Colors.grey.shade600
+                                        : Colors.grey.shade500),
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -1429,7 +1591,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       Icon(
                         Icons.arrow_forward_ios,
                         size: 16,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey.shade400,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade500
+                            : Colors.grey.shade400,
                       ),
                   ],
                 ),
@@ -1471,7 +1635,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: isDisabled ? Colors.grey.shade300 : color.withOpacity(0.1),
+                      color: isDisabled
+                          ? Colors.grey.shade300
+                          : color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Stack(
@@ -1487,10 +1653,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             top: 1,
                             right: 1,
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 3, vertical: 1),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 3, vertical: 1),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+                                  colors: [
+                                    Color(0xFFFFD700),
+                                    Color(0xFFFFA500)
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(5),
                               ),
@@ -1522,7 +1692,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                     subtitle,
                     style: TextStyle(
                       fontSize: settings.getScaledFontSize(11),
-                      color: isDisabled ? Colors.grey.shade500 : Colors.grey.shade600,
+                      color: isDisabled
+                          ? Colors.grey.shade500
+                          : Colors.grey.shade600,
                     ),
                     textAlign: TextAlign.center,
                     maxLines: 2,
@@ -1552,7 +1724,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
               title: Row(
                 children: [
                   Container(
-                    padding: EdgeInsets.symmetric(horizontal: isVerySmallScreen ? 6 : 8, vertical: isVerySmallScreen ? 3 : 4),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: isVerySmallScreen ? 6 : 8,
+                        vertical: isVerySmallScreen ? 3 : 4),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
@@ -1562,7 +1736,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                     child: Text(
                       'PRO',
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 10 : 12),
+                        fontSize: settings
+                            .getScaledFontSize(isVerySmallScreen ? 10 : 12),
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                       ),
@@ -1573,7 +1748,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                     child: Text(
                       AppLocalizations.of(context)!.upgradeNow,
                       style: TextStyle(
-                        fontSize: settings.getScaledFontSize(isVerySmallScreen ? 16 : 18),
+                        fontSize: settings
+                            .getScaledFontSize(isVerySmallScreen ? 16 : 18),
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -1583,7 +1759,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
               content: Text(
                 'This feature is available for premium users. Upgrade now to unlock unlimited access.',
                 style: TextStyle(
-                  fontSize: settings.getScaledFontSize(isVerySmallScreen ? 14 : 16),
+                  fontSize:
+                      settings.getScaledFontSize(isVerySmallScreen ? 14 : 16),
                   height: 1.4,
                 ),
               ),
@@ -1596,7 +1773,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                           child: Text(
                             AppLocalizations.of(context)!.maybeLater,
                             style: TextStyle(
-                              fontSize: settings.getScaledFontSize(isVerySmallScreen ? 14 : 16),
+                              fontSize: settings.getScaledFontSize(
+                                  isVerySmallScreen ? 14 : 16),
                               color: Colors.grey.shade600,
                             ),
                           ),
@@ -1612,12 +1790,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            padding: EdgeInsets.symmetric(vertical: isVerySmallScreen ? 10 : 12),
+                            padding: EdgeInsets.symmetric(
+                                vertical: isVerySmallScreen ? 10 : 12),
                           ),
                           child: Text(
                             AppLocalizations.of(context)!.upgradeNow,
                             style: TextStyle(
-                              fontSize: settings.getScaledFontSize(isVerySmallScreen ? 14 : 16),
+                              fontSize: settings.getScaledFontSize(
+                                  isVerySmallScreen ? 14 : 16),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -1679,7 +1859,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
         final scaledButtonSize = size;
-        final scaledIconSize = settings.getScaledFontSize(isPhoneLandscape ? 18.0 : 22.0);
+        final scaledIconSize =
+            settings.getScaledFontSize(isPhoneLandscape ? 18.0 : 22.0);
         final scaledBorderRadius = settings.getScaledFontSize(4);
 
         return Container(
@@ -1692,10 +1873,16 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                     ? Colors.grey.shade700
                     : Colors.grey.shade100,
             borderRadius: BorderRadius.circular(scaledBorderRadius),
-            border: isEnabled ? Border.all(color: const Color(0xFF0078D4), width: 1) : null,
+            border: isEnabled
+                ? Border.all(color: const Color(0xFF0078D4), width: 1)
+                : null,
           ),
           child: Tooltip(
-            message: canUseDeepResearch ? (isEnabled ? 'Disable deep research mode' : 'Enable deep research mode (gpt-5.2 reasoning)') : 'Deep research (Premium only)',
+            message: canUseDeepResearch
+                ? (isEnabled
+                    ? 'Disable deep research mode'
+                    : 'Enable deep research mode (gpt-5.2 reasoning)')
+                : 'Deep research (Premium only)',
             child: Material(
               color: Colors.transparent,
               child: InkWell(

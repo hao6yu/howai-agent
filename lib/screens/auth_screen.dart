@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:haogpt/generated/app_localizations.dart';
 import '../providers/auth_provider.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -52,7 +53,9 @@ class _AuthScreenState extends State<AuthScreen> {
       success = await authProvider.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        name: _nameController.text.trim().isEmpty ? null : _nameController.text.trim(),
+        name: _nameController.text.trim().isEmpty
+            ? null
+            : _nameController.text.trim(),
       );
     } else {
       success = await authProvider.signIn(
@@ -108,6 +111,7 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final l10n = AppLocalizations.of(context)!;
 
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
@@ -125,7 +129,8 @@ class _AuthScreenState extends State<AuthScreen> {
           body: SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 48.0),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 32.0, vertical: 48.0),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -152,7 +157,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
                       // Title
                       Text(
-                        _isSignUp ? 'Sign up to HowAI' : 'Sign in to HowAI',
+                        _isSignUp ? l10n.signUpToHowAI : l10n.signInToHowAI,
                         style: theme.textTheme.headlineSmall?.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: 24,
@@ -163,16 +168,20 @@ class _AuthScreenState extends State<AuthScreen> {
 
                       // Google Sign In button (first, like Supabase)
                       OutlinedButton(
-                        onPressed: authProvider.isLoading ? null : _handleGoogleSignIn,
+                        onPressed:
+                            authProvider.isLoading ? null : _handleGoogleSignIn,
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                           side: BorderSide(
-                            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                            color: isDark
+                                ? Colors.grey.shade700
+                                : Colors.grey.shade300,
                           ),
-                          foregroundColor: isDark ? Colors.white : Colors.black87,
+                          foregroundColor:
+                              isDark ? Colors.white : Colors.black87,
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -184,7 +193,7 @@ class _AuthScreenState extends State<AuthScreen> {
                               height: 18,
                             ),
                             const SizedBox(width: 12),
-                            const Text('Continue with Google'),
+                            Text(l10n.continueWithGoogle),
                           ],
                         ),
                       ),
@@ -192,18 +201,22 @@ class _AuthScreenState extends State<AuthScreen> {
                       // Apple Sign In button (Required by Apple for App Store)
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
-                        onPressed: authProvider.isLoading ? null : _handleAppleSignIn,
+                        onPressed:
+                            authProvider.isLoading ? null : _handleAppleSignIn,
                         icon: const Icon(Icons.apple, size: 20),
-                        label: const Text('Continue with Apple'),
+                        label: Text(l10n.continueWithApple),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                           side: BorderSide(
-                            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                            color: isDark
+                                ? Colors.grey.shade700
+                                : Colors.grey.shade300,
                           ),
-                          foregroundColor: isDark ? Colors.white : Colors.black87,
+                          foregroundColor:
+                              isDark ? Colors.white : Colors.black87,
                         ),
                       ),
 
@@ -216,7 +229,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: Text(
-                              'Or continue with email',
+                              l10n.orContinueWithEmail,
                               style: TextStyle(
                                 color: Colors.grey.shade600,
                                 fontSize: 13,
@@ -233,7 +246,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Email address',
+                            l10n.emailAddress,
                             style: theme.textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w500,
                             ),
@@ -242,19 +255,25 @@ class _AuthScreenState extends State<AuthScreen> {
                           TextFormField(
                             controller: _emailController,
                             decoration: InputDecoration(
-                              hintText: 'you@example.com',
+                              hintText: l10n.emailPlaceholder,
                               filled: true,
-                              fillColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
+                              fillColor: isDark
+                                  ? Colors.grey.shade900
+                                  : Colors.grey.shade50,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                                  color: isDark
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade300,
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                                  color: isDark
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade300,
                                 ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -266,10 +285,10 @@ class _AuthScreenState extends State<AuthScreen> {
                             textInputAction: TextInputAction.next,
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your email';
+                                return l10n.pleaseEnterYourEmail;
                               }
                               if (!value.contains('@')) {
-                                return 'Please enter a valid email';
+                                return l10n.pleaseEnterValidEmail;
                               }
                               return null;
                             },
@@ -283,7 +302,7 @@ class _AuthScreenState extends State<AuthScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Password',
+                            l10n.password,
                             style: theme.textTheme.bodySmall?.copyWith(
                               fontWeight: FontWeight.w500,
                             ),
@@ -294,17 +313,23 @@ class _AuthScreenState extends State<AuthScreen> {
                             decoration: InputDecoration(
                               hintText: '••••••••',
                               filled: true,
-                              fillColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
+                              fillColor: isDark
+                                  ? Colors.grey.shade900
+                                  : Colors.grey.shade50,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                                  color: isDark
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade300,
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+                                  color: isDark
+                                      ? Colors.grey.shade700
+                                      : Colors.grey.shade300,
                                 ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -313,7 +338,9 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                               suffixIcon: IconButton(
                                 icon: Icon(
-                                  _isPasswordVisible ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                  _isPasswordVisible
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
                                   size: 20,
                                 ),
                                 onPressed: () {
@@ -328,10 +355,10 @@ class _AuthScreenState extends State<AuthScreen> {
                             onFieldSubmitted: (_) => _handleEmailAuth(),
                             validator: (value) {
                               if (value == null || value.isEmpty) {
-                                return 'Please enter your password';
+                                return l10n.pleaseEnterYourPassword;
                               }
                               if (_isSignUp && value.length < 6) {
-                                return 'Password must be at least 6 characters';
+                                return l10n.passwordMustBeAtLeast6Characters;
                               }
                               return null;
                             },
@@ -342,7 +369,8 @@ class _AuthScreenState extends State<AuthScreen> {
 
                       // Sign in/up button
                       ElevatedButton(
-                        onPressed: authProvider.isLoading ? null : _handleEmailAuth,
+                        onPressed:
+                            authProvider.isLoading ? null : _handleEmailAuth,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
@@ -358,11 +386,12 @@ class _AuthScreenState extends State<AuthScreen> {
                                 width: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
                                 ),
                               )
                             : Text(
-                                _isSignUp ? 'Sign up' : 'Sign in',
+                                _isSignUp ? l10n.signUp : l10n.signIn,
                                 style: const TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w500,
@@ -383,7 +412,9 @@ class _AuthScreenState extends State<AuthScreen> {
                             foregroundColor: const Color(0xFF0078D4),
                           ),
                           child: Text(
-                            _isSignUp ? 'Already have an account? Sign in' : 'Don\'t have an account? Sign up',
+                            _isSignUp
+                                ? l10n.alreadyHaveAnAccountSignIn
+                                : l10n.dontHaveAnAccountSignUp,
                             style: const TextStyle(fontSize: 13),
                           ),
                         ),
@@ -398,8 +429,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           style: TextButton.styleFrom(
                             foregroundColor: Colors.grey.shade600,
                           ),
-                          child: const Text(
-                            'Continue without account',
+                          child: Text(
+                            l10n.continueWithoutAccount,
                             style: TextStyle(
                               fontSize: 13,
                               decoration: TextDecoration.underline,
@@ -409,7 +440,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Your data will only be stored locally on this device',
+                        l10n.yourDataWillOnlyBeStoredLocallyOnThisDevice,
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: Colors.grey.shade500,
                           fontSize: 12,

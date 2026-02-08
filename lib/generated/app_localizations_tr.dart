@@ -2331,4 +2331,529 @@ class AppLocalizationsTr extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => 'Derin Araştırma Modu, daha kapsamlı analiz ve içgörüler için yüksek akıl yürütme çabasıyla gpt-5.2 kullanır. Bu premium özellik kapsamlı açıklamalar, çoklu bakış açıları ve daha derin mantıksal akıl yürütme sağlar.\n\nGelişmiş yapay zeka yeteneklerine erişmek için yükseltin!';
+
+  @override
+  String get hideKeyboard => 'Klavyeyi gizle';
+
+  @override
+  String get knowledgeHubTitle => 'Bilgi Merkezi';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => 'Bilgi Merkezi (Premium)';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => 'Bilgi Merkezi, HowAI\'nin konuşmalar boyunca kişisel tercihlerinizi, gerçeklerinizi ve hedeflerinizi hatırlamasına yardımcı olur.\n\nBu özelliği kullanmak için Premium\'a yükseltin.';
+
+  @override
+  String get knowledgeHubReturn => 'Geri dönmek';
+
+  @override
+  String get knowledgeHubGoToSubscription => 'Aboneliğe Git';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => 'Yeni Bellek';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => 'Belleği Düzenle';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => 'Belleği Sil';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => 'Bu hafıza öğesi silinsin mi? Bu geri alınamaz.';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => 'Son Sohbet Mesajını Kullan';
+
+  @override
+  String get knowledgeHubAttachDocument => 'Belge Ekle';
+
+  @override
+  String get knowledgeHubAttachingDocument => 'Belge ekleniyor...';
+
+  @override
+  String get knowledgeHubAttachedSources => 'Ekli kaynaklar';
+
+  @override
+  String get knowledgeHubFieldTitle => 'Başlık';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => 'Kısa hafıza başlığı';
+
+  @override
+  String get knowledgeHubFieldContent => 'İçerik';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'HowAI neyi hatırlamalı?';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => 'Belge metni burada gizli kalır. HowAI, ayıklanan belge içeriğini bellek bağlamında kullanacaktır.';
+
+  @override
+  String get knowledgeHubFieldType => 'Tip';
+
+  @override
+  String get knowledgeHubFieldTags => 'Etiketler';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => 'Etiketler (isteğe bağlı)';
+
+  @override
+  String get knowledgeHubFieldTagsHint => 'virgül, ayrılmış, etiketler';
+
+  @override
+  String get knowledgeHubPinned => 'Sabitlendi';
+
+  @override
+  String get knowledgeHubPinnedOnly => 'Yalnızca sabitlendi';
+
+  @override
+  String get knowledgeHubUseInContext => 'Yapay zeka bağlamında kullanın';
+
+  @override
+  String get knowledgeHubAllTypes => 'Tüm türler';
+
+  @override
+  String get knowledgeHubApply => 'Uygula';
+
+  @override
+  String get knowledgeHubEdit => 'Düzenlemek';
+
+  @override
+  String get knowledgeHubPin => 'Sabitle';
+
+  @override
+  String get knowledgeHubUnpin => 'Sabitlemeyi kaldır';
+
+  @override
+  String get knowledgeHubDisableInContext => 'Bağlamda devre dışı bırak';
+
+  @override
+  String get knowledgeHubEnableInContext => 'Bağlamda etkinleştir';
+
+  @override
+  String get knowledgeHubFiltersTitle => 'Filtreler';
+
+  @override
+  String get knowledgeHubFiltersTooltip => 'Filtreler';
+
+  @override
+  String get knowledgeHubSearchHint => 'Hafızayı ara';
+
+  @override
+  String get knowledgeHubNoMatches => 'Filtrelerinizle eşleşen hafıza öğesi yok.';
+
+  @override
+  String get knowledgeHubModeFromChat => 'Sohbetten';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => 'Son mesajı hafızaya kaydet';
+
+  @override
+  String get knowledgeHubModeTypeManually => 'Manuel Olarak Yaz';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => 'Özel bir hafıza girişi yazın';
+
+  @override
+  String get knowledgeHubModeFromDocument => 'Belgeden';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => 'Dosyayı ekleyin ve çıkarılan bilgiyi saklayın';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => 'Bağlanacak bir mesaj seçin';
+
+  @override
+  String get knowledgeHubSpeakerYou => 'Sen';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => 'nasıl yapay zeka';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => 'Tercih';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => 'Hakikat';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => 'Amaç';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => 'Kısıtlama';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => 'Diğer';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => 'İşleme';
+
+  @override
+  String get knowledgeHubSourceStatusReady => 'Hazır';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => 'Arızalı';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => 'Kayıtlı Bellek';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => 'Belge Belleği';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => 'Bilgi Merkezi Premium bir özelliktir';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => 'Önemli ayrıntıları bir kez kaydedin; HowAI bunları gelecekteki sohbetlerde hatırlar, böylece kendinizi tekrarlamanıza gerek kalmaz.';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => 'Önemli olanı yakalayın';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => 'Tercihleri, hedefleri ve kısıtlamaları doğrudan mesajlardan kaydedin.';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => 'Daha akıllı yanıtlar alın';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => 'İlgili hafıza bağlam içinde kullanıldığından yanıtlar daha kişisel ve tutarlı hissettirir.';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => 'Hafızanızı kontrol edin';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => 'Öğeleri istediğiniz zaman tek bir yerden düzenleyin, sabitleyin, devre dışı bırakın veya silin.';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => 'Premium\'a Yükselt';
+
+  @override
+  String get knowledgeHubWhatIsTitle => 'Bilgi Merkezi Nedir?';
+
+  @override
+  String get knowledgeHubWhatIsDesc => 'HowAI\'nin bunları gelecekteki yanıtlarda kullanabilmesi için önemli ayrıntıları bir kez kaydettiğiniz kişisel bir bellek alanı.';
+
+  @override
+  String get knowledgeHubHowToStartTitle => 'Nasıl başlanır?';
+
+  @override
+  String get knowledgeHubStep1 => 'Yeni Bellek\'e dokunun veya herhangi bir sohbet mesajından Kaydet\'i kullanın.';
+
+  @override
+  String get knowledgeHubStep2 => 'Türü seçin (Tercih, Hedef, Gerçek, Kısıtlama).';
+
+  @override
+  String get knowledgeHubStep3 => 'Belleğin daha sonra eşleştirilmesini kolaylaştırmak için etiketler ekleyin.';
+
+  @override
+  String get knowledgeHubStep4 => 'Bağlam içinde önceliklendirmek için kritik anıları sabitleyin.';
+
+  @override
+  String get knowledgeHubExampleTitle => 'Örnek anılar';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => 'Özetlerimi kısa ve madde işaretli tutun.';
+
+  @override
+  String get knowledgeHubExampleGoalContent => 'Ürün yöneticisi görüşmelerine hazırlanıyorum.';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => 'Çevrilen çıktıya yerel dosya yollarını dahil etmeyin.';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => 'Benzer bir hafıza zaten mevcut.';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => 'Bellek oluşturulamadı.';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => 'Bellek güncellenemedi.';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => 'PIN durumu güncellenemedi.';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => 'Etkin durum güncellenemedi.';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => 'Bellek silinemedi.';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => 'Bağlantılı mesaj, hafıza uzunluğuna uyacak şekilde kırpıldı.';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => 'Belge eklenemedi ve çıkartılamadı.';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => 'Kaydetmeden önce metin ekleyin veya okunabilir bir belge ekleyin.';
+
+  @override
+  String get knowledgeHubNoRecentMessages => 'Yeni mesaj bulunamadı.';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => 'Bu mesajdan kaydedilecek bir şey yok.';
+
+  @override
+  String get knowledgeHubSnackSaved => 'Bilgi Merkezi\'ne kaydedildi.';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => 'Bu hafıza Bilgi Merkezinizde zaten mevcut.';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => 'Bellek kaydedilemedi. Lütfen tekrar deneyin.';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => 'Başlık ve içerik gereklidir.';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => 'Bilgi Merkezine Kaydet';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => 'Bilgi Merkezi bir Premium özelliktir. Kişisel anılarınızı konuşmalar arasında kaydetmek ve yeniden kullanmak için yükseltme yapın.';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => 'Sohbet mesajlarından kişisel hafızayı kaydedin';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => 'Yapay zeka yanıtlarında kayıtlı bellek bağlamını kullanın';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => 'Bilgi merkezinizi yönetin ve düzenleyin';
+
+  @override
+  String get knowledgeHubMoreActions => 'Daha';
+
+  @override
+  String get knowledgeHubAddToMemory => 'Belleğe Ekle';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => 'Bu mesajdan anında tasarruf edin';
+
+  @override
+  String get knowledgeHubReviewAndSave => 'İncele ve Kaydet';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => 'Başlığı, içeriği, türü ve etiketleri düzenleyin';
+
+  @override
+  String get knowledgeHubQuickTranslate => 'Hızlı çeviri';
+
+  @override
+  String get knowledgeHubRecentTargets => 'Son hedefler';
+
+  @override
+  String get knowledgeHubChooseLanguage => 'Dil seçin';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => 'Başka bir dile çevir';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return '$language diline çevir';
+  }
+
+  @override
+  String get leaveReview => 'İncelemeyi Bırak';
+
+  @override
+  String get voiceSamplePreviewText => 'Merhaba, bu HowAI\'den örnek bir ses önizlemesidir.';
+
+  @override
+  String get voiceSampleGenerateFailed => 'Örnek ses oluşturulamıyor.';
+
+  @override
+  String get voiceSampleUnavailable => 'Ses örneği kullanılamıyor. Lütfen ElevenLabs kurulumunu kontrol edin.';
+
+  @override
+  String get voiceSamplePlayFailed => 'Ses örneği çalınamadı.';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => 'Ses çalma nasıl çalışır?';
+
+  @override
+  String get voicePlaybackHowItWorksFree => 'Ücretsiz: mesaj dinlemek için cihazınızın sesini kullanın.';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => 'Premium: Daha doğal ses için ElevenLabs seslerine geçin.';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => 'Seçmeden önce sesleri test etmek için örnek oynat düğmesini kullanın.';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => 'Sistem ses hızı ve ElevenLabs hızı ayrı ayrı yapılandırılır.';
+
+  @override
+  String get voiceFreeSystemTitle => 'Ücretsiz Sistem Sesi';
+
+  @override
+  String get voiceDeviceTtsTitle => 'Cihaz Metin-Konuşma';
+
+  @override
+  String get voiceDeviceTtsDescription => 'Cihazınızın motoruyla AI yanıtlarını okuyan ücretsiz ses.';
+
+  @override
+  String get voiceStopSample => 'Örneği durdur';
+
+  @override
+  String get voicePlaySample => 'Örnek çal';
+
+  @override
+  String get voiceLoadingVoices => 'Mevcut sesler yükleniyor...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return 'Sistem ses hızı (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => 'Cihazda ücretsiz metin-konuşma oynatma için kullanılır.';
+
+  @override
+  String get voiceSpeedMinSystem => '0,5x';
+
+  @override
+  String get voiceSpeedMaxSystem => '1,2x';
+
+  @override
+  String get voicePremiumElevenLabsTitle => 'Premium ElevenLabs Sesleri';
+
+  @override
+  String get voicePremiumElevenLabsDesc => 'Daha zengin ton ve netliğe sahip stüdyo kalitesinde yapay zeka sesleri.';
+
+  @override
+  String get voicePremiumEngineTitle => 'Premium oynatma motoru';
+
+  @override
+  String get voiceSystemTts => 'Sistem TTS\'si';
+
+  @override
+  String get voiceElevenLabs => 'Onbir Laboratuvar';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'ElevenLabs hızı (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0,8x';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1,5x';
+
+  @override
+  String get voicePremiumUpgradeDescription => 'Doğal ElevenLabs seslerinin ve ses önizlemesinin kilidini açmak için Premium\'a yükseltin.';
+
+  @override
+  String get account => 'Hesap';
+
+  @override
+  String get signedIn => 'Giriş yapıldı';
+
+  @override
+  String get signIn => 'Giriş yap';
+
+  @override
+  String get signUp => 'Kayıt ol';
+
+  @override
+  String get signInToHowAI => 'HowAI hesabına giriş yap';
+
+  @override
+  String get signUpToHowAI => 'HowAI hesabı oluştur';
+
+  @override
+  String get continueWithGoogle => 'Google ile devam et';
+
+  @override
+  String get continueWithApple => 'Apple ile devam et';
+
+  @override
+  String get orContinueWithEmail => 'Veya e-posta ile devam et';
+
+  @override
+  String get emailAddress => 'E-posta adresi';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => 'Şifre';
+
+  @override
+  String get pleaseEnterYourEmail => 'Lütfen e-postanızı girin';
+
+  @override
+  String get pleaseEnterValidEmail => 'Lütfen geçerli bir e-posta girin';
+
+  @override
+  String get pleaseEnterYourPassword => 'Lütfen şifrenizi girin';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => 'Şifre en az 6 karakter olmalıdır';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => 'Zaten hesabınız var mı? Giriş yapın';
+
+  @override
+  String get dontHaveAnAccountSignUp => 'Hesabınız yok mu? Kayıt olun';
+
+  @override
+  String get continueWithoutAccount => 'Hesapsız devam et';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => 'Verileriniz yalnızca bu cihazda yerel olarak saklanacaktır';
+
+  @override
+  String get syncYourDataAcrossDevices => 'Verilerinizi cihazlar arasında senkronize edin';
+
+  @override
+  String get userProfile => 'Kullanıcı profili';
+
+  @override
+  String get defaultUserName => 'Kullanıcı';
+
+  @override
+  String get knowledgeHubManageSavedMemory => 'Kaydedilen belleği yönet';
+
+  @override
+  String get chatLandingTitle => 'Size nasıl yardımcı olabilirim?';
+
+  @override
+  String get chatLandingSubtitle => 'Yazın veya ses gönderin. Gerisini ben hallederim.';
+
+  @override
+  String get chatLandingTipCompact => 'İpucu: Fotoğraflar, dosyalar, PDF ve görsel araçları için + simgesine dokunun.';
+
+  @override
+  String get chatLandingTipFull => 'İpucu: Fotoğraflar, dosyalar, PDF tarama, çeviri ve görsel üretimi için + simgesine dokunun.';
+
+  @override
+  String get premiumBannerTitle1 => 'Tüm potansiyelinizi açığa çıkarın';
+
+  @override
+  String get premiumBannerSubtitle1 => 'Premium özellikler sizi bekliyor';
+
+  @override
+  String get premiumBannerTitle2 => 'Sınırsız yaratıcılığa hazır mısınız?';
+
+  @override
+  String get premiumBannerSubtitle2 => 'Premium ile tüm sınırları kaldırın';
+
+  @override
+  String get premiumBannerTitle3 => 'Yapay zeka deneyiminizi ileri taşıyın';
+
+  @override
+  String get premiumBannerSubtitle3 => 'Premium her şeyi açar';
+
+  @override
+  String get premiumBannerTitle4 => 'Premium özellikleri keşfedin';
+
+  @override
+  String get premiumBannerSubtitle4 => 'Gelişmiş AI’ya sınırsız erişim';
+
+  @override
+  String get premiumBannerTitle5 => 'İş akışınızı hızlandırın';
+
+  @override
+  String get premiumBannerSubtitle5 => 'Premium her şeyi mümkün kılar';
 }

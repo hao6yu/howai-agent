@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:open_file/open_file.dart';
 import 'package:provider/provider.dart';
+import 'package:haogpt/generated/app_localizations.dart';
 
 import '../models/knowledge_item.dart';
 import '../models/knowledge_source.dart';
@@ -66,9 +67,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       barrierDismissible: true,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Knowledge Hub (Premium)'),
-          content: const Text(
-            'Knowledge Hub helps HowAI remember your personal preferences, facts, and goals across conversations.\n\nUpgrade to Premium to use this feature.',
+          title: Text(
+              AppLocalizations.of(context)!.knowledgeHubPremiumDialogTitle),
+          content: Text(
+            AppLocalizations.of(context)!.knowledgeHubPremiumDialogMessage,
           ),
           actions: [
             TextButton(
@@ -78,14 +80,15 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   Navigator.of(context).pop();
                 }
               },
-              child: const Text('Return'),
+              child: Text(AppLocalizations.of(context)!.knowledgeHubReturn),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
                 Navigator.pushReplacementNamed(context, '/subscription');
               },
-              child: const Text('Go to Subscription'),
+              child: Text(
+                  AppLocalizations.of(context)!.knowledgeHubGoToSubscription),
             ),
           ],
         );
@@ -154,7 +157,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     }
 
     final created = await _showItemEditorDialog(
-      title: 'New Memory',
+      title: AppLocalizations.of(context)!.knowledgeHubNewMemoryTitle,
       initialTitle: mode == _NewMemoryMode.fromChat
           ? _buildMemoryTitle(initialLinkedMessage!.content)
           : '',
@@ -199,12 +202,16 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     } on DuplicateKnowledgeItemException {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('A similar memory already exists.')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)!
+                .knowledgeHubSnackDuplicateMemory)),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to create memory.')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context)!.knowledgeHubSnackCreateFailed)),
       );
     }
   }
@@ -220,7 +227,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     );
 
     final updatedDraft = await _showItemEditorDialog(
-      title: 'Edit Memory',
+      title: AppLocalizations.of(context)!.knowledgeHubEditMemoryTitle,
       initialTitle: item.title,
       initialContent: item.content,
       initialType: item.memoryType,
@@ -273,7 +280,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update memory.')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context)!.knowledgeHubSnackUpdateFailed)),
       );
     }
   }
@@ -287,7 +296,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update pin status.')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)!
+                .knowledgeHubSnackPinUpdateFailed)),
       );
     }
   }
@@ -301,7 +312,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to update active status.')),
+        SnackBar(
+            content: Text(AppLocalizations.of(context)!
+                .knowledgeHubSnackActiveUpdateFailed)),
       );
     }
   }
@@ -310,17 +323,18 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Delete Memory'),
-            content:
-                const Text('Delete this memory item? This cannot be undone.'),
+            title: Text(
+                AppLocalizations.of(context)!.knowledgeHubDeleteDialogTitle),
+            content: Text(
+                AppLocalizations.of(context)!.knowledgeHubDeleteDialogMessage),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('Cancel'),
+                child: Text(AppLocalizations.of(context)!.cancel),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('Delete'),
+                child: Text(AppLocalizations.of(context)!.delete),
               ),
             ],
           ),
@@ -335,7 +349,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete memory.')),
+        SnackBar(
+            content: Text(
+                AppLocalizations.of(context)!.knowledgeHubSnackDeleteFailed)),
       );
     }
   }
@@ -415,9 +431,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                             });
                             if (wasTruncated && mounted) {
                               ScaffoldMessenger.of(this.context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text(
-                                    'Linked message was trimmed to fit memory length.',
+                                    AppLocalizations.of(this.context)!
+                                        .knowledgeHubSnackLinkedTrimmed,
                                   ),
                                   duration: Duration(seconds: 2),
                                 ),
@@ -425,7 +442,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                             }
                           },
                           icon: const Icon(Icons.link, size: 18),
-                          label: const Text('Use Recent Chat Message'),
+                          label: Text(AppLocalizations.of(context)!
+                              .knowledgeHubUseRecentChatMessage),
                         ),
                       ),
                     if (showAttachDocumentAction)
@@ -464,9 +482,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                                     if (!dialogContext.mounted) return;
                                     ScaffoldMessenger.of(dialogContext)
                                         .showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                            'Failed to attach and extract document.'),
+                                      SnackBar(
+                                        content: Text(AppLocalizations.of(
+                                                context)!
+                                            .knowledgeHubSnackAttachExtractFailed),
                                       ),
                                     );
                                   } finally {
@@ -480,8 +499,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                           icon: const Icon(Icons.attach_file, size: 18),
                           label: Text(
                             isAttachingSource
-                                ? 'Attaching document...'
-                                : 'Attach Document',
+                                ? AppLocalizations.of(context)!
+                                    .knowledgeHubAttachingDocument
+                                : AppLocalizations.of(context)!
+                                    .knowledgeHubAttachDocument,
                           ),
                         ),
                       ),
@@ -500,8 +521,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Attached sources',
+                            Text(
+                              AppLocalizations.of(context)!
+                                  .knowledgeHubAttachedSources,
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                               ),
@@ -628,14 +650,20 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                       ),
                     TextField(
                       controller: titleController,
-                      decoration: const InputDecoration(labelText: 'Title'),
+                      decoration: InputDecoration(
+                        labelText: AppLocalizations.of(context)!
+                            .knowledgeHubFieldTitle,
+                      ),
                       maxLength: _memoryTitleMaxLength,
                       maxLengthEnforcement: MaxLengthEnforcement.enforced,
                     ),
                     if (showContentField)
                       TextField(
                         controller: contentController,
-                        decoration: const InputDecoration(labelText: 'Content'),
+                        decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!
+                              .knowledgeHubFieldContent,
+                        ),
                         maxLength: _memoryContentMaxLength,
                         maxLengthEnforcement: MaxLengthEnforcement.enforced,
                         minLines: 2,
@@ -652,14 +680,17 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                               : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
-                          'Document text stays hidden here. HowAI will use extracted document content in memory context.',
+                        child: Text(
+                          AppLocalizations.of(context)!
+                              .knowledgeHubDocumentTextHidden,
                           style: TextStyle(fontSize: 12),
                         ),
                       ),
                     DropdownButtonFormField<MemoryType>(
                       initialValue: selectedType,
-                      decoration: const InputDecoration(labelText: 'Type'),
+                      decoration: InputDecoration(
+                          labelText: AppLocalizations.of(context)!
+                              .knowledgeHubFieldType),
                       items: MemoryType.values
                           .map((type) => DropdownMenuItem(
                                 value: type,
@@ -676,15 +707,18 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: tagsController,
-                      decoration: const InputDecoration(
-                        labelText: 'Tags',
-                        hintText: 'comma, separated, tags',
+                      decoration: InputDecoration(
+                        labelText:
+                            AppLocalizations.of(context)!.knowledgeHubFieldTags,
+                        hintText: AppLocalizations.of(context)!
+                            .knowledgeHubFieldTagsHint,
                       ),
                     ),
                     const SizedBox(height: 8),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Pinned'),
+                      title: Text(
+                          AppLocalizations.of(context)!.knowledgeHubPinned),
                       value: isPinned,
                       onChanged: (value) {
                         setDialogState(() {
@@ -694,7 +728,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Use in AI context'),
+                      title: Text(AppLocalizations.of(context)!
+                          .knowledgeHubUseInContext),
                       value: isActive,
                       onChanged: (value) {
                         setDialogState(() {
@@ -712,7 +747,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     if (!dialogContext.mounted) return;
                     Navigator.pop(dialogContext);
                   },
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -736,9 +771,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     if (trimmedTitle.isEmpty || trimmedContent.isEmpty) {
                       if (!dialogContext.mounted) return;
                       ScaffoldMessenger.of(dialogContext).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text(
-                            'Add text or attach a readable document before saving.',
+                            AppLocalizations.of(context)!
+                                .knowledgeHubSnackAddTextOrAttach,
                           ),
                         ),
                       );
@@ -771,7 +807,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                       ),
                     );
                   },
-                  child: const Text('Save'),
+                  child: Text(AppLocalizations.of(context)!.save),
                 ),
               ],
             );
@@ -809,7 +845,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     if (recent.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No recent messages found.')),
+          SnackBar(
+              content: Text(
+                  AppLocalizations.of(context)!.knowledgeHubNoRecentMessages)),
         );
       }
       return null;
@@ -825,12 +863,13 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
             height: MediaQuery.of(context).size.height * 0.65,
             child: Column(
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Select a message to link',
+                      AppLocalizations.of(context)!
+                          .knowledgeHubSelectMessageToLink,
                       style:
                           TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
@@ -854,7 +893,11 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        subtitle: Text(item.isUser ? 'You' : 'HowAI'),
+                        subtitle: Text(item.isUser
+                            ? AppLocalizations.of(context)!
+                                .knowledgeHubSpeakerYou
+                            : AppLocalizations.of(context)!
+                                .knowledgeHubSpeakerHowAi),
                         onTap: () => Navigator.pop(context, item),
                       );
                     },
@@ -879,21 +922,26 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.forum_outlined),
-                title: const Text('From Chat'),
-                subtitle: const Text('Save a recent message as memory'),
+                title: Text(
+                    AppLocalizations.of(context)!.knowledgeHubModeFromChat),
+                subtitle: Text(
+                    AppLocalizations.of(context)!.knowledgeHubModeFromChatDesc),
                 onTap: () => Navigator.pop(context, _NewMemoryMode.fromChat),
               ),
               ListTile(
                 leading: const Icon(Icons.edit_note_outlined),
-                title: const Text('Type Manually'),
-                subtitle: const Text('Write a custom memory entry'),
+                title: Text(
+                    AppLocalizations.of(context)!.knowledgeHubModeTypeManually),
+                subtitle: Text(AppLocalizations.of(context)!
+                    .knowledgeHubModeTypeManuallyDesc),
                 onTap: () => Navigator.pop(context, _NewMemoryMode.manual),
               ),
               ListTile(
                 leading: const Icon(Icons.description_outlined),
-                title: const Text('From Document'),
-                subtitle:
-                    const Text('Attach file and store extracted knowledge'),
+                title: Text(
+                    AppLocalizations.of(context)!.knowledgeHubModeFromDocument),
+                subtitle: Text(AppLocalizations.of(context)!
+                    .knowledgeHubModeFromDocumentDesc),
                 onTap: () =>
                     Navigator.pop(context, _NewMemoryMode.fromDocument),
               ),
@@ -906,7 +954,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
 
   String _buildMemoryTitle(String text) {
     final trimmed = text.replaceAll('\n', ' ').trim();
-    if (trimmed.isEmpty) return 'Saved Memory';
+    if (trimmed.isEmpty) {
+      return AppLocalizations.of(context)!.knowledgeHubDefaultSavedMemoryTitle;
+    }
     if (trimmed.length <= 48) return trimmed;
     return '${trimmed.substring(0, 48)}...';
   }
@@ -920,26 +970,26 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   String _memoryTypeLabel(MemoryType type) {
     switch (type) {
       case MemoryType.preference:
-        return 'Preference';
+        return AppLocalizations.of(context)!.knowledgeHubMemoryTypePreference;
       case MemoryType.fact:
-        return 'Fact';
+        return AppLocalizations.of(context)!.knowledgeHubMemoryTypeFact;
       case MemoryType.goal:
-        return 'Goal';
+        return AppLocalizations.of(context)!.knowledgeHubMemoryTypeGoal;
       case MemoryType.constraint:
-        return 'Constraint';
+        return AppLocalizations.of(context)!.knowledgeHubMemoryTypeConstraint;
       case MemoryType.other:
-        return 'Other';
+        return AppLocalizations.of(context)!.knowledgeHubMemoryTypeOther;
     }
   }
 
   String _sourceStatusLabel(KnowledgeExtractionStatus status) {
     switch (status) {
       case KnowledgeExtractionStatus.pending:
-        return 'Processing';
+        return AppLocalizations.of(context)!.knowledgeHubSourceStatusProcessing;
       case KnowledgeExtractionStatus.ready:
-        return 'Ready';
+        return AppLocalizations.of(context)!.knowledgeHubSourceStatusReady;
       case KnowledgeExtractionStatus.failed:
-        return 'Failed';
+        return AppLocalizations.of(context)!.knowledgeHubSourceStatusFailed;
     }
   }
 
@@ -956,7 +1006,10 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
 
   String _buildMemoryTitleFromSourceName(String displayName) {
     final base = displayName.replaceAll(RegExp(r'\.[a-zA-Z0-9]+$'), '').trim();
-    if (base.isEmpty) return 'Document Memory';
+    if (base.isEmpty) {
+      return AppLocalizations.of(context)!
+          .knowledgeHubDefaultDocumentMemoryTitle;
+    }
     if (base.length <= KnowledgeHubLimits.titleMaxLength) return base;
     return '${base.substring(0, KnowledgeHubLimits.titleMaxLength - 3)}...';
   }
@@ -993,7 +1046,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
               size: 62, color: Color(0xFF0078D4)),
           const SizedBox(height: 14),
           Text(
-            'Knowledge Hub is a Premium feature',
+            AppLocalizations.of(context)!.knowledgeHubPremiumBlockedTitle,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(20),
               fontWeight: FontWeight.w700,
@@ -1002,7 +1055,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Save key details once, and HowAI remembers them in future chats so you do not need to repeat yourself.',
+            AppLocalizations.of(context)!.knowledgeHubPremiumBlockedDesc,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(14),
               height: 1.4,
@@ -1013,25 +1066,28 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
           _buildFeatureCard(
             settings,
             icon: Icons.bookmark_add_outlined,
-            title: 'Capture what matters',
+            title:
+                AppLocalizations.of(context)!.knowledgeHubFeatureCaptureTitle,
             description:
-                'Save preferences, goals, and constraints directly from messages.',
+                AppLocalizations.of(context)!.knowledgeHubFeatureCaptureDesc,
           ),
           const SizedBox(height: 10),
           _buildFeatureCard(
             settings,
             icon: Icons.psychology_outlined,
-            title: 'Get smarter replies',
+            title:
+                AppLocalizations.of(context)!.knowledgeHubFeatureRepliesTitle,
             description:
-                'Relevant memory is used in context so responses feel more personal and consistent.',
+                AppLocalizations.of(context)!.knowledgeHubFeatureRepliesDesc,
           ),
           const SizedBox(height: 10),
           _buildFeatureCard(
             settings,
             icon: Icons.manage_search_outlined,
-            title: 'Control your memory',
+            title:
+                AppLocalizations.of(context)!.knowledgeHubFeatureControlTitle,
             description:
-                'Edit, pin, disable, or delete items any time from one place.',
+                AppLocalizations.of(context)!.knowledgeHubFeatureControlDesc,
           ),
           const SizedBox(height: 20),
           ElevatedButton(
@@ -1039,7 +1095,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
-            child: const Text('Upgrade to Premium'),
+            child: Text(
+                AppLocalizations.of(context)!.knowledgeHubUpgradeToPremium),
           ),
         ],
       ),
@@ -1125,7 +1182,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'What is Knowledge Hub?',
+                      AppLocalizations.of(context)!.knowledgeHubWhatIsTitle,
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(16),
                         fontWeight: FontWeight.w700,
@@ -1133,7 +1190,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'A personal memory space where you save key details once, so HowAI can use them in future replies.',
+                      AppLocalizations.of(context)!.knowledgeHubWhatIsDesc,
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(13),
                         height: 1.35,
@@ -1163,7 +1220,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'How to get started',
+                AppLocalizations.of(context)!.knowledgeHubHowToStartTitle,
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(16),
                   fontWeight: FontWeight.w700,
@@ -1173,22 +1230,22 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
               _buildStep(
                 settings,
                 number: '1',
-                text: 'Tap New Memory or use Save from any chat message.',
+                text: AppLocalizations.of(context)!.knowledgeHubStep1,
               ),
               _buildStep(
                 settings,
                 number: '2',
-                text: 'Choose type (Preference, Goal, Fact, Constraint).',
+                text: AppLocalizations.of(context)!.knowledgeHubStep2,
               ),
               _buildStep(
                 settings,
                 number: '3',
-                text: 'Add tags to make memory easier to match later.',
+                text: AppLocalizations.of(context)!.knowledgeHubStep3,
               ),
               _buildStep(
                 settings,
                 number: '4',
-                text: 'Pin critical memories to prioritize them in context.',
+                text: AppLocalizations.of(context)!.knowledgeHubStep4,
               ),
             ],
           ),
@@ -1211,7 +1268,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Example memories',
+                AppLocalizations.of(context)!.knowledgeHubExampleTitle,
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(16),
                   fontWeight: FontWeight.w700,
@@ -1220,21 +1277,25 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
               const SizedBox(height: 10),
               _buildExampleMemory(
                 settings,
-                title: 'Preference',
-                content: 'Keep my summaries short and bullet-pointed.',
+                title: AppLocalizations.of(context)!
+                    .knowledgeHubMemoryTypePreference,
+                content: AppLocalizations.of(context)!
+                    .knowledgeHubExamplePreferenceContent,
               ),
               const SizedBox(height: 8),
               _buildExampleMemory(
                 settings,
-                title: 'Goal',
-                content: 'I am preparing for product manager interviews.',
+                title: AppLocalizations.of(context)!.knowledgeHubMemoryTypeGoal,
+                content: AppLocalizations.of(context)!
+                    .knowledgeHubExampleGoalContent,
               ),
               const SizedBox(height: 8),
               _buildExampleMemory(
                 settings,
-                title: 'Constraint',
-                content:
-                    'Do not include local file paths in translated output.',
+                title: AppLocalizations.of(context)!
+                    .knowledgeHubMemoryTypeConstraint,
+                content: AppLocalizations.of(context)!
+                    .knowledgeHubExampleConstraintContent,
               ),
             ],
           ),
@@ -1354,17 +1415,22 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: const Text('Filters'),
+              title:
+                  Text(AppLocalizations.of(context)!.knowledgeHubFiltersTitle),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   DropdownButtonFormField<MemoryType?>(
                     initialValue: draftType,
-                    decoration: const InputDecoration(labelText: 'Type'),
+                    decoration: InputDecoration(
+                      labelText:
+                          AppLocalizations.of(context)!.knowledgeHubFieldType,
+                    ),
                     items: [
-                      const DropdownMenuItem<MemoryType?>(
+                      DropdownMenuItem<MemoryType?>(
                         value: null,
-                        child: Text('All types'),
+                        child: Text(
+                            AppLocalizations.of(context)!.knowledgeHubAllTypes),
                       ),
                       ...MemoryType.values.map(
                         (type) => DropdownMenuItem<MemoryType?>(
@@ -1382,7 +1448,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   const SizedBox(height: 10),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Pinned only'),
+                    title: Text(
+                        AppLocalizations.of(context)!.knowledgeHubPinnedOnly),
                     value: draftPinnedOnly,
                     onChanged: (value) {
                       setDialogState(() {
@@ -1395,7 +1462,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(dialogContext),
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
                 TextButton(
                   onPressed: () {
@@ -1405,7 +1472,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     });
                     Navigator.pop(dialogContext);
                   },
-                  child: const Text('Clear'),
+                  child: Text(AppLocalizations.of(context)!.clear),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -1415,7 +1482,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     });
                     Navigator.pop(dialogContext);
                   },
-                  child: const Text('Apply'),
+                  child: Text(AppLocalizations.of(context)!.knowledgeHubApply),
                 ),
               ],
             );
@@ -1520,23 +1587,27 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   }
                 },
                 itemBuilder: (context) => [
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'edit',
-                    child: Text('Edit'),
+                    child: Text(AppLocalizations.of(context)!.knowledgeHubEdit),
                   ),
                   PopupMenuItem(
                     value: 'pin',
-                    child: Text(item.isPinned ? 'Unpin' : 'Pin'),
+                    child: Text(item.isPinned
+                        ? AppLocalizations.of(context)!.knowledgeHubUnpin
+                        : AppLocalizations.of(context)!.knowledgeHubPin),
                   ),
                   PopupMenuItem(
                     value: 'active',
                     child: Text(item.isActive
-                        ? 'Disable in context'
-                        : 'Enable in context'),
+                        ? AppLocalizations.of(context)!
+                            .knowledgeHubDisableInContext
+                        : AppLocalizations.of(context)!
+                            .knowledgeHubEnableInContext),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: 'delete',
-                    child: Text('Delete'),
+                    child: Text(AppLocalizations.of(context)!.delete),
                   ),
                 ],
               ),
@@ -1555,7 +1626,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Knowledge Hub'),
+        title: Text(AppLocalizations.of(context)!.knowledgeHubTitle),
         actions: [
           if (subscriptionService.isPremium)
             IconButton(
@@ -1574,7 +1645,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                     ),
                 ],
               ),
-              tooltip: 'Filters',
+              tooltip: AppLocalizations.of(context)!.knowledgeHubFiltersTooltip,
               onPressed: _showFilterDialog,
             ),
         ],
@@ -1600,7 +1671,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                                       });
                                     },
                                     decoration: InputDecoration(
-                                      hintText: 'Search memory',
+                                      hintText: AppLocalizations.of(context)!
+                                          .knowledgeHubSearchHint,
                                       prefixIcon: const Icon(Icons.search),
                                       suffixIcon: _searchQuery.isNotEmpty
                                           ? IconButton(
@@ -1628,7 +1700,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                                         children: [
                                           if (_showPinnedOnly)
                                             InputChip(
-                                              label: const Text('Pinned only'),
+                                              label: Text(
+                                                  AppLocalizations.of(context)!
+                                                      .knowledgeHubPinnedOnly),
                                               onDeleted: () {
                                                 setState(() {
                                                   _showPinnedOnly = false;
@@ -1658,10 +1732,12 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                                           const AlwaysScrollableScrollPhysics(),
                                       padding: const EdgeInsets.fromLTRB(
                                           16, 24, 16, 100),
-                                      children: const [
+                                      children: [
                                         Center(
                                           child: Text(
-                                              'No memory items match your filters.'),
+                                            AppLocalizations.of(context)!
+                                                .knowledgeHubNoMatches,
+                                          ),
                                         ),
                                       ],
                                     )
@@ -1687,7 +1763,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
           ? FloatingActionButton.extended(
               onPressed: _createNewItem,
               icon: const Icon(Icons.add),
-              label: const Text('New Memory'),
+              label: Text(
+                  AppLocalizations.of(context)!.knowledgeHubNewMemoryTitle),
             )
           : null,
     );

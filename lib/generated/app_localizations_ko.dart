@@ -1653,7 +1653,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get mapsAndNavigation => '지도 & 내비게이션';
 
   @override
-  String get waze => 'Waze';
+  String get waze => '웨이즈';
 
   @override
   String get walking => '도보';
@@ -1770,22 +1770,22 @@ class AppLocalizationsKo extends AppLocalizations {
   String get featurePlacesExplorerDesc => '근처 레스토랑, 명소, 서비스 찾기';
 
   @override
-  String get quickActionAskFromPhoto => 'Ask from photo';
+  String get quickActionAskFromPhoto => '사진으로 물어보세요';
 
   @override
-  String get quickActionAskFromFile => 'Ask from file';
+  String get quickActionAskFromFile => '파일에서 요청';
 
   @override
-  String get quickActionScanToPdf => 'Scan to PDF';
+  String get quickActionScanToPdf => 'PDF로 스캔';
 
   @override
-  String get quickActionGenerateImage => 'Generate image';
+  String get quickActionGenerateImage => '이미지 생성';
 
   @override
-  String get quickActionTranslateSubtitle => 'Text, photo, or file';
+  String get quickActionTranslateSubtitle => '텍스트, 사진, 파일';
 
   @override
-  String get quickActionFindPlaces => 'Find places';
+  String get quickActionFindPlaces => '장소 찾기';
 
   @override
   String get featurePhotoToPdfTitle => '사진을 PDF로';
@@ -1872,7 +1872,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get featureEntertainmentGuideInput => '에 대한 영화/책/음악 추천 ';
 
   @override
-  String get proBadge => 'PRO';
+  String get proBadge => '찬성';
 
   @override
   String get localRecommendationDetected => '로컬 추천을 찾고 있는 것을 감지했습니다!';
@@ -2331,4 +2331,529 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => '심층 연구 모드는 더 철저한 분석과 통찰을 위해 gpt-5.2 고급 추론을 사용합니다. 이 프리미엄 기능은 포괄적인 설명, 다양한 관점, 더 깊은 논리적 추론을 제공합니다.\n\n향상된 AI 기능에 액세스하려면 업그레이드하세요!';
+
+  @override
+  String get hideKeyboard => '키보드 숨기기';
+
+  @override
+  String get knowledgeHubTitle => '지식 허브';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => '지식 허브(프리미엄)';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => 'Knowledge Hub는 HowAI가 대화 전반에 걸쳐 개인 선호도, 사실 및 목표를 기억하는 데 도움이 됩니다.\n\n이 기능을 사용하려면 프리미엄으로 업그레이드하세요.';
+
+  @override
+  String get knowledgeHubReturn => '반품';
+
+  @override
+  String get knowledgeHubGoToSubscription => '구독으로 이동';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => '새로운 기억';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => '메모리 편집';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => '메모리 삭제';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => '이 추억 항목을 삭제하시겠습니까? 이 작업은 취소할 수 없습니다.';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => '최근 채팅 메시지 사용';
+
+  @override
+  String get knowledgeHubAttachDocument => '문서 첨부';
+
+  @override
+  String get knowledgeHubAttachingDocument => '문서 첨부 중...';
+
+  @override
+  String get knowledgeHubAttachedSources => '첨부된 소스';
+
+  @override
+  String get knowledgeHubFieldTitle => '제목';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => '짧은 추억 제목';
+
+  @override
+  String get knowledgeHubFieldContent => '콘텐츠';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'HowAI는 무엇을 기억해야 할까요?';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => '문서 텍스트는 여기에 숨겨져 있습니다. HowAI는 메모리 컨텍스트에서 추출된 문서 콘텐츠를 사용합니다.';
+
+  @override
+  String get knowledgeHubFieldType => '유형';
+
+  @override
+  String get knowledgeHubFieldTags => '태그';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => '태그(선택사항)';
+
+  @override
+  String get knowledgeHubFieldTagsHint => '쉼표, 구분, 태그';
+
+  @override
+  String get knowledgeHubPinned => '고정됨';
+
+  @override
+  String get knowledgeHubPinnedOnly => '고정된 것만';
+
+  @override
+  String get knowledgeHubUseInContext => 'AI 컨텍스트에서 사용';
+
+  @override
+  String get knowledgeHubAllTypes => '모든 유형';
+
+  @override
+  String get knowledgeHubApply => '적용하다';
+
+  @override
+  String get knowledgeHubEdit => '편집하다';
+
+  @override
+  String get knowledgeHubPin => '핀';
+
+  @override
+  String get knowledgeHubUnpin => '고정 해제';
+
+  @override
+  String get knowledgeHubDisableInContext => '상황에 따라 비활성화';
+
+  @override
+  String get knowledgeHubEnableInContext => '상황에 따라 활성화';
+
+  @override
+  String get knowledgeHubFiltersTitle => '필터';
+
+  @override
+  String get knowledgeHubFiltersTooltip => '필터';
+
+  @override
+  String get knowledgeHubSearchHint => '메모리 검색';
+
+  @override
+  String get knowledgeHubNoMatches => '필터와 일치하는 메모리 항목이 없습니다.';
+
+  @override
+  String get knowledgeHubModeFromChat => '채팅에서';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => '최근 메시지를 메모리로 저장';
+
+  @override
+  String get knowledgeHubModeTypeManually => '수동으로 입력';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => '사용자 정의 메모리 항목 작성';
+
+  @override
+  String get knowledgeHubModeFromDocument => '문서에서';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => '파일 첨부 및 추출된 지식 저장';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => '연결할 메시지를 선택하세요.';
+
+  @override
+  String get knowledgeHubSpeakerYou => '너';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => 'HowAI';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => '선호';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => '사실';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => '목표';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => '강제';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => '다른';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => '처리';
+
+  @override
+  String get knowledgeHubSourceStatusReady => '준비가 된';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => '실패한';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => '저장된 메모리';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => '문서 메모리';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => 'Knowledge Hub는 프리미엄 기능입니다';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => '주요 세부 정보를 한 번 저장하면 HowAI가 향후 채팅에서 이를 기억하므로 반복할 필요가 없습니다.';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => '중요한 내용을 포착하세요';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => '메시지에서 직접 기본 설정, 목표 및 제약 조건을 저장하세요.';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => '더 스마트한 답변 받기';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => '관련 기억이 맥락에 맞게 사용되므로 응답이 더욱 개인적이고 일관되게 느껴집니다.';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => '기억력을 통제하세요';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => '한 곳에서 언제든지 항목을 편집, 고정, 비활성화 또는 삭제할 수 있습니다.';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => '프리미엄으로 업그레이드';
+
+  @override
+  String get knowledgeHubWhatIsTitle => '지식 허브란 무엇입니까?';
+
+  @override
+  String get knowledgeHubWhatIsDesc => 'HowAI가 향후 답변에 사용할 수 있도록 주요 세부 정보를 한 번 저장하는 개인 메모리 공간입니다.';
+
+  @override
+  String get knowledgeHubHowToStartTitle => '시작하는 방법';
+
+  @override
+  String get knowledgeHubStep1 => '새 추억을 탭하거나 채팅 메시지에서 저장을 사용하세요.';
+
+  @override
+  String get knowledgeHubStep2 => '유형(선호도, 목표, 사실, 제약)을 선택합니다.';
+
+  @override
+  String get knowledgeHubStep3 => '나중에 메모리를 더 쉽게 일치시킬 수 있도록 태그를 추가하세요.';
+
+  @override
+  String get knowledgeHubStep4 => '중요한 추억을 고정하여 상황에 맞게 우선순위를 지정하세요.';
+
+  @override
+  String get knowledgeHubExampleTitle => '예시 추억';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => '요약은 짧고 명확하게 작성하세요.';
+
+  @override
+  String get knowledgeHubExampleGoalContent => '제품관리자 면접을 준비하고 있습니다.';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => '번역된 출력에 로컬 파일 경로를 포함하지 마십시오.';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => '비슷한 기억이 이미 존재합니다.';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => '메모리 생성에 실패했습니다.';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => '메모리를 업데이트하지 못했습니다.';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => '핀 상태를 업데이트하지 못했습니다.';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => '활성 상태를 업데이트하지 못했습니다.';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => '메모리를 삭제하지 못했습니다.';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => '연결된 메시지가 메모리 길이에 맞게 잘렸습니다.';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => '문서 첨부 및 추출에 실패했습니다.';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => '저장하기 전에 텍스트를 추가하거나 읽을 수 있는 문서를 첨부하세요.';
+
+  @override
+  String get knowledgeHubNoRecentMessages => '최근 메시지를 찾을 수 없습니다.';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => '이 메시지에서 저장할 내용이 없습니다.';
+
+  @override
+  String get knowledgeHubSnackSaved => '지식 허브에 저장되었습니다.';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => '이 기억은 지식 허브에 이미 존재합니다.';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => '메모리를 절약하지 못했습니다. 다시 시도해 주세요.';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => '제목과 내용이 필요합니다.';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => '지식 허브에 저장';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => 'Knowledge Hub는 프리미엄 기능입니다. 대화 전반에 걸쳐 개인적인 추억을 저장하고 재사용하려면 업그레이드하세요.';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => '채팅 메시지에서 개인 메모리 저장';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => 'AI 응답에 저장된 메모리 컨텍스트 사용';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => '지식 허브 관리 및 구성';
+
+  @override
+  String get knowledgeHubMoreActions => '더';
+
+  @override
+  String get knowledgeHubAddToMemory => '메모리에 추가';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => '이 메시지에서 즉시 저장';
+
+  @override
+  String get knowledgeHubReviewAndSave => '검토 및 저장';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => '제목, 내용, 유형, 태그 편집';
+
+  @override
+  String get knowledgeHubQuickTranslate => '빠른 번역';
+
+  @override
+  String get knowledgeHubRecentTargets => '최근 타겟';
+
+  @override
+  String get knowledgeHubChooseLanguage => '언어를 선택하세요';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => '다른 언어로 번역';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return '$language로 번역';
+  }
+
+  @override
+  String get leaveReview => '리뷰 남기기';
+
+  @override
+  String get voiceSamplePreviewText => '안녕하세요 HowAI의 샘플 음성 미리보기 입니다.';
+
+  @override
+  String get voiceSampleGenerateFailed => '샘플 오디오를 생성할 수 없습니다.';
+
+  @override
+  String get voiceSampleUnavailable => '음성 샘플을 사용할 수 없습니다. ElevenLabs 설정을 확인하세요.';
+
+  @override
+  String get voiceSamplePlayFailed => '음성 샘플을 재생할 수 없습니다.';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => '음성 재생 작동 방식';
+
+  @override
+  String get voicePlaybackHowItWorksFree => '무료: 메시지 재생에 장치 음성을 사용합니다.';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => '프리미엄: 더욱 자연스러운 사운드를 위해 ElevenLabs 음성으로 전환하세요.';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => '선택하기 전에 샘플 재생 버튼을 사용하여 음성을 테스트하세요.';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => '시스템 음성 속도와 ElevenLabs 속도는 별도로 구성됩니다.';
+
+  @override
+  String get voiceFreeSystemTitle => '무료 시스템 음성';
+
+  @override
+  String get voiceDeviceTtsTitle => '장치 텍스트 음성 변환';
+
+  @override
+  String get voiceDeviceTtsDescription => '장치 엔진으로 AI 응답을 읽는 무료 음성입니다.';
+
+  @override
+  String get voiceStopSample => '샘플 중지';
+
+  @override
+  String get voicePlaySample => '샘플 재생';
+
+  @override
+  String get voiceLoadingVoices => '사용 가능한 음성 로드 중...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return '시스템 음성 속도(${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => '무료 장치 텍스트 음성 변환 재생에 사용됩니다.';
+
+  @override
+  String get voiceSpeedMinSystem => '0.5배';
+
+  @override
+  String get voiceSpeedMaxSystem => '1.2배';
+
+  @override
+  String get voicePremiumElevenLabsTitle => '프리미엄 ElevenLabs 보이스';
+
+  @override
+  String get voicePremiumElevenLabsDesc => '더욱 풍부한 톤과 선명도를 갖춘 스튜디오 수준의 AI 음성.';
+
+  @override
+  String get voicePremiumEngineTitle => '프리미엄 재생 엔진';
+
+  @override
+  String get voiceSystemTts => '시스템 TTS';
+
+  @override
+  String get voiceElevenLabs => '일레븐랩스';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'ElevenLabs 속도(${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0.8배';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1.5배';
+
+  @override
+  String get voicePremiumUpgradeDescription => '자연스러운 ElevenLabs 음성 및 음성 미리보기를 잠금 해제하려면 프리미엄으로 업그레이드하세요.';
+
+  @override
+  String get account => '계정';
+
+  @override
+  String get signedIn => '로그인됨';
+
+  @override
+  String get signIn => '로그인';
+
+  @override
+  String get signUp => '회원가입';
+
+  @override
+  String get signInToHowAI => 'HowAI에 로그인';
+
+  @override
+  String get signUpToHowAI => 'HowAI에 회원가입';
+
+  @override
+  String get continueWithGoogle => 'Google로 계속';
+
+  @override
+  String get continueWithApple => 'Apple로 계속';
+
+  @override
+  String get orContinueWithEmail => '또는 이메일로 계속';
+
+  @override
+  String get emailAddress => '이메일 주소';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => '비밀번호';
+
+  @override
+  String get pleaseEnterYourEmail => '이메일을 입력해 주세요';
+
+  @override
+  String get pleaseEnterValidEmail => '유효한 이메일을 입력해 주세요';
+
+  @override
+  String get pleaseEnterYourPassword => '비밀번호를 입력해 주세요';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => '비밀번호는 최소 6자 이상이어야 합니다';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => '이미 계정이 있나요? 로그인';
+
+  @override
+  String get dontHaveAnAccountSignUp => '계정이 없나요? 회원가입';
+
+  @override
+  String get continueWithoutAccount => '계정 없이 계속';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => '데이터는 이 기기에만 로컬로 저장됩니다';
+
+  @override
+  String get syncYourDataAcrossDevices => '기기 간 데이터 동기화';
+
+  @override
+  String get userProfile => '사용자 프로필';
+
+  @override
+  String get defaultUserName => '사용자';
+
+  @override
+  String get knowledgeHubManageSavedMemory => '저장된 메모리 관리';
+
+  @override
+  String get chatLandingTitle => '무엇을 도와드릴까요?';
+
+  @override
+  String get chatLandingSubtitle => '입력하거나 음성으로 보내세요. 나머지는 제가 처리할게요.';
+
+  @override
+  String get chatLandingTipCompact => '팁: +를 눌러 사진, 파일, PDF, 이미지 도구를 사용하세요.';
+
+  @override
+  String get chatLandingTipFull => '팁: +를 눌러 사진, 파일, PDF 스캔, 번역, 이미지 생성을 사용하세요.';
+
+  @override
+  String get premiumBannerTitle1 => '잠재력을 모두 펼치세요';
+
+  @override
+  String get premiumBannerSubtitle1 => '프리미엄 기능이 기다리고 있어요';
+
+  @override
+  String get premiumBannerTitle2 => '무제한 창의성을 시작할 준비가 되셨나요?';
+
+  @override
+  String get premiumBannerSubtitle2 => '프리미엄으로 모든 제한 해제';
+
+  @override
+  String get premiumBannerTitle3 => 'AI 경험을 한 단계 더';
+
+  @override
+  String get premiumBannerSubtitle3 => '프리미엄이 모든 기능을 해제합니다';
+
+  @override
+  String get premiumBannerTitle4 => '프리미엄 기능을 만나보세요';
+
+  @override
+  String get premiumBannerSubtitle4 => '고급 AI를 무제한으로 이용하세요';
+
+  @override
+  String get premiumBannerTitle5 => '워크플로를 가속하세요';
+
+  @override
+  String get premiumBannerSubtitle5 => '프리미엄으로 모든 것이 가능해집니다';
 }

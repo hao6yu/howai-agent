@@ -1,0 +1,127 @@
+{
+  "new_base_keys_count": 135,
+  "locales": {
+    "app_ar.arb": {
+      "target": "ar",
+      "attempted": 5,
+      "translated": 5,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_de.arb": {
+      "target": "de",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_es.arb": {
+      "target": "es",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_fr.arb": {
+      "target": "fr",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_hi.arb": {
+      "target": "hi",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_id.arb": {
+      "target": "id",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_it.arb": {
+      "target": "it",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_ja.arb": {
+      "target": "ja",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_ko.arb": {
+      "target": "ko",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_pl.arb": {
+      "target": "pl",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_pt.arb": {
+      "target": "pt",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_pt_BR.arb": {
+      "target": "pt",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_ru.arb": {
+      "target": "ru",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_tr.arb": {
+      "target": "tr",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_vi.arb": {
+      "target": "vi",
+      "attempted": 135,
+      "translated": 135,
+      "failed": 0,
+      "failed_keys": []
+    },
+    "app_zh.arb": {
+      "target": "zh-CN",
+      "attempted": 135,
+      "translated": 134,
+      "failed": 1,
+      "failed_keys": [
+        "voiceSpeedMinSystem"
+      ]
+    },
+    "app_zh_TW.arb": {
+      "target": "zh-TW",
+      "attempted": 0,
+      "translated": 0,
+      "failed": 0,
+      "failed_keys": []
+    }
+  },
+  "note": "Post-pass manual fixes applied for app_id.arb knowledgeHubPin and app_pt.arb knowledgeHubModeFromDocument."
+}

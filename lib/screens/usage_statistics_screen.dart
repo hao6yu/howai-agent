@@ -81,13 +81,16 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    subscriptionService.isPremium ? 'PRO' : 'FREE',
+                    subscriptionService.isPremium
+                        ? AppLocalizations.of(context)!.premium
+                        : AppLocalizations.of(context)!.free,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
@@ -97,7 +100,9 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
                 ),
                 const Spacer(),
                 Icon(
-                  subscriptionService.isPremium ? Icons.workspace_premium : Icons.star_outline,
+                  subscriptionService.isPremium
+                      ? Icons.workspace_premium
+                      : Icons.star_outline,
                   color: Colors.white,
                   size: 28,
                 ),
@@ -105,7 +110,9 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
             ),
             const SizedBox(height: 12),
             Text(
-              subscriptionService.isPremium ? AppLocalizations.of(context)!.premiumAccount : AppLocalizations.of(context)!.freeAccount,
+              subscriptionService.isPremium
+                  ? AppLocalizations.of(context)!.premiumAccount
+                  : AppLocalizations.of(context)!.freeAccount,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -114,7 +121,9 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              subscriptionService.isPremium ? AppLocalizations.of(context)!.unlimitedAccessAllFeatures : AppLocalizations.of(context)!.weeklyUsageLimitsApply,
+              subscriptionService.isPremium
+                  ? AppLocalizations.of(context)!.unlimitedAccessAllFeatures
+                  : AppLocalizations.of(context)!.weeklyUsageLimitsApply,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.9),
                 fontSize: 16,
@@ -133,11 +142,15 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
         Consumer<SettingsProvider>(
           builder: (context, settings, child) {
             return Text(
-              subscriptionService.isPremium ? AppLocalizations.of(context)!.featureAccess : AppLocalizations.of(context)!.weeklyUsage,
+              subscriptionService.isPremium
+                  ? AppLocalizations.of(context)!.featureAccess
+                  : AppLocalizations.of(context)!.weeklyUsage,
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(20),
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : const Color(0xFF1A1A1A),
               ),
             );
           },
@@ -200,10 +213,12 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
               _buildUsageItem(
                 icon: Icons.slideshow,
                 title: AppLocalizations.of(context)!.presentationMaker,
-                used: subscriptionService.usageStats.documentAnalysisCount, // Shares quota
+                used: subscriptionService
+                    .usageStats.documentAnalysisCount, // Shares quota
                 limit: subscriptionService.limits.documentAnalysisWeekly,
                 isPremium: subscriptionService.isPremium,
-                subtitle: AppLocalizations.of(context)!.sharesDocumentAnalysisQuota,
+                subtitle:
+                    AppLocalizations.of(context)!.sharesDocumentAnalysisQuota,
               ),
             ],
           ),
@@ -263,7 +278,9 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(16),
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF1A1A1A),
                       ),
                     ),
                     if (subtitle != null) ...[
@@ -272,7 +289,9 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
                         subtitle,
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(12),
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -291,8 +310,13 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
                         '$used of $limit used this week',
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(14),
-                          color: isOverLimit ? Colors.red : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600),
-                          fontWeight: isOverLimit ? FontWeight.w500 : FontWeight.normal,
+                          color: isOverLimit
+                              ? Colors.red
+                              : (Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600),
+                          fontWeight:
+                              isOverLimit ? FontWeight.w500 : FontWeight.normal,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -330,8 +354,12 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
       return const SizedBox.shrink(); // Don't show reset info for premium users
     }
 
-    final daysUntilReset = 7 - DateTime.now().difference(subscriptionService.usageStats.lastReset).inDays;
-    final resetDate = subscriptionService.usageStats.lastReset.add(const Duration(days: 7));
+    final daysUntilReset = 7 -
+        DateTime.now()
+            .difference(subscriptionService.usageStats.lastReset)
+            .inDays;
+    final resetDate =
+        subscriptionService.usageStats.lastReset.add(const Duration(days: 7));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -343,7 +371,9 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(20),
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : const Color(0xFF1A1A1A),
               ),
             );
           },
@@ -392,7 +422,10 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
                                 style: TextStyle(
                                   fontSize: settings.getScaledFontSize(16),
                                   fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : const Color(0xFF1A1A1A),
                                 ),
                               ),
                               const SizedBox(height: 4),
@@ -404,7 +437,10 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
                                         : 'Resets in $daysUntilReset days',
                                 style: TextStyle(
                                   fontSize: settings.getScaledFontSize(14),
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey.shade400
+                                      : Colors.grey.shade600,
                                 ),
                               ),
                             ],
@@ -447,7 +483,9 @@ class _UsageStatisticsScreenState extends State<UsageStatisticsScreen> {
   Widget _buildDivider() {
     return Container(
       height: 1,
-      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade100,
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey.shade700
+          : Colors.grey.shade100,
       margin: const EdgeInsets.symmetric(horizontal: 16),
     );
   }

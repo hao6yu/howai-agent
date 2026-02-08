@@ -39,7 +39,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get subscription => 'Abonnement';
 
   @override
-  String get usageStatistics => 'Usage Statistics';
+  String get usageStatistics => 'Statistiques d\'utilisation';
 
   @override
   String get usageStatisticsDesc => 'Voir votre utilisation hebdomadaire et vos limites';
@@ -84,7 +84,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get confirm => 'Confirmer';
 
   @override
-  String get ok => 'OK';
+  String get ok => 'D\'ACCORD';
 
   @override
   String get holdToTalk => 'Maintenir pour parler';
@@ -323,7 +323,7 @@ class AppLocalizationsFr extends AppLocalizations {
   }
 
   @override
-  String get premiumTitle => 'HowAI Premium';
+  String get premiumTitle => 'CommentAI Premium';
 
   @override
   String get imageGeneration => 'Génération d\'images';
@@ -517,7 +517,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get featureSmartChatDesc => 'Conversations IA naturelles avec compréhension contextuelle';
 
   @override
-  String get featureLocalDiscovery => 'Local Discovery';
+  String get featureLocalDiscovery => 'Découverte locale';
 
   @override
   String get featureLocalDiscoveryDesc => 'Trouvez des restaurants, attractions et services à proximité avec des insights IA';
@@ -529,7 +529,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get featurePhotoAnalysisDesc => 'Reconnaissance d\'images avancée, OCR et compréhension visuelle';
 
   @override
-  String get featureDocumentAnalysis => 'Document Analysis';
+  String get featureDocumentAnalysis => 'Analyse de documents';
 
   @override
   String get featureDocumentAnalysisDesc => 'Analysez les PDF, documents Word, feuilles de calcul et plus avec une IA avancée';
@@ -682,10 +682,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get inputRecommendMovies => 'Recommandez des films ou livres sur ';
 
   @override
-  String get premiumFeatureTitle => 'Premium Feature';
+  String get premiumFeatureTitle => 'Fonctionnalité Premium';
 
   @override
-  String get premiumFeatureDesc => 'This feature requires a premium subscription. Upgrade to unlock advanced capabilities and enhanced AI features.';
+  String get premiumFeatureDesc => 'Cette fonctionnalité nécessite un abonnement premium. Effectuez la mise à niveau pour débloquer des capacités avancées et des fonctionnalités d\'IA améliorées.';
 
   @override
   String get maybeLater => 'Plus tard';
@@ -959,7 +959,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get realtimeConversationDesc => 'Ayez des conversations vocales naturelles en temps réel avec l\'IA';
 
   @override
-  String get couldNotPlayDemoAudio => 'Could not play demo audio.';
+  String get couldNotPlayDemoAudio => 'Impossible de lire l\'audio de la démo.';
 
   @override
   String get premiumFeatures => 'Fonctionnalités Premium';
@@ -980,10 +980,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get unlimitedPhotoAnalysisDesc => 'Téléchargez et analysez plusieurs photos en même temps, en recevant des insights détaillés et des explications alimentées par l\'IA.';
 
   @override
-  String get realtimeInternetSearch => 'Real-time Internet Search';
+  String get realtimeInternetSearch => 'Recherche Internet en temps réel';
 
   @override
-  String get realtimeInternetSearchDesc => 'Get up-to-date information from the web with live search integration for current events and facts.';
+  String get realtimeInternetSearchDesc => 'Obtenez des informations à jour sur le Web grâce à l\'intégration de la recherche en direct pour les événements et les faits actuels.';
 
   @override
   String get documentAnalysis => 'Analyse de Documents';
@@ -992,7 +992,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get documentAnalysisDesc => 'Analysez des PDF, documents Word, feuilles de calcul et plus avec une IA avancée';
 
   @override
-  String get aiProfileInsights => 'AI Profile Insights';
+  String get aiProfileInsights => 'Informations sur le profil IA';
 
   @override
   String get aiProfileInsightsDesc => 'Obtenez une analyse alimentée par l\'IA de vos modèles de conversation et des insights personnalisés sur votre style de communication et vos préférences.';
@@ -1004,28 +1004,28 @@ class AppLocalizationsFr extends AppLocalizations {
   String get unlimitedChatMessages => 'Messages de chat illimités';
 
   @override
-  String get translationFeatures => 'Translation Features';
+  String get translationFeatures => 'Fonctionnalités de traduction';
 
   @override
   String get basicVoiceDeviceTts => 'Voix de Base (TTS de l\'Appareil)';
 
   @override
-  String get pdfCreationTools => 'PDF Creation Tools';
+  String get pdfCreationTools => 'Outils de création de PDF';
 
   @override
-  String get profileUpdates => 'Profile Updates';
+  String get profileUpdates => 'Mises à jour du profil';
 
   @override
-  String get shareMessageAsPdf => 'Share Message as PDF';
+  String get shareMessageAsPdf => 'Partager le message au format PDF';
 
   @override
-  String get premiumAiVoice => 'Premium AI Voice';
+  String get premiumAiVoice => 'Voix IA premium';
 
   @override
   String get fiveTotalLimit => '5 au total';
 
   @override
-  String get tenTotalLimit => '10 total';
+  String get tenTotalLimit => '10 au total';
 
   @override
   String get unlimited => 'Illimité';
@@ -1035,20 +1035,20 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String startFreeTrialThenPrice(Object price) {
-    return 'Start Free Trial, then $price/month';
+    return 'Commencez l\'essai gratuit, puis $price/mois';
   }
 
   @override
-  String get termsOfUse => 'Terms of Use';
+  String get termsOfUse => 'Conditions d\'utilisation';
 
   @override
-  String get privacyPolicy => 'Privacy Policy';
+  String get privacyPolicy => 'politique de confidentialité';
 
   @override
   String get editProfileAndInsights => 'Modifier le profil et les insights IA';
 
   @override
-  String get quickActions => 'Quick Actions';
+  String get quickActions => 'Actions rapides';
 
   @override
   String get quickActionTranslate => 'Traduire';
@@ -1072,13 +1072,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get textSize => 'Taille du texte';
 
   @override
-  String get preferences => 'Preferences';
+  String get preferences => 'Préférences';
 
   @override
-  String get speakerAudio => 'Speaker Audio';
+  String get speakerAudio => 'Audio du haut-parleur';
 
   @override
-  String get speakerAudioDesc => 'Use device speaker for audio';
+  String get speakerAudioDesc => 'Utiliser le haut-parleur de l\'appareil pour l\'audio';
 
   @override
   String get advanced => 'Avancé';
@@ -1102,7 +1102,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get currentStatus => 'Statut Actuel :';
 
   @override
-  String get premium => 'Premium';
+  String get premium => 'Prime';
 
   @override
   String get free => 'Gratuit';
@@ -1126,10 +1126,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get helpAndInstructions => 'Aide et instructions';
 
   @override
-  String get learnHowToUseHowAI => 'Learn how to use HowAI effectively';
+  String get learnHowToUseHowAI => 'Apprenez à utiliser HowAI efficacement';
 
   @override
-  String get language => 'Language';
+  String get language => 'Langue';
 
   @override
   String get russian => 'Russe';
@@ -1162,7 +1162,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get small => 'Petit';
 
   @override
-  String get smallPlus => 'Small+';
+  String get smallPlus => 'Petit+';
 
   @override
   String get defaultSize => 'Par défaut';
@@ -1171,16 +1171,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get large => 'Grand';
 
   @override
-  String get largePlus => 'Large+';
+  String get largePlus => 'Grand+';
 
   @override
   String get extraLarge => 'Très grand';
 
   @override
-  String get premiumFeaturesActive => 'Premium features active';
+  String get premiumFeaturesActive => 'Fonctionnalités Premium actives';
 
   @override
-  String get upgradeToUnlockFeatures => 'Upgrade to unlock all features';
+  String get upgradeToUnlockFeatures => 'Mettez à niveau pour débloquer toutes les fonctionnalités';
 
   @override
   String get manualVoicePlayback => 'Lecture Vocale Manuelle';
@@ -1201,14 +1201,14 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String nearLocation(String location) {
-    return 'Near $location';
+    return 'Près de $location';
   }
 
   @override
   String get places => 'Lieux';
 
   @override
-  String get map => 'Map';
+  String get map => 'Carte';
 
   @override
   String get restaurants => 'Restaurants';
@@ -1220,10 +1220,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get attractions => 'Attractions';
 
   @override
-  String get shopping => 'Shopping';
+  String get shopping => 'Achats';
 
   @override
-  String get directions => 'Directions';
+  String get directions => 'Instructions';
 
   @override
   String get details => 'Détails';
@@ -1236,7 +1236,7 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String navigateTo(Object placeName) {
-    return 'Navigate to $placeName';
+    return 'Accédez à $placeName';
   }
 
   @override
@@ -1246,22 +1246,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get noPlacesFound => 'Aucun lieu trouvé pour votre recherche.';
 
   @override
-  String get trySearchingElse => 'Try searching for something else or check your location settings.';
+  String get trySearchingElse => 'Essayez de rechercher autre chose ou vérifiez vos paramètres de localisation.';
 
   @override
-  String get tryAgain => 'Try Again';
+  String get tryAgain => 'Essayer à nouveau';
 
   @override
-  String get restaurantDining => '🍽️ Restaurant & Dining';
+  String get restaurantDining => '🍽️ Restaurant et restauration';
 
   @override
   String get accommodationLodging => '🏨 Hébergement et Logement';
 
   @override
-  String get touristAttractionCulture => '🎭 Tourist Attraction & Culture';
+  String get touristAttractionCulture => '🎭 Attraction touristique et culturelle';
 
   @override
-  String get shoppingRetail => '🛍️ Shopping & Retail';
+  String get shoppingRetail => '🛍️ Shopping et vente au détail';
 
   @override
   String get healthcareMedical => '🏥 Soins de Santé et Médical';
@@ -1282,7 +1282,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get placesOfWorship => '⛪ Lieux de Culte';
 
   @override
-  String get parksRecreation => '🌳 Parks & Recreation';
+  String get parksRecreation => '🌳 Parcs et loisirs';
 
   @override
   String get entertainmentNightlife => '🎬 Divertissement et Vie Nocturne';
@@ -1303,7 +1303,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get closed => 'Fermé';
 
   @override
-  String get mapsNavigation => '🗺️ Maps & Navigation';
+  String get mapsNavigation => '🗺️ Cartes et navigation';
 
   @override
   String get googleMaps => 'Google Maps';
@@ -1360,7 +1360,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get alternativeRideshare => 'Options alternatives de covoiturage';
 
   @override
-  String get streetView => 'Street View';
+  String get streetView => 'Vue sur la rue';
 
   @override
   String get streetViewNotAvailable => 'Street View non disponible';
@@ -1390,10 +1390,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get distance => 'Distance';
 
   @override
-  String get priceLevel => 'Price Level';
+  String get priceLevel => 'Niveau de prix';
 
   @override
-  String get reviews => 'reviews';
+  String get reviews => 'avis';
 
   @override
   String get inexpensive => 'Peu cher';
@@ -1408,7 +1408,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get veryExpensive => 'Très Cher';
 
   @override
-  String get status => 'Status';
+  String get status => 'Statut';
 
   @override
   String get unknownPriceLevel => 'Inconnu';
@@ -1420,7 +1420,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get shareGetDirections => '🗺️ Obtenir les Directions :';
 
   @override
-  String get unlockBestAIExperience => 'Unlock the best AI Agent experience!';
+  String get unlockBestAIExperience => 'Débloquez la meilleure expérience d\'agent IA !';
 
   @override
   String get advancedAIMultiplePlatforms => 'IA Avancée • Plateformes multiples • Possibilités illimitées';
@@ -1429,13 +1429,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get chooseYourPlan => 'Choisissez votre plan';
 
   @override
-  String get tapPlanToSubscribe => 'Tap on a plan to subscribe';
+  String get tapPlanToSubscribe => 'Appuyez sur un forfait pour vous abonner';
 
   @override
-  String get yearlyPlan => 'Yearly Plan';
+  String get yearlyPlan => 'Forfait annuel';
 
   @override
-  String get monthlyPlan => 'Monthly Plan';
+  String get monthlyPlan => 'Forfait mensuel';
 
   @override
   String get perYear => 'par an';
@@ -1447,13 +1447,13 @@ class AppLocalizationsFr extends AppLocalizations {
   String get saveThreeMonthsBestValue => 'Économisez 3 mois - Meilleure Valeur !';
 
   @override
-  String get recommended => 'Recommended';
+  String get recommended => 'Recommandé';
 
   @override
-  String get startFreeMonthToday => 'Start your FREE month today • Cancel anytime';
+  String get startFreeMonthToday => 'Commencez votre mois GRATUIT aujourd\'hui • Annulez à tout moment';
 
   @override
-  String get moreAIFeaturesWeekly => 'More AI Agent features coming weekly!';
+  String get moreAIFeaturesWeekly => 'Plus de fonctionnalités AI Agent à venir chaque semaine !';
 
   @override
   String get constantlyRollingOut => 'Nous déployons constamment de nouvelles fonctionnalités et améliorations. Vous avez des idées cool pour les fonctionnalités IA ? Nous aimerions les entendre !';
@@ -1465,7 +1465,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get fullAccessToFeatures => 'Accès complet à toutes les fonctionnalités premium';
 
   @override
-  String get planType => 'Plan Type';
+  String get planType => 'Type de régime';
 
   @override
   String get active => 'Actif';
@@ -1489,22 +1489,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String get imageAnalysis => 'Analyse d\'images';
 
   @override
-  String get pdfGenerations => 'PDF Generations';
+  String get pdfGenerations => 'Générations PDF';
 
   @override
   String get voiceGenerations => 'Générations vocales';
 
   @override
-  String get yourPremiumFeatures => 'Your Premium Features';
+  String get yourPremiumFeatures => 'Vos fonctionnalités premium';
 
   @override
-  String get unlimitedAiImageGeneration => 'Unlimited AI Image Generation';
+  String get unlimitedAiImageGeneration => 'Génération d\'images IA illimitée';
 
   @override
   String get createStunningImages => 'Créez des images époustouflantes avec une IA avancée';
 
   @override
-  String get unlimitedImageAnalysis => 'Unlimited Image Analysis';
+  String get unlimitedImageAnalysis => 'Analyse d\'images illimitée';
 
   @override
   String get analyzePhotosWithAi => 'Analysez les photos avec une IA avancée';
@@ -1522,16 +1522,16 @@ class AppLocalizationsFr extends AppLocalizations {
   String get realtimeWebSearch => '• Recherche web en temps réel';
 
   @override
-  String get getLatestInformation => 'Get the latest information from the internet';
+  String get getLatestInformation => 'Obtenez les dernières informations sur Internet';
 
   @override
   String get findNearbyPlaces => 'Trouvez des endroits à proximité et obtenez des recommandations';
 
   @override
-  String get subscriptionManagedMessage => 'Your subscription is managed through the App Store. To modify or cancel your subscription, please use the App Store settings.';
+  String get subscriptionManagedMessage => 'Votre abonnement est géré via l\'App Store. Pour modifier ou annuler votre abonnement, veuillez utiliser les paramètres de l\'App Store.';
 
   @override
-  String get manageInAppStore => 'Manage in App Store';
+  String get manageInAppStore => 'Gérer dans l\'App Store';
 
   @override
   String get debugPremiumFeaturesEnabled => '🔧 Debug : Fonctionnalités premium activées';
@@ -1635,7 +1635,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get transit => 'Transport';
 
   @override
-  String get drive => 'Drive';
+  String get drive => 'Conduire';
 
   @override
   String get go => 'Aller';
@@ -1662,7 +1662,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get cycling => 'Cyclisme';
 
   @override
-  String get rideshare => 'Rideshare';
+  String get rideshare => 'Covoiturage';
 
   @override
   String get locationAndContact => 'Localisation et Contact';
@@ -1755,49 +1755,49 @@ class AppLocalizationsFr extends AppLocalizations {
   String get viewThisLocationInTheNativeGoogleMapsApp => 'Voir cet endroit dans l\'application native Google Maps';
 
   @override
-  String get featureSmartChatTitle => 'Smart Chat';
+  String get featureSmartChatTitle => 'Chat intelligent';
 
   @override
-  String get featureSmartChatText => 'Start chatting';
+  String get featureSmartChatText => 'Commencez à discuter';
 
   @override
-  String get featureSmartChatInput => 'Hi! I\'d like to chat about ';
+  String get featureSmartChatInput => 'Salut! J\'aimerais discuter de';
 
   @override
-  String get featurePlacesExplorerTitle => 'Places Explorer';
+  String get featurePlacesExplorerTitle => 'Explorateur de lieux';
 
   @override
-  String get featurePlacesExplorerDesc => 'Find restaurants, attractions & services nearby';
+  String get featurePlacesExplorerDesc => 'Trouvez des restaurants, des attractions et des services à proximité';
 
   @override
-  String get quickActionAskFromPhoto => 'Ask from photo';
+  String get quickActionAskFromPhoto => 'Demander à partir de la photo';
 
   @override
-  String get quickActionAskFromFile => 'Ask from file';
+  String get quickActionAskFromFile => 'Demander à partir du fichier';
 
   @override
-  String get quickActionScanToPdf => 'Scan to PDF';
+  String get quickActionScanToPdf => 'Numériser vers PDF';
 
   @override
-  String get quickActionGenerateImage => 'Generate image';
+  String get quickActionGenerateImage => 'Générer une image';
 
   @override
-  String get quickActionTranslateSubtitle => 'Text, photo, or file';
+  String get quickActionTranslateSubtitle => 'Texte, photo ou fichier';
 
   @override
-  String get quickActionFindPlaces => 'Find places';
+  String get quickActionFindPlaces => 'Trouver des lieux';
 
   @override
-  String get featurePhotoToPdfTitle => 'Photo to PDF';
+  String get featurePhotoToPdfTitle => 'Photo en PDF';
 
   @override
-  String get featurePhotoToPdfDesc => 'Convert photos to organized PDF documents';
+  String get featurePhotoToPdfDesc => 'Convertissez des photos en documents PDF organisés';
 
   @override
-  String get featurePhotoToPdfText => 'Convert photos to PDF';
+  String get featurePhotoToPdfText => 'Convertir des photos en PDF';
 
   @override
-  String get featurePhotoToPdfInput => 'Convert photos to PDF';
+  String get featurePhotoToPdfInput => 'Convertir des photos en PDF';
 
   @override
   String get featurePresentationMakerTitle => 'Créateur de Présentations';
@@ -1857,10 +1857,10 @@ class AppLocalizationsFr extends AppLocalizations {
   String get featureSmartPlanningTitle => 'Planification Intelligente';
 
   @override
-  String get featureSmartPlanningText => 'Help with planning';
+  String get featureSmartPlanningText => 'Aide à la planification';
 
   @override
-  String get featureSmartPlanningInput => 'Help me plan my ';
+  String get featureSmartPlanningInput => 'Aide-moi à planifier mon';
 
   @override
   String get featureEntertainmentGuideTitle => 'Guide de Divertissement';
@@ -1938,7 +1938,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get aiImagePremiumDesc => 'Créez des œuvres d\'art et des images époustouflantes à partir de votre imagination. Cette fonctionnalité est disponible pour les abonnés Premium uniquement.';
 
   @override
-  String get aiPersonality => 'AI Personality';
+  String get aiPersonality => 'Personnalité de l\'IA';
 
   @override
   String get resetToDefault => 'Rétablir par Défaut';
@@ -1947,7 +1947,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get resetToDefaultConfirm => 'Êtes-vous sûr de vouloir rétablir les paramètres de personnalité IA par défaut ? Cela écrasera tous les paramètres personnalisés.';
 
   @override
-  String get aiPersonalitySettingsSaved => 'AI personality settings saved';
+  String get aiPersonalitySettingsSaved => 'Paramètres de personnalité IA enregistrés';
 
   @override
   String get saveFailedTryAgain => 'Échec de la sauvegarde, veuillez réessayer';
@@ -2071,7 +2071,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get failedUpdateAvatar => 'Échec de la mise à jour de l\'avatar. Veuillez réessayer.';
 
   @override
-  String get premiumBadge => 'PREMIUM';
+  String get premiumBadge => 'PRIME';
 
   @override
   String get howAiUnderstandsYou => 'Comment l\'IA vous comprend';
@@ -2098,7 +2098,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get curiousDetailOriented => 'Curieux, orienté vers les détails...';
 
   @override
-  String get expertise => 'Expertise';
+  String get expertise => 'Compétence';
 
   @override
   String get intermediateToAdvanced => 'Intermédiaire à avancé...';
@@ -2125,7 +2125,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get user => 'Utilisateur';
 
   @override
-  String get howAiAgent => 'HowAI Agent';
+  String get howAiAgent => 'CommentAgent AI';
 
   @override
   String get resetUsageStatistics => 'Réinitialiser les Statistiques d\'Utilisation';
@@ -2177,19 +2177,19 @@ class AppLocalizationsFr extends AppLocalizations {
   String get weeklyUsageLimitsApply => 'Les limites d\'utilisation hebdomadaire s\'appliquent';
 
   @override
-  String get featureAccess => 'Feature Access';
+  String get featureAccess => 'Accès aux fonctionnalités';
 
   @override
   String get weeklyUsage => 'Utilisation Hebdomadaire';
 
   @override
-  String get pdfGeneration => 'PDF Generation';
+  String get pdfGeneration => 'Génération PDF';
 
   @override
-  String get placesExplorer => 'Places Explorer';
+  String get placesExplorer => 'Explorateur de lieux';
 
   @override
-  String get presentationMaker => 'Presentation Maker';
+  String get presentationMaker => 'Créateur de présentations';
 
   @override
   String get sharesDocumentAnalysisQuota => 'Partage le quota d\'Analyse de Documents';
@@ -2331,4 +2331,529 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get deepResearchUpgradeDesc => 'Le Mode Recherche Approfondie utilise le raisonnement avancé gpt-5.2 pour des analyses plus approfondies et des insights. Cette fonctionnalité premium fournit des explications complètes, plusieurs perspectives et un raisonnement logique plus profond.\n\nMettez à niveau pour accéder aux capacités IA améliorées !';
+
+  @override
+  String get hideKeyboard => 'Masquer le clavier';
+
+  @override
+  String get knowledgeHubTitle => 'Centre de connaissances';
+
+  @override
+  String get knowledgeHubPremiumDialogTitle => 'Centre de connaissances (Premium)';
+
+  @override
+  String get knowledgeHubPremiumDialogMessage => 'Knowledge Hub aide HowAI à mémoriser vos préférences personnelles, vos faits et vos objectifs lors des conversations.\n\nPassez à Premium pour utiliser cette fonctionnalité.';
+
+  @override
+  String get knowledgeHubReturn => 'Retour';
+
+  @override
+  String get knowledgeHubGoToSubscription => 'Aller à l\'abonnement';
+
+  @override
+  String get knowledgeHubNewMemoryTitle => 'Nouvelle mémoire';
+
+  @override
+  String get knowledgeHubEditMemoryTitle => 'Modifier la mémoire';
+
+  @override
+  String get knowledgeHubDeleteDialogTitle => 'Supprimer la mémoire';
+
+  @override
+  String get knowledgeHubDeleteDialogMessage => 'Supprimer cet élément de mémoire ? Cela ne peut pas être annulé.';
+
+  @override
+  String get knowledgeHubUseRecentChatMessage => 'Utiliser le message de discussion récent';
+
+  @override
+  String get knowledgeHubAttachDocument => 'Joindre un document';
+
+  @override
+  String get knowledgeHubAttachingDocument => 'Document en pièce jointe...';
+
+  @override
+  String get knowledgeHubAttachedSources => 'Sources jointes';
+
+  @override
+  String get knowledgeHubFieldTitle => 'Titre';
+
+  @override
+  String get knowledgeHubFieldShortTitleHint => 'Titre mémoire court';
+
+  @override
+  String get knowledgeHubFieldContent => 'Contenu';
+
+  @override
+  String get knowledgeHubFieldRememberContentHint => 'De quoi HowAI doit-il se souvenir ?';
+
+  @override
+  String get knowledgeHubDocumentTextHidden => 'Le texte du document reste masqué ici. HowAI utilisera le contenu du document extrait dans un contexte de mémoire.';
+
+  @override
+  String get knowledgeHubFieldType => 'Taper';
+
+  @override
+  String get knowledgeHubFieldTags => 'Balises';
+
+  @override
+  String get knowledgeHubFieldTagsOptional => 'Balises (facultatif)';
+
+  @override
+  String get knowledgeHubFieldTagsHint => 'virgule, séparés, tags';
+
+  @override
+  String get knowledgeHubPinned => 'Épinglé';
+
+  @override
+  String get knowledgeHubPinnedOnly => 'Épinglé uniquement';
+
+  @override
+  String get knowledgeHubUseInContext => 'Utilisation dans le contexte de l\'IA';
+
+  @override
+  String get knowledgeHubAllTypes => 'Tous types';
+
+  @override
+  String get knowledgeHubApply => 'Appliquer';
+
+  @override
+  String get knowledgeHubEdit => 'Modifier';
+
+  @override
+  String get knowledgeHubPin => 'Épingle';
+
+  @override
+  String get knowledgeHubUnpin => 'Détacher';
+
+  @override
+  String get knowledgeHubDisableInContext => 'Désactiver en contexte';
+
+  @override
+  String get knowledgeHubEnableInContext => 'Activer en contexte';
+
+  @override
+  String get knowledgeHubFiltersTitle => 'Filtres';
+
+  @override
+  String get knowledgeHubFiltersTooltip => 'Filtres';
+
+  @override
+  String get knowledgeHubSearchHint => 'Rechercher dans la mémoire';
+
+  @override
+  String get knowledgeHubNoMatches => 'Aucun élément de mémoire ne correspond à vos filtres.';
+
+  @override
+  String get knowledgeHubModeFromChat => 'Depuis le chat';
+
+  @override
+  String get knowledgeHubModeFromChatDesc => 'Enregistrer un message récent en mémoire';
+
+  @override
+  String get knowledgeHubModeTypeManually => 'Tapez manuellement';
+
+  @override
+  String get knowledgeHubModeTypeManuallyDesc => 'Écrire une entrée de mémoire personnalisée';
+
+  @override
+  String get knowledgeHubModeFromDocument => 'À partir du document';
+
+  @override
+  String get knowledgeHubModeFromDocumentDesc => 'Joindre un fichier et stocker les connaissances extraites';
+
+  @override
+  String get knowledgeHubSelectMessageToLink => 'Sélectionnez un message à lier';
+
+  @override
+  String get knowledgeHubSpeakerYou => 'Toi';
+
+  @override
+  String get knowledgeHubSpeakerHowAi => 'CommentIA';
+
+  @override
+  String get knowledgeHubMemoryTypePreference => 'Préférence';
+
+  @override
+  String get knowledgeHubMemoryTypeFact => 'Fait';
+
+  @override
+  String get knowledgeHubMemoryTypeGoal => 'But';
+
+  @override
+  String get knowledgeHubMemoryTypeConstraint => 'Contrainte';
+
+  @override
+  String get knowledgeHubMemoryTypeOther => 'Autre';
+
+  @override
+  String get knowledgeHubSourceStatusProcessing => 'Traitement';
+
+  @override
+  String get knowledgeHubSourceStatusReady => 'Prêt';
+
+  @override
+  String get knowledgeHubSourceStatusFailed => 'Échoué';
+
+  @override
+  String get knowledgeHubDefaultSavedMemoryTitle => 'Mémoire enregistrée';
+
+  @override
+  String get knowledgeHubDefaultDocumentMemoryTitle => 'Mémoire de documents';
+
+  @override
+  String get knowledgeHubPremiumBlockedTitle => 'Knowledge Hub est une fonctionnalité Premium';
+
+  @override
+  String get knowledgeHubPremiumBlockedDesc => 'Enregistrez les détails clés une fois et HowAI s\'en souvient lors des prochaines discussions afin que vous n\'ayez pas besoin de vous répéter.';
+
+  @override
+  String get knowledgeHubFeatureCaptureTitle => 'Capturez ce qui compte';
+
+  @override
+  String get knowledgeHubFeatureCaptureDesc => 'Enregistrez les préférences, les objectifs et les contraintes directement à partir des messages.';
+
+  @override
+  String get knowledgeHubFeatureRepliesTitle => 'Obtenez des réponses plus intelligentes';
+
+  @override
+  String get knowledgeHubFeatureRepliesDesc => 'La mémoire pertinente est utilisée dans son contexte afin que les réponses semblent plus personnelles et cohérentes.';
+
+  @override
+  String get knowledgeHubFeatureControlTitle => 'Contrôlez votre mémoire';
+
+  @override
+  String get knowledgeHubFeatureControlDesc => 'Modifiez, épinglez, désactivez ou supprimez des éléments à tout moment à partir d\'un seul endroit.';
+
+  @override
+  String get knowledgeHubUpgradeToPremium => 'Passer à Premium';
+
+  @override
+  String get knowledgeHubWhatIsTitle => 'Qu’est-ce que le Centre de connaissances ?';
+
+  @override
+  String get knowledgeHubWhatIsDesc => 'Un espace mémoire personnel dans lequel vous enregistrez les informations clés une fois, afin que HowAI puisse les utiliser dans les réponses futures.';
+
+  @override
+  String get knowledgeHubHowToStartTitle => 'Comment commencer';
+
+  @override
+  String get knowledgeHubStep1 => 'Appuyez sur Nouvelle mémoire ou utilisez Enregistrer à partir de n\'importe quel message de discussion.';
+
+  @override
+  String get knowledgeHubStep2 => 'Choisissez le type (Préférence, Objectif, Fait, Contrainte).';
+
+  @override
+  String get knowledgeHubStep3 => 'Ajoutez des balises pour faciliter la correspondance de la mémoire plus tard.';
+
+  @override
+  String get knowledgeHubStep4 => 'Épinglez les souvenirs critiques pour les hiérarchiser dans leur contexte.';
+
+  @override
+  String get knowledgeHubExampleTitle => 'Exemples de souvenirs';
+
+  @override
+  String get knowledgeHubExamplePreferenceContent => 'Gardez mes résumés courts et pointus.';
+
+  @override
+  String get knowledgeHubExampleGoalContent => 'Je me prépare aux entretiens de chef de produit.';
+
+  @override
+  String get knowledgeHubExampleConstraintContent => 'N\'incluez pas les chemins de fichiers locaux dans la sortie traduite.';
+
+  @override
+  String get knowledgeHubSnackDuplicateMemory => 'Un souvenir similaire existe déjà.';
+
+  @override
+  String get knowledgeHubSnackCreateFailed => 'Échec de la création de mémoire.';
+
+  @override
+  String get knowledgeHubSnackUpdateFailed => 'Échec de la mise à jour de la mémoire.';
+
+  @override
+  String get knowledgeHubSnackPinUpdateFailed => 'Échec de la mise à jour de l\'état du code PIN.';
+
+  @override
+  String get knowledgeHubSnackActiveUpdateFailed => 'Échec de la mise à jour du statut actif.';
+
+  @override
+  String get knowledgeHubSnackDeleteFailed => 'Échec de la suppression de la mémoire.';
+
+  @override
+  String get knowledgeHubSnackLinkedTrimmed => 'Le message lié a été coupé pour s\'adapter à la longueur de la mémoire.';
+
+  @override
+  String get knowledgeHubSnackAttachExtractFailed => 'Échec de la pièce jointe et de l\'extraction du document.';
+
+  @override
+  String get knowledgeHubSnackAddTextOrAttach => 'Ajoutez du texte ou joignez un document lisible avant de sauvegarder.';
+
+  @override
+  String get knowledgeHubNoRecentMessages => 'Aucun message récent trouvé.';
+
+  @override
+  String get knowledgeHubSnackNothingToSave => 'Rien à sauver de ce message.';
+
+  @override
+  String get knowledgeHubSnackSaved => 'Enregistré dans le Centre de connaissances.';
+
+  @override
+  String get knowledgeHubSnackAlreadyExists => 'Cette mémoire existe déjà dans votre Knowledge Hub.';
+
+  @override
+  String get knowledgeHubSnackSaveFailed => 'Échec de la sauvegarde de la mémoire. Veuillez réessayer.';
+
+  @override
+  String get knowledgeHubSnackTitleContentRequired => 'Le titre et le contenu sont obligatoires.';
+
+  @override
+  String get knowledgeHubSaveDialogTitle => 'Enregistrer dans le Centre de connaissances';
+
+  @override
+  String get knowledgeHubUpgradeLimitMessage => 'Knowledge Hub est une fonctionnalité Premium. Mettez à niveau pour enregistrer et réutiliser vos souvenirs personnels dans les conversations.';
+
+  @override
+  String get knowledgeHubUpgradeBenefit1 => 'Enregistrer la mémoire personnelle des messages de discussion';
+
+  @override
+  String get knowledgeHubUpgradeBenefit2 => 'Utiliser le contexte de mémoire enregistré dans les réponses de l\'IA';
+
+  @override
+  String get knowledgeHubUpgradeBenefit3 => 'Gérez et organisez votre centre de connaissances';
+
+  @override
+  String get knowledgeHubMoreActions => 'Plus';
+
+  @override
+  String get knowledgeHubAddToMemory => 'Ajouter à la mémoire';
+
+  @override
+  String get knowledgeHubAddToMemoryDesc => 'Enregistrez instantanément à partir de ce message';
+
+  @override
+  String get knowledgeHubReviewAndSave => 'Examiner et enregistrer';
+
+  @override
+  String get knowledgeHubReviewAndSaveDesc => 'Modifier le titre, le contenu, le type et les balises';
+
+  @override
+  String get knowledgeHubQuickTranslate => 'Traduction rapide';
+
+  @override
+  String get knowledgeHubRecentTargets => 'Cibles récentes';
+
+  @override
+  String get knowledgeHubChooseLanguage => 'Choisir la langue';
+
+  @override
+  String get knowledgeHubTranslateToAnotherLanguage => 'Traduire dans une autre langue';
+
+  @override
+  String knowledgeHubTranslateTo(String language) {
+    return 'Traduire en $language';
+  }
+
+  @override
+  String get leaveReview => 'Laisser un avis';
+
+  @override
+  String get voiceSamplePreviewText => 'Bonjour, ceci est un exemple d\'aperçu vocal de HowAI.';
+
+  @override
+  String get voiceSampleGenerateFailed => 'Impossible de générer un échantillon audio.';
+
+  @override
+  String get voiceSampleUnavailable => 'L\'échantillon de voix n\'est pas disponible. Veuillez vérifier la configuration d\'ElevenLabs.';
+
+  @override
+  String get voiceSamplePlayFailed => 'Impossible de lire l\'extrait vocal.';
+
+  @override
+  String get voicePlaybackHowItWorksTitle => 'Comment fonctionne la lecture vocale';
+
+  @override
+  String get voicePlaybackHowItWorksFree => 'Gratuit : utilisez la voix de votre appareil pour la lecture des messages.';
+
+  @override
+  String get voicePlaybackHowItWorksPremium => 'Premium : passez aux voix ElevenLabs pour un son plus naturel.';
+
+  @override
+  String get voicePlaybackHowItWorksTrySample => 'Utilisez le bouton de lecture d’échantillons pour tester les voix avant de choisir.';
+
+  @override
+  String get voicePlaybackHowItWorksSpeedNote => 'La vitesse vocale du système et la vitesse d\'ElevenLabs sont configurées séparément.';
+
+  @override
+  String get voiceFreeSystemTitle => 'Voix système gratuite';
+
+  @override
+  String get voiceDeviceTtsTitle => 'Texte-parole de l\'appareil';
+
+  @override
+  String get voiceDeviceTtsDescription => 'Voix gratuite qui lit les réponses de l\'IA avec le moteur de votre appareil.';
+
+  @override
+  String get voiceStopSample => 'Arrêter l\'échantillon';
+
+  @override
+  String get voicePlaySample => 'Lire un extrait';
+
+  @override
+  String get voiceLoadingVoices => 'Chargement des voix disponibles...';
+
+  @override
+  String voiceSystemSpeed(String speed) {
+    return 'Vitesse vocale du système (${speed}x)';
+  }
+
+  @override
+  String get voiceSystemSpeedDescription => 'Utilisé pour la lecture gratuite de synthèse vocale sur un appareil.';
+
+  @override
+  String get voiceSpeedMinSystem => '0,5x';
+
+  @override
+  String get voiceSpeedMaxSystem => '1,2x';
+
+  @override
+  String get voicePremiumElevenLabsTitle => 'Voix Premium ElevenLabs';
+
+  @override
+  String get voicePremiumElevenLabsDesc => 'Des voix IA de qualité studio avec un ton et une clarté plus riches.';
+
+  @override
+  String get voicePremiumEngineTitle => 'Moteur de lecture premium';
+
+  @override
+  String get voiceSystemTts => 'Système TTS';
+
+  @override
+  String get voiceElevenLabs => 'OnzeLabs';
+
+  @override
+  String voiceElevenLabsSpeed(String speed) {
+    return 'Vitesse d\'ElevenLabs (${speed}x)';
+  }
+
+  @override
+  String get voiceSpeedMinElevenLabs => '0,8x';
+
+  @override
+  String get voiceSpeedMaxElevenLabs => '1,5x';
+
+  @override
+  String get voicePremiumUpgradeDescription => 'Passez à Premium pour débloquer les voix naturelles d\'ElevenLabs et un aperçu vocal.';
+
+  @override
+  String get account => 'Compte';
+
+  @override
+  String get signedIn => 'Connecté';
+
+  @override
+  String get signIn => 'Se connecter';
+
+  @override
+  String get signUp => 'S’inscrire';
+
+  @override
+  String get signInToHowAI => 'Se connecter à HowAI';
+
+  @override
+  String get signUpToHowAI => 'S’inscrire à HowAI';
+
+  @override
+  String get continueWithGoogle => 'Continuer avec Google';
+
+  @override
+  String get continueWithApple => 'Continuer avec Apple';
+
+  @override
+  String get orContinueWithEmail => 'Ou continuer avec l’e-mail';
+
+  @override
+  String get emailAddress => 'Adresse e-mail';
+
+  @override
+  String get emailPlaceholder => 'you@example.com';
+
+  @override
+  String get password => 'Mot de passe';
+
+  @override
+  String get pleaseEnterYourEmail => 'Veuillez saisir votre e-mail';
+
+  @override
+  String get pleaseEnterValidEmail => 'Veuillez saisir un e-mail valide';
+
+  @override
+  String get pleaseEnterYourPassword => 'Veuillez saisir votre mot de passe';
+
+  @override
+  String get passwordMustBeAtLeast6Characters => 'Le mot de passe doit contenir au moins 6 caractères';
+
+  @override
+  String get alreadyHaveAnAccountSignIn => 'Vous avez déjà un compte ? Connectez-vous';
+
+  @override
+  String get dontHaveAnAccountSignUp => 'Vous n’avez pas de compte ? Inscrivez-vous';
+
+  @override
+  String get continueWithoutAccount => 'Continuer sans compte';
+
+  @override
+  String get yourDataWillOnlyBeStoredLocallyOnThisDevice => 'Vos données seront uniquement stockées localement sur cet appareil';
+
+  @override
+  String get syncYourDataAcrossDevices => 'Synchronisez vos données sur tous vos appareils';
+
+  @override
+  String get userProfile => 'Profil utilisateur';
+
+  @override
+  String get defaultUserName => 'Utilisateur';
+
+  @override
+  String get knowledgeHubManageSavedMemory => 'Gérer la mémoire enregistrée';
+
+  @override
+  String get chatLandingTitle => 'Comment puis-je vous aider ?';
+
+  @override
+  String get chatLandingSubtitle => 'Écrivez ou envoyez votre voix. Je m’occupe du reste.';
+
+  @override
+  String get chatLandingTipCompact => 'Astuce : appuyez sur + pour les photos, fichiers, PDF et outils d’image.';
+
+  @override
+  String get chatLandingTipFull => 'Astuce : appuyez sur + pour utiliser photos, fichiers, scan PDF, traduction et génération d’images.';
+
+  @override
+  String get premiumBannerTitle1 => 'Libérez tout votre potentiel';
+
+  @override
+  String get premiumBannerSubtitle1 => 'Les fonctionnalités Premium vous attendent';
+
+  @override
+  String get premiumBannerTitle2 => 'Prêt pour une créativité illimitée ?';
+
+  @override
+  String get premiumBannerSubtitle2 => 'Supprimez toutes les limites avec Premium';
+
+  @override
+  String get premiumBannerTitle3 => 'Allez plus loin avec votre expérience IA';
+
+  @override
+  String get premiumBannerSubtitle3 => 'Premium débloque tout';
+
+  @override
+  String get premiumBannerTitle4 => 'Découvrez les fonctionnalités Premium';
+
+  @override
+  String get premiumBannerSubtitle4 => 'Accès illimité à l’IA avancée';
+
+  @override
+  String get premiumBannerTitle5 => 'Boostez votre flux de travail';
+
+  @override
+  String get premiumBannerSubtitle5 => 'Premium rend tout possible';
 }

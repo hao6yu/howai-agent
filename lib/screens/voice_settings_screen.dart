@@ -21,8 +21,6 @@ class VoiceSettingsScreen extends StatefulWidget {
 class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
   static final List<Map<String, String>> _fallbackElevenLabsVoices =
       ElevenLabsService.availableVoices;
-  static const String _sampleText =
-      'Hello, this is a sample voice preview from HowAI.';
 
   // System TTS
   final ElevenLabsService _elevenLabsService = ElevenLabsService();
@@ -36,6 +34,9 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
   bool _isPreviewingSystemVoice = false;
   bool _didRequestPremiumDefaultMigration = false;
   late final VoidCallback _audioPreviewListener;
+
+  String get _sampleText =>
+      AppLocalizations.of(context)!.voiceSamplePreviewText;
 
   @override
   void initState() {
@@ -107,7 +108,9 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
     final voiceMap = <String, String>{};
 
     // Ensure all required properties are present and are strings
-    voiceMap['name'] = (voice['name'] ?? 'Unknown Voice').toString();
+    voiceMap['name'] =
+        (voice['name'] ?? AppLocalizations.of(context)!.unknownVoice)
+            .toString();
     voiceMap['locale'] = (voice['locale'] ?? 'en-US').toString();
     voiceMap['language'] = (voice['language'] ?? 'en').toString();
     voiceMap['gender'] = (voice['gender'] ?? 'female').toString();
@@ -351,7 +354,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
       );
 
       if (audioPath == null || audioPath.isEmpty) {
-        _showPreviewError('Unable to generate sample audio.');
+        _showPreviewError(
+            AppLocalizations.of(context)!.voiceSampleGenerateFailed);
         if (mounted) {
           setState(() {
             _previewingElevenLabsVoiceId = null;
@@ -362,8 +366,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
 
       final file = File(audioPath);
       if (!await file.exists() || await file.length() == 0) {
-        _showPreviewError(
-            'Voice sample is unavailable. Please check ElevenLabs setup.');
+        _showPreviewError(AppLocalizations.of(context)!.voiceSampleUnavailable);
         if (mounted) {
           setState(() {
             _previewingElevenLabsVoiceId = null;
@@ -378,7 +381,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
         playbackSpeed: settings.elevenLabsPlaybackSpeed,
       );
       if (!AudioService.isPlayingAudio.value) {
-        _showPreviewError('Could not play voice sample.');
+        _showPreviewError(AppLocalizations.of(context)!.voiceSamplePlayFailed);
         if (mounted) {
           setState(() {
             _previewingElevenLabsVoiceId = null;
@@ -386,7 +389,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
         }
       }
     } catch (_) {
-      _showPreviewError('Could not play voice sample.');
+      _showPreviewError(AppLocalizations.of(context)!.voiceSamplePlayFailed);
       if (mounted) {
         setState(() {
           _previewingElevenLabsVoiceId = null;
@@ -531,7 +534,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'How voice playback works',
+            AppLocalizations.of(context)!.voicePlaybackHowItWorksTitle,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(15),
               fontWeight: FontWeight.w700,
@@ -542,7 +545,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Free: use your device voice for message playback.',
+            AppLocalizations.of(context)!.voicePlaybackHowItWorksFree,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(13),
               color: Theme.of(context).brightness == Brightness.dark
@@ -552,7 +555,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Premium: switch to ElevenLabs voices for more natural sound.',
+            AppLocalizations.of(context)!.voicePlaybackHowItWorksPremium,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(13),
               color: Theme.of(context).brightness == Brightness.dark
@@ -562,7 +565,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Use the sample play button to test voices before choosing.',
+            AppLocalizations.of(context)!.voicePlaybackHowItWorksTrySample,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(13),
               color: Theme.of(context).brightness == Brightness.dark
@@ -572,7 +575,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'System voice speed and ElevenLabs speed are configured separately.',
+            AppLocalizations.of(context)!.voicePlaybackHowItWorksSpeedNote,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(13),
               color: Theme.of(context).brightness == Brightness.dark
@@ -589,7 +592,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Free System Voice'),
+        _buildSectionHeader(AppLocalizations.of(context)!.voiceFreeSystemTitle),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
@@ -627,7 +630,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Device Text-to-Speech',
+                            AppLocalizations.of(context)!.voiceDeviceTtsTitle,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(16),
                               fontWeight: FontWeight.w600,
@@ -639,7 +642,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Free voice that reads AI responses with your device engine.',
+                            AppLocalizations.of(context)!
+                                .voiceDeviceTtsDescription,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
                               color: Theme.of(context).brightness ==
@@ -680,8 +684,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         size: settings.getScaledFontSize(26),
                       ),
                       tooltip: _isPreviewingSystemVoice
-                          ? 'Stop sample'
-                          : 'Play sample',
+                          ? AppLocalizations.of(context)!.voiceStopSample
+                          : AppLocalizations.of(context)!.voicePlaySample,
                     ),
                   ],
                 ),
@@ -705,7 +709,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        'Loading available voices...',
+                        AppLocalizations.of(context)!.voiceLoadingVoices,
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(14),
                           color: Theme.of(context).brightness == Brightness.dark
@@ -883,7 +887,9 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            'System voice speed (${settings.systemTtsPlaybackSpeed.toStringAsFixed(1)}x)',
+                            AppLocalizations.of(context)!.voiceSystemSpeed(
+                                settings.systemTtsPlaybackSpeed
+                                    .toStringAsFixed(1)),
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
                               fontWeight: FontWeight.w500,
@@ -898,7 +904,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Used for free device text-to-speech playback.',
+                      AppLocalizations.of(context)!.voiceSystemSpeedDescription,
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(12),
                         color: Theme.of(context).brightness == Brightness.dark
@@ -924,7 +930,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            '0.5x',
+                            AppLocalizations.of(context)!.voiceSpeedMinSystem,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(11),
                               color: Theme.of(context).brightness ==
@@ -934,7 +940,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                             ),
                           ),
                           Text(
-                            '1.2x',
+                            AppLocalizations.of(context)!.voiceSpeedMaxSystem,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(11),
                               color: Theme.of(context).brightness ==
@@ -1005,7 +1011,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Premium ElevenLabs Voices',
+                            AppLocalizations.of(context)!
+                                .voicePremiumElevenLabsTitle,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(16),
                               fontWeight: FontWeight.w600,
@@ -1022,7 +1029,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Studio-quality AI voices with richer tone and clarity.',
+                            AppLocalizations.of(context)!
+                                .voicePremiumElevenLabsDesc,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
                               color: Theme.of(context).brightness ==
@@ -1096,7 +1104,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Premium playback engine',
+                        AppLocalizations.of(context)!.voicePremiumEngineTitle,
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(14),
                           fontWeight: FontWeight.w600,
@@ -1123,7 +1131,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                                 ),
                               ),
                               child: Text(
-                                'System TTS',
+                                AppLocalizations.of(context)!.voiceSystemTts,
                                 style: TextStyle(
                                   color: settings.premiumUsesSystemTts
                                       ? const Color(0xFF0078D4)
@@ -1151,7 +1159,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                                 ),
                               ),
                               child: Text(
-                                'ElevenLabs',
+                                AppLocalizations.of(context)!.voiceElevenLabs,
                                 style: TextStyle(
                                   color: !settings.premiumUsesSystemTts
                                       ? const Color(0xFF0078D4)
@@ -1175,7 +1183,9 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'ElevenLabs speed (${settings.elevenLabsPlaybackSpeed.toStringAsFixed(1)}x)',
+                        AppLocalizations.of(context)!.voiceElevenLabsSpeed(
+                            settings.elevenLabsPlaybackSpeed
+                                .toStringAsFixed(1)),
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(14),
                           fontWeight: FontWeight.w500,
@@ -1202,7 +1212,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              '0.8x',
+                              AppLocalizations.of(context)!
+                                  .voiceSpeedMinElevenLabs,
                               style: TextStyle(
                                 fontSize: settings.getScaledFontSize(11),
                                 color: Theme.of(context).brightness ==
@@ -1212,7 +1223,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                               ),
                             ),
                             Text(
-                              '1.5x',
+                              AppLocalizations.of(context)!
+                                  .voiceSpeedMaxElevenLabs,
                               style: TextStyle(
                                 fontSize: settings.getScaledFontSize(11),
                                 color: Theme.of(context).brightness ==
@@ -1286,8 +1298,10 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                                     size: settings.getScaledFontSize(22),
                                   ),
                                   tooltip: isPreviewingThisVoice
-                                      ? 'Stop sample'
-                                      : 'Play sample',
+                                      ? AppLocalizations.of(context)!
+                                          .voiceStopSample
+                                      : AppLocalizations.of(context)!
+                                          .voicePlaySample,
                                 ),
                                 if (isSelected)
                                   Icon(
@@ -1328,7 +1342,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Upgrade to Premium to unlock natural ElevenLabs voices and voice preview.',
+                        AppLocalizations.of(context)!
+                            .voicePremiumUpgradeDescription,
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(14),

@@ -1,0 +1,363 @@
+{
+  "generated_at": "2026-02-08T14:24:59.822113",
+  "reference_file": "/Users/haoyu/development/howai-agent/lib/l10n/app_en.arb",
+  "locales": {
+    "app_ar.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_de.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_es.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_fr.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_hi.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_id.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_it.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_ja.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_ko.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_pl.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_pt.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_pt_BR.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_ru.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_tr.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_vi.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_zh.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    },
+    "app_zh_TW.arb": {
+      "missing_base_keys_seeded": 141,
+      "missing_metadata_keys_seeded": 11,
+      "sample_seeded_keys": [
+        "quickActionAskFromPhoto",
+        "quickActionAskFromFile",
+        "quickActionScanToPdf",
+        "quickActionGenerateImage",
+        "quickActionTranslateSubtitle",
+        "quickActionFindPlaces",
+        "hideKeyboard",
+        "knowledgeHubTitle",
+        "knowledgeHubPremiumDialogTitle",
+        "knowledgeHubPremiumDialogMessage",
+        "knowledgeHubReturn",
+        "knowledgeHubGoToSubscription",
+        "knowledgeHubNewMemoryTitle",
+        "knowledgeHubEditMemoryTitle",
+        "knowledgeHubDeleteDialogTitle"
+      ]
+    }
+  }
+}

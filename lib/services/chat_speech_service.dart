@@ -17,7 +17,6 @@ class ChatSpeechService {
         'similarity_boost': 0.95,
         'style': 0.6,
         'use_speaker_boost': true,
-        'speed': 1.0,
       };
 
       final audioPath = await elevenLabsService.generateAudioWithSettings(

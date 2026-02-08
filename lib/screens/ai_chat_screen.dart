@@ -10,12 +10,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:showcaseview/showcaseview.dart';
 
 // Import the extracted widgets and utilities
 import '../widgets/chat_message_widget.dart';
-import '../widgets/welcome_screen_widget.dart';
 import '../widgets/chat_input_widget.dart';
 import '../widgets/pptx_generation_dialog.dart';
 import '../widgets/translation_dialog.dart';
@@ -183,6 +181,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   // Add TTS instance and state
   FlutterTts? _flutterTts;
   bool _isDeviceTTSPlaying = false;
+  bool _currentPlaybackUsesDeviceTTS = false;
   int? _currentPlayingMessageId; // Track which specific message is playing
 
   // Add file upload state
@@ -191,15 +190,11 @@ class _AiChatScreenState extends State<AiChatScreen>
   // Add system instruction for PPTX generation
   String? _pendingSystemInstruction;
 
-  // Add display mode state (Tools mode vs Chat mode)
-  bool _isToolsMode = false; // Default to chat mode for new users
-
   // Deep research/thinking mode toggle state (premium feature)
   bool _forceDeepResearch = false;
 
   // Showcase GlobalKeys for feature highlighting
   final GlobalKey _deepResearchKey = GlobalKey();
-  final GlobalKey _toolsModeKey = GlobalKey();
   final GlobalKey _drawerButtonKey = GlobalKey();
   final GlobalKey _quickActionsKey = GlobalKey();
   bool _showcaseCompleted = false;
@@ -261,8 +256,9 @@ class _AiChatScreenState extends State<AiChatScreen>
     // Initialize device TTS
     _initializeDeviceTTS();
 
-    // Load display mode preference
-    _loadDisplayModePreference();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _applyPremiumVoiceDefaultsIfNeeded();
+    });
 
     // Initialize feature showcase
     _initializeFeatureShowcase();
@@ -296,36 +292,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     } catch (e) {
       debugPrint('[AIChatScreen] Error setting up real-time sync (silent): $e');
       // Silent failure - doesn't affect user experience
-    }
-  }
-
-  // Load display mode preference from storage
-  void _loadDisplayModePreference() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedMode = prefs.getBool('display_mode_is_tools') ??
-          false; // Default to chat mode for new users
-      setState(() {
-        _isToolsMode = savedMode;
-      });
-      //// print('Loaded display mode: ${_isToolsMode ? "Tools" : "Chat"}');
-    } catch (e) {
-      //// print('Error loading display mode preference: $e');
-      // Fallback to default
-      setState(() {
-        _isToolsMode = false; // Default to chat mode for new users
-      });
-    }
-  }
-
-  // Save display mode preference to storage
-  void _saveDisplayModePreference(bool isToolsMode) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('display_mode_is_tools', isToolsMode);
-      //// print('Saved display mode: ${isToolsMode ? "Tools" : "Chat"}');
-    } catch (e) {
-      //// print('Error saving display mode preference: $e');
     }
   }
 
@@ -395,8 +361,6 @@ class _AiChatScreenState extends State<AiChatScreen>
           switch (feature.id) {
             case 'drawer_button':
               return _drawerButtonKey;
-            case 'tools_mode':
-              return _toolsModeKey;
             case 'quick_actions':
               return _quickActionsKey;
             case 'deep_research':
@@ -423,11 +387,14 @@ class _AiChatScreenState extends State<AiChatScreen>
   }
 
   Future<void> _initializeDeviceTTS() async {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
     _flutterTts = await DeviceTtsService.initialize(
+      speechRate: settings.systemTtsPlaybackSpeed,
       onComplete: () {
         if (mounted) {
           setState(() {
             _isDeviceTTSPlaying = false;
+            _currentPlaybackUsesDeviceTTS = false;
             _currentPlayingMessageId = null;
           });
         }
@@ -443,10 +410,21 @@ class _AiChatScreenState extends State<AiChatScreen>
         if (mounted) {
           setState(() {
             _isDeviceTTSPlaying = false;
+            _currentPlaybackUsesDeviceTTS = false;
             _currentPlayingMessageId = null;
           });
         }
       },
+    );
+  }
+
+  Future<void> _applyPremiumVoiceDefaultsIfNeeded() async {
+    if (!mounted) return;
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
+    await settings.applyPremiumVoiceDefaultsIfNeeded(
+      isPremium: subscriptionService.isPremium,
     );
   }
 
@@ -1754,6 +1732,9 @@ class _AiChatScreenState extends State<AiChatScreen>
 
         // Generate and play audio for AI response using subscription-aware logic
         if (settings.useVoiceResponse && aiText.isNotEmpty) {
+          await settings.applyPremiumVoiceDefaultsIfNeeded(
+            isPremium: subscriptionService.isPremium,
+          );
           // Get the ID of the message we just saved from the database
           // This ensures we modify the right message even if there were race conditions
           final recentMessages = await _databaseService.getChatMessages(
@@ -1780,20 +1761,24 @@ class _AiChatScreenState extends State<AiChatScreen>
           if (matchingMessage.id != null) {
             String? audioPath;
 
-            audioPath = await ChatSpeechService.generateSubscriptionAwareAudio(
-              isPremium: subscriptionService.isPremium,
-              tryUseElevenLabsTts: () =>
-                  subscriptionService.tryUseElevenLabsTTS(),
-              canUseDeviceTTS: () => subscriptionService.canUseDeviceTTS(),
-              generateElevenLabsAudio: () =>
-                  ChatSpeechService.generateAndPlayAudioForMessage(
-                message: aiText,
-                voiceId: settings.selectedVoiceId,
-                elevenLabsService: _elevenLabsService,
-                playAudio: _playAudio,
-              ),
-              generateDeviceTtsAudio: () => _generateAndPlayDeviceTTS(aiText),
-            );
+            if (subscriptionService.isPremium &&
+                !settings.premiumUsesSystemTts) {
+              final canUseElevenLabs =
+                  await subscriptionService.tryUseElevenLabsTTS();
+              if (canUseElevenLabs) {
+                audioPath =
+                    await ChatSpeechService.generateAndPlayAudioForMessage(
+                  message: aiText,
+                  voiceId: settings.selectedVoiceId,
+                  elevenLabsService: _elevenLabsService,
+                  playAudio: _playAudio,
+                );
+              } else {
+                audioPath = await _generateAndPlayDeviceTTS(aiText);
+              }
+            } else {
+              audioPath = await _generateAndPlayDeviceTTS(aiText);
+            }
 
             if (audioPath != null) {
               await _persistAudioPathForMessage(
@@ -2164,6 +2149,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         flutterTts: _flutterTts,
         message: message,
         selectedVoice: settings.selectedSystemTTSVoice,
+        speechRate: settings.systemTtsPlaybackSpeed,
       );
       return result ?? "device_tts";
     } catch (e) {
@@ -2187,6 +2173,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       await DeviceTtsService.stop(_flutterTts);
       setState(() {
         _isDeviceTTSPlaying = false;
+        _currentPlaybackUsesDeviceTTS = false;
         _currentPlayingMessageId = null;
       });
     }
@@ -2203,7 +2190,8 @@ class _AiChatScreenState extends State<AiChatScreen>
 
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     await AudioService.playAudio(audioPath,
-        useSpeakerOutput: settings.useSpeakerOutput);
+        useSpeakerOutput: settings.useSpeakerOutput,
+        playbackSpeed: settings.elevenLabsPlaybackSpeed);
 
     ChatAudioListenerService.bindPlaybackListener(
       isPlayingNotifier: AudioService.isPlayingAudio,
@@ -2212,6 +2200,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         setState(() {
           _isPlayingAudio = isPlaying;
           if (!isPlaying) {
+            _currentPlaybackUsesDeviceTTS = false;
             _currentPlayingMessageId = null;
           }
         });
@@ -2222,6 +2211,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   Future<void> _stopAudio() async {
     await AudioService.stopAudio();
     setState(() {
+      _currentPlaybackUsesDeviceTTS = false;
       _currentPlayingMessageId = null;
     });
   }
@@ -2350,11 +2340,13 @@ class _AiChatScreenState extends State<AiChatScreen>
     try {
       // If this specific message is currently playing, stop it
       if (_currentPlayingMessageId == message.id &&
-          ((message.audioPath == "device_tts" && _isDeviceTTSPlaying) ||
-              (message.audioPath != "device_tts" && _isPlayingAudio))) {
+          (_currentPlaybackUsesDeviceTTS
+              ? _isDeviceTTSPlaying
+              : _isPlayingAudio)) {
         await _stopAudio();
         await _stopDeviceTTS();
         setState(() {
+          _currentPlaybackUsesDeviceTTS = false;
           _currentPlayingMessageId = null;
         });
         return;
@@ -2367,6 +2359,10 @@ class _AiChatScreenState extends State<AiChatScreen>
       // Get subscription service
       final subscriptionService =
           Provider.of<SubscriptionService>(context, listen: false);
+      final settings = Provider.of<SettingsProvider>(context, listen: false);
+      await settings.applyPremiumVoiceDefaultsIfNeeded(
+        isPremium: subscriptionService.isPremium,
+      );
       // Check if message already has audio (but not device TTS identifier)
       if (message.audioPath != null &&
           message.audioPath != "device_tts" &&
@@ -2374,6 +2370,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         // Set this message as the currently playing one and immediately set playing state
         setState(() {
           _currentPlayingMessageId = message.id;
+          _currentPlaybackUsesDeviceTTS = false;
           _isPlayingAudio = true; // Set immediately for ElevenLabs audio
         });
         await _playAudio(message.audioPath!);
@@ -2383,11 +2380,15 @@ class _AiChatScreenState extends State<AiChatScreen>
       String? audioPath;
 
       // Determine what type of audio we'll be using and set the appropriate playing state
-      bool willUseDeviceTTS = false;
+      bool willUseDeviceTTS = true;
+      bool canUseElevenLabs = false;
       if (subscriptionService.isPremium) {
-        final canUseElevenLabs =
-            await subscriptionService.tryUseElevenLabsTTS();
-        willUseDeviceTTS = !canUseElevenLabs;
+        if (settings.premiumUsesSystemTts) {
+          willUseDeviceTTS = true;
+        } else {
+          canUseElevenLabs = await subscriptionService.tryUseElevenLabsTTS();
+          willUseDeviceTTS = !canUseElevenLabs;
+        }
       } else {
         willUseDeviceTTS = subscriptionService.canUseDeviceTTS();
       }
@@ -2395,6 +2396,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       // Set this message as the currently playing one and immediately set appropriate playing state
       setState(() {
         _currentPlayingMessageId = message.id;
+        _currentPlaybackUsesDeviceTTS = willUseDeviceTTS;
         if (willUseDeviceTTS) {
           _isDeviceTTSPlaying = true; // Set immediately for device TTS
         } else {
@@ -2402,21 +2404,16 @@ class _AiChatScreenState extends State<AiChatScreen>
         }
       });
 
-      final settings = Provider.of<SettingsProvider>(context, listen: false);
-      audioPath = await ChatSpeechService.generateSubscriptionAwareAudio(
-        isPremium: subscriptionService.isPremium,
-        tryUseElevenLabsTts: () => subscriptionService.tryUseElevenLabsTTS(),
-        canUseDeviceTTS: () => subscriptionService.canUseDeviceTTS(),
-        generateElevenLabsAudio: () =>
-            ChatSpeechService.generateAndPlayAudioForMessage(
+      if (willUseDeviceTTS) {
+        audioPath = await _generateAndPlayDeviceTTS(message.message);
+      } else if (canUseElevenLabs) {
+        audioPath = await ChatSpeechService.generateAndPlayAudioForMessage(
           message: message.message,
           voiceId: settings.selectedVoiceId,
           elevenLabsService: _elevenLabsService,
           playAudio: _playAudio,
-        ),
-        generateDeviceTtsAudio: () =>
-            _generateAndPlayDeviceTTS(message.message),
-      );
+        );
+      }
 
       if (audioPath != null) {
         await _persistAudioPathForMessage(
@@ -2427,6 +2424,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       } else {
         // Audio generation failed, reset playing states
         setState(() {
+          _currentPlaybackUsesDeviceTTS = false;
           _currentPlayingMessageId = null;
           _isDeviceTTSPlaying = false;
           _isPlayingAudio = false;
@@ -2576,58 +2574,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                   ),
                 ),
                 actions: [
-                  // Show mode toggle on welcome page, new conversation when in chat
-                  if (selectedConversation == null && displayMessages.isEmpty)
-                    // Clean mode toggle - matches drawer button style
-                    Consumer<SettingsProvider>(
-                      builder: (context, settings, child) {
-                        final button = IconButton(
-                          icon: Icon(
-                            _isToolsMode
-                                ? Icons.grid_view_rounded
-                                : Icons.chat_bubble_outline,
-                            size: settings.getScaledFontSize(24),
-                            color: _isToolsMode
-                                ? const Color(0xFF0078D4)
-                                : const Color(0xFF0078D4),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _isToolsMode = !_isToolsMode;
-                            });
-                            _saveDisplayModePreference(_isToolsMode);
-                          },
-                          tooltip: _isToolsMode
-                              ? 'Switch to Chat Mode'
-                              : 'Switch to Tools Mode',
-                        );
-
-                        // Wrap with Showcase for feature highlighting
-                        final showcaseData = _getShowcaseFeature('tools_mode');
-                        return Showcase(
-                          key: _toolsModeKey,
-                          title: showcaseData?.title ?? '🔧 Tools Mode',
-                          description: showcaseData?.description ??
-                              'Switch between Chat mode for conversations and Tools mode for quick actions like image generation, PDF creation, and more!',
-                          targetBorderRadius: BorderRadius.circular(8),
-                          tooltipBackgroundColor: const Color(0xFF10B981),
-                          textColor: Colors.white,
-                          descTextStyle: const TextStyle(
-                            fontSize: 14,
-                            color: Colors.white,
-                            height: 1.4,
-                          ),
-                          titleTextStyle: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          child: button,
-                        );
-                      },
-                    )
-                  else
-                    // New conversation button when in chat
+                  if (!(selectedConversation == null &&
+                      displayMessages.isEmpty))
                     Consumer<SettingsProvider>(
                       builder: (context, settings, child) {
                         return IconButton(
@@ -2818,10 +2766,13 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                     isPlayingAudio:
                                                         _currentPlayingMessageId ==
                                                                 message.id &&
-                                                            (message.audioPath ==
-                                                                    "device_tts"
+                                                            (_currentPlaybackUsesDeviceTTS
                                                                 ? _isDeviceTTSPlaying
                                                                 : _isPlayingAudio),
+                                                    isPlayingDeviceTts:
+                                                        _currentPlayingMessageId ==
+                                                                message.id &&
+                                                            _currentPlaybackUsesDeviceTTS,
                                                     onPlayAudio: _playAudio,
                                                     onSpeakWithHighlight:
                                                         message.isUserMessage
@@ -5331,67 +5282,63 @@ class _AiChatScreenState extends State<AiChatScreen>
     );
   }
 
-  // Build responsive welcome screen using the extracted widget
+  // Build landing welcome screen (chat-first only)
   Widget _buildWelcomeScreen() {
-    // In chat mode, show a clean interface without action cards
-    if (!_isToolsMode) {
-      return Container(
-        padding: const EdgeInsets.all(24),
-        child: Center(
-          child: Consumer<SettingsProvider>(
-            builder: (context, settings, child) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Clean welcome message for chat mode
-                  Text(
-                    "What can I help you with?",
-                    style: TextStyle(
-                      fontSize: settings.getScaledFontSize(24),
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1C1C1E),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    "I'm here to assist with any questions or tasks you have.",
-                    style: TextStyle(
-                      fontSize: settings.getScaledFontSize(16),
-                      color: Colors.grey.shade600,
-                      height: 1.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      );
-    }
+    return Container(
+      padding: const EdgeInsets.all(24),
+      child: Center(
+        child: Consumer<SettingsProvider>(
+          builder: (context, settings, child) {
+            final screenWidth = MediaQuery.of(context).size.width;
+            final isCompactPhone = screenWidth < 390;
 
-    // In tools mode, show the full grid dashboard
-    return WelcomeScreenWidget(
-      displayMode: 'grid',
-      onFeatureCardTap: _onFeatureCardTap,
-      onExampleChipTap: (text) {
-        // Use the text as-is to preserve template structure
-        _textController.text = text;
-        FocusScope.of(context).requestFocus(_textInputFocusNode);
-        // Move cursor to end for easy editing
-        _textController.selection = TextSelection.fromPosition(
-          TextPosition(offset: _textController.text.length),
-        );
-      },
-      onShowImageGenerationDialog: () {
-        // Show AI image generation dialog
-        _showImageGenerationDialog();
-      },
-      onShowTranslationDialog: () {
-        // Show translation dialog
-        _showTranslationDialog();
-      },
+            return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  "What can I help you with?",
+                  style: TextStyle(
+                    fontSize: settings.getScaledFontSize(24),
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1C1C1E),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  "Type or send voice. I'll handle the rest.",
+                  style: TextStyle(
+                    fontSize: settings.getScaledFontSize(16),
+                    color: Colors.grey.shade600,
+                    height: 1.4,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 18),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Column(
+                    children: [
+                      Text(
+                        isCompactPhone
+                            ? "Tip: Tap + for photos, files, PDF, and image tools."
+                            : "Tip: Tap + to use photos, files, scan to PDF, translation, and image generation.",
+                        style: TextStyle(
+                          fontSize: settings.getScaledFontSize(13),
+                          color: Colors.grey.shade600,
+                          height: 1.35,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 

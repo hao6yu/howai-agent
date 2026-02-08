@@ -10,14 +10,25 @@ class SettingsProvider with ChangeNotifier {
   static const String _useSpeakerOutputKey = 'use_speaker_output';
   static const String _fontSizeScaleKey = 'font_size_scale';
   static const String _selectedSystemTTSVoiceKey = 'selected_system_tts_voice';
+  static const String _ttsPlaybackSpeedKey =
+      'tts_playback_speed'; // Legacy key (migration only)
+  static const String _systemTtsPlaybackSpeedKey = 'system_tts_playback_speed';
+  static const String _elevenLabsPlaybackSpeedKey = 'elevenlabs_playback_speed';
+  static const String _premiumTtsEngineKey = 'premium_tts_engine';
+  static const String _premiumVoiceDefaultsV2AppliedKey =
+      'premium_voice_defaults_v2_applied';
   static const String _themeModeKey = 'theme_mode';
   static const String _useStreamingKey = 'use_streaming';
 
   bool _useVoiceResponse = false; // Always false - auto-play disabled
-  bool _useStreaming = true; // Default ON for chat; image requests are routed to non-streaming path
+  bool _useStreaming =
+      true; // Default ON for chat; image requests are routed to non-streaming path
   String _selectedVoiceId = '9BWtsMINqrJLrRacOk9x'; // Default voice (Aria)
   bool _useSpeakerOutput = false;
   double _fontSizeScale = 1.0; // Default font size scale (1.0 = normal)
+  double _systemTtsPlaybackSpeed = 0.5; // Free system TTS speed
+  double _elevenLabsPlaybackSpeed = 1.0; // Premium ElevenLabs playback speed
+  String _premiumTtsEngine = 'elevenlabs'; // 'elevenlabs' | 'system'
   Map<String, String>? _selectedSystemTTSVoice; // Selected system TTS voice
   ThemeMode _themeMode = ThemeMode.system; // Default to system theme
 
@@ -29,6 +40,12 @@ class SettingsProvider with ChangeNotifier {
   String get selectedVoiceId => _selectedVoiceId;
   bool get useSpeakerOutput => _useSpeakerOutput;
   double get fontSizeScale => _fontSizeScale;
+  // Backward-compatible getter
+  double get ttsPlaybackSpeed => _systemTtsPlaybackSpeed;
+  double get systemTtsPlaybackSpeed => _systemTtsPlaybackSpeed;
+  double get elevenLabsPlaybackSpeed => _elevenLabsPlaybackSpeed;
+  String get premiumTtsEngine => _premiumTtsEngine;
+  bool get premiumUsesSystemTts => _premiumTtsEngine == 'system';
   Map<String, String>? get selectedSystemTTSVoice => _selectedSystemTTSVoice;
   ThemeMode get themeMode => _themeMode;
 
@@ -45,9 +62,16 @@ class SettingsProvider with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _useVoiceResponse = prefs.getBool(_useVoiceResponseKey) ?? false;
     _useStreaming = prefs.getBool(_useStreamingKey) ?? true;
-    _selectedVoiceId = prefs.getString(_selectedVoiceIdKey) ?? '9BWtsMINqrJLrRacOk9x';
+    _selectedVoiceId =
+        prefs.getString(_selectedVoiceIdKey) ?? '9BWtsMINqrJLrRacOk9x';
     _useSpeakerOutput = prefs.getBool(_useSpeakerOutputKey) ?? false;
     _fontSizeScale = prefs.getDouble(_fontSizeScaleKey) ?? defaultFontScale;
+    final legacyTtsSpeed = prefs.getDouble(_ttsPlaybackSpeedKey);
+    _systemTtsPlaybackSpeed =
+        prefs.getDouble(_systemTtsPlaybackSpeedKey) ?? legacyTtsSpeed ?? 0.5;
+    _elevenLabsPlaybackSpeed =
+        prefs.getDouble(_elevenLabsPlaybackSpeedKey) ?? 1.0;
+    _premiumTtsEngine = prefs.getString(_premiumTtsEngineKey) ?? 'elevenlabs';
     _selectedLocale = prefs.getString(_selectedLocaleKey);
 
     // Load theme mode
@@ -56,9 +80,23 @@ class SettingsProvider with ChangeNotifier {
 
     // Load selected system TTS voice
     final voiceName = prefs.getString('${_selectedSystemTTSVoiceKey}_name');
-    final voiceLanguage = prefs.getString('${_selectedSystemTTSVoiceKey}_language');
+    final voiceLanguage =
+        prefs.getString('${_selectedSystemTTSVoiceKey}_language');
+    final voiceLocale = prefs.getString('${_selectedSystemTTSVoiceKey}_locale');
+    final voiceGender = prefs.getString('${_selectedSystemTTSVoiceKey}_gender');
+    final voiceQuality =
+        prefs.getString('${_selectedSystemTTSVoiceKey}_quality');
+    final voiceIdentifier =
+        prefs.getString('${_selectedSystemTTSVoiceKey}_identifier');
     if (voiceName != null && voiceLanguage != null) {
-      _selectedSystemTTSVoice = {'name': voiceName, 'language': voiceLanguage};
+      _selectedSystemTTSVoice = {
+        'name': voiceName,
+        'language': voiceLanguage,
+        if (voiceLocale != null) 'locale': voiceLocale,
+        if (voiceGender != null) 'gender': voiceGender,
+        if (voiceQuality != null) 'quality': voiceQuality,
+        if (voiceIdentifier != null) 'identifier': voiceIdentifier,
+      };
     }
 
     notifyListeners();
@@ -113,10 +151,76 @@ class SettingsProvider with ChangeNotifier {
     if (voice == null) {
       await prefs.remove('${_selectedSystemTTSVoiceKey}_name');
       await prefs.remove('${_selectedSystemTTSVoiceKey}_language');
+      await prefs.remove('${_selectedSystemTTSVoiceKey}_locale');
+      await prefs.remove('${_selectedSystemTTSVoiceKey}_gender');
+      await prefs.remove('${_selectedSystemTTSVoiceKey}_quality');
+      await prefs.remove('${_selectedSystemTTSVoiceKey}_identifier');
     } else {
-      await prefs.setString('${_selectedSystemTTSVoiceKey}_name', voice['name'] ?? '');
-      await prefs.setString('${_selectedSystemTTSVoiceKey}_language', voice['language'] ?? '');
+      await prefs.setString(
+          '${_selectedSystemTTSVoiceKey}_name', voice['name'] ?? '');
+      await prefs.setString(
+          '${_selectedSystemTTSVoiceKey}_language', voice['language'] ?? '');
+      await prefs.setString(
+          '${_selectedSystemTTSVoiceKey}_locale', voice['locale'] ?? '');
+      await prefs.setString(
+          '${_selectedSystemTTSVoiceKey}_gender', voice['gender'] ?? '');
+      await prefs.setString(
+          '${_selectedSystemTTSVoiceKey}_quality', voice['quality'] ?? '');
+      await prefs.setString('${_selectedSystemTTSVoiceKey}_identifier',
+          voice['identifier'] ?? '');
     }
+    notifyListeners();
+  }
+
+  Future<void> setTtsPlaybackSpeed(double speed) async {
+    await setSystemTtsPlaybackSpeed(speed);
+  }
+
+  Future<void> setSystemTtsPlaybackSpeed(double speed) async {
+    _systemTtsPlaybackSpeed = speed.clamp(0.5, 1.2);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_systemTtsPlaybackSpeedKey, _systemTtsPlaybackSpeed);
+    // Keep writing legacy key for backward compatibility with older code paths.
+    await prefs.setDouble(_ttsPlaybackSpeedKey, _systemTtsPlaybackSpeed);
+    notifyListeners();
+  }
+
+  Future<void> setElevenLabsPlaybackSpeed(double speed) async {
+    _elevenLabsPlaybackSpeed = speed.clamp(0.8, 1.5);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(
+        _elevenLabsPlaybackSpeedKey, _elevenLabsPlaybackSpeed);
+    notifyListeners();
+  }
+
+  Future<void> setPremiumTtsEngine(String engine) async {
+    if (engine != 'system' && engine != 'elevenlabs') return;
+    _premiumTtsEngine = engine;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_premiumTtsEngineKey, _premiumTtsEngine);
+    notifyListeners();
+  }
+
+  Future<void> applyPremiumVoiceDefaultsIfNeeded({
+    required bool isPremium,
+  }) async {
+    if (!isPremium) return;
+    final prefs = await SharedPreferences.getInstance();
+    final alreadyApplied = prefs.getBool(_premiumVoiceDefaultsV2AppliedKey);
+    if (alreadyApplied == true) return;
+
+    _selectedVoiceId = '9BWtsMINqrJLrRacOk9x'; // Aria
+    _elevenLabsPlaybackSpeed = 1.0;
+    _systemTtsPlaybackSpeed = 0.5;
+    _premiumTtsEngine = 'elevenlabs';
+
+    await prefs.setString(_selectedVoiceIdKey, _selectedVoiceId);
+    await prefs.setDouble(
+        _elevenLabsPlaybackSpeedKey, _elevenLabsPlaybackSpeed);
+    await prefs.setDouble(_systemTtsPlaybackSpeedKey, _systemTtsPlaybackSpeed);
+    await prefs.setDouble(_ttsPlaybackSpeedKey, _systemTtsPlaybackSpeed);
+    await prefs.setString(_premiumTtsEngineKey, _premiumTtsEngine);
+    await prefs.setBool(_premiumVoiceDefaultsV2AppliedKey, true);
     notifyListeners();
   }
 
@@ -138,7 +242,7 @@ class SettingsProvider with ChangeNotifier {
       // debugPrint('Saved locale to preferences: $locale');
     }
     notifyListeners();
-    
+
     // Sync to Supabase in background
     _syncSettingsToSupabase();
   }
@@ -149,7 +253,7 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setDouble(_fontSizeScaleKey, _fontSizeScale);
     // debugPrint('Saved font size scale: $_fontSizeScale');
     notifyListeners();
-    
+
     // Sync to Supabase in background
     _syncSettingsToSupabase();
   }
@@ -160,7 +264,7 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setString(_themeModeKey, _themeModeToString(mode));
     // debugPrint('Saved theme mode: ${_themeModeToString(mode)}');
     notifyListeners();
-    
+
     // Sync to Supabase in background
     _syncSettingsToSupabase();
   }
@@ -193,14 +297,15 @@ class SettingsProvider with ChangeNotifier {
     Future.microtask(() async {
       try {
         final supabase = SupabaseService();
-        
+
         if (!supabase.isAuthenticated) {
-          debugPrint('[SettingsProvider] Not authenticated, skipping settings sync');
+          debugPrint(
+              '[SettingsProvider] Not authenticated, skipping settings sync');
           return;
         }
 
         final userId = supabase.currentUser!.id;
-        
+
         final data = {
           'user_id': userId,
           'theme_mode': _themeModeToString(_themeMode),
@@ -209,10 +314,8 @@ class SettingsProvider with ChangeNotifier {
           'updated_at': DateTime.now().toIso8601String(),
         };
 
-        await supabase.client
-            .from('user_settings')
-            .upsert(data);
-        
+        await supabase.client.from('user_settings').upsert(data);
+
         debugPrint('[SettingsProvider] Settings synced to Supabase');
       } catch (e) {
         debugPrint('[SettingsProvider] Error syncing settings (silent): $e');
@@ -225,20 +328,21 @@ class SettingsProvider with ChangeNotifier {
   Future<void> loadSettingsFromSupabase() async {
     try {
       final supabase = SupabaseService();
-      
+
       if (!supabase.isAuthenticated) {
-        debugPrint('[SettingsProvider] Not authenticated, skipping settings load');
+        debugPrint(
+            '[SettingsProvider] Not authenticated, skipping settings load');
         return;
       }
 
       final userId = supabase.currentUser!.id;
-      
+
       final response = await supabase.client
           .from('user_settings')
           .select()
           .eq('user_id', userId)
           .maybeSingle();
-      
+
       if (response != null) {
         // Update local settings from Supabase
         final themeModeStr = response['theme_mode'] as String?;
@@ -247,26 +351,27 @@ class SettingsProvider with ChangeNotifier {
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_themeModeKey, themeModeStr);
         }
-        
+
         final locale = response['locale'] as String?;
         if (locale != null) {
           _selectedLocale = locale;
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString(_selectedLocaleKey, locale);
         }
-        
+
         final fontScale = response['font_size_scale'] as double?;
         if (fontScale != null) {
           _fontSizeScale = fontScale;
           final prefs = await SharedPreferences.getInstance();
           await prefs.setDouble(_fontSizeScaleKey, fontScale);
         }
-        
+
         notifyListeners();
         debugPrint('[SettingsProvider] Loaded settings from Supabase');
       }
     } catch (e) {
-      debugPrint('[SettingsProvider] Error loading settings from Supabase (silent): $e');
+      debugPrint(
+          '[SettingsProvider] Error loading settings from Supabase (silent): $e');
       // Silent failure - use local settings
     }
   }

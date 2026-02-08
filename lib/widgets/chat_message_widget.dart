@@ -40,6 +40,7 @@ class ChatMessageWidget extends StatefulWidget {
   final Function(ChatMessage)? onShare;
   final Map<int, String> translatedMessages;
   final bool isPlayingAudio;
+  final bool isPlayingDeviceTts;
   final Function(String) onPlayAudio;
   final Function(ChatMessage)? onSpeakWithHighlight;
   final Function()? onReviewRequested;
@@ -61,6 +62,7 @@ class ChatMessageWidget extends StatefulWidget {
     required this.onDelete,
     required this.translatedMessages,
     required this.isPlayingAudio,
+    this.isPlayingDeviceTts = false,
     required this.onPlayAudio,
     this.onSpeakWithHighlight,
     this.onShare,
@@ -1018,22 +1020,16 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
             SizedBox(width: 4),
             _buildActionButton(
               icon: widget.isPlayingAudio
-                  ? (widget.message.audioPath == "device_tts"
+                  ? (widget.isPlayingDeviceTts
                       ? Icons.stop_circle
                       : Icons.pause_circle_outline)
                   : Icons.play_circle_outline,
               tooltip: widget.isPlayingAudio
-                  ? (widget.message.audioPath == "device_tts"
-                      ? "Stop audio"
-                      : "Pause audio")
+                  ? (widget.isPlayingDeviceTts ? "Stop audio" : "Pause audio")
                   : "Play audio",
               onTap: () {
                 if (widget.isPlayingAudio) {
-                  if (widget.message.audioPath == "device_tts") {
-                    widget.onSpeakWithHighlight!(widget.message);
-                  } else {
-                    widget.onPlayAudio('');
-                  }
+                  widget.onSpeakWithHighlight!(widget.message);
                 } else {
                   widget.onSpeakWithHighlight!(widget.message);
                 }

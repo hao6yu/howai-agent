@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
+import 'dart:io';
 import '../providers/settings_provider.dart';
 import '../services/subscription_service.dart';
+import '../services/audio_service.dart';
+import '../services/elevenlabs_service.dart';
+import '../services/device_tts_service.dart';
 import '../widgets/custom_back_button.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import 'package:flutter_tts/flutter_tts.dart';
@@ -14,36 +19,65 @@ class VoiceSettingsScreen extends StatefulWidget {
 }
 
 class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
-  // ElevenLabs voice options
-  static final List<Map<String, String>> availableVoices = [
-    {'id': '9BWtsMINqrJLrRacOk9x', 'name': 'Aria'},
-    {'id': 'N2lVS1w4EtoT3dr4eOWO', 'name': 'Callum'},
-    {'id': 'iV5XeqzOeJzUHmdQ8FLK', 'name': 'Haoziiiiiii'},
-    {'id': 'mlFsujxZWlk6xPyQJgMb', 'name': 'Mary'},
-    {'id': 'x7Pz9CsHMAlHFwKlPxu8', 'name': 'Madeline'},
-  ];
+  static final List<Map<String, String>> _fallbackElevenLabsVoices =
+      ElevenLabsService.availableVoices;
+  static const String _sampleText =
+      'Hello, this is a sample voice preview from HowAI.';
 
   // System TTS
+  final ElevenLabsService _elevenLabsService = ElevenLabsService();
   FlutterTts? _flutterTts;
   List<dynamic> _systemVoices = [];
   Map<String, String>? _selectedSystemVoice;
   bool _isLoadingVoices = true;
+  List<Map<String, String>> _elevenLabsVoices =
+      List<Map<String, String>>.from(_fallbackElevenLabsVoices);
+  String? _previewingElevenLabsVoiceId;
+  bool _isPreviewingSystemVoice = false;
+  bool _didRequestPremiumDefaultMigration = false;
+  late final VoidCallback _audioPreviewListener;
 
   @override
   void initState() {
     super.initState();
+    _audioPreviewListener = () {
+      if (!AudioService.isPlayingAudio.value &&
+          mounted &&
+          _previewingElevenLabsVoiceId != null) {
+        setState(() {
+          _previewingElevenLabsVoiceId = null;
+        });
+      }
+    };
+    AudioService.isPlayingAudio.addListener(_audioPreviewListener);
     _initSystemTTS();
   }
 
   @override
   void dispose() {
     _flutterTts?.stop();
+    AudioService.stopAudio();
+    AudioService.isPlayingAudio.removeListener(_audioPreviewListener);
     super.dispose();
   }
 
   Future<void> _initSystemTTS() async {
     try {
       _flutterTts = FlutterTts();
+      _flutterTts!.setCompletionHandler(() {
+        if (mounted) {
+          setState(() {
+            _isPreviewingSystemVoice = false;
+          });
+        }
+      });
+      _flutterTts!.setCancelHandler(() {
+        if (mounted) {
+          setState(() {
+            _isPreviewingSystemVoice = false;
+          });
+        }
+      });
       await _initVoices();
     } catch (e) {
       // print('Error initializing system TTS: $e');
@@ -60,7 +94,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
     // Find the index of the voice that matches the selected voice
     for (int i = 0; i < _systemVoices.length; i++) {
       final voice = _systemVoices[i];
-      if (voice['name'] == _selectedSystemVoice!['name'] && voice['locale'] == _selectedSystemVoice!['locale']) {
+      if (voice['name'] == _selectedSystemVoice!['name'] &&
+          voice['locale'] == _selectedSystemVoice!['locale']) {
         return i;
       }
     }
@@ -138,17 +173,25 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
 
     // 1. Prefer female US English voice with name containing 'samantha'
     dynamic femaleUSSamantha = sortedVoices.firstWhere(
-      (v) => (v['locale']?.toString().toLowerCase().trim() == 'en-us') && (v['gender']?.toString().toLowerCase().trim() == 'female') && (v['name']?.toString().toLowerCase().contains('samantha') ?? false),
+      (v) =>
+          (v['locale']?.toString().toLowerCase().trim() == 'en-us') &&
+          (v['gender']?.toString().toLowerCase().trim() == 'female') &&
+          (v['name']?.toString().toLowerCase().contains('samantha') ?? false),
       orElse: () => null,
     );
     // 2. If not found, prefer any female US English voice
     dynamic femaleUSVoice = sortedVoices.firstWhere(
-      (v) => (v['locale']?.toString().toLowerCase().trim() == 'en-us') && (v['gender']?.toString().toLowerCase().trim() == 'female'),
+      (v) =>
+          (v['locale']?.toString().toLowerCase().trim() == 'en-us') &&
+          (v['gender']?.toString().toLowerCase().trim() == 'female'),
       orElse: () => null,
     );
     // 3. If not found, prefer any female English voice
     dynamic femaleEnglishVoice = sortedVoices.firstWhere(
-      (v) => (v['locale']?.toString().toLowerCase().trim().startsWith('en-') ?? false) && (v['gender']?.toString().toLowerCase().trim() == 'female'),
+      (v) =>
+          (v['locale']?.toString().toLowerCase().trim().startsWith('en-') ??
+              false) &&
+          (v['gender']?.toString().toLowerCase().trim() == 'female'),
       orElse: () => null,
     );
 
@@ -163,7 +206,9 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
       if (savedVoice != null) {
         // Try to find the saved voice in the available voices by name
         final matchingVoice = sortedVoices.firstWhere(
-          (v) => v['name'] == savedVoice['name'] && v['locale'] == savedVoice['locale'],
+          (v) =>
+              v['name'] == savedVoice['name'] &&
+              v['locale'] == savedVoice['locale'],
           orElse: () => null,
         );
 
@@ -217,6 +262,146 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
     }
   }
 
+  Future<void> _previewSystemVoice(SettingsProvider settings) async {
+    if (_flutterTts == null) {
+      await _initSystemTTS();
+    }
+    if (_flutterTts == null) return;
+
+    if (_isPreviewingSystemVoice) {
+      await _flutterTts!.stop();
+      if (mounted) {
+        setState(() {
+          _isPreviewingSystemVoice = false;
+        });
+      }
+      return;
+    }
+
+    await AudioService.stopAudio();
+    if (mounted) {
+      setState(() {
+        _previewingElevenLabsVoiceId = null;
+      });
+    }
+
+    setState(() {
+      _isPreviewingSystemVoice = true;
+    });
+
+    final result = await DeviceTtsService.generateAndPlay(
+      flutterTts: _flutterTts,
+      message: _sampleText,
+      selectedVoice: _selectedSystemVoice,
+      speechRate: settings.systemTtsPlaybackSpeed,
+    );
+
+    if (result == null && mounted) {
+      setState(() {
+        _isPreviewingSystemVoice = false;
+      });
+    }
+  }
+
+  Future<void> _previewElevenLabsVoice({
+    required SettingsProvider settings,
+    required String voiceId,
+  }) async {
+    if (_isPreviewingSystemVoice) {
+      await _flutterTts?.stop();
+      if (mounted) {
+        setState(() {
+          _isPreviewingSystemVoice = false;
+        });
+      }
+    }
+
+    if (_previewingElevenLabsVoiceId == voiceId &&
+        AudioService.isPlayingAudio.value) {
+      await AudioService.stopAudio();
+      if (mounted) {
+        setState(() {
+          _previewingElevenLabsVoiceId = null;
+        });
+      }
+      return;
+    }
+
+    await AudioService.stopAudio();
+
+    if (mounted) {
+      setState(() {
+        _previewingElevenLabsVoiceId = voiceId;
+      });
+    }
+
+    try {
+      final previewId =
+          DateTime.now().millisecondsSinceEpoch.remainder(1000000000);
+      final audioPath = await _elevenLabsService.generateAudioWithSettings(
+        _sampleText,
+        previewId,
+        voiceId: voiceId,
+        voiceSettings: const {
+          'stability': 0.35,
+          'similarity_boost': 0.95,
+          'style': 0.6,
+          'use_speaker_boost': true,
+        },
+      );
+
+      if (audioPath == null || audioPath.isEmpty) {
+        _showPreviewError('Unable to generate sample audio.');
+        if (mounted) {
+          setState(() {
+            _previewingElevenLabsVoiceId = null;
+          });
+        }
+        return;
+      }
+
+      final file = File(audioPath);
+      if (!await file.exists() || await file.length() == 0) {
+        _showPreviewError(
+            'Voice sample is unavailable. Please check ElevenLabs setup.');
+        if (mounted) {
+          setState(() {
+            _previewingElevenLabsVoiceId = null;
+          });
+        }
+        return;
+      }
+
+      await AudioService.playAudio(
+        audioPath,
+        useSpeakerOutput: settings.useSpeakerOutput,
+        playbackSpeed: settings.elevenLabsPlaybackSpeed,
+      );
+      if (!AudioService.isPlayingAudio.value) {
+        _showPreviewError('Could not play voice sample.');
+        if (mounted) {
+          setState(() {
+            _previewingElevenLabsVoiceId = null;
+          });
+        }
+      }
+    } catch (_) {
+      _showPreviewError('Could not play voice sample.');
+      if (mounted) {
+        setState(() {
+          _previewingElevenLabsVoiceId = null;
+        });
+      }
+    }
+  }
+
+  void _showPreviewError(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), duration: const Duration(seconds: 2)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -227,11 +412,20 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
       ),
       body: Consumer2<SettingsProvider, SubscriptionService>(
         builder: (context, settings, subscriptionService, child) {
+          if (subscriptionService.isPremium &&
+              !_didRequestPremiumDefaultMigration) {
+            _didRequestPremiumDefaultMigration = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              settings.applyPremiumVoiceDefaultsIfNeeded(isPremium: true);
+            });
+          }
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                _buildUsageIntroCard(settings, subscriptionService),
+                const SizedBox(height: 20),
                 // Voice Response Toggle - DISABLED: Auto-play feature removed
                 // _buildVoiceResponseToggle(settings),
                 // const SizedBox(height: 20),
@@ -316,11 +510,86 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
     );
   }
 
+  Widget _buildUsageIntroCard(
+    SettingsProvider settings,
+    SubscriptionService subscriptionService,
+  ) {
+    final isPremium = subscriptionService.isPremium;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isPremium
+              ? const Color(0xFF0078D4).withOpacity(0.25)
+              : Colors.grey.withOpacity(0.25),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'How voice playback works',
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(15),
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : const Color(0xFF1A1A1A),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Free: use your device voice for message playback.',
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(13),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade300
+                  : Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Premium: switch to ElevenLabs voices for more natural sound.',
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(13),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade300
+                  : Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Use the sample play button to test voices before choosing.',
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(13),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade300
+                  : Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'System voice speed and ElevenLabs speed are configured separately.',
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(13),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade300
+                  : Colors.grey.shade700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDeviceTTSSection(SettingsProvider settings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildSectionHeader('Device Text-to-Speech'),
+        _buildSectionHeader('Free System Voice'),
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
@@ -349,7 +618,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                       child: Icon(
                         Icons.phone_android_rounded,
                         color: Colors.green,
-                        size: settings.getScaledFontSize(22),
+                        size: settings.getScaledFontSize(20),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -358,28 +627,36 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            AppLocalizations.of(context)!.systemVoice,
+                            'Device Text-to-Speech',
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(16),
                               fontWeight: FontWeight.w600,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Uses your device\'s built-in text-to-speech',
+                            'Free voice that reads AI responses with your device engine.',
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.green.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.green.withOpacity(0.3)),
+                              border: Border.all(
+                                  color: Colors.green.withOpacity(0.3)),
                             ),
                             child: Text(
                               AppLocalizations.of(context)!.free,
@@ -393,10 +670,18 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         ],
                       ),
                     ),
-                    Icon(
-                      Icons.check_circle,
-                      color: Colors.green,
-                      size: settings.getScaledFontSize(24),
+                    IconButton(
+                      onPressed: () => _previewSystemVoice(settings),
+                      icon: Icon(
+                        _isPreviewingSystemVoice
+                            ? Icons.stop_circle_outlined
+                            : Icons.play_circle_outline,
+                        color: Colors.green,
+                        size: settings.getScaledFontSize(26),
+                      ),
+                      tooltip: _isPreviewingSystemVoice
+                          ? 'Stop sample'
+                          : 'Play sample',
                     ),
                   ],
                 ),
@@ -414,7 +699,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         height: settings.getScaledFontSize(16),
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.grey.shade600),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.grey.shade600),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -422,7 +708,9 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         'Loading available voices...',
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(14),
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -439,7 +727,10 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         children: [
                           Icon(
                             Icons.record_voice_over_rounded,
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade600,
                             size: settings.getScaledFontSize(20),
                           ),
                           const SizedBox(width: 12),
@@ -448,46 +739,69 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
                               fontWeight: FontWeight.w500,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<int>(
-                        value: _selectedSystemVoice != null ? _getSelectedVoiceIndex() : null,
+                        value: _selectedSystemVoice != null
+                            ? _getSelectedVoiceIndex()
+                            : null,
                         isExpanded: true,
                         menuMaxHeight: 300, // Limit dropdown height
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(14),
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF1A1A1A),
                         ),
                         decoration: InputDecoration(
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300),
+                            borderSide: BorderSide(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey.shade600
+                                    : Colors.grey.shade300),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300),
+                            borderSide: BorderSide(
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey.shade600
+                                    : Colors.grey.shade300),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(color: Color(0xFF0078D4)),
+                            borderSide:
+                                const BorderSide(color: Color(0xFF0078D4)),
                           ),
                           contentPadding: EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: settings.getScaledFontSize(12),
                           ),
                           filled: true,
-                          fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+                          fillColor:
+                              Theme.of(context).brightness == Brightness.dark
+                                  ? Colors.grey.shade800
+                                  : Colors.grey.shade50,
                         ),
-                        items: _systemVoices.asMap().entries.map<DropdownMenuItem<int>>((entry) {
+                        items: _systemVoices
+                            .asMap()
+                            .entries
+                            .map<DropdownMenuItem<int>>((entry) {
                           final index = entry.key;
                           final voice = entry.value;
                           final voiceMap = _createSafeVoiceMap(voice);
 
-                          final name = voiceMap['name'] ?? AppLocalizations.of(context)!.unknownVoice;
+                          final name = voiceMap['name'] ??
+                              AppLocalizations.of(context)!.unknownVoice;
                           final locale = voiceMap['locale'] ?? '';
                           final gender = voiceMap['gender'] ?? '';
 
@@ -496,16 +810,19 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                             displayName += ' ($locale)';
                           }
                           if (gender.isNotEmpty) {
-                            displayName += ' • ${gender.substring(0, 1).toUpperCase() + gender.substring(1)}';
+                            displayName +=
+                                ' • ${gender.substring(0, 1).toUpperCase() + gender.substring(1)}';
                           }
 
                           return DropdownMenuItem<int>(
                             value: index,
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 4.0),
                               child: Text(
                                 displayName,
-                                style: TextStyle(fontSize: settings.getScaledFontSize(14)),
+                                style: TextStyle(
+                                    fontSize: settings.getScaledFontSize(14)),
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
                               ),
@@ -513,8 +830,10 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                           );
                         }).toList(),
                         onChanged: (newIndex) async {
-                          if (newIndex != null && newIndex < _systemVoices.length) {
-                            final selectedVoice = _createSafeVoiceMap(_systemVoices[newIndex]);
+                          if (newIndex != null &&
+                              newIndex < _systemVoices.length) {
+                            final selectedVoice =
+                                _createSafeVoiceMap(_systemVoices[newIndex]);
 
                             // Update state first
                             setState(() {
@@ -528,7 +847,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                             if (_flutterTts != null) {
                               try {
                                 // Add delay to ensure TTS is ready
-                                await Future.delayed(Duration(milliseconds: 100));
+                                await Future.delayed(
+                                    Duration(milliseconds: 100));
                                 await _flutterTts!.setVoice(selectedVoice);
                                 // print('Voice successfully changed to: ${selectedVoice['name']}');
                               } catch (e) {
@@ -547,33 +867,80 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
 
               _buildDivider(),
               Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
+                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.tune_rounded,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
-                      size: settings.getScaledFontSize(20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            AppLocalizations.of(context)!.voiceSpeed,
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.speed_rounded,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
+                          size: settings.getScaledFontSize(20),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'System voice speed (${settings.systemTtsPlaybackSpeed.toStringAsFixed(1)}x)',
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
                               fontWeight: FontWeight.w500,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : const Color(0xFF1A1A1A),
                             ),
                           ),
-                          const SizedBox(height: 4),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Used for free device text-to-speech playback.',
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(12),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
+                      ),
+                    ),
+                    Slider(
+                      value: settings.systemTtsPlaybackSpeed.clamp(0.5, 1.2),
+                      min: 0.5,
+                      max: 1.2,
+                      divisions: 7,
+                      activeColor: const Color(0xFF0078D4),
+                      onChanged: (value) {
+                        settings.setSystemTtsPlaybackSpeed(
+                          double.parse(value.toStringAsFixed(1)),
+                        );
+                      },
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
                           Text(
-                            'Optimized for clarity (0.5x speed)',
+                            '0.5x',
                             style: TextStyle(
-                              fontSize: settings.getScaledFontSize(12),
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                              fontSize: settings.getScaledFontSize(11),
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
+                          Text(
+                            '1.2x',
+                            style: TextStyle(
+                              fontSize: settings.getScaledFontSize(11),
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
                             ),
                           ),
                         ],
@@ -589,7 +956,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
     );
   }
 
-  Widget _buildElevenLabsSection(SettingsProvider settings, SubscriptionService subscriptionService) {
+  Widget _buildElevenLabsSection(
+      SettingsProvider settings, SubscriptionService subscriptionService) {
     final isPremium = subscriptionService.isPremium;
 
     return Column(
@@ -619,12 +987,15 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: isPremium ? const Color(0xFF0078D4).withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+                        color: isPremium
+                            ? const Color(0xFF0078D4).withOpacity(0.1)
+                            : Colors.grey.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         Icons.workspace_premium_rounded,
-                        color: isPremium ? const Color(0xFF0078D4) : Colors.grey,
+                        color:
+                            isPremium ? const Color(0xFF0078D4) : Colors.grey,
                         size: settings.getScaledFontSize(22),
                       ),
                     ),
@@ -634,33 +1005,55 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'High-Quality AI Voices',
+                            'Premium ElevenLabs Voices',
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(16),
                               fontWeight: FontWeight.w600,
-                              color: isPremium ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A)) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600),
+                              color: isPremium
+                                  ? (Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : const Color(0xFF1A1A1A))
+                                  : (Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey.shade400
+                                      : Colors.grey.shade600),
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Natural-sounding voices powered by ElevenLabs',
+                            'Studio-quality AI voices with richer tone and clarity.',
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: isPremium ? const Color(0xFF0078D4).withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                              color: isPremium
+                                  ? const Color(0xFF0078D4).withOpacity(0.1)
+                                  : Colors.orange.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: isPremium ? const Color(0xFF0078D4).withOpacity(0.3) : Colors.orange.withOpacity(0.3)),
+                              border: Border.all(
+                                  color: isPremium
+                                      ? const Color(0xFF0078D4).withOpacity(0.3)
+                                      : Colors.orange.withOpacity(0.3)),
                             ),
                             child: Text(
-                              isPremium ? AppLocalizations.of(context)!.premium : AppLocalizations.of(context)!.premiumRequired,
+                              isPremium
+                                  ? AppLocalizations.of(context)!.premium
+                                  : AppLocalizations.of(context)!
+                                      .premiumRequired,
                               style: TextStyle(
-                                color: isPremium ? const Color(0xFF0078D4) : Colors.orange.shade700,
+                                color: isPremium
+                                    ? const Color(0xFF0078D4)
+                                    : Colors.orange.shade700,
                                 fontSize: settings.getScaledFontSize(12),
                                 fontWeight: FontWeight.w600,
                               ),
@@ -671,9 +1064,11 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                     ),
                     if (!isPremium)
                       GestureDetector(
-                        onTap: () => Navigator.pushNamed(context, '/subscription'),
+                        onTap: () =>
+                            Navigator.pushNamed(context, '/subscription'),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
                             color: Colors.orange,
                             borderRadius: BorderRadius.circular(16),
@@ -695,24 +1090,169 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
               // Voice options
               if (isPremium) ...[
                 _buildDivider(),
-                ...availableVoices.asMap().entries.map((entry) {
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Premium playback engine',
+                        style: TextStyle(
+                          fontSize: settings.getScaledFontSize(14),
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  settings.setPremiumTtsEngine('system'),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: settings.premiumUsesSystemTts
+                                    ? const Color(0xFF0078D4).withOpacity(0.08)
+                                    : Colors.transparent,
+                                side: BorderSide(
+                                  color: settings.premiumUsesSystemTts
+                                      ? const Color(0xFF0078D4)
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: Text(
+                                'System TTS',
+                                style: TextStyle(
+                                  color: settings.premiumUsesSystemTts
+                                      ? const Color(0xFF0078D4)
+                                      : (Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : const Color(0xFF1A1A1A)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () =>
+                                  settings.setPremiumTtsEngine('elevenlabs'),
+                              style: OutlinedButton.styleFrom(
+                                backgroundColor: !settings.premiumUsesSystemTts
+                                    ? const Color(0xFF0078D4).withOpacity(0.08)
+                                    : Colors.transparent,
+                                side: BorderSide(
+                                  color: !settings.premiumUsesSystemTts
+                                      ? const Color(0xFF0078D4)
+                                      : Colors.grey.shade300,
+                                ),
+                              ),
+                              child: Text(
+                                'ElevenLabs',
+                                style: TextStyle(
+                                  color: !settings.premiumUsesSystemTts
+                                      ? const Color(0xFF0078D4)
+                                      : (Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : const Color(0xFF1A1A1A)),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                _buildDivider(),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ElevenLabs speed (${settings.elevenLabsPlaybackSpeed.toStringAsFixed(1)}x)',
+                        style: TextStyle(
+                          fontSize: settings.getScaledFontSize(14),
+                          fontWeight: FontWeight.w500,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : const Color(0xFF1A1A1A),
+                        ),
+                      ),
+                      Slider(
+                        value: settings.elevenLabsPlaybackSpeed.clamp(0.8, 1.5),
+                        min: 0.8,
+                        max: 1.5,
+                        divisions: 7,
+                        activeColor: const Color(0xFF0078D4),
+                        onChanged: (value) {
+                          settings.setElevenLabsPlaybackSpeed(
+                            double.parse(value.toStringAsFixed(1)),
+                          );
+                        },
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '0.8x',
+                              style: TextStyle(
+                                fontSize: settings.getScaledFontSize(11),
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade600,
+                              ),
+                            ),
+                            Text(
+                              '1.5x',
+                              style: TextStyle(
+                                fontSize: settings.getScaledFontSize(11),
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildDivider(),
+                ..._elevenLabsVoices.asMap().entries.map((entry) {
                   final voice = entry.value;
                   final isSelected = settings.selectedVoiceId == voice['id'];
-                  final isLast = entry.key == availableVoices.length - 1;
+                  final isPreviewingThisVoice =
+                      _previewingElevenLabsVoiceId == voice['id'] &&
+                          AudioService.isPlayingAudio.value;
+                  final isLast = entry.key == _elevenLabsVoices.length - 1;
 
                   return Column(
                     children: [
                       Material(
                         color: Colors.transparent,
                         child: InkWell(
-                          onTap: () => settings.setSelectedVoiceId(voice['id']!),
+                          onTap: () =>
+                              settings.setSelectedVoiceId(voice['id']!),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 16),
                             child: Row(
                               children: [
                                 Icon(
                                   Icons.person_rounded,
-                                  color: isSelected ? const Color(0xFF0078D4) : Colors.grey.shade500,
+                                  color: isSelected
+                                      ? const Color(0xFF0078D4)
+                                      : Colors.grey.shade500,
                                   size: settings.getScaledFontSize(20),
                                 ),
                                 const SizedBox(width: 16),
@@ -721,10 +1261,33 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                                     voice['name']!,
                                     style: TextStyle(
                                       fontSize: settings.getScaledFontSize(16),
-                                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                                      color: isSelected ? const Color(0xFF0078D4) : (Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A)),
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
+                                      color: isSelected
+                                          ? const Color(0xFF0078D4)
+                                          : (Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.white
+                                              : const Color(0xFF1A1A1A)),
                                     ),
                                   ),
+                                ),
+                                IconButton(
+                                  onPressed: () => _previewElevenLabsVoice(
+                                    settings: settings,
+                                    voiceId: voice['id']!,
+                                  ),
+                                  icon: Icon(
+                                    isPreviewingThisVoice
+                                        ? Icons.stop_circle_outlined
+                                        : Icons.play_circle_outline,
+                                    color: const Color(0xFF0078D4),
+                                    size: settings.getScaledFontSize(22),
+                                  ),
+                                  tooltip: isPreviewingThisVoice
+                                      ? 'Stop sample'
+                                      : 'Play sample',
                                 ),
                                 if (isSelected)
                                   Icon(
@@ -758,28 +1321,34 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(16),
                           fontWeight: FontWeight.w600,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Upgrade to Premium to access high-quality AI voices from ElevenLabs',
+                        'Upgrade to Premium to unlock natural ElevenLabs voices and voice preview.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(14),
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
                         ),
                       ),
                       const SizedBox(height: 16),
                       ElevatedButton(
-                        onPressed: () => Navigator.pushNamed(context, '/subscription'),
+                        onPressed: () =>
+                            Navigator.pushNamed(context, '/subscription'),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
                         ),
                         child: Text(
                           AppLocalizations.of(context)!.upgradeToPremiumVoice,
@@ -810,7 +1379,9 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
             style: TextStyle(
               fontSize: settings.getScaledFontSize(16),
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : const Color(0xFF1A1A1A),
             ),
           ),
         );
@@ -822,7 +1393,9 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       height: 1,
-      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade100,
+      color: Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey.shade700
+          : Colors.grey.shade100,
     );
   }
 }

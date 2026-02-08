@@ -3551,6 +3551,42 @@ abstract class AppLocalizations {
   /// **'Find restaurants, attractions & services nearby'**
   String get featurePlacesExplorerDesc;
 
+  /// No description provided for @quickActionAskFromPhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask from photo'**
+  String get quickActionAskFromPhoto;
+
+  /// No description provided for @quickActionAskFromFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask from file'**
+  String get quickActionAskFromFile;
+
+  /// No description provided for @quickActionScanToPdf.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan to PDF'**
+  String get quickActionScanToPdf;
+
+  /// No description provided for @quickActionGenerateImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate image'**
+  String get quickActionGenerateImage;
+
+  /// No description provided for @quickActionTranslateSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Text, photo, or file'**
+  String get quickActionTranslateSubtitle;
+
+  /// No description provided for @quickActionFindPlaces.
+  ///
+  /// In en, this message translates to:
+  /// **'Find places'**
+  String get quickActionFindPlaces;
+
   /// No description provided for @featurePhotoToPdfTitle.
   ///
   /// In en, this message translates to:

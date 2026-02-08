@@ -131,7 +131,12 @@ class DatabaseService {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 6) {
-      await db.execute('ALTER TABLE chat_messages ADD COLUMN image_paths TEXT');
+      await _safeAddColumn(
+        db,
+        table: 'chat_messages',
+        column: 'image_paths',
+        definition: 'TEXT',
+      );
     }
 
     if (oldVersion < 7) {
@@ -146,41 +151,48 @@ class DatabaseService {
 
     // Add conversations and conversation_id for multi-convo support
     if (oldVersion < 8) {
-      // 1. Create conversations table
-      await db.execute('''
-        CREATE TABLE IF NOT EXISTS conversations(
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          title TEXT,
-          is_pinned INTEGER DEFAULT 0,
-          created_at TEXT,
-          updated_at TEXT,
-          profile_id INTEGER
-        )
-      ''');
-      // 2. Add conversation_id to chat_messages
       try {
-        await db.execute(
-            'ALTER TABLE chat_messages ADD COLUMN conversation_id INTEGER');
-      } catch (e) {
-        // print('Column conversation_id may already exist: $e');
-      }
-      // 3. For each profile, create a default conversation and update messages
-      final profiles = await db.query('profiles');
-      for (final profile in profiles) {
-        final convId = await db.insert('conversations', {
-          'title': 'First Conversation',
-          'is_pinned': 0,
-          'created_at': DateTime.now().toIso8601String(),
-          'updated_at': DateTime.now().toIso8601String(),
-          'profile_id': profile['id'],
-        });
-        await db.update(
-          'chat_messages',
-          {'conversation_id': convId},
-          where:
-              'profile_id = ? AND (conversation_id IS NULL OR conversation_id = 0)',
-          whereArgs: [profile['id']],
+        // 1. Create conversations table
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS conversations(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT,
+            is_pinned INTEGER DEFAULT 0,
+            created_at TEXT,
+            updated_at TEXT,
+            profile_id INTEGER
+          )
+        ''');
+
+        // 2. Add conversation_id to chat_messages
+        await _safeAddColumn(
+          db,
+          table: 'chat_messages',
+          column: 'conversation_id',
+          definition: 'INTEGER',
         );
+
+        // 3. For each profile, create a default conversation and update messages
+        final profiles = await db.query('profiles');
+        for (final profile in profiles) {
+          final convId = await db.insert('conversations', {
+            'title': 'First Conversation',
+            'is_pinned': 0,
+            'created_at': DateTime.now().toIso8601String(),
+            'updated_at': DateTime.now().toIso8601String(),
+            'profile_id': profile['id'],
+          });
+          await db.update(
+            'chat_messages',
+            {'conversation_id': convId},
+            where:
+                'profile_id = ? AND (conversation_id IS NULL OR conversation_id = 0)',
+            whereArgs: [profile['id']],
+          );
+        }
+      } catch (e) {
+        // Keep startup resilient even if legacy conversation migration fails.
+        print('[DatabaseService] Legacy conversation migration skipped: $e');
       }
     }
 
@@ -280,10 +292,43 @@ class DatabaseService {
     final hasAvatarPath = columns.any((col) => col['name'] == 'avatarPath');
     final hasCreatedAt = columns.any((col) => col['name'] == 'createdAt');
     if (!hasAvatarPath) {
-      await db.execute('ALTER TABLE profiles ADD COLUMN avatarPath TEXT');
+      await _safeAddColumn(
+        db,
+        table: 'profiles',
+        column: 'avatarPath',
+        definition: 'TEXT',
+      );
     }
     if (!hasCreatedAt) {
-      await db.execute('ALTER TABLE profiles ADD COLUMN createdAt TEXT');
+      await _safeAddColumn(
+        db,
+        table: 'profiles',
+        column: 'createdAt',
+        definition: 'TEXT',
+      );
+    }
+  }
+
+  Future<bool> _columnExists(Database db, String table, String column) async {
+    final result = await db.rawQuery("PRAGMA table_info($table)");
+    return result.any((row) => row['name'] == column);
+  }
+
+  Future<void> _safeAddColumn(
+    Database db, {
+    required String table,
+    required String column,
+    required String definition,
+  }) async {
+    try {
+      final exists = await _columnExists(db, table, column);
+      if (exists) return;
+      await db.execute(
+        'ALTER TABLE $table ADD COLUMN $column $definition',
+      );
+    } catch (e) {
+      // Never crash app startup due to additive migration mismatch.
+      print('[DatabaseService] Safe add column skipped for $table.$column: $e');
     }
   }
 
@@ -810,6 +855,9 @@ class DatabaseService {
     try {
       final db = await database;
 
+      // Ensure schema is complete for upgraded installs before app uses DB.
+      await _repairSchemaIfNeeded(db);
+
       // Check if chat_messages table exists
       final tableCheck = await db.rawQuery(
           "SELECT name FROM sqlite_master WHERE type='table' AND name='chat_messages'");
@@ -826,6 +874,107 @@ class DatabaseService {
       // print('Error checking database: $e');
       await resetDatabase();
       return true;
+    }
+  }
+
+  Future<void> _repairSchemaIfNeeded(Database db) async {
+    // Ensure core tables exist.
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS profiles(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        createdAt TEXT,
+        characteristics TEXT,
+        preferences TEXT,
+        avatarPath TEXT
+      )
+    ''');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS conversations(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT,
+        is_pinned INTEGER DEFAULT 0,
+        created_at TEXT,
+        updated_at TEXT,
+        profile_id INTEGER
+      )
+    ''');
+
+    await _createChatMessagesTable(db);
+    await _createAIPersonalitiesTable(db);
+    await _createContentReportsTable(db);
+    await _createKnowledgeItemsTable(db);
+    await _createKnowledgeSourcesTables(db);
+
+    // Ensure additive columns exist.
+    await _safeAddColumn(
+      db,
+      table: 'profiles',
+      column: 'avatarPath',
+      definition: 'TEXT',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'profiles',
+      column: 'createdAt',
+      definition: 'TEXT',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'chat_messages',
+      column: 'image_paths',
+      definition: 'TEXT',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'chat_messages',
+      column: 'image_urls',
+      definition: 'TEXT',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'chat_messages',
+      column: 'file_paths',
+      definition: 'TEXT',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'chat_messages',
+      column: 'is_welcome_message',
+      definition: 'INTEGER DEFAULT 0',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'chat_messages',
+      column: 'conversation_id',
+      definition: 'INTEGER',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'chat_messages',
+      column: 'location_results',
+      definition: 'TEXT',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'chat_messages',
+      column: 'message_type',
+      definition: 'INTEGER DEFAULT 0',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'ai_personalities',
+      column: 'avatar_path',
+      definition: 'TEXT',
+    );
+
+    // Ensure there is at least one profile row.
+    final count = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM profiles'),
+    );
+    if (count == 0) {
+      await _preloadDefaultProfiles(db);
     }
   }
 

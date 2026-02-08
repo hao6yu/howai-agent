@@ -62,7 +62,18 @@ void main() async {
 
   // Initialize the profile provider and load profiles
   final profileProvider = ProfileProvider();
-  await profileProvider.loadProfiles();
+  try {
+    await profileProvider.loadProfiles();
+  } catch (e) {
+    // Last-resort startup recovery for users upgrading from a bad local DB state.
+    try {
+      final dbService = DatabaseService();
+      await dbService.checkAndRepairDatabase();
+      await profileProvider.loadProfiles();
+    } catch (_) {
+      // Keep app booting even if local profile load still fails.
+    }
+  }
 
   runApp(
     MultiProvider(

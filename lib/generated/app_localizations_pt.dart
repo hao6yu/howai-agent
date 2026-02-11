@@ -2888,6 +2888,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String voiceCallAvailableToday(String time) {
     return 'Available today: $time';
   }
+
+  @override
+  String get speakButtonLabel => 'Speak';
+
+  @override
+  String get speakButtonTooltip => 'Start voice call';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).

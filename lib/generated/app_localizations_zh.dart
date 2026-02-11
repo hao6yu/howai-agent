@@ -2888,6 +2888,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String voiceCallAvailableToday(String time) {
     return '今日可用：$time';
   }
+
+  @override
+  String get speakButtonLabel => '对话';
+
+  @override
+  String get speakButtonTooltip => '开始语音通话';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).

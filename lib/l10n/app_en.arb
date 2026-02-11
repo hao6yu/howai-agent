@@ -1103,5 +1103,7 @@
     "placeholders": {
       "time": {"type": "String"}
     }
-  }
+  },
+  "speakButtonLabel": "Speak",
+  "speakButtonTooltip": "Start voice call"
 }

@@ -982,7 +982,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return Tooltip(
-          message: 'Start voice call',
+          message: AppLocalizations.of(context)!.speakButtonTooltip,
           child: Material(
             color: Colors.transparent,
             child: InkWell(
@@ -1013,7 +1013,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                     ),
                     SizedBox(width: settings.getScaledFontSize(4)),
                     Text(
-                      'Speak',
+                      AppLocalizations.of(context)!.speakButtonLabel,
                       style: TextStyle(
                         fontSize: scaledFontSize,
                         fontWeight: FontWeight.w600,

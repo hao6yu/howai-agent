@@ -5722,6 +5722,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Available today: {time}'**
   String voiceCallAvailableToday(String time);
+
+  /// No description provided for @speakButtonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Speak'**
+  String get speakButtonLabel;
+
+  /// No description provided for @speakButtonTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Start voice call'**
+  String get speakButtonTooltip;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

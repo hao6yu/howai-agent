@@ -24,6 +24,18 @@
 @import audioplayers_darwin;
 #endif
 
+#if __has_include(<connectivity_plus/ConnectivityPlusPlugin.h>)
+#import <connectivity_plus/ConnectivityPlusPlugin.h>
+#else
+@import connectivity_plus;
+#endif
+
+#if __has_include(<device_info_plus/FPPDeviceInfoPlusPlugin.h>)
+#import <device_info_plus/FPPDeviceInfoPlusPlugin.h>
+#else
+@import device_info_plus;
+#endif
+
 #if __has_include(<file_picker/FilePickerPlugin.h>)
 #import <file_picker/FilePickerPlugin.h>
 #else
@@ -46,6 +58,12 @@
 #import <flutter_tts/FlutterTtsPlugin.h>
 #else
 @import flutter_tts;
+#endif
+
+#if __has_include(<flutter_webrtc/FlutterWebRTCPlugin.h>)
+#import <flutter_webrtc/FlutterWebRTCPlugin.h>
+#else
+@import flutter_webrtc;
 #endif
 
 #if __has_include(<gal/GalPlugin.h>)
@@ -100,6 +118,12 @@
 #import <just_audio/JustAudioPlugin.h>
 #else
 @import just_audio;
+#endif
+
+#if __has_include(<livekit_client/LiveKitPlugin.h>)
+#import <livekit_client/LiveKitPlugin.h>
+#else
+@import livekit_client;
 #endif
 
 #if __has_include(<open_file_ios/OpenFilePlugin.h>)
@@ -180,10 +204,13 @@
   [AppLinksIosPlugin registerWithRegistrar:[registry registrarForPlugin:@"AppLinksIosPlugin"]];
   [AudioSessionPlugin registerWithRegistrar:[registry registrarForPlugin:@"AudioSessionPlugin"]];
   [AudioplayersDarwinPlugin registerWithRegistrar:[registry registrarForPlugin:@"AudioplayersDarwinPlugin"]];
+  [ConnectivityPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"ConnectivityPlusPlugin"]];
+  [FPPDeviceInfoPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPDeviceInfoPlusPlugin"]];
   [FilePickerPlugin registerWithRegistrar:[registry registrarForPlugin:@"FilePickerPlugin"]];
   [ImageCompressPlugin registerWithRegistrar:[registry registrarForPlugin:@"ImageCompressPlugin"]];
   [FlutterSound registerWithRegistrar:[registry registrarForPlugin:@"FlutterSound"]];
   [FlutterTtsPlugin registerWithRegistrar:[registry registrarForPlugin:@"FlutterTtsPlugin"]];
+  [FlutterWebRTCPlugin registerWithRegistrar:[registry registrarForPlugin:@"FlutterWebRTCPlugin"]];
   [GalPlugin registerWithRegistrar:[registry registrarForPlugin:@"GalPlugin"]];
   [GeocodingPlugin registerWithRegistrar:[registry registrarForPlugin:@"GeocodingPlugin"]];
   [GeolocatorPlugin registerWithRegistrar:[registry registrarForPlugin:@"GeolocatorPlugin"]];
@@ -193,6 +220,7 @@
   [FLTImagePickerPlugin registerWithRegistrar:[registry registrarForPlugin:@"FLTImagePickerPlugin"]];
   [InAppPurchasePlugin registerWithRegistrar:[registry registrarForPlugin:@"InAppPurchasePlugin"]];
   [JustAudioPlugin registerWithRegistrar:[registry registrarForPlugin:@"JustAudioPlugin"]];
+  [LiveKitPlugin registerWithRegistrar:[registry registrarForPlugin:@"LiveKitPlugin"]];
   [OpenFilePlugin registerWithRegistrar:[registry registrarForPlugin:@"OpenFilePlugin"]];
   [FPPPackageInfoPlusPlugin registerWithRegistrar:[registry registrarForPlugin:@"FPPPackageInfoPlusPlugin"]];
   [PathProviderPlugin registerWithRegistrar:[registry registrarForPlugin:@"PathProviderPlugin"]];

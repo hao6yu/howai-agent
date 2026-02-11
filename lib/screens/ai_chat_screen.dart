@@ -58,6 +58,7 @@ import '../widgets/place_result_widget.dart';
 import '../services/chat_integration_helper.dart';
 import '../services/profile_translation_service.dart';
 import '../services/feature_showcase_service.dart';
+import 'elevenlabs_call_screen.dart';
 import '../services/knowledge_hub_service.dart';
 import '../utils/language_utils.dart';
 import '../utils/location_query_detector.dart';
@@ -2988,6 +2989,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                             // Show translation dialog
                             _showTranslationDialog();
                           },
+                          onSpeakCall: _startElevenLabsCall,
                           forceDeepResearch: _forceDeepResearch,
                           onDeepResearchToggle: (enabled) {
                             setState(() {
@@ -6188,6 +6190,35 @@ class _AiChatScreenState extends State<AiChatScreen>
         );
       },
     );
+  }
+
+  /// Start an ElevenLabs voice call.
+  /// 
+  /// Opens the full-screen call UI. When the call ends with a transcript,
+  /// navigates to the new conversation.
+  void _startElevenLabsCall() async {
+    final result = await Navigator.of(context).push<int?>(
+      MaterialPageRoute(
+        builder: (context) => const ElevenLabsCallScreen(),
+        fullscreenDialog: true,
+      ),
+    );
+    
+    // If a conversation ID was returned, switch to it
+    if (result != null && mounted) {
+      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
+      await conversationProvider.loadConversations(profileId: _currentProfileId);
+      
+      // Find and select the conversation
+      final newConversation = conversationProvider.conversations.firstWhere(
+        (c) => c.id == result,
+        orElse: () => conversationProvider.conversations.first,
+      );
+      conversationProvider.selectConversation(newConversation);
+      
+      // Load the messages for the new conversation
+      await _loadMessagesForConversation(result);
+    }
   }
 
   // Process translation request (unified for both text and images)

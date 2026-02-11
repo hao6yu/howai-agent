@@ -30,6 +30,7 @@ dependencies:
   path_provider: ^2.1.1
   http: ^1.1.0
   audio_session: ^0.2.2
+  elevenlabs_agents: ^0.3.0  # For ElevenLabs Agent voice calls
   lottie: ^3.3.0
   speech_to_text: 7.0.0
   in_app_purchase: ^3.2.3  # For subscription handling

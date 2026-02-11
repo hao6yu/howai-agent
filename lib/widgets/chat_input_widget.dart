@@ -53,6 +53,9 @@ class ChatInputWidget extends StatefulWidget {
   // Add callback for translation
   final VoidCallback? onShowTranslationDialog;
 
+  // Add callback for ElevenLabs voice call
+  final VoidCallback? onSpeakCall;
+
   // Deep research/thinking mode toggle parameters
   final bool forceDeepResearch;
   final Function(bool) onDeepResearchToggle;
@@ -101,6 +104,7 @@ class ChatInputWidget extends StatefulWidget {
     this.onShowPptxDialog,
     this.onShowImageGenerationDialog,
     this.onShowTranslationDialog,
+    this.onSpeakCall,
     required this.forceDeepResearch,
     required this.onDeepResearchToggle,
     this.deepResearchKey,
@@ -817,11 +821,11 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                     ],
                   ),
 
-                  // Right side - mic, keyboard close, and send buttons
+                  // Right side - mic, speak, keyboard close, and send buttons
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Voice/keyboard toggle - moved to far right
+                      // Voice/keyboard toggle
                       _buildActionButton(
                         icon: widget.isVoiceInputMode
                             ? Icons.keyboard_alt_outlined
@@ -833,6 +837,16 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                         isPhoneLandscape: isPhoneLandscape,
                         size: buttonSize,
                       ),
+
+                      SizedBox(width: buttonSpacing.toDouble()),
+
+                      // "Speak" button for ElevenLabs voice call
+                      if (widget.onSpeakCall != null)
+                        _buildSpeakButton(
+                          onTap: widget.onSpeakCall!,
+                          isPhoneLandscape: isPhoneLandscape,
+                          buttonSize: buttonSize,
+                        ),
 
                       // Add spacing only if keyboard close button will be shown
                       if (!widget.isVoiceInputMode &&
@@ -941,6 +955,72 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                             : const Color(0xFF0078D4)),
                     size: scaledIconSize,
                   ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Build the "Speak" button for ElevenLabs voice calls.
+  /// Styled similar to Grok's speak button - pill shape with icon and label.
+  Widget _buildSpeakButton({
+    required VoidCallback onTap,
+    required bool isPhoneLandscape,
+    required double buttonSize,
+  }) {
+    return Consumer<SettingsProvider>(
+      builder: (context, settings, child) {
+        final scaledIconSize =
+            settings.getScaledFontSize(isPhoneLandscape ? 16.0 : 18.0);
+        final scaledFontSize =
+            settings.getScaledFontSize(isPhoneLandscape ? 12.0 : 14.0);
+        final scaledPadding =
+            settings.getScaledFontSize(isPhoneLandscape ? 8.0 : 12.0);
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
+        return Tooltip(
+          message: 'Start voice call',
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(buttonSize / 2),
+              onTap: onTap,
+              child: Container(
+                height: buttonSize,
+                padding: EdgeInsets.symmetric(horizontal: scaledPadding),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.grey.shade700
+                      : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(buttonSize / 2),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade300,
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.graphic_eq_rounded,
+                      size: scaledIconSize,
+                      color: isDark ? Colors.white70 : const Color(0xFF0078D4),
+                    ),
+                    SizedBox(width: settings.getScaledFontSize(4)),
+                    Text(
+                      'Speak',
+                      style: TextStyle(
+                        fontSize: scaledFontSize,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white70 : const Color(0xFF0078D4),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

@@ -31,6 +31,16 @@ public final class GeneratedPluginRegistrant {
       Log.e(TAG, "Error registering plugin audioplayers_android, xyz.luan.audioplayers.AudioplayersPlugin", e);
     }
     try {
+      flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.connectivity.ConnectivityPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin connectivity_plus, dev.fluttercommunity.plus.connectivity.ConnectivityPlugin", e);
+    }
+    try {
+      flutterEngine.getPlugins().add(new dev.fluttercommunity.plus.device_info.DeviceInfoPlusPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin device_info_plus, dev.fluttercommunity.plus.device_info.DeviceInfoPlusPlugin", e);
+    }
+    try {
       flutterEngine.getPlugins().add(new com.mr.flutter.plugin.filepicker.FilePickerPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin file_picker, com.mr.flutter.plugin.filepicker.FilePickerPlugin", e);
@@ -54,6 +64,11 @@ public final class GeneratedPluginRegistrant {
       flutterEngine.getPlugins().add(new com.eyedeadevelopment.fluttertts.FlutterTtsPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin flutter_tts, com.eyedeadevelopment.fluttertts.FlutterTtsPlugin", e);
+    }
+    try {
+      flutterEngine.getPlugins().add(new com.cloudwebrtc.webrtc.FlutterWebRTCPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin flutter_webrtc, com.cloudwebrtc.webrtc.FlutterWebRTCPlugin", e);
     }
     try {
       flutterEngine.getPlugins().add(new studio.midoridesign.gal.GalPlugin());
@@ -99,6 +114,11 @@ public final class GeneratedPluginRegistrant {
       flutterEngine.getPlugins().add(new com.ryanheise.just_audio.JustAudioPlugin());
     } catch (Exception e) {
       Log.e(TAG, "Error registering plugin just_audio, com.ryanheise.just_audio.JustAudioPlugin", e);
+    }
+    try {
+      flutterEngine.getPlugins().add(new io.livekit.plugin.LiveKitPlugin());
+    } catch (Exception e) {
+      Log.e(TAG, "Error registering plugin livekit_client, io.livekit.plugin.LiveKitPlugin", e);
     }
     try {
       flutterEngine.getPlugins().add(new com.crazecoder.openfile.OpenFilePlugin());

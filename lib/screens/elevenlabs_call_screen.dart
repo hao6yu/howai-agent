@@ -67,12 +67,14 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   // Profile & subscription
   int? _currentProfileId;
   bool _isPremium = false;
+  bool _initialized = false;
   
   // Usage tracking
   VoiceCallAllowance? _allowance;
   int? _callSessionId;
   int _maxCallSeconds = 0;
   bool _warnedOneMinuteLeft = false;
+  bool _isSavingTranscript = false;
   
   // Background handling
   DateTime? _wentBackgroundAt;
@@ -95,6 +97,9 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_initialized) return;
+    _initialized = true;
+    
     final profileProvider = context.read<ProfileProvider>();
     final subscriptionService = context.read<SubscriptionService>();
     _currentProfileId = profileProvider.selectedProfileId;
@@ -174,7 +179,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         onMessage: ({required String message, required Role source}) {
           if (message.trim().isEmpty) return;
           
-          // Add to transcript
+          // Add to transcript (onMessage fires for final/complete messages)
           _transcript.add(_TranscriptEntry(
             text: message.trim(),
             isUser: source == Role.user,
@@ -187,9 +192,11 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
           });
         },
         onUserTranscript: ({required String transcript, required int eventId}) {
+          // This fires for interim user transcripts (real-time speech-to-text)
+          // Don't add to transcript here - onMessage handles final messages
           if (transcript.trim().isEmpty) return;
           _setStateIfMounted(() {
-            _currentTranscript = transcript;
+            _currentTranscript = transcript; // Show interim text in UI only
           });
         },
         onError: (message, [context]) {
@@ -323,26 +330,35 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         return;
       }
 
-      // Start usage tracking session
-      _callSessionId = await _usageService.startVoiceCallSession(
-        profileId: _currentProfileId!,
-        isPremium: _isPremium,
-      );
-
-      // Get signed URL
-      final signedUrl = await _agentService.resolveSignedUrl();
-      
       // Recreate client to ensure clean state
       _client?.dispose();
       _client = _buildConversationClient();
       
-      // Start session
+      // Start session - SDK handles signed URL internally with agentId
       await _client?.startSession(
         agentId: _agentService.agentId,
+      );
+
+      // Only start usage tracking AFTER successful connection
+      // (onConnect callback will fire, but we track here for safety)
+      _callSessionId = await _usageService.startVoiceCallSession(
+        profileId: _currentProfileId!,
+        isPremium: _isPremium,
       );
       
     } catch (e) {
       debugPrint('ElevenLabs call start failed: $e');
+      
+      // End usage tracking if it was started
+      if (_callSessionId != null) {
+        await _usageService.endVoiceCallSession(
+          sessionId: _callSessionId!,
+          durationSeconds: 0,
+          endReason: 'connection_failed',
+        );
+        _callSessionId = null;
+      }
+      
       _setStateIfMounted(() {
         _isConnecting = false;
         _error = 'Failed to connect: ${e.toString()}';
@@ -425,11 +441,21 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     );
 
     if (result == true && mounted) {
+      // Show saving indicator
+      _setStateIfMounted(() => _isSavingTranscript = true);
+      
       final conversationId = await _saveTranscriptAsConversation();
+      
+      _setStateIfMounted(() => _isSavingTranscript = false);
+      
       if (conversationId != null && mounted) {
         // Pop back to chat screen with the new conversation ID
         Navigator.of(context).pop(conversationId);
       } else if (mounted) {
+        // Show error and still pop
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to save transcript')),
+        );
         Navigator.of(context).pop();
       }
     } else if (mounted) {
@@ -482,8 +508,23 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     WidgetsBinding.instance.removeObserver(this);
     _orbPulseController.dispose();
     _callTimer?.cancel();
+    
+    // End usage tracking if still active
+    if (_callSessionId != null) {
+      _usageService.endVoiceCallSession(
+        sessionId: _callSessionId!,
+        durationSeconds: _elapsedSeconds,
+        endReason: 'disposed',
+      );
+    }
+    
     _client?.dispose();
     super.dispose();
+  }
+
+  void _navigateToSubscription() {
+    Navigator.of(context).pop(); // Close call screen
+    Navigator.of(context).pushNamed('/subscription');
   }
 
   @override
@@ -492,13 +533,18 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     final isDark = theme.brightness == Brightness.dark;
     final primaryColor = theme.colorScheme.primary;
     
-    final showStartButton = !_isConnected && !_isConnecting;
+    final isBlocked = _allowance != null && !_allowance!.allowed;
+    final showStartButton = !_isConnected && !_isConnecting && !isBlocked;
     final statusText = _currentTranscript ??
-        (_isPaused
-            ? 'Mic is muted'
-            : _isConnected
-                ? (_isAssistantSpeaking ? 'AI is speaking...' : 'Listening...')
-                : (_isConnecting ? 'Connecting...' : 'Tap to start'));
+        (_isSavingTranscript
+            ? 'Saving transcript...'
+            : _isPaused
+                ? 'Mic is muted'
+                : _isConnected
+                    ? (_isAssistantSpeaking ? 'AI is speaking...' : 'Listening...')
+                    : (_isConnecting 
+                        ? 'Connecting...' 
+                        : (isBlocked ? 'Limit reached' : 'Tap to start')));
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFF0F4FF),
@@ -580,7 +626,8 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
                   builder: (context, child) {
                     final t = _orbPulseController.value;
                     final pulseScale = showStartButton ? (1.0 + (t * 0.08)) : 1.0;
-                    final glowOpacity = showStartButton ? (0.15 + (t * 0.2)) : 0.1;
+                    final glowOpacity = showStartButton ? (0.15 + (t * 0.2)) : (isBlocked ? 0.05 : 0.1);
+                    final orbColor = isBlocked ? Colors.grey : primaryColor;
                     
                     return GestureDetector(
                       onTap: showStartButton ? _startCall : null,
@@ -591,7 +638,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: primaryColor.withOpacity(glowOpacity),
+                              color: orbColor.withOpacity(glowOpacity),
                               blurRadius: 40,
                               spreadRadius: 10,
                             ),
@@ -611,15 +658,21 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
                                         primaryColor,
                                         primaryColor.withOpacity(0.9),
                                       ]
-                                    : [
-                                        Colors.white,
-                                        primaryColor.withOpacity(0.3),
-                                        primaryColor.withOpacity(0.6),
-                                      ],
+                                    : isBlocked
+                                        ? [
+                                            Colors.grey.shade300,
+                                            Colors.grey.shade400,
+                                            Colors.grey.shade500,
+                                          ]
+                                        : [
+                                            Colors.white,
+                                            primaryColor.withOpacity(0.3),
+                                            primaryColor.withOpacity(0.6),
+                                          ],
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: primaryColor.withOpacity(0.3),
+                                  color: orbColor.withOpacity(0.3),
                                   blurRadius: 20,
                                   offset: const Offset(0, 10),
                                 ),
@@ -632,9 +685,11 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
                                   Icon(
                                     _isConnected 
                                         ? (_isAssistantSpeaking ? Icons.volume_up : Icons.hearing)
-                                        : Icons.phone,
+                                        : isBlocked
+                                            ? Icons.block
+                                            : Icons.phone,
                                     size: 48,
-                                    color: _isConnected ? Colors.white : primaryColor,
+                                    color: _isConnected ? Colors.white : (isBlocked ? Colors.grey.shade600 : primaryColor),
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
@@ -642,11 +697,14 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
                                         ? 'Calling...'
                                         : _isConnected 
                                             ? 'Connected' 
-                                            : 'Speak',
+                                            : isBlocked
+                                                ? 'Limit\nReached'
+                                                : 'Speak',
+                                    textAlign: TextAlign.center,
                                     style: TextStyle(
-                                      fontSize: 20,
+                                      fontSize: isBlocked ? 18 : 20,
                                       fontWeight: FontWeight.bold,
-                                      color: _isConnected ? Colors.white : primaryColor,
+                                      color: _isConnected ? Colors.white : (isBlocked ? Colors.grey.shade600 : primaryColor),
                                     ),
                                   ),
                                 ],
@@ -698,7 +756,38 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
                     ),
                   ),
                 
+                // Blocked message and upgrade button
+                if (isBlocked && _allowance?.blockedReason != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Text(
+                      _allowance!.blockedReason!,
+                      style: TextStyle(
+                        color: isDark ? Colors.orange.shade300 : Colors.orange.shade700,
+                        fontSize: 14,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  if (!_isPremium) ...[
+                    const SizedBox(height: 16),
+                    FilledButton.icon(
+                      onPressed: _navigateToSubscription,
+                      icon: const Icon(Icons.star),
+                      label: const Text('Upgrade for More Time'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.amber,
+                        foregroundColor: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ],
+                
                 const SizedBox(height: 40),
+                
+                // Saving indicator
+                if (_isSavingTranscript)
+                  const CircularProgressIndicator(),
                 
                 // End call button (when connected)
                 if (_isConnected)

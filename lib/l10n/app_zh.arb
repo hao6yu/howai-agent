@@ -1000,5 +1000,35 @@
         "type": "String"
       }
     }
+  },
+  "voiceCallFeatureTitle": "AI语音通话",
+  "voiceCallFeatureDesc": "与AI进行实时自然对话",
+  "voiceCallFreeLimit": "免费版：{perCall}分钟/通话，{daily}分钟/天",
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {"type": "int"},
+      "daily": {"type": "int"}
+    }
+  },
+  "voiceCallPremiumLimit": "高级版：{perCall}分钟/通话，{daily}分钟/天",
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {"type": "int"},
+      "daily": {"type": "int"}
+    }
+  },
+  "voiceCallLimitReached": "语音通话限额已用完",
+  "voiceCallUpgradePrompt": "升级以获得更多语音通话时间",
+  "voiceCallTimeRemaining": "剩余时间：{time}",
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "voiceCallAvailableToday": "今日可用：{time}",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
   }
 }

@@ -2856,6 +2856,38 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get premiumBannerSubtitle5 => '高级版让一切成为可能';
+
+  @override
+  String get voiceCallFeatureTitle => 'AI语音通话';
+
+  @override
+  String get voiceCallFeatureDesc => '与AI进行实时自然对话';
+
+  @override
+  String voiceCallFreeLimit(int perCall, int daily) {
+    return '免费版：$perCall分钟/通话，$daily分钟/天';
+  }
+
+  @override
+  String voiceCallPremiumLimit(int perCall, int daily) {
+    return '高级版：$perCall分钟/通话，$daily分钟/天';
+  }
+
+  @override
+  String get voiceCallLimitReached => '语音通话限额已用完';
+
+  @override
+  String get voiceCallUpgradePrompt => '升级以获得更多语音通话时间';
+
+  @override
+  String voiceCallTimeRemaining(String time) {
+    return '剩余时间：$time';
+  }
+
+  @override
+  String voiceCallAvailableToday(String time) {
+    return '今日可用：$time';
+  }
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).

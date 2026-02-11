@@ -1108,6 +1108,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           _buildFeatureShowcaseItem(Icons.analytics, AppLocalizations.of(context)!.unlimitedImageAnalysis, AppLocalizations.of(context)!.analyzePhotosWithAi),
           _buildFeatureShowcaseItem(Icons.picture_as_pdf, AppLocalizations.of(context)!.unlimitedPdfCreation, AppLocalizations.of(context)!.convertImagesToPdf),
           _buildFeatureShowcaseItem(Icons.record_voice_over, AppLocalizations.of(context)!.premiumAiVoice, AppLocalizations.of(context)!.naturalVoiceResponses),
+          _buildFeatureShowcaseItem(Icons.phone_in_talk, AppLocalizations.of(context)!.voiceCallFeatureTitle, '${AppLocalizations.of(context)!.voiceCallFeatureDesc}\n${AppLocalizations.of(context)!.voiceCallPremiumLimit(10, 60)}'),
           _buildFeatureShowcaseItem(Icons.search, AppLocalizations.of(context)!.realtimeWebSearch, AppLocalizations.of(context)!.getLatestInformation),
           _buildFeatureShowcaseItem(Icons.psychology, AppLocalizations.of(context)!.featureShowcaseDeepResearchTitle, AppLocalizations.of(context)!.featureShowcaseDeepResearchDesc),
           _buildFeatureShowcaseItem(Icons.explore, AppLocalizations.of(context)!.placesExplorerTitle, AppLocalizations.of(context)!.placesExplorerDesc),

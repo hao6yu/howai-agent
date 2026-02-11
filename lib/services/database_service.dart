@@ -34,7 +34,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'haogpt.db');
     final db = await openDatabase(
       path,
-      version: 17,
+      version: 18,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
       onConfigure: (db) async {
@@ -287,6 +287,30 @@ class DatabaseService {
       }
     }
 
+    // Add voice call sessions table for usage tracking
+    if (oldVersion < 18) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS voice_call_sessions(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profile_id INTEGER NOT NULL,
+            started_at TEXT NOT NULL,
+            ended_at TEXT,
+            duration_seconds INTEGER NOT NULL DEFAULT 0,
+            is_premium INTEGER NOT NULL DEFAULT 0,
+            end_reason TEXT,
+            FOREIGN KEY (profile_id) REFERENCES profiles (id) ON DELETE CASCADE
+          )
+        ''');
+        await db.execute('''
+          CREATE INDEX IF NOT EXISTS idx_voice_call_sessions_profile_started
+          ON voice_call_sessions(profile_id, started_at)
+        ''');
+      } catch (e) {
+        // print('Error creating voice_call_sessions table: $e');
+      }
+    }
+
     // Add avatarPath and createdAt columns if missing
     final columns = await db.rawQuery("PRAGMA table_info(profiles)");
     final hasAvatarPath = columns.any((col) => col['name'] == 'avatarPath');
@@ -506,6 +530,25 @@ class DatabaseService {
     await db.execute('''
       CREATE UNIQUE INDEX IF NOT EXISTS idx_knowledge_item_sources_unique
       ON knowledge_item_sources(knowledge_item_id, source_id)
+    ''');
+
+    // Voice call usage tracking
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS voice_call_sessions(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        profile_id INTEGER NOT NULL,
+        started_at TEXT NOT NULL,
+        ended_at TEXT,
+        duration_seconds INTEGER NOT NULL DEFAULT 0,
+        is_premium INTEGER NOT NULL DEFAULT 0,
+        end_reason TEXT,
+        FOREIGN KEY (profile_id) REFERENCES profiles (id) ON DELETE CASCADE
+      )
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_voice_call_sessions_profile_started
+      ON voice_call_sessions(profile_id, started_at)
     ''');
   }
 

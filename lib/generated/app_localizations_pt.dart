@@ -2856,6 +2856,38 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get premiumBannerSubtitle5 => 'Premium torna tudo possível';
+
+  @override
+  String get voiceCallFeatureTitle => 'AI Voice Calls';
+
+  @override
+  String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
+
+  @override
+  String voiceCallFreeLimit(int perCall, int daily) {
+    return 'Free: $perCall min/call, $daily min/day';
+  }
+
+  @override
+  String voiceCallPremiumLimit(int perCall, int daily) {
+    return 'Premium: $perCall min/call, $daily min/day';
+  }
+
+  @override
+  String get voiceCallLimitReached => 'Voice call limit reached';
+
+  @override
+  String get voiceCallUpgradePrompt => 'Upgrade for more voice call time';
+
+  @override
+  String voiceCallTimeRemaining(String time) {
+    return 'Time remaining: $time';
+  }
+
+  @override
+  String voiceCallAvailableToday(String time) {
+    return 'Available today: $time';
+  }
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).

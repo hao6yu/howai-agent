@@ -5674,6 +5674,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Premium makes everything possible'**
   String get premiumBannerSubtitle5;
+
+  /// No description provided for @voiceCallFeatureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Voice Calls'**
+  String get voiceCallFeatureTitle;
+
+  /// No description provided for @voiceCallFeatureDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Talk naturally with AI in real-time'**
+  String get voiceCallFeatureDesc;
+
+  /// No description provided for @voiceCallFreeLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Free: {perCall} min/call, {daily} min/day'**
+  String voiceCallFreeLimit(int perCall, int daily);
+
+  /// No description provided for @voiceCallPremiumLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Premium: {perCall} min/call, {daily} min/day'**
+  String voiceCallPremiumLimit(int perCall, int daily);
+
+  /// No description provided for @voiceCallLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice call limit reached'**
+  String get voiceCallLimitReached;
+
+  /// No description provided for @voiceCallUpgradePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade for more voice call time'**
+  String get voiceCallUpgradePrompt;
+
+  /// No description provided for @voiceCallTimeRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Time remaining: {time}'**
+  String voiceCallTimeRemaining(String time);
+
+  /// No description provided for @voiceCallAvailableToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Available today: {time}'**
+  String voiceCallAvailableToday(String time);
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

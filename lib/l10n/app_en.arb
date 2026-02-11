@@ -1073,5 +1073,35 @@
         "type": "String"
       }
     }
+  },
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {"type": "int"},
+      "daily": {"type": "int"}
+    }
+  },
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {"type": "int"},
+      "daily": {"type": "int"}
+    }
+  },
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "voiceCallAvailableToday": "Available today: {time}",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
   }
 }

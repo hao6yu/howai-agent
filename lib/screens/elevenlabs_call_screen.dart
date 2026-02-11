@@ -8,10 +8,11 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../models/chat_message.dart';
-import '../models/conversation.dart';
 import '../providers/profile_provider.dart';
 import '../services/database_service.dart';
 import '../services/elevenlabs_agent_service.dart';
+import '../services/subscription_service.dart';
+import '../services/voice_call_usage_service.dart';
 
 /// Transcript entry collected during the call.
 class _TranscriptEntry {
@@ -53,6 +54,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   // Services
   final ElevenLabsAgentService _agentService = ElevenLabsAgentService();
   final DatabaseService _databaseService = DatabaseService();
+  final VoiceCallUsageService _usageService = VoiceCallUsageService();
   ConversationClient? _client;
   
   // Transcript collection
@@ -62,8 +64,15 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   // Animation
   late final AnimationController _orbPulseController;
   
-  // Profile
+  // Profile & subscription
   int? _currentProfileId;
+  bool _isPremium = false;
+  
+  // Usage tracking
+  VoiceCallAllowance? _allowance;
+  int? _callSessionId;
+  int _maxCallSeconds = 0;
+  bool _warnedOneMinuteLeft = false;
   
   // Background handling
   DateTime? _wentBackgroundAt;
@@ -87,7 +96,28 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
     final profileProvider = context.read<ProfileProvider>();
+    final subscriptionService = context.read<SubscriptionService>();
     _currentProfileId = profileProvider.selectedProfileId;
+    _isPremium = subscriptionService.isPremium;
+    
+    // Load usage allowance
+    _loadAllowance();
+  }
+
+  Future<void> _loadAllowance() async {
+    if (_currentProfileId == null) return;
+    
+    final allowance = await _usageService.getVoiceCallAllowance(
+      profileId: _currentProfileId!,
+      isPremium: _isPremium,
+    );
+    
+    if (mounted) {
+      setState(() {
+        _allowance = allowance;
+        _maxCallSeconds = allowance.remainingForThisCallSeconds;
+      });
+    }
   }
 
   @override
@@ -210,9 +240,30 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   void _startCallTimer() {
     _callTimer?.cancel();
     _elapsedSeconds = 0;
+    _warnedOneMinuteLeft = false;
+    
     _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_isConnected && mounted) {
-        setState(() => _elapsedSeconds++);
+      if (!_isConnected || !mounted) return;
+      
+      final nextElapsed = _elapsedSeconds + 1;
+      final remaining = _maxCallSeconds - nextElapsed;
+      
+      setState(() => _elapsedSeconds = nextElapsed);
+      
+      // Warn at 1 minute remaining
+      if (remaining <= 60 && remaining > 0 && !_warnedOneMinuteLeft) {
+        _warnedOneMinuteLeft = true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('1 minute remaining in this call'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+      
+      // End call when time is up
+      if (remaining <= 0) {
+        _closeCall(reason: 'time_limit_reached');
       }
     });
   }
@@ -226,12 +277,30 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   Future<void> _startCall() async {
     if (_isConnecting || _isConnected) return;
     
+    // Check profile
+    if (_currentProfileId == null) {
+      _setStateIfMounted(() {
+        _error = 'Please select a profile first.';
+      });
+      return;
+    }
+    
+    // Refresh and check allowance
+    await _loadAllowance();
+    if (_allowance == null || !_allowance!.allowed) {
+      _setStateIfMounted(() {
+        _error = _allowance?.blockedReason ?? 'Voice call limit reached.';
+      });
+      return;
+    }
+    
     _setStateIfMounted(() {
       _isConnecting = true;
       _error = null;
       _transcript.clear();
       _currentTranscript = null;
       _elapsedSeconds = 0;
+      _maxCallSeconds = _allowance!.remainingForThisCallSeconds;
     });
 
     try {
@@ -253,6 +322,12 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         });
         return;
       }
+
+      // Start usage tracking session
+      _callSessionId = await _usageService.startVoiceCallSession(
+        profileId: _currentProfileId!,
+        isPremium: _isPremium,
+      );
 
       // Get signed URL
       final signedUrl = await _agentService.resolveSignedUrl();
@@ -304,6 +379,16 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       await _client?.endSession();
     } catch (e) {
       debugPrint('Error ending session: $e');
+    }
+
+    // End usage tracking session
+    if (_callSessionId != null) {
+      await _usageService.endVoiceCallSession(
+        sessionId: _callSessionId!,
+        durationSeconds: _elapsedSeconds,
+        endReason: reason,
+      );
+      _callSessionId = null;
     }
 
     _isClosing = false;
@@ -447,16 +532,45 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Call duration
-                if (_isConnected)
+                // Call duration / remaining time
+                if (_isConnected) ...[
                   Text(
-                    _formatDuration(_elapsedSeconds),
+                    'Time remaining: ${_formatDuration(_maxCallSeconds - _elapsedSeconds)}',
                     style: TextStyle(
                       fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: isDark ? Colors.white70 : Colors.black54,
+                      fontWeight: FontWeight.w600,
+                      color: (_maxCallSeconds - _elapsedSeconds) <= 60 
+                          ? Colors.orange 
+                          : (isDark ? Colors.white70 : Colors.black54),
                     ),
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Elapsed: ${_formatDuration(_elapsedSeconds)}',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                  ),
+                ] else if (_allowance != null && !_isConnecting) ...[
+                  // Show quota info before call
+                  Text(
+                    _isPremium ? 'Premium' : 'Free Tier',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: _isPremium ? Colors.amber : (isDark ? Colors.white54 : Colors.black45),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Available: ${_allowance!.remainingTodayFormatted} today',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.white54 : Colors.black45,
+                    ),
+                  ),
+                ],
                 
                 const SizedBox(height: 40),
                 

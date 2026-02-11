@@ -161,6 +161,16 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
             _isConnected = false;
           });
           _callTimer?.cancel();
+          
+          // End usage tracking if SDK disconnects unexpectedly (network drop, etc.)
+          if (_callSessionId != null) {
+            _usageService.endVoiceCallSession(
+              sessionId: _callSessionId!,
+              durationSeconds: _elapsedSeconds,
+              endReason: 'sdk_disconnect',
+            );
+            _callSessionId = null;
+          }
         },
         onStatusChange: ({required ConversationStatus status}) {
           if (!mounted) return;
@@ -244,6 +254,16 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     }
   }
 
+  Future<void> _deactivateAudioSession() async {
+    if (!Platform.isIOS && !Platform.isAndroid) return;
+    try {
+      final session = await AudioSession.instance;
+      await session.setActive(false);
+    } catch (e) {
+      debugPrint('Could not deactivate audio session: $e');
+    }
+  }
+
   void _startCallTimer() {
     _callTimer?.cancel();
     _elapsedSeconds = 0;
@@ -314,9 +334,17 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       // Request microphone permission
       final status = await Permission.microphone.request();
       if (status != PermissionStatus.granted) {
+        String errorMessage;
+        if (status == PermissionStatus.permanentlyDenied) {
+          errorMessage = 'Microphone access was denied. Please enable it in Settings > Privacy > Microphone.';
+          // Optionally open settings
+          openAppSettings();
+        } else {
+          errorMessage = 'Microphone permission is required for voice calls.';
+        }
         _setStateIfMounted(() {
           _isConnecting = false;
-          _error = 'Microphone permission is required for voice calls.';
+          _error = errorMessage;
         });
         return;
       }
@@ -396,6 +424,9 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     } catch (e) {
       debugPrint('Error ending session: $e');
     }
+
+    // Deactivate audio session
+    await _deactivateAudioSession();
 
     // End usage tracking session
     if (_callSessionId != null) {

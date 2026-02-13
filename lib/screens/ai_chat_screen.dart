@@ -198,6 +198,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   final GlobalKey _deepResearchKey = GlobalKey();
   final GlobalKey _drawerButtonKey = GlobalKey();
   final GlobalKey _quickActionsKey = GlobalKey();
+  final GlobalKey _speakButtonKey = GlobalKey();
   bool _showcaseCompleted = false;
   BuildContext? _showcaseContext;
 
@@ -357,22 +358,31 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Map feature IDs to GlobalKeys
   List<GlobalKey> _mapFeaturesToKeys(List<ShowcaseFeature> features) {
-    return features
-        .map((feature) {
-          switch (feature.id) {
-            case 'drawer_button':
-              return _drawerButtonKey;
-            case 'quick_actions':
-              return _quickActionsKey;
-            case 'deep_research':
-              return _deepResearchKey;
-            default:
-              // print('🎯 [ChatScreen] ⚠️ Unknown feature ID: ${feature.id}');
-              return null;
-          }
-        })
-        .whereType<GlobalKey>()
-        .toList();
+    final keys = <GlobalKey>[];
+    for (final feature in features) {
+      final key = () {
+        switch (feature.id) {
+          case 'drawer_button':
+          case 'knowledge_hub':
+            return _drawerButtonKey;
+          case 'tools_mode':
+          case 'web_search':
+          case 'quick_actions':
+            return _quickActionsKey;
+          case 'deep_research':
+            return _deepResearchKey;
+          case 'speak_button':
+            return _speakButtonKey;
+          default:
+            // print('🎯 [ChatScreen] ⚠️ Unknown feature ID: ${feature.id}');
+            return null;
+        }
+      }();
+      if (key != null && !keys.contains(key)) {
+        keys.add(key);
+      }
+    }
+    return keys;
   }
 
   // Get showcase data for a specific feature ID
@@ -1987,153 +1997,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
   }
 
-  // 显示位置发现升级对话框
-  void _showLocationDiscoveryUpgradeDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Consumer2<SettingsProvider, SubscriptionService>(
-          builder: (context, settings, subscriptionService, child) {
-            final screenHeight = MediaQuery.of(context).size.height;
-            final screenWidth = MediaQuery.of(context).size.width;
-            final isSmallScreen = screenHeight < 700 || screenWidth < 400;
-
-            // Check if user is free tier and has used up their weekly limit
-            final isFreeUserWithLimit = !subscriptionService.isPremium;
-            final remaining = subscriptionService.remainingPlacesExplorer;
-
-            String dialogTitle = isFreeUserWithLimit && remaining <= 0
-                ? 'Places Explorer Limit Reached'
-                : 'Smart Location Detection';
-
-            String mainMessage = isFreeUserWithLimit && remaining <= 0
-                ? 'You\'ve used all ${subscriptionService.limits.placesExplorerWeekly} weekly place searches. Your limit will reset next week!'
-                : 'I detected you\'re looking for local recommendations!';
-
-            return AlertDialog(
-              title: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Color(0xFF5856D6).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.location_on,
-                      color: Color(0xFF5856D6),
-                      size: settings.getScaledFontSize(isSmallScreen ? 18 : 20),
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      dialogTitle,
-                      style: TextStyle(
-                        fontSize:
-                            settings.getScaledFontSize(isSmallScreen ? 16 : 18),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                      ),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'PRO',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(9),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              content: Container(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      mainMessage,
-                      style: TextStyle(
-                        fontSize:
-                            settings.getScaledFontSize(isSmallScreen ? 14 : 16),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 12),
-                    Text(
-                      '✨ Premium benefits:',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(14),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    ...[
-                      '• Unlimited places exploration',
-                      '• Advanced location search',
-                      '• Real-time business info',
-                      '• Maps integration with directions',
-                      '• All premium features unlocked'
-                    ].map((feature) => Padding(
-                          padding: EdgeInsets.only(bottom: 4),
-                          child: Text(
-                            feature,
-                            style: TextStyle(
-                              fontSize: settings
-                                  .getScaledFontSize(isSmallScreen ? 12 : 14),
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        )),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Maybe Later',
-                    style: TextStyle(
-                      fontSize: settings.getScaledFontSize(14),
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF5856D6),
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.pushNamed(context, '/subscription');
-                  },
-                  child: Text(
-                    'Upgrade Now',
-                    style: TextStyle(
-                      fontSize: settings.getScaledFontSize(14),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   // Update device TTS method
   Future<String?> _generateAndPlayDeviceTTS(String message) async {
     try {
@@ -2975,6 +2838,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                             if (subscriptionService.isPremium ||
                                 subscriptionService.canUsePlacesExplorer) {
                               _showLocationSearch();
+                            } else {
+                              _showPlacesExplorerLimitDialog();
                             }
                           },
                           onShowPptxDialog: () {
@@ -2998,6 +2863,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                           },
                           deepResearchKey: _deepResearchKey,
                           quickActionsKey: _quickActionsKey,
+                          speakKey: _speakButtonKey,
                           onQuickAction: (prompt) {
                             // Handle quick actions by automatically sending with the prompt
                             //// print('[ChatScreen] Quick action triggered with prompt: "$prompt"');
@@ -5298,6 +5164,222 @@ class _AiChatScreenState extends State<AiChatScreen>
     );
   }
 
+  void _showInfoSnackBar(
+    String message, {
+    Color? backgroundColor,
+    Duration duration = const Duration(seconds: 2),
+  }) {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
+    ChatSnackbarService.show(
+      context: context,
+      message: message,
+      textStyle: TextStyle(fontSize: settings.getScaledFontSize(14)),
+      backgroundColor: backgroundColor ?? Colors.blue.shade700,
+      behavior: SnackBarBehavior.floating,
+      duration: duration,
+    );
+  }
+
+  DateTime _nextWeeklyResetDateTime() {
+    final now = DateTime.now();
+    // Monday 00:00 local time.
+    final startOfWeek = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
+    final nextWeekStart = startOfWeek.add(const Duration(days: 7));
+    return nextWeekStart;
+  }
+
+  String _formatResetDateTime(DateTime dt) {
+    final month = dt.month.toString().padLeft(2, '0');
+    final day = dt.day.toString().padLeft(2, '0');
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '$month/$day $hour:$minute';
+  }
+
+  Future<void> _showUsageLimitDialog({
+    required IconData icon,
+    required Color accentColor,
+    required String title,
+    required int limit,
+    required String premiumBenefitsText,
+  }) async {
+    final l10n = AppLocalizations.of(context)!;
+    final resetAt = _formatResetDateTime(_nextWeeklyResetDateTime());
+    final benefits = premiumBenefitsText
+        .split('\n')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+
+    await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Consumer<SettingsProvider>(
+          builder: (context, settings, child) {
+            final screenHeight = MediaQuery.of(context).size.height;
+            final screenWidth = MediaQuery.of(context).size.width;
+            final isSmallScreen = screenHeight < 700;
+            final isVerySmallScreen = screenHeight < 860 && screenWidth < 400;
+
+            return AlertDialog(
+              title: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(isVerySmallScreen ? 6 : 8),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: accentColor,
+                      size: settings.getScaledFontSize(
+                        isVerySmallScreen ? 18 : 24,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: isVerySmallScreen ? 8 : 12),
+                  Expanded(
+                    child: Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(
+                          isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18),
+                        ),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '0/$limit · ${l10n.usageReset}: $resetAt',
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(
+                          isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16),
+                        ),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: isVerySmallScreen ? 8 : 12),
+                    Text(
+                      l10n.upgradeToPremiumFor,
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(
+                          isVerySmallScreen ? 12 : 14,
+                        ),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    SizedBox(height: isVerySmallScreen ? 6 : 8),
+                    ...benefits.map(
+                      (feature) => Padding(
+                        padding:
+                            EdgeInsets.only(bottom: isVerySmallScreen ? 2 : 4),
+                        child: Text(
+                          feature,
+                          style: TextStyle(
+                            fontSize: settings.getScaledFontSize(
+                              isVerySmallScreen
+                                  ? 10
+                                  : (isSmallScreen ? 12 : 14),
+                            ),
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                if (isSmallScreen)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: Text(
+                            l10n.maybeLater,
+                            style: TextStyle(
+                              fontSize: settings.getScaledFontSize(14),
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: accentColor,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            Navigator.pushNamed(context, '/subscription');
+                          },
+                          child: Text(
+                            l10n.upgradeNow,
+                            style: TextStyle(
+                              fontSize: settings.getScaledFontSize(14),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text(
+                      l10n.maybeLater,
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(16),
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accentColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      Navigator.pushNamed(context, '/subscription');
+                    },
+                    child: Text(
+                      l10n.upgradeNow,
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(16),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   // Build landing welcome screen (chat-first only)
   Widget _buildWelcomeScreen() {
     return Container(
@@ -5422,16 +5504,9 @@ class _AiChatScreenState extends State<AiChatScreen>
           _toggleInputMode();
         }
         // Show a helpful message
-        final settings = Provider.of<SettingsProvider>(context, listen: false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              "Voice input activated! Hold the button and speak.",
-              style: TextStyle(fontSize: settings.getScaledFontSize(14)),
-            ),
-            duration: Duration(seconds: 2),
-            backgroundColor: Color(0xFF8E44AD),
-          ),
+        _showInfoSnackBar(
+          AppLocalizations.of(context)!.pressAndHoldToSpeak,
+          backgroundColor: const Color(0xFF8E44AD),
         );
         break;
     }
@@ -5615,176 +5690,13 @@ class _AiChatScreenState extends State<AiChatScreen>
   void _showPdfLimitDialog() {
     final subscriptionService =
         Provider.of<SubscriptionService>(context, listen: false);
-    final remaining = subscriptionService.remainingPdfGenerations;
     final limit = subscriptionService.limits.pdfGenerationsWeekly;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Consumer<SettingsProvider>(
-          builder: (context, settings, child) {
-            final screenHeight = MediaQuery.of(context).size.height;
-            final screenWidth = MediaQuery.of(context).size.width;
-            final isSmallScreen = screenHeight < 700;
-            final isVerySmallScreen = screenHeight < 860 &&
-                screenWidth < 400; // iPhone 16 specifically
-
-            return AlertDialog(
-              title: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(isVerySmallScreen ? 6 : 8),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.picture_as_pdf,
-                      color: Colors.orange,
-                      size: settings
-                          .getScaledFontSize(isVerySmallScreen ? 18 : 24),
-                    ),
-                  ),
-                  SizedBox(width: isVerySmallScreen ? 8 : 12),
-                  Expanded(
-                    child: Text(
-                      'PDF Limit Reached',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(
-                            isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18)),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'You\'ve used all $limit lifetime PDF generations.',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(
-                            isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: isVerySmallScreen ? 8 : 12),
-                    Text(
-                      '✨ Upgrade to Premium for:',
-                      style: TextStyle(
-                        fontSize: settings
-                            .getScaledFontSize(isVerySmallScreen ? 12 : 14),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: isVerySmallScreen ? 6 : 8),
-                    ...[
-                      '• Unlimited PDF generation',
-                      '• Professional-quality documents',
-                      '• No waiting periods',
-                      '• All premium features'
-                    ].map((feature) => Padding(
-                          padding: EdgeInsets.only(
-                              bottom: isVerySmallScreen ? 2 : 4),
-                          child: Text(
-                            feature,
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(
-                                  isVerySmallScreen
-                                      ? 10
-                                      : (isSmallScreen ? 12 : 14)),
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        )),
-                  ],
-                ),
-              ),
-              actions: [
-                // Responsive button layout
-                if (isSmallScreen)
-                  // Horizontal layout for small screens
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          child: Text(
-                            'Maybe Later',
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(14),
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF0078D4),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Text(
-                            'Upgrade Now',
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(14),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            Navigator.pushNamed(context, '/subscription');
-                          },
-                        ),
-                      ),
-                    ],
-                  )
-                else ...[
-                  // Vertical layout for larger screens
-                  TextButton(
-                    child: Text(
-                      'Maybe Later',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(16),
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF0078D4),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'Upgrade Now',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(16),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.pushNamed(context, '/subscription');
-                    },
-                  ),
-                ],
-              ],
-            );
-          },
-        );
-      },
+    _showUsageLimitDialog(
+      icon: Icons.picture_as_pdf,
+      accentColor: const Color(0xFF0078D4),
+      title: '${AppLocalizations.of(context)!.shareMessageAsPdf} • $limit/week',
+      limit: limit,
+      premiumBenefitsText: AppLocalizations.of(context)!.pdfPremiumFeaturesList,
     );
   }
 
@@ -5792,176 +5704,14 @@ class _AiChatScreenState extends State<AiChatScreen>
   void _showDocumentAnalysisLimitDialog() {
     final subscriptionService =
         Provider.of<SubscriptionService>(context, listen: false);
-    final remaining = subscriptionService.remainingDocumentAnalysis;
     final limit = subscriptionService.limits.documentAnalysisWeekly;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Consumer<SettingsProvider>(
-          builder: (context, settings, child) {
-            final screenHeight = MediaQuery.of(context).size.height;
-            final screenWidth = MediaQuery.of(context).size.width;
-            final isSmallScreen = screenHeight < 700;
-            final isVerySmallScreen = screenHeight < 860 &&
-                screenWidth < 400; // iPhone 16 specifically
-
-            return AlertDialog(
-              title: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(isVerySmallScreen ? 6 : 8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.description,
-                      color: Colors.blue,
-                      size: settings
-                          .getScaledFontSize(isVerySmallScreen ? 18 : 24),
-                    ),
-                  ),
-                  SizedBox(width: isVerySmallScreen ? 8 : 12),
-                  Expanded(
-                    child: Text(
-                      'Document Analysis Limit Reached',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(
-                            isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18)),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'You\'ve used all $limit lifetime document analyses.',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(
-                            isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: isVerySmallScreen ? 8 : 12),
-                    Text(
-                      '✨ Upgrade to Premium for:',
-                      style: TextStyle(
-                        fontSize: settings
-                            .getScaledFontSize(isVerySmallScreen ? 12 : 14),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: isVerySmallScreen ? 6 : 8),
-                    ...[
-                      '• Unlimited document analysis',
-                      '• Advanced file processing',
-                      '• PDF, Word, Excel support',
-                      '• All premium features'
-                    ].map((feature) => Padding(
-                          padding: EdgeInsets.only(
-                              bottom: isVerySmallScreen ? 2 : 4),
-                          child: Text(
-                            feature,
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(
-                                  isVerySmallScreen
-                                      ? 10
-                                      : (isSmallScreen ? 12 : 14)),
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        )),
-                  ],
-                ),
-              ),
-              actions: [
-                // Responsive button layout
-                if (isSmallScreen)
-                  // Horizontal layout for small screens
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          child: Text(
-                            'Maybe Later',
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(14),
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF0078D4),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Text(
-                            'Upgrade Now',
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(14),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            Navigator.pushNamed(context, '/subscription');
-                          },
-                        ),
-                      ),
-                    ],
-                  )
-                else ...[
-                  // Vertical layout for larger screens
-                  TextButton(
-                    child: Text(
-                      'Maybe Later',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(16),
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF0078D4),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'Upgrade Now',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(16),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.pushNamed(context, '/subscription');
-                    },
-                  ),
-                ],
-              ],
-            );
-          },
-        );
-      },
+    _showUsageLimitDialog(
+      icon: Icons.description,
+      accentColor: Colors.blue,
+      title: '${AppLocalizations.of(context)!.documentAnalysis} • $limit/week',
+      limit: limit,
+      premiumBenefitsText:
+          AppLocalizations.of(context)!.docAnalysisPremiumFeaturesList,
     );
   }
 
@@ -5969,176 +5719,14 @@ class _AiChatScreenState extends State<AiChatScreen>
   void _showPlacesExplorerLimitDialog() {
     final subscriptionService =
         Provider.of<SubscriptionService>(context, listen: false);
-    final remaining = subscriptionService.remainingPlacesExplorer;
     final limit = subscriptionService.limits.placesExplorerWeekly;
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Consumer<SettingsProvider>(
-          builder: (context, settings, child) {
-            final screenHeight = MediaQuery.of(context).size.height;
-            final screenWidth = MediaQuery.of(context).size.width;
-            final isSmallScreen = screenHeight < 700;
-            final isVerySmallScreen = screenHeight < 860 &&
-                screenWidth < 400; // iPhone 16 specifically
-
-            return AlertDialog(
-              title: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(isVerySmallScreen ? 6 : 8),
-                    decoration: BoxDecoration(
-                      color: Color(0xFF5856D6).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Icon(
-                      Icons.location_on,
-                      color: Color(0xFF5856D6),
-                      size: settings
-                          .getScaledFontSize(isVerySmallScreen ? 18 : 24),
-                    ),
-                  ),
-                  SizedBox(width: isVerySmallScreen ? 8 : 12),
-                  Expanded(
-                    child: Text(
-                      'Places Explorer Limit Reached',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(
-                            isVerySmallScreen ? 14 : (isSmallScreen ? 16 : 18)),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'You\'ve used all $limit lifetime place searches.',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(
-                            isVerySmallScreen ? 12 : (isSmallScreen ? 14 : 16)),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: isVerySmallScreen ? 8 : 12),
-                    Text(
-                      '✨ Upgrade to Premium for:',
-                      style: TextStyle(
-                        fontSize: settings
-                            .getScaledFontSize(isVerySmallScreen ? 12 : 14),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(height: isVerySmallScreen ? 6 : 8),
-                    ...[
-                      '• Unlimited places exploration',
-                      '• Advanced location search',
-                      '• Real-time business info',
-                      '• All premium features'
-                    ].map((feature) => Padding(
-                          padding: EdgeInsets.only(
-                              bottom: isVerySmallScreen ? 2 : 4),
-                          child: Text(
-                            feature,
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(
-                                  isVerySmallScreen
-                                      ? 10
-                                      : (isSmallScreen ? 12 : 14)),
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                        )),
-                  ],
-                ),
-              ),
-              actions: [
-                // Responsive button layout
-                if (isSmallScreen)
-                  // Horizontal layout for small screens
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextButton(
-                          child: Text(
-                            'Maybe Later',
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(14),
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF0078D4),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: Text(
-                            'Upgrade Now',
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(14),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                            Navigator.pushNamed(context, '/subscription');
-                          },
-                        ),
-                      ),
-                    ],
-                  )
-                else ...[
-                  // Vertical layout for larger screens
-                  TextButton(
-                    child: Text(
-                      'Maybe Later',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(16),
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF0078D4),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      'Upgrade Now',
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(16),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      Navigator.pushNamed(context, '/subscription');
-                    },
-                  ),
-                ],
-              ],
-            );
-          },
-        );
-      },
+    _showUsageLimitDialog(
+      icon: Icons.location_on,
+      accentColor: const Color(0xFF5856D6),
+      title: '${AppLocalizations.of(context)!.placesExplorer} • $limit/week',
+      limit: limit,
+      premiumBenefitsText:
+          AppLocalizations.of(context)!.placesPremiumFeaturesList,
     );
   }
 
@@ -6193,7 +5781,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   }
 
   /// Start an ElevenLabs voice call.
-  /// 
+  ///
   /// Opens the full-screen call UI. When the call ends with a transcript,
   /// navigates to the new conversation.
   void _startElevenLabsCall() async {
@@ -6203,21 +5791,30 @@ class _AiChatScreenState extends State<AiChatScreen>
         fullscreenDialog: true,
       ),
     );
-    
+
     // If a conversation ID was returned, switch to it
     if (result != null && mounted) {
-      final conversationProvider = Provider.of<ConversationProvider>(context, listen: false);
-      await conversationProvider.loadConversations(profileId: _currentProfileId);
-      
-      // Find and select the conversation
-      final newConversation = conversationProvider.conversations.firstWhere(
-        (c) => c.id == result,
-        orElse: () => conversationProvider.conversations.first,
-      );
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
+      await conversationProvider.loadConversations(
+          profileId: _currentProfileId);
+
+      final conversations = conversationProvider.conversations;
+      if (conversations.isEmpty) {
+        debugPrint(
+            '[AIChatScreen] Voice call returned conversation $result, but conversation list is empty.');
+        await _loadMessagesForConversation(result);
+        return;
+      }
+
+      // Find and select the conversation, falling back safely to first available.
+      final matchIndex = conversations.indexWhere((c) => c.id == result);
+      final newConversation =
+          matchIndex >= 0 ? conversations[matchIndex] : conversations.first;
       conversationProvider.selectConversation(newConversation);
-      
-      // Load the messages for the new conversation
-      await _loadMessagesForConversation(result);
+
+      // Load the messages for the selected conversation.
+      await _loadMessagesForConversation(newConversation.id ?? result);
     }
   }
 

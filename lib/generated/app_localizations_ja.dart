@@ -2890,8 +2890,92 @@ class AppLocalizationsJa extends AppLocalizations {
   }
 
   @override
-  String get speakButtonLabel => 'Speak';
+  String get voiceCallOneMinuteRemaining => 'この通話は残り1分です';
 
   @override
-  String get speakButtonTooltip => 'Start voice call';
+  String get voiceCallSelectProfileFirst => '先にプロフィールを選択してください。';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => 'マイクへのアクセスが拒否されました。設定 > プライバシー > マイク で有効にしてください。';
+
+  @override
+  String get voiceCallMicrophoneRequired => '音声通話にはマイクの許可が必要です。';
+
+  @override
+  String get voiceCallNotConfigured => '音声通話が設定されていません。設定を確認してください。';
+
+  @override
+  String get voiceCallConnectionTimedOut => '接続がタイムアウトしました。もう一度お試しください。';
+
+  @override
+  String get voiceCallConnectionFailed => '音声通話に接続できませんでした。もう一度お試しください。';
+
+  @override
+  String get voiceCallConnectionIssue => '音声通話中に接続の問題が発生しました。もう一度お試しください。';
+
+  @override
+  String get voiceCallEndedTitle => '通話終了';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return '$duration の通話が記録されました。\n\n文字起こしを新しい会話として保存しますか？';
+  }
+
+  @override
+  String get voiceCallDiscard => '破棄';
+
+  @override
+  String get voiceCallSaveAndView => '保存して表示';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => '文字起こしを保存できませんでした。もう一度お試しください。';
+
+  @override
+  String get voiceCallSavingTranscript => '文字起こしを保存中...';
+
+  @override
+  String get voiceCallMicMuted => 'マイクはミュートです';
+
+  @override
+  String get voiceCallAiSpeaking => 'AIが話しています...';
+
+  @override
+  String get voiceCallConnecting => '接続中...';
+
+  @override
+  String get voiceCallTapToStart => 'タップして開始';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return '経過時間: $time';
+  }
+
+  @override
+  String get voiceCallFreeTier => '無料プラン';
+
+  @override
+  String get voiceCallCalling => '発信中...';
+
+  @override
+  String get voiceCallConnected => '接続済み';
+
+  @override
+  String get voiceCallUnmute => 'ミュート解除';
+
+  @override
+  String get voiceCallMute => 'ミュート';
+
+  @override
+  String get voiceCallEndCall => '通話を終了';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return '音声通話 - $time';
+  }
+
+  @override
+  String get speakButtonLabel => '通話';
+
+  @override
+  String get speakButtonTooltip => '音声通話を開始';
 }

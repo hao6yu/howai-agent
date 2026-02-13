@@ -20,7 +20,8 @@ class FeatureShowcaseService {
     // Store first launch date if not stored yet
     final firstLaunch = prefs.getString(_firstAppLaunchKey);
     if (firstLaunch == null) {
-      await prefs.setString(_firstAppLaunchKey, DateTime.now().toIso8601String());
+      await prefs.setString(
+          _firstAppLaunchKey, DateTime.now().toIso8601String());
       // print('🎯 [FeatureShowcase] First app launch detected');
     }
 
@@ -36,7 +37,8 @@ class FeatureShowcaseService {
     // 2. Version 1.3.4 user (and never shown for this version)
     final hasNewFeatures = _hasNewFeaturesForVersion(currentVersion);
     final isFirstTimeUser = !showcaseShown && lastShowcaseVersion == null;
-    final isVersion134User = currentVersion == '1.3.4' && lastShowcaseVersion != '1.3.4';
+    final isVersion134User =
+        currentVersion == '1.3.4' && lastShowcaseVersion != '1.3.4';
 
     // print('🎯 [FeatureShowcase] Has new features for version: $hasNewFeatures');
     // print('🎯 [FeatureShowcase] Is first-time user: $isFirstTimeUser');
@@ -70,10 +72,13 @@ class FeatureShowcaseService {
   /// Check if current version has new features to showcase
   static bool _hasNewFeaturesForVersion(String version) {
     // Show features ONLY for version 1.3.4
-    final versionNumber = version.split('.').map(int.tryParse).whereType<int>().toList();
+    final versionNumber =
+        version.split('.').map(int.tryParse).whereType<int>().toList();
     if (versionNumber.length >= 3) {
       // Only show for exactly version 1.3.4
-      if (versionNumber[0] == 1 && versionNumber[1] == 3 && versionNumber[2] == 4) {
+      if (versionNumber[0] == 1 &&
+          versionNumber[1] == 3 &&
+          versionNumber[2] == 4) {
         return true;
       }
     }
@@ -81,7 +86,8 @@ class FeatureShowcaseService {
   }
 
   /// Get list of features to showcase for current version
-  static List<ShowcaseFeature> getFeaturesForCurrentVersion(BuildContext context) {
+  static List<ShowcaseFeature> getFeaturesForCurrentVersion(
+      BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
     return [
@@ -98,9 +104,21 @@ class FeatureShowcaseService {
         isPremiumFeature: false,
       ),
       ShowcaseFeature(
+        id: 'knowledge_hub',
+        title: l10n.knowledgeHubTitle,
+        description: l10n.knowledgeHubWhatIsDesc,
+        isPremiumFeature: true,
+      ),
+      ShowcaseFeature(
         id: 'quick_actions',
         title: l10n.featureShowcaseQuickActionsTitle,
         description: l10n.featureShowcaseQuickActionsDesc,
+        isPremiumFeature: false,
+      ),
+      ShowcaseFeature(
+        id: 'speak_button',
+        title: l10n.speakButtonLabel,
+        description: l10n.voiceCallFeatureDesc,
         isPremiumFeature: false,
       ),
       ShowcaseFeature(
@@ -142,7 +160,8 @@ class FeatureShowcaseService {
     return {
       'currentVersion': packageInfo.version,
       'showcaseShown': prefs.getBool(_showcaseShownKey) ?? false,
-      'lastShowcaseVersion': prefs.getString(_lastShowcaseVersionKey) ?? 'never',
+      'lastShowcaseVersion':
+          prefs.getString(_lastShowcaseVersionKey) ?? 'never',
       'shouldShow': await shouldShowShowcase(),
       'firstLaunch': prefs.getString(_firstAppLaunchKey) ?? 'never',
     };

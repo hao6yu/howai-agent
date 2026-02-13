@@ -1000,5 +1000,96 @@
   "premiumBannerTitle4": "प्रीमियम फीचर्स खोजें",
   "premiumBannerSubtitle4": "उन्नत AI तक असीमित पहुंच",
   "premiumBannerTitle5": "अपने वर्कफ़्लो को तेज करें",
-  "premiumBannerSubtitle5": "प्रीमियम सब कुछ संभव बनाता है"
+  "premiumBannerSubtitle5": "प्रीमियम सब कुछ संभव बनाता है",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "बोलें",
+  "speakButtonTooltip": "वॉइस कॉल शुरू करें",
+  "voiceCallAiSpeaking": "एआई बोल रहा है...",
+  "voiceCallAvailableToday": "Available today: {time}",
+  "voiceCallCalling": "कॉल हो रही है...",
+  "voiceCallConnected": "कनेक्टेड",
+  "voiceCallConnecting": "कनेक्ट हो रहा है...",
+  "voiceCallConnectionFailed": "वॉइस कॉल से कनेक्ट नहीं हो सका। कृपया फिर से प्रयास करें।",
+  "voiceCallConnectionIssue": "वॉइस कॉल के दौरान कनेक्शन समस्या हुई। कृपया फिर से प्रयास करें।",
+  "voiceCallConnectionTimedOut": "कनेक्शन का समय समाप्त हो गया। कृपया फिर से प्रयास करें।",
+  "voiceCallConversationTitle": "वॉइस कॉल - {time}",
+  "voiceCallDiscard": "हटाएँ",
+  "voiceCallElapsed": "बीता समय: {time}",
+  "voiceCallEndCall": "कॉल समाप्त करें",
+  "voiceCallEndedTitle": "कॉल समाप्त",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "voiceCallFreeTier": "फ्री प्लान",
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallMicMuted": "माइक म्यूट है",
+  "voiceCallMicrophoneDeniedPermanently": "माइक्रोफ़ोन की अनुमति अस्वीकृत है। कृपया इसे सेटिंग्स > प्राइवेसी > माइक्रोफ़ोन में सक्षम करें।",
+  "voiceCallMicrophoneRequired": "वॉइस कॉल के लिए माइक्रोफ़ोन अनुमति आवश्यक है।",
+  "voiceCallMute": "म्यूट",
+  "voiceCallNotConfigured": "वॉइस कॉल कॉन्फ़िगर नहीं है। कृपया अपनी सेटिंग्स जांचें।",
+  "voiceCallOneMinuteRemaining": "इस कॉल में 1 मिनट शेष है",
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "voiceCallSaveAndView": "सहेजें और देखें",
+  "voiceCallSaveTranscriptPrompt": "आपकी {duration} की कॉल रिकॉर्ड हो गई है।\n\nक्या आप ट्रांसक्रिप्ट को नई बातचीत के रूप में सहेजना चाहेंगे?",
+  "voiceCallSavingTranscript": "ट्रांसक्रिप्ट सहेजा जा रहा है...",
+  "voiceCallSelectProfileFirst": "कृपया पहले एक प्रोफ़ाइल चुनें।",
+  "voiceCallTapToStart": "शुरू करने के लिए टैप करें",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "voiceCallTranscriptSaveFailed": "ट्रांसक्रिप्ट सहेजा नहीं जा सका। कृपया फिर से प्रयास करें।",
+  "voiceCallUnmute": "अनम्यूट",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
 }

@@ -1123,133 +1123,144 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (sheetContext) {
+        final maxSheetHeight = MediaQuery.of(sheetContext).size.height * 0.78;
         return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  margin: const EdgeInsets.only(top: 10, bottom: 8),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.bookmark_add_outlined),
-                  title: Text(
-                      AppLocalizations.of(context)!.knowledgeHubAddToMemory),
-                  subtitle: Text(AppLocalizations.of(context)!
-                      .knowledgeHubAddToMemoryDesc),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    if (widget.onQuickSaveToKnowledgeHub != null) {
-                      widget.onQuickSaveToKnowledgeHub!(widget.message);
-                    } else if (widget.onSaveToKnowledgeHub != null) {
-                      widget.onSaveToKnowledgeHub!(widget.message);
-                    }
-                  },
-                ),
-                if (widget.onSaveToKnowledgeHub != null)
-                  ListTile(
-                    leading: const Icon(Icons.edit_note_outlined),
-                    title: Text(AppLocalizations.of(context)!
-                        .knowledgeHubReviewAndSave),
-                    subtitle: Text(AppLocalizations.of(context)!
-                        .knowledgeHubReviewAndSaveDesc),
-                    onTap: () {
-                      Navigator.of(sheetContext).pop();
-                      widget.onSaveToKnowledgeHub!(widget.message);
-                    },
-                  ),
-                Divider(
-                  height: 8,
-                  thickness: 0.6,
-                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-                ),
-                ListTile(
-                  leading: Text(
-                    targetLanguageFlag,
-                    style: const TextStyle(fontSize: 20),
-                  ),
-                  title: Text(AppLocalizations.of(context)!
-                      .knowledgeHubTranslateTo(targetLanguage)),
-                  subtitle: Text(
-                      AppLocalizations.of(context)!.knowledgeHubQuickTranslate),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    if (widget.onQuickTranslate != null) {
-                      widget.onQuickTranslate!(
-                          widget.message, targetLanguageCode, targetLanguage);
-                    } else {
-                      widget.onTranslate(widget.message);
-                    }
-                  },
-                ),
-                if (recentOptions.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        AppLocalizations.of(context)!.knowledgeHubRecentTargets,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: isDark
-                              ? Colors.grey.shade400
-                              : Colors.grey.shade600,
-                        ),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxSheetHeight),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 4,
+                      margin: const EdgeInsets.only(top: 10, bottom: 8),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.grey.shade700
+                            : Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
-                  ),
-                ...recentOptions.map((option) {
-                  final recentLanguage =
-                      option['targetLanguage'] ?? option['targetLanguageCode']!;
-                  final recentCode = option['targetLanguageCode'] ?? 'en';
-                  final recentFlag = option['targetLanguageFlag'] ?? '🌐';
-                  return ListTile(
-                    leading: Text(
-                      recentFlag,
-                      style: const TextStyle(fontSize: 20),
+                    ListTile(
+                      leading: const Icon(Icons.bookmark_add_outlined),
+                      title: Text(AppLocalizations.of(context)!
+                          .knowledgeHubAddToMemory),
+                      subtitle: Text(AppLocalizations.of(context)!
+                          .knowledgeHubAddToMemoryDesc),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        if (widget.onQuickSaveToKnowledgeHub != null) {
+                          widget.onQuickSaveToKnowledgeHub!(widget.message);
+                        } else if (widget.onSaveToKnowledgeHub != null) {
+                          widget.onSaveToKnowledgeHub!(widget.message);
+                        }
+                      },
                     ),
-                    title: Text(AppLocalizations.of(context)!
-                        .knowledgeHubTranslateTo(recentLanguage)),
-                    onTap: () {
-                      Navigator.of(sheetContext).pop();
-                      if (widget.onQuickTranslate != null) {
-                        widget.onQuickTranslate!(
-                            widget.message, recentCode, recentLanguage);
-                      } else {
-                        widget.onTranslate(widget.message);
-                      }
-                    },
-                  );
-                }),
-                Divider(
-                  height: 8,
-                  thickness: 0.6,
-                  color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                    if (widget.onSaveToKnowledgeHub != null)
+                      ListTile(
+                        leading: const Icon(Icons.edit_note_outlined),
+                        title: Text(AppLocalizations.of(context)!
+                            .knowledgeHubReviewAndSave),
+                        subtitle: Text(AppLocalizations.of(context)!
+                            .knowledgeHubReviewAndSaveDesc),
+                        onTap: () {
+                          Navigator.of(sheetContext).pop();
+                          widget.onSaveToKnowledgeHub!(widget.message);
+                        },
+                      ),
+                    Divider(
+                      height: 8,
+                      thickness: 0.6,
+                      color:
+                          isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                    ),
+                    ListTile(
+                      leading: Text(
+                        targetLanguageFlag,
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                      title: Text(AppLocalizations.of(context)!
+                          .knowledgeHubTranslateTo(targetLanguage)),
+                      subtitle: Text(AppLocalizations.of(context)!
+                          .knowledgeHubQuickTranslate),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        if (widget.onQuickTranslate != null) {
+                          widget.onQuickTranslate!(widget.message,
+                              targetLanguageCode, targetLanguage);
+                        } else {
+                          widget.onTranslate(widget.message);
+                        }
+                      },
+                    ),
+                    if (recentOptions.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 6, 16, 2),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            AppLocalizations.of(context)!
+                                .knowledgeHubRecentTargets,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ...recentOptions.map((option) {
+                      final recentLanguage = option['targetLanguage'] ??
+                          option['targetLanguageCode']!;
+                      final recentCode = option['targetLanguageCode'] ?? 'en';
+                      final recentFlag = option['targetLanguageFlag'] ?? '🌐';
+                      return ListTile(
+                        leading: Text(
+                          recentFlag,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        title: Text(AppLocalizations.of(context)!
+                            .knowledgeHubTranslateTo(recentLanguage)),
+                        onTap: () {
+                          Navigator.of(sheetContext).pop();
+                          if (widget.onQuickTranslate != null) {
+                            widget.onQuickTranslate!(
+                                widget.message, recentCode, recentLanguage);
+                          } else {
+                            widget.onTranslate(widget.message);
+                          }
+                        },
+                      );
+                    }),
+                    Divider(
+                      height: 8,
+                      thickness: 0.6,
+                      color:
+                          isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.tune),
+                      title: Text(AppLocalizations.of(context)!
+                          .knowledgeHubChooseLanguage),
+                      subtitle: Text(AppLocalizations.of(context)!
+                          .knowledgeHubTranslateToAnotherLanguage),
+                      onTap: () {
+                        Navigator.of(sheetContext).pop();
+                        if (widget.onSelectTranslationLanguage != null) {
+                          widget.onSelectTranslationLanguage!(widget.message);
+                        } else {
+                          widget.onTranslate(widget.message);
+                        }
+                      },
+                    ),
+                  ],
                 ),
-                ListTile(
-                  leading: const Icon(Icons.tune),
-                  title: Text(
-                      AppLocalizations.of(context)!.knowledgeHubChooseLanguage),
-                  subtitle: Text(AppLocalizations.of(context)!
-                      .knowledgeHubTranslateToAnotherLanguage),
-                  onTap: () {
-                    Navigator.of(sheetContext).pop();
-                    if (widget.onSelectTranslationLanguage != null) {
-                      widget.onSelectTranslationLanguage!(widget.message);
-                    } else {
-                      widget.onTranslate(widget.message);
-                    }
-                  },
-                ),
-              ],
+              ),
             ),
           ),
         );

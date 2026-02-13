@@ -728,7 +728,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumTitle.
   ///
   /// In en, this message translates to:
-  /// **'HowAI Premium'**
+  /// **'HowAI Pro'**
   String get premiumTitle;
 
   /// No description provided for @imageGeneration.
@@ -1442,13 +1442,13 @@ abstract class AppLocalizations {
   /// No description provided for @premiumFeatureTitle.
   ///
   /// In en, this message translates to:
-  /// **'Premium Feature'**
+  /// **'Pro Feature'**
   String get premiumFeatureTitle;
 
   /// No description provided for @premiumFeatureDesc.
   ///
   /// In en, this message translates to:
-  /// **'This feature requires a premium subscription. Upgrade to unlock advanced capabilities and enhanced AI features.'**
+  /// **'This feature requires a Pro subscription. Upgrade to unlock advanced capabilities and enhanced AI features.'**
   String get premiumFeatureDesc;
 
   /// No description provided for @maybeLater.
@@ -1970,13 +1970,13 @@ abstract class AppLocalizations {
   /// No description provided for @premiumFeatures.
   ///
   /// In en, this message translates to:
-  /// **'Premium Features'**
+  /// **'Pro Features'**
   String get premiumFeatures;
 
   /// No description provided for @freeUsersDeviceTts.
   ///
   /// In en, this message translates to:
-  /// **'Free users can use device text-to-speech. Premium users get natural AI voice responses with human-like quality and intonation.'**
+  /// **'Free users can use device text-to-speech. Pro users get natural AI voice responses with human-like quality and intonation.'**
   String get freeUsersDeviceTts;
 
   /// No description provided for @aiImageGeneration.
@@ -2042,7 +2042,7 @@ abstract class AppLocalizations {
   /// No description provided for @freeVsPremium.
   ///
   /// In en, this message translates to:
-  /// **'Free vs Premium'**
+  /// **'Free vs Pro'**
   String get freeVsPremium;
 
   /// No description provided for @unlimitedChatMessages.
@@ -2084,7 +2084,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumAiVoice.
   ///
   /// In en, this message translates to:
-  /// **'Premium AI Voice'**
+  /// **'Pro AI Voice'**
   String get premiumAiVoice;
 
   /// No description provided for @fiveTotalLimit.
@@ -2246,7 +2246,7 @@ abstract class AppLocalizations {
   /// No description provided for @premium.
   ///
   /// In en, this message translates to:
-  /// **'Premium'**
+  /// **'Pro'**
   String get premium;
 
   /// No description provided for @free.
@@ -2396,7 +2396,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumFeaturesActive.
   ///
   /// In en, this message translates to:
-  /// **'Premium features active'**
+  /// **'Pro features active'**
   String get premiumFeaturesActive;
 
   /// No description provided for @upgradeToUnlockFeatures.
@@ -2948,13 +2948,13 @@ abstract class AppLocalizations {
   /// No description provided for @premiumActive.
   ///
   /// In en, this message translates to:
-  /// **'Premium Active'**
+  /// **'Pro Active'**
   String get premiumActive;
 
   /// No description provided for @fullAccessToFeatures.
   ///
   /// In en, this message translates to:
-  /// **'You have full access to all premium features'**
+  /// **'You have full access to all Pro features'**
   String get fullAccessToFeatures;
 
   /// No description provided for @planType.
@@ -3020,7 +3020,7 @@ abstract class AppLocalizations {
   /// No description provided for @yourPremiumFeatures.
   ///
   /// In en, this message translates to:
-  /// **'Your Premium Features'**
+  /// **'Your Pro Features'**
   String get yourPremiumFeatures;
 
   /// No description provided for @unlimitedAiImageGeneration.
@@ -3098,7 +3098,7 @@ abstract class AppLocalizations {
   /// No description provided for @debugPremiumFeaturesEnabled.
   ///
   /// In en, this message translates to:
-  /// **'🔧 Debug: Premium features enabled'**
+  /// **'🔧 Debug: Pro features enabled'**
   String get debugPremiumFeaturesEnabled;
 
   /// No description provided for @debugUsingRealSubscriptionStatus.
@@ -3770,7 +3770,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumFeaturesInclude.
   ///
   /// In en, this message translates to:
-  /// **'✨ Premium features include:'**
+  /// **'✨ Pro features include:'**
   String get premiumFeaturesInclude;
 
   /// No description provided for @premiumLocationFeaturesList.
@@ -3788,13 +3788,13 @@ abstract class AppLocalizations {
   /// No description provided for @upgradeToPremiumFor.
   ///
   /// In en, this message translates to:
-  /// **'✨ Upgrade to Premium for:'**
+  /// **'✨ Upgrade to Pro for:'**
   String get upgradeToPremiumFor;
 
   /// No description provided for @pdfPremiumFeaturesList.
   ///
   /// In en, this message translates to:
-  /// **'• Unlimited PDF generation\n• Professional-quality documents\n• No waiting periods\n• All premium features'**
+  /// **'• Unlimited PDF generation\n• Professional-quality documents\n• No waiting periods\n• All Pro features'**
   String get pdfPremiumFeaturesList;
 
   /// No description provided for @docAnalysisLimitReached.
@@ -3806,7 +3806,7 @@ abstract class AppLocalizations {
   /// No description provided for @docAnalysisPremiumFeaturesList.
   ///
   /// In en, this message translates to:
-  /// **'• Unlimited document analysis\n• Advanced file processing\n• PDF, Word, Excel support\n• All premium features'**
+  /// **'• Unlimited document analysis\n• Advanced file processing\n• PDF, Word, Excel support\n• All Pro features'**
   String get docAnalysisPremiumFeaturesList;
 
   /// No description provided for @placesLimitReached.
@@ -3818,19 +3818,19 @@ abstract class AppLocalizations {
   /// No description provided for @placesPremiumFeaturesList.
   ///
   /// In en, this message translates to:
-  /// **'• Unlimited places exploration\n• Advanced location search\n• Real-time business info\n• All premium features'**
+  /// **'• Unlimited places exploration\n• Advanced location search\n• Real-time business info\n• All Pro features'**
   String get placesPremiumFeaturesList;
 
   /// No description provided for @pptxPremiumDesc.
   ///
   /// In en, this message translates to:
-  /// **'Create professional PowerPoint presentations with AI assistance. This feature is available for Premium subscribers only.'**
+  /// **'Create professional PowerPoint presentations with AI assistance. This feature is available for Pro subscribers only.'**
   String get pptxPremiumDesc;
 
   /// No description provided for @premiumBenefits.
   ///
   /// In en, this message translates to:
-  /// **'✨ Premium Benefits:'**
+  /// **'✨ Pro Benefits:'**
   String get premiumBenefits;
 
   /// No description provided for @pptxPremiumBenefitsList.
@@ -3866,13 +3866,13 @@ abstract class AppLocalizations {
   /// No description provided for @aiImagePremiumTitle.
   ///
   /// In en, this message translates to:
-  /// **'AI Image Generation - Premium Feature'**
+  /// **'AI Image Generation - Pro Feature'**
   String get aiImagePremiumTitle;
 
   /// No description provided for @aiImagePremiumDesc.
   ///
   /// In en, this message translates to:
-  /// **'Create stunning artwork and images from your imagination. This feature is available for Premium subscribers.'**
+  /// **'Create stunning artwork and images from your imagination. This feature is available for Pro subscribers.'**
   String get aiImagePremiumDesc;
 
   /// No description provided for @aiPersonality.
@@ -4136,7 +4136,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumBadge.
   ///
   /// In en, this message translates to:
-  /// **'PREMIUM'**
+  /// **'PRO'**
   String get premiumBadge;
 
   /// No description provided for @howAiUnderstandsYou.
@@ -4208,7 +4208,7 @@ abstract class AppLocalizations {
   /// No description provided for @upgradeToPremium.
   ///
   /// In en, this message translates to:
-  /// **'Upgrade to Premium'**
+  /// **'Upgrade to Pro'**
   String get upgradeToPremium;
 
   /// No description provided for @profileAndAbout.
@@ -4316,7 +4316,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumAccount.
   ///
   /// In en, this message translates to:
-  /// **'Premium Account'**
+  /// **'Pro Account'**
   String get premiumAccount;
 
   /// No description provided for @freeAccount.
@@ -4442,7 +4442,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumRequired.
   ///
   /// In en, this message translates to:
-  /// **'Premium Required'**
+  /// **'Pro Required'**
   String get premiumRequired;
 
   /// No description provided for @upgrade.
@@ -4454,13 +4454,13 @@ abstract class AppLocalizations {
   /// No description provided for @premiumFeature.
   ///
   /// In en, this message translates to:
-  /// **'Premium Feature'**
+  /// **'Pro Feature'**
   String get premiumFeature;
 
   /// No description provided for @upgradeToPremiumVoice.
   ///
   /// In en, this message translates to:
-  /// **'Upgrade to Premium'**
+  /// **'Upgrade to Pro'**
   String get upgradeToPremiumVoice;
 
   /// No description provided for @enterCityOrAddress.
@@ -4622,7 +4622,7 @@ abstract class AppLocalizations {
   /// No description provided for @webSearchUpgradeDesc.
   ///
   /// In en, this message translates to:
-  /// **'This feature requires a premium subscription. Please upgrade to use this feature.'**
+  /// **'This feature requires a Pro subscription. Please upgrade to use this feature.'**
   String get webSearchUpgradeDesc;
 
   /// No description provided for @deepResearchUpgradeTitle.
@@ -4634,7 +4634,7 @@ abstract class AppLocalizations {
   /// No description provided for @deepResearchUpgradeDesc.
   ///
   /// In en, this message translates to:
-  /// **'Deep Research Mode uses gpt-5.2 with high reasoning effort for more thorough analysis and insights. This premium feature provides comprehensive explanations, multiple perspectives, and deeper logical reasoning.\n\nUpgrade to access enhanced AI capabilities!'**
+  /// **'Deep Research Mode uses gpt-5.2 with high reasoning effort for more thorough analysis and insights. This Pro feature provides comprehensive explanations, multiple perspectives, and deeper logical reasoning.\n\nUpgrade to access enhanced AI capabilities!'**
   String get deepResearchUpgradeDesc;
 
   /// No description provided for @hideKeyboard.
@@ -4652,13 +4652,13 @@ abstract class AppLocalizations {
   /// No description provided for @knowledgeHubPremiumDialogTitle.
   ///
   /// In en, this message translates to:
-  /// **'Knowledge Hub (Premium)'**
+  /// **'Knowledge Hub (Pro)'**
   String get knowledgeHubPremiumDialogTitle;
 
   /// No description provided for @knowledgeHubPremiumDialogMessage.
   ///
   /// In en, this message translates to:
-  /// **'Knowledge Hub helps HowAI remember your personal preferences, facts, and goals across conversations.\n\nUpgrade to Premium to use this feature.'**
+  /// **'Knowledge Hub helps HowAI remember your personal preferences, facts, and goals across conversations.\n\nUpgrade to Pro to use this feature.'**
   String get knowledgeHubPremiumDialogMessage;
 
   /// No description provided for @knowledgeHubReturn.
@@ -4976,7 +4976,7 @@ abstract class AppLocalizations {
   /// No description provided for @knowledgeHubPremiumBlockedTitle.
   ///
   /// In en, this message translates to:
-  /// **'Knowledge Hub is a Premium feature'**
+  /// **'Knowledge Hub is a Pro feature'**
   String get knowledgeHubPremiumBlockedTitle;
 
   /// No description provided for @knowledgeHubPremiumBlockedDesc.
@@ -5024,7 +5024,7 @@ abstract class AppLocalizations {
   /// No description provided for @knowledgeHubUpgradeToPremium.
   ///
   /// In en, this message translates to:
-  /// **'Upgrade to Premium'**
+  /// **'Upgrade to Pro'**
   String get knowledgeHubUpgradeToPremium;
 
   /// No description provided for @knowledgeHubWhatIsTitle.
@@ -5192,7 +5192,7 @@ abstract class AppLocalizations {
   /// No description provided for @knowledgeHubUpgradeLimitMessage.
   ///
   /// In en, this message translates to:
-  /// **'Knowledge Hub is a Premium feature. Upgrade to save and reuse personal memories across conversations.'**
+  /// **'Knowledge Hub is a Pro feature. Upgrade to save and reuse personal memories across conversations.'**
   String get knowledgeHubUpgradeLimitMessage;
 
   /// No description provided for @knowledgeHubUpgradeBenefit1.
@@ -5318,7 +5318,7 @@ abstract class AppLocalizations {
   /// No description provided for @voicePlaybackHowItWorksPremium.
   ///
   /// In en, this message translates to:
-  /// **'Premium: switch to ElevenLabs voices for more natural sound.'**
+  /// **'Pro: switch to ElevenLabs voices for more natural sound.'**
   String get voicePlaybackHowItWorksPremium;
 
   /// No description provided for @voicePlaybackHowItWorksTrySample.
@@ -5396,7 +5396,7 @@ abstract class AppLocalizations {
   /// No description provided for @voicePremiumElevenLabsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Premium ElevenLabs Voices'**
+  /// **'Pro ElevenLabs Voices'**
   String get voicePremiumElevenLabsTitle;
 
   /// No description provided for @voicePremiumElevenLabsDesc.
@@ -5408,7 +5408,7 @@ abstract class AppLocalizations {
   /// No description provided for @voicePremiumEngineTitle.
   ///
   /// In en, this message translates to:
-  /// **'Premium playback engine'**
+  /// **'Pro playback engine'**
   String get voicePremiumEngineTitle;
 
   /// No description provided for @voiceSystemTts.
@@ -5444,7 +5444,7 @@ abstract class AppLocalizations {
   /// No description provided for @voicePremiumUpgradeDescription.
   ///
   /// In en, this message translates to:
-  /// **'Upgrade to Premium to unlock natural ElevenLabs voices and voice preview.'**
+  /// **'Upgrade to Pro to unlock natural ElevenLabs voices and voice preview.'**
   String get voicePremiumUpgradeDescription;
 
   /// No description provided for @account.
@@ -5624,7 +5624,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumBannerSubtitle1.
   ///
   /// In en, this message translates to:
-  /// **'Premium features are waiting for you'**
+  /// **'Pro features are waiting for you'**
   String get premiumBannerSubtitle1;
 
   /// No description provided for @premiumBannerTitle2.
@@ -5636,7 +5636,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumBannerSubtitle2.
   ///
   /// In en, this message translates to:
-  /// **'Remove all limits with Premium'**
+  /// **'Remove all limits with Pro'**
   String get premiumBannerSubtitle2;
 
   /// No description provided for @premiumBannerTitle3.
@@ -5648,13 +5648,13 @@ abstract class AppLocalizations {
   /// No description provided for @premiumBannerSubtitle3.
   ///
   /// In en, this message translates to:
-  /// **'Premium unlocks everything'**
+  /// **'Pro unlocks everything'**
   String get premiumBannerSubtitle3;
 
   /// No description provided for @premiumBannerTitle4.
   ///
   /// In en, this message translates to:
-  /// **'Discover Premium features'**
+  /// **'Discover Pro features'**
   String get premiumBannerTitle4;
 
   /// No description provided for @premiumBannerSubtitle4.
@@ -5672,7 +5672,7 @@ abstract class AppLocalizations {
   /// No description provided for @premiumBannerSubtitle5.
   ///
   /// In en, this message translates to:
-  /// **'Premium makes everything possible'**
+  /// **'Pro makes everything possible'**
   String get premiumBannerSubtitle5;
 
   /// No description provided for @voiceCallFeatureTitle.
@@ -5696,7 +5696,7 @@ abstract class AppLocalizations {
   /// No description provided for @voiceCallPremiumLimit.
   ///
   /// In en, this message translates to:
-  /// **'Premium: {perCall} min/call, {daily} min/day'**
+  /// **'Pro: {perCall} min/call, {daily} min/day'**
   String voiceCallPremiumLimit(int perCall, int daily);
 
   /// No description provided for @voiceCallLimitReached.
@@ -5722,6 +5722,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Available today: {time}'**
   String voiceCallAvailableToday(String time);
+
+  /// No description provided for @voiceCallOneMinuteRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'1 minute remaining in this call'**
+  String get voiceCallOneMinuteRemaining;
+
+  /// No description provided for @voiceCallSelectProfileFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a profile first.'**
+  String get voiceCallSelectProfileFirst;
+
+  /// No description provided for @voiceCallMicrophoneDeniedPermanently.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone access was denied. Please enable it in Settings > Privacy > Microphone.'**
+  String get voiceCallMicrophoneDeniedPermanently;
+
+  /// No description provided for @voiceCallMicrophoneRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission is required for voice calls.'**
+  String get voiceCallMicrophoneRequired;
+
+  /// No description provided for @voiceCallNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice call is not configured. Please check your settings.'**
+  String get voiceCallNotConfigured;
+
+  /// No description provided for @voiceCallConnectionTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection timed out. Please try again.'**
+  String get voiceCallConnectionTimedOut;
+
+  /// No description provided for @voiceCallConnectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t connect to the voice call. Please try again.'**
+  String get voiceCallConnectionFailed;
+
+  /// No description provided for @voiceCallConnectionIssue.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection issue during voice call. Please try again.'**
+  String get voiceCallConnectionIssue;
+
+  /// No description provided for @voiceCallEndedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Call Ended'**
+  String get voiceCallEndedTitle;
+
+  /// No description provided for @voiceCallSaveTranscriptPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Your {duration} call has been recorded.\n\nWould you like to save the transcript as a new conversation?'**
+  String voiceCallSaveTranscriptPrompt(String duration);
+
+  /// No description provided for @voiceCallDiscard.
+  ///
+  /// In en, this message translates to:
+  /// **'Discard'**
+  String get voiceCallDiscard;
+
+  /// No description provided for @voiceCallSaveAndView.
+  ///
+  /// In en, this message translates to:
+  /// **'Save & View'**
+  String get voiceCallSaveAndView;
+
+  /// No description provided for @voiceCallTranscriptSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save transcript. Please try again.'**
+  String get voiceCallTranscriptSaveFailed;
+
+  /// No description provided for @voiceCallSavingTranscript.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving transcript...'**
+  String get voiceCallSavingTranscript;
+
+  /// No description provided for @voiceCallMicMuted.
+  ///
+  /// In en, this message translates to:
+  /// **'Mic is muted'**
+  String get voiceCallMicMuted;
+
+  /// No description provided for @voiceCallAiSpeaking.
+  ///
+  /// In en, this message translates to:
+  /// **'AI is speaking...'**
+  String get voiceCallAiSpeaking;
+
+  /// No description provided for @voiceCallConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting...'**
+  String get voiceCallConnecting;
+
+  /// No description provided for @voiceCallTapToStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to start'**
+  String get voiceCallTapToStart;
+
+  /// No description provided for @voiceCallElapsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Elapsed: {time}'**
+  String voiceCallElapsed(String time);
+
+  /// No description provided for @voiceCallFreeTier.
+  ///
+  /// In en, this message translates to:
+  /// **'Free Tier'**
+  String get voiceCallFreeTier;
+
+  /// No description provided for @voiceCallCalling.
+  ///
+  /// In en, this message translates to:
+  /// **'Calling...'**
+  String get voiceCallCalling;
+
+  /// No description provided for @voiceCallConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected'**
+  String get voiceCallConnected;
+
+  /// No description provided for @voiceCallUnmute.
+  ///
+  /// In en, this message translates to:
+  /// **'Unmute'**
+  String get voiceCallUnmute;
+
+  /// No description provided for @voiceCallMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get voiceCallMute;
+
+  /// No description provided for @voiceCallEndCall.
+  ///
+  /// In en, this message translates to:
+  /// **'End Call'**
+  String get voiceCallEndCall;
+
+  /// No description provided for @voiceCallConversationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice Call - {time}'**
+  String voiceCallConversationTitle(String time);
 
   /// No description provided for @speakButtonLabel.
   ///

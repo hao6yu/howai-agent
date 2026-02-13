@@ -2890,8 +2890,92 @@ class AppLocalizationsTr extends AppLocalizations {
   }
 
   @override
-  String get speakButtonLabel => 'Speak';
+  String get voiceCallOneMinuteRemaining => 'Bu aramada 1 dakika kaldı';
 
   @override
-  String get speakButtonTooltip => 'Start voice call';
+  String get voiceCallSelectProfileFirst => 'Lütfen önce bir profil seçin.';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => 'Mikrofon erişimi reddedildi. Lütfen Ayarlar > Gizlilik > Mikrofon bölümünden etkinleştirin.';
+
+  @override
+  String get voiceCallMicrophoneRequired => 'Sesli aramalar için mikrofon izni gereklidir.';
+
+  @override
+  String get voiceCallNotConfigured => 'Sesli arama yapılandırılmamış. Lütfen ayarları kontrol edin.';
+
+  @override
+  String get voiceCallConnectionTimedOut => 'Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.';
+
+  @override
+  String get voiceCallConnectionFailed => 'Sesli aramaya bağlanılamadı. Lütfen tekrar deneyin.';
+
+  @override
+  String get voiceCallConnectionIssue => 'Sesli arama sırasında bağlantı sorunu oluştu. Lütfen tekrar deneyin.';
+
+  @override
+  String get voiceCallEndedTitle => 'Arama sona erdi';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return '$duration süren aramanız kaydedildi.\n\nDökümü yeni bir konuşma olarak kaydetmek ister misiniz?';
+  }
+
+  @override
+  String get voiceCallDiscard => 'Vazgeç';
+
+  @override
+  String get voiceCallSaveAndView => 'Kaydet ve görüntüle';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => 'Döküm kaydedilemedi. Lütfen tekrar deneyin.';
+
+  @override
+  String get voiceCallSavingTranscript => 'Döküm kaydediliyor...';
+
+  @override
+  String get voiceCallMicMuted => 'Mikrofon kapalı';
+
+  @override
+  String get voiceCallAiSpeaking => 'Yapay zeka konuşuyor...';
+
+  @override
+  String get voiceCallConnecting => 'Bağlanıyor...';
+
+  @override
+  String get voiceCallTapToStart => 'Başlamak için dokunun';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return 'Geçen süre: $time';
+  }
+
+  @override
+  String get voiceCallFreeTier => 'Ücretsiz plan';
+
+  @override
+  String get voiceCallCalling => 'Aranıyor...';
+
+  @override
+  String get voiceCallConnected => 'Bağlandı';
+
+  @override
+  String get voiceCallUnmute => 'Sesi aç';
+
+  @override
+  String get voiceCallMute => 'Sessize al';
+
+  @override
+  String get voiceCallEndCall => 'Aramayı bitir';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return 'Sesli Arama - $time';
+  }
+
+  @override
+  String get speakButtonLabel => 'Konuş';
+
+  @override
+  String get speakButtonTooltip => 'Sesli aramayı başlat';
 }

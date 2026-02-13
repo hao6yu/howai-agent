@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/supabase_service.dart';
 
 class SettingsProvider with ChangeNotifier {
   static const String _useVoiceResponseKey = 'use_voice_response';
@@ -242,9 +240,6 @@ class SettingsProvider with ChangeNotifier {
       // debugPrint('Saved locale to preferences: $locale');
     }
     notifyListeners();
-
-    // Sync to Supabase in background
-    _syncSettingsToSupabase();
   }
 
   Future<void> setFontSizeScale(double scale) async {
@@ -253,9 +248,6 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setDouble(_fontSizeScaleKey, _fontSizeScale);
     // debugPrint('Saved font size scale: $_fontSizeScale');
     notifyListeners();
-
-    // Sync to Supabase in background
-    _syncSettingsToSupabase();
   }
 
   Future<void> setThemeMode(ThemeMode mode) async {
@@ -264,9 +256,6 @@ class SettingsProvider with ChangeNotifier {
     await prefs.setString(_themeModeKey, _themeModeToString(mode));
     // debugPrint('Saved theme mode: ${_themeModeToString(mode)}');
     notifyListeners();
-
-    // Sync to Supabase in background
-    _syncSettingsToSupabase();
   }
 
   double getScaledFontSize(double baseFontSize) {
@@ -292,87 +281,8 @@ class SettingsProvider with ChangeNotifier {
 
   String get currentThemeModeDisplayName => getThemeModeDisplayName(_themeMode);
 
-  /// Sync settings to Supabase (silent background operation)
-  void _syncSettingsToSupabase() {
-    Future.microtask(() async {
-      try {
-        final supabase = SupabaseService();
-
-        if (!supabase.isAuthenticated) {
-          debugPrint(
-              '[SettingsProvider] Not authenticated, skipping settings sync');
-          return;
-        }
-
-        final userId = supabase.currentUser!.id;
-
-        final data = {
-          'user_id': userId,
-          'theme_mode': _themeModeToString(_themeMode),
-          'locale': _selectedLocale,
-          'font_size_scale': _fontSizeScale,
-          'updated_at': DateTime.now().toIso8601String(),
-        };
-
-        await supabase.client.from('user_settings').upsert(data);
-
-        debugPrint('[SettingsProvider] Settings synced to Supabase');
-      } catch (e) {
-        debugPrint('[SettingsProvider] Error syncing settings (silent): $e');
-        // Silent failure - settings still work locally
-      }
-    });
-  }
-
-  /// Load settings from Supabase (for cross-device sync)
+  /// Deprecated: settings are local-only and no longer synced via Supabase.
   Future<void> loadSettingsFromSupabase() async {
-    try {
-      final supabase = SupabaseService();
-
-      if (!supabase.isAuthenticated) {
-        debugPrint(
-            '[SettingsProvider] Not authenticated, skipping settings load');
-        return;
-      }
-
-      final userId = supabase.currentUser!.id;
-
-      final response = await supabase.client
-          .from('user_settings')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (response != null) {
-        // Update local settings from Supabase
-        final themeModeStr = response['theme_mode'] as String?;
-        if (themeModeStr != null) {
-          _themeMode = _parseThemeMode(themeModeStr);
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(_themeModeKey, themeModeStr);
-        }
-
-        final locale = response['locale'] as String?;
-        if (locale != null) {
-          _selectedLocale = locale;
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(_selectedLocaleKey, locale);
-        }
-
-        final fontScale = response['font_size_scale'] as double?;
-        if (fontScale != null) {
-          _fontSizeScale = fontScale;
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setDouble(_fontSizeScaleKey, fontScale);
-        }
-
-        notifyListeners();
-        debugPrint('[SettingsProvider] Loaded settings from Supabase');
-      }
-    } catch (e) {
-      debugPrint(
-          '[SettingsProvider] Error loading settings from Supabase (silent): $e');
-      // Silent failure - use local settings
-    }
+    return;
   }
 }

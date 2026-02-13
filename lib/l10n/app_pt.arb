@@ -1001,5 +1001,96 @@
   "premiumBannerTitle4": "Descubra os recursos Premium",
   "premiumBannerSubtitle4": "Acesso ilimitado à IA avançada",
   "premiumBannerTitle5": "Acelere seu fluxo de trabalho",
-  "premiumBannerSubtitle5": "Premium torna tudo possível"
+  "premiumBannerSubtitle5": "Premium torna tudo possível",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "Falar",
+  "speakButtonTooltip": "Iniciar chamada de voz",
+  "voiceCallAiSpeaking": "A IA está a falar...",
+  "voiceCallAvailableToday": "Available today: {time}",
+  "voiceCallCalling": "A chamar...",
+  "voiceCallConnected": "Ligado",
+  "voiceCallConnecting": "A ligar...",
+  "voiceCallConnectionFailed": "Não foi possível ligar a chamada de voz. Tente novamente.",
+  "voiceCallConnectionIssue": "Houve um problema de ligação durante a chamada de voz. Tente novamente.",
+  "voiceCallConnectionTimedOut": "O tempo de ligação expirou. Tente novamente.",
+  "voiceCallConversationTitle": "Chamada de voz - {time}",
+  "voiceCallDiscard": "Descartar",
+  "voiceCallElapsed": "Decorrido: {time}",
+  "voiceCallEndCall": "Terminar chamada",
+  "voiceCallEndedTitle": "Chamada terminada",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "voiceCallFreeTier": "Plano gratuito",
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallMicMuted": "Microfone silenciado",
+  "voiceCallMicrophoneDeniedPermanently": "O acesso ao microfone foi negado. Ative em Definições > Privacidade > Microfone.",
+  "voiceCallMicrophoneRequired": "A permissão de microfone é necessária para chamadas de voz.",
+  "voiceCallMute": "Silenciar",
+  "voiceCallNotConfigured": "A chamada de voz não está configurada. Verifique as suas definições.",
+  "voiceCallOneMinuteRemaining": "Falta 1 minuto nesta chamada",
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "voiceCallSaveAndView": "Guardar e ver",
+  "voiceCallSaveTranscriptPrompt": "A sua chamada de {duration} foi gravada.\n\nQuer guardar a transcrição como nova conversa?",
+  "voiceCallSavingTranscript": "A guardar transcrição...",
+  "voiceCallSelectProfileFirst": "Selecione um perfil primeiro.",
+  "voiceCallTapToStart": "Toque para começar",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "voiceCallTranscriptSaveFailed": "Não foi possível guardar a transcrição. Tente novamente.",
+  "voiceCallUnmute": "Ativar microfone",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
 }

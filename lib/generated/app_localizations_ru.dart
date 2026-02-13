@@ -2890,8 +2890,92 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
-  String get speakButtonLabel => 'Speak';
+  String get voiceCallOneMinuteRemaining => 'До конца звонка осталась 1 минута';
 
   @override
-  String get speakButtonTooltip => 'Start voice call';
+  String get voiceCallSelectProfileFirst => 'Сначала выберите профиль.';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => 'Доступ к микрофону запрещён. Включите его в Настройки > Конфиденциальность > Микрофон.';
+
+  @override
+  String get voiceCallMicrophoneRequired => 'Для голосовых звонков требуется разрешение на микрофон.';
+
+  @override
+  String get voiceCallNotConfigured => 'Голосовой звонок не настроен. Проверьте настройки.';
+
+  @override
+  String get voiceCallConnectionTimedOut => 'Время ожидания соединения истекло. Попробуйте снова.';
+
+  @override
+  String get voiceCallConnectionFailed => 'Не удалось подключить голосовой звонок. Попробуйте снова.';
+
+  @override
+  String get voiceCallConnectionIssue => 'Во время голосового звонка возникла проблема с соединением. Попробуйте снова.';
+
+  @override
+  String get voiceCallEndedTitle => 'Звонок завершён';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return 'Ваш звонок длительностью $duration был записан.\n\nСохранить расшифровку как новый диалог?';
+  }
+
+  @override
+  String get voiceCallDiscard => 'Не сохранять';
+
+  @override
+  String get voiceCallSaveAndView => 'Сохранить и открыть';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => 'Не удалось сохранить расшифровку. Попробуйте снова.';
+
+  @override
+  String get voiceCallSavingTranscript => 'Сохранение расшифровки...';
+
+  @override
+  String get voiceCallMicMuted => 'Микрофон выключен';
+
+  @override
+  String get voiceCallAiSpeaking => 'ИИ говорит...';
+
+  @override
+  String get voiceCallConnecting => 'Подключение...';
+
+  @override
+  String get voiceCallTapToStart => 'Нажмите, чтобы начать';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return 'Прошло: $time';
+  }
+
+  @override
+  String get voiceCallFreeTier => 'Бесплатный план';
+
+  @override
+  String get voiceCallCalling => 'Вызов...';
+
+  @override
+  String get voiceCallConnected => 'Подключено';
+
+  @override
+  String get voiceCallUnmute => 'Включить микрофон';
+
+  @override
+  String get voiceCallMute => 'Выключить микрофон';
+
+  @override
+  String get voiceCallEndCall => 'Завершить звонок';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return 'Голосовой звонок - $time';
+  }
+
+  @override
+  String get speakButtonLabel => 'Говорить';
+
+  @override
+  String get speakButtonTooltip => 'Начать голосовой звонок';
 }

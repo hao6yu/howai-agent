@@ -1000,5 +1000,96 @@
   "premiumBannerTitle4": "Entdecke Premium-Funktionen",
   "premiumBannerSubtitle4": "Unbegrenzter Zugriff auf fortschrittliche KI",
   "premiumBannerTitle5": "Beschleunige deinen Workflow",
-  "premiumBannerSubtitle5": "Mit Premium ist alles möglich"
+  "premiumBannerSubtitle5": "Mit Premium ist alles möglich",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "Sprechen",
+  "speakButtonTooltip": "Sprachanruf starten",
+  "voiceCallAiSpeaking": "KI spricht...",
+  "voiceCallAvailableToday": "Available today: {time}",
+  "voiceCallCalling": "Rufe an...",
+  "voiceCallConnected": "Verbunden",
+  "voiceCallConnecting": "Verbinden...",
+  "voiceCallConnectionFailed": "Verbindung zum Sprachanruf konnte nicht hergestellt werden. Bitte versuche es erneut.",
+  "voiceCallConnectionIssue": "Verbindungsproblem während des Sprachanrufs. Bitte versuche es erneut.",
+  "voiceCallConnectionTimedOut": "Zeitüberschreitung bei der Verbindung. Bitte versuche es erneut.",
+  "voiceCallConversationTitle": "Sprachanruf - {time}",
+  "voiceCallDiscard": "Verwerfen",
+  "voiceCallElapsed": "Verstrichen: {time}",
+  "voiceCallEndCall": "Anruf beenden",
+  "voiceCallEndedTitle": "Anruf beendet",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "voiceCallFreeTier": "Kostenlos",
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallMicMuted": "Mikrofon ist stummgeschaltet",
+  "voiceCallMicrophoneDeniedPermanently": "Der Zugriff auf das Mikrofon wurde verweigert. Bitte aktiviere ihn unter Einstellungen > Datenschutz > Mikrofon.",
+  "voiceCallMicrophoneRequired": "Für Sprachanrufe ist die Mikrofonberechtigung erforderlich.",
+  "voiceCallMute": "Stummschalten",
+  "voiceCallNotConfigured": "Sprachanruf ist nicht konfiguriert. Bitte überprüfe deine Einstellungen.",
+  "voiceCallOneMinuteRemaining": "Noch 1 Minute in diesem Anruf",
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "voiceCallSaveAndView": "Speichern und anzeigen",
+  "voiceCallSaveTranscriptPrompt": "Dein Anruf ({duration}) wurde aufgezeichnet.\n\nMöchtest du das Transkript als neue Konversation speichern?",
+  "voiceCallSavingTranscript": "Transkript wird gespeichert...",
+  "voiceCallSelectProfileFirst": "Bitte wähle zuerst ein Profil aus.",
+  "voiceCallTapToStart": "Zum Starten tippen",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "voiceCallTranscriptSaveFailed": "Transkript konnte nicht gespeichert werden. Bitte versuche es erneut.",
+  "voiceCallUnmute": "Stummschaltung aufheben",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
 }

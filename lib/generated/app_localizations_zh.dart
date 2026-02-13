@@ -2890,6 +2890,90 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get voiceCallOneMinuteRemaining => '此通话还剩1分钟';
+
+  @override
+  String get voiceCallSelectProfileFirst => '请先选择一个资料。';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => '麦克风权限已被拒绝。请在设置 > 隐私 > 麦克风中启用。';
+
+  @override
+  String get voiceCallMicrophoneRequired => '语音通话需要麦克风权限。';
+
+  @override
+  String get voiceCallNotConfigured => '语音通话尚未配置。请检查设置。';
+
+  @override
+  String get voiceCallConnectionTimedOut => '连接超时，请重试。';
+
+  @override
+  String get voiceCallConnectionFailed => '无法连接语音通话，请重试。';
+
+  @override
+  String get voiceCallConnectionIssue => '语音通话连接出现问题，请重试。';
+
+  @override
+  String get voiceCallEndedTitle => '通话已结束';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return '你本次通话时长为 $duration。\n\n是否将通话记录保存为新对话？';
+  }
+
+  @override
+  String get voiceCallDiscard => '丢弃';
+
+  @override
+  String get voiceCallSaveAndView => '保存并查看';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => '保存通话记录失败，请重试。';
+
+  @override
+  String get voiceCallSavingTranscript => '正在保存通话记录...';
+
+  @override
+  String get voiceCallMicMuted => '麦克风已静音';
+
+  @override
+  String get voiceCallAiSpeaking => 'AI 正在说话...';
+
+  @override
+  String get voiceCallConnecting => '连接中...';
+
+  @override
+  String get voiceCallTapToStart => '点击开始';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return '已用时：$time';
+  }
+
+  @override
+  String get voiceCallFreeTier => '免费版';
+
+  @override
+  String get voiceCallCalling => '呼叫中...';
+
+  @override
+  String get voiceCallConnected => '已连接';
+
+  @override
+  String get voiceCallUnmute => '取消静音';
+
+  @override
+  String get voiceCallMute => '静音';
+
+  @override
+  String get voiceCallEndCall => '结束通话';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return '语音通话 - $time';
+  }
+
+  @override
   String get speakButtonLabel => '对话';
 
   @override
@@ -5748,4 +5832,126 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get premiumBannerSubtitle5 => '進階版讓一切成為可能';
+
+  @override
+  String get voiceCallFeatureTitle => 'AI 語音通話';
+
+  @override
+  String get voiceCallFeatureDesc => '與 AI 進行即時自然對話';
+
+  @override
+  String voiceCallFreeLimit(int perCall, int daily) {
+    return '免費版：每通 $perCall 分鐘，每日 $daily 分鐘';
+  }
+
+  @override
+  String voiceCallPremiumLimit(int perCall, int daily) {
+    return '進階版：每通 $perCall 分鐘，每日 $daily 分鐘';
+  }
+
+  @override
+  String get voiceCallLimitReached => '語音通話額度已用完';
+
+  @override
+  String get voiceCallUpgradePrompt => '升級以獲得更多語音通話時間';
+
+  @override
+  String voiceCallTimeRemaining(String time) {
+    return '剩餘時間：$time';
+  }
+
+  @override
+  String voiceCallAvailableToday(String time) {
+    return '今日可用：$time';
+  }
+
+  @override
+  String get voiceCallOneMinuteRemaining => '此通話還剩 1 分鐘';
+
+  @override
+  String get voiceCallSelectProfileFirst => '請先選擇一個個人資料。';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => '麥克風權限已被拒絕。請在「設定 > 隱私權 > 麥克風」中啟用。';
+
+  @override
+  String get voiceCallMicrophoneRequired => '語音通話需要麥克風權限。';
+
+  @override
+  String get voiceCallNotConfigured => '語音通話尚未設定。請檢查設定。';
+
+  @override
+  String get voiceCallConnectionTimedOut => '連線逾時，請再試一次。';
+
+  @override
+  String get voiceCallConnectionFailed => '無法連線到語音通話，請再試一次。';
+
+  @override
+  String get voiceCallConnectionIssue => '語音通話期間發生連線問題，請再試一次。';
+
+  @override
+  String get voiceCallEndedTitle => '通話已結束';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return '你本次通話時長為 $duration。\n\n是否將通話紀錄儲存為新對話？';
+  }
+
+  @override
+  String get voiceCallDiscard => '捨棄';
+
+  @override
+  String get voiceCallSaveAndView => '儲存並查看';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => '儲存通話紀錄失敗，請再試一次。';
+
+  @override
+  String get voiceCallSavingTranscript => '正在儲存通話紀錄...';
+
+  @override
+  String get voiceCallMicMuted => '麥克風已靜音';
+
+  @override
+  String get voiceCallAiSpeaking => 'AI 正在說話...';
+
+  @override
+  String get voiceCallConnecting => '連線中...';
+
+  @override
+  String get voiceCallTapToStart => '點一下開始';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return '已用時：$time';
+  }
+
+  @override
+  String get voiceCallFreeTier => '免費方案';
+
+  @override
+  String get voiceCallCalling => '撥號中...';
+
+  @override
+  String get voiceCallConnected => '已連線';
+
+  @override
+  String get voiceCallUnmute => '取消靜音';
+
+  @override
+  String get voiceCallMute => '靜音';
+
+  @override
+  String get voiceCallEndCall => '結束通話';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return '語音通話 - $time';
+  }
+
+  @override
+  String get speakButtonLabel => '對話';
+
+  @override
+  String get speakButtonTooltip => '開始語音通話';
 }

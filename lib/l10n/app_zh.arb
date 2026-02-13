@@ -1031,6 +1031,47 @@
       "time": {"type": "String"}
     }
   },
+  "voiceCallOneMinuteRemaining": "此通话还剩1分钟",
+  "voiceCallSelectProfileFirst": "请先选择一个资料。",
+  "voiceCallMicrophoneDeniedPermanently": "麦克风权限已被拒绝。请在设置 > 隐私 > 麦克风中启用。",
+  "voiceCallMicrophoneRequired": "语音通话需要麦克风权限。",
+  "voiceCallNotConfigured": "语音通话尚未配置。请检查设置。",
+  "voiceCallConnectionTimedOut": "连接超时，请重试。",
+  "voiceCallConnectionFailed": "无法连接语音通话，请重试。",
+  "voiceCallConnectionIssue": "语音通话连接出现问题，请重试。",
+  "voiceCallEndedTitle": "通话已结束",
+  "voiceCallSaveTranscriptPrompt": "你本次通话时长为 {duration}。\n\n是否将通话记录保存为新对话？",
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {"type": "String"}
+    }
+  },
+  "voiceCallDiscard": "丢弃",
+  "voiceCallSaveAndView": "保存并查看",
+  "voiceCallTranscriptSaveFailed": "保存通话记录失败，请重试。",
+  "voiceCallSavingTranscript": "正在保存通话记录...",
+  "voiceCallMicMuted": "麦克风已静音",
+  "voiceCallAiSpeaking": "AI 正在说话...",
+  "voiceCallConnecting": "连接中...",
+  "voiceCallTapToStart": "点击开始",
+  "voiceCallElapsed": "已用时：{time}",
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
+  "voiceCallFreeTier": "免费版",
+  "voiceCallCalling": "呼叫中...",
+  "voiceCallConnected": "已连接",
+  "voiceCallUnmute": "取消静音",
+  "voiceCallMute": "静音",
+  "voiceCallEndCall": "结束通话",
+  "voiceCallConversationTitle": "语音通话 - {time}",
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {"type": "String"}
+    }
+  },
   "speakButtonLabel": "对话",
   "speakButtonTooltip": "开始语音通话"
 }

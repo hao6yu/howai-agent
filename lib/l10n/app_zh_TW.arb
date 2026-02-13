@@ -1000,5 +1000,96 @@
   "premiumBannerTitle4": "探索進階功能",
   "premiumBannerSubtitle4": "無限使用進階 AI 功能",
   "premiumBannerTitle5": "為你的工作流程加速",
-  "premiumBannerSubtitle5": "進階版讓一切成為可能"
+  "premiumBannerSubtitle5": "進階版讓一切成為可能",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "對話",
+  "speakButtonTooltip": "開始語音通話",
+  "voiceCallAiSpeaking": "AI 正在說話...",
+  "voiceCallAvailableToday": "今日可用：{time}",
+  "voiceCallCalling": "撥號中...",
+  "voiceCallConnected": "已連線",
+  "voiceCallConnecting": "連線中...",
+  "voiceCallConnectionFailed": "無法連線到語音通話，請再試一次。",
+  "voiceCallConnectionIssue": "語音通話期間發生連線問題，請再試一次。",
+  "voiceCallConnectionTimedOut": "連線逾時，請再試一次。",
+  "voiceCallConversationTitle": "語音通話 - {time}",
+  "voiceCallDiscard": "捨棄",
+  "voiceCallElapsed": "已用時：{time}",
+  "voiceCallEndCall": "結束通話",
+  "voiceCallEndedTitle": "通話已結束",
+  "voiceCallFeatureDesc": "與 AI 進行即時自然對話",
+  "voiceCallFeatureTitle": "AI 語音通話",
+  "voiceCallFreeLimit": "免費版：每通 {perCall} 分鐘，每日 {daily} 分鐘",
+  "voiceCallFreeTier": "免費方案",
+  "voiceCallLimitReached": "語音通話額度已用完",
+  "voiceCallMicMuted": "麥克風已靜音",
+  "voiceCallMicrophoneDeniedPermanently": "麥克風權限已被拒絕。請在「設定 > 隱私權 > 麥克風」中啟用。",
+  "voiceCallMicrophoneRequired": "語音通話需要麥克風權限。",
+  "voiceCallMute": "靜音",
+  "voiceCallNotConfigured": "語音通話尚未設定。請檢查設定。",
+  "voiceCallOneMinuteRemaining": "此通話還剩 1 分鐘",
+  "voiceCallPremiumLimit": "進階版：每通 {perCall} 分鐘，每日 {daily} 分鐘",
+  "voiceCallSaveAndView": "儲存並查看",
+  "voiceCallSaveTranscriptPrompt": "你本次通話時長為 {duration}。\n\n是否將通話紀錄儲存為新對話？",
+  "voiceCallSavingTranscript": "正在儲存通話紀錄...",
+  "voiceCallSelectProfileFirst": "請先選擇一個個人資料。",
+  "voiceCallTapToStart": "點一下開始",
+  "voiceCallTimeRemaining": "剩餘時間：{time}",
+  "voiceCallTranscriptSaveFailed": "儲存通話紀錄失敗，請再試一次。",
+  "voiceCallUnmute": "取消靜音",
+  "voiceCallUpgradePrompt": "升級以獲得更多語音通話時間"
 }

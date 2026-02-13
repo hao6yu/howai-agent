@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:audio_session/audio_session.dart';
 import 'package:elevenlabs_agents/elevenlabs_agents.dart';
 import 'package:flutter/material.dart';
+import 'package:haogpt/generated/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
@@ -28,9 +29,9 @@ class _TranscriptEntry {
 }
 
 /// Full-screen voice call screen using ElevenLabs Conversational AI.
-/// 
+///
 /// On call end, creates a new conversation with the call transcript
-/// and offers to navigate to it.
+/// and navigates back to it automatically.
 class ElevenLabsCallScreen extends StatefulWidget {
   const ElevenLabsCallScreen({super.key});
 
@@ -40,48 +41,52 @@ class ElevenLabsCallScreen extends StatefulWidget {
 
 class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     with WidgetsBindingObserver, SingleTickerProviderStateMixin {
-  
   // Connection state
   bool _isConnected = false;
   bool _isConnecting = false;
   bool _isClosing = false;
   bool _isPaused = false;
   bool _isAssistantSpeaking = false;
-  
+
   // Error handling
   String? _error;
-  
+
   // Services
   final ElevenLabsAgentService _agentService = ElevenLabsAgentService();
   final DatabaseService _databaseService = DatabaseService();
   final VoiceCallUsageService _usageService = VoiceCallUsageService();
   ConversationClient? _client;
-  
+
   // Transcript collection
   final List<_TranscriptEntry> _transcript = [];
   String? _currentTranscript;
-  
+  final Set<int> _seenFinalUserTranscriptEventIds = <int>{};
+
   // Animation
   late final AnimationController _orbPulseController;
-  
+
   // Profile & subscription
   int? _currentProfileId;
+  String _currentProfileName = 'there';
+  ElevenLabsVoicePreset _selectedVoice = ElevenLabsVoicePreset.male;
   bool _isPremium = false;
   bool _initialized = false;
-  
+
   // Usage tracking
   VoiceCallAllowance? _allowance;
   int? _callSessionId;
   int _maxCallSeconds = 0;
   bool _warnedOneMinuteLeft = false;
   bool _isSavingTranscript = false;
-  
+  String? _pendingEndReason;
+
   // Background handling
   DateTime? _wentBackgroundAt;
-  
+
   // Call duration
   Timer? _callTimer;
   int _elapsedSeconds = 0;
+  static const Duration _connectTimeout = Duration(seconds: 20);
 
   @override
   void initState() {
@@ -99,24 +104,40 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     super.didChangeDependencies();
     if (_initialized) return;
     _initialized = true;
-    
+
     final profileProvider = context.read<ProfileProvider>();
     final subscriptionService = context.read<SubscriptionService>();
     _currentProfileId = profileProvider.selectedProfileId;
+    final selectedProfile = profileProvider.profiles.where((profile) {
+      return profile.id == _currentProfileId;
+    }).firstOrNull;
+    _currentProfileName = selectedProfile?.name.trim().isNotEmpty == true
+        ? selectedProfile!.name.trim()
+        : 'there';
     _isPremium = subscriptionService.isPremium;
-    
+    if (!_agentService.isConfiguredForVoice(voice: _selectedVoice)) {
+      if (_agentService.isConfiguredForVoice(
+          voice: ElevenLabsVoicePreset.male)) {
+        _selectedVoice = ElevenLabsVoicePreset.male;
+      } else if (_agentService.isConfiguredForVoice(
+        voice: ElevenLabsVoicePreset.female,
+      )) {
+        _selectedVoice = ElevenLabsVoicePreset.female;
+      }
+    }
+
     // Load usage allowance
     _loadAllowance();
   }
 
   Future<void> _loadAllowance() async {
     if (_currentProfileId == null) return;
-    
+
     final allowance = await _usageService.getVoiceCallAllowance(
       profileId: _currentProfileId!,
       isPremium: _isPremium,
     );
-    
+
     if (mounted) {
       setState(() {
         _allowance = allowance;
@@ -159,17 +180,15 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         onDisconnect: (details) {
           _setStateIfMounted(() {
             _isConnected = false;
+            _isConnecting = false;
           });
           _callTimer?.cancel();
-          
-          // End usage tracking if SDK disconnects unexpectedly (network drop, etc.)
-          if (_callSessionId != null) {
-            _usageService.endVoiceCallSession(
-              sessionId: _callSessionId!,
-              durationSeconds: _elapsedSeconds,
-              endReason: 'sdk_disconnect',
-            );
-            _callSessionId = null;
+
+          // If we are not in our own close flow, treat this as an unexpected disconnect.
+          if (!_isClosing) {
+            final reason = _pendingEndReason ?? 'sdk_disconnect';
+            unawaited(_finalizeUsageSession(endReason: reason));
+            _pendingEndReason = null;
           }
         },
         onStatusChange: ({required ConversationStatus status}) {
@@ -178,6 +197,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
             if (status == ConversationStatus.disconnected ||
                 status == ConversationStatus.disconnecting) {
               _isConnected = false;
+              _isConnecting = false;
             }
           });
         },
@@ -188,32 +208,46 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         },
         onMessage: ({required String message, required Role source}) {
           if (message.trim().isEmpty) return;
-          
-          // Add to transcript (onMessage fires for final/complete messages)
-          _transcript.add(_TranscriptEntry(
-            text: message.trim(),
+
+          // Capture full messages from the legacy 'user_transcription' path
+          // and from normal AI responses.
+          _appendTranscriptEntry(
+            text: message,
             isUser: source == Role.user,
-            timestamp: DateTime.now(),
-          ));
-          
+          );
+
           _setStateIfMounted(() {
             _currentTranscript = message;
             _isAssistantSpeaking = source == Role.ai;
           });
         },
         onUserTranscript: ({required String transcript, required int eventId}) {
-          // This fires for interim user transcripts (real-time speech-to-text)
-          // Don't add to transcript here - onMessage handles final messages
+          // This is the finalized user transcript on current SDK protocol.
+          _appendTranscriptEntry(
+            text: transcript,
+            isUser: true,
+            userTranscriptEventId: eventId,
+          );
+
           if (transcript.trim().isEmpty) return;
           _setStateIfMounted(() {
-            _currentTranscript = transcript; // Show interim text in UI only
+            _currentTranscript = transcript;
+          });
+        },
+        onTentativeUserTranscript: (
+            {required String transcript, required int eventId}) {
+          if (transcript.trim().isEmpty) return;
+          _setStateIfMounted(() {
+            _currentTranscript = transcript;
           });
         },
         onError: (message, [context]) {
           final details = context == null ? message : '$message: $context';
           debugPrint('ElevenLabs SDK error: $details');
           _setStateIfMounted(() {
-            _error = details;
+            _error =
+                AppLocalizations.of(this.context)!.voiceCallConnectionIssue;
+            _isConnecting = false;
           });
         },
         onEndCallRequested: () {
@@ -227,6 +261,38 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     if (mounted) {
       setState(callback);
     }
+  }
+
+  void _appendTranscriptEntry({
+    required String text,
+    required bool isUser,
+    int? userTranscriptEventId,
+  }) {
+    final normalized = text.trim();
+    if (normalized.isEmpty) return;
+
+    if (isUser && userTranscriptEventId != null) {
+      if (!_seenFinalUserTranscriptEventIds.add(userTranscriptEventId)) {
+        return;
+      }
+    }
+
+    final now = DateTime.now();
+    if (_transcript.isNotEmpty) {
+      final last = _transcript.last;
+      final isDuplicateOfLast = last.isUser == isUser &&
+          last.text.toLowerCase() == normalized.toLowerCase() &&
+          now.difference(last.timestamp).inSeconds <= 2;
+      if (isDuplicateOfLast) {
+        return;
+      }
+    }
+
+    _transcript.add(_TranscriptEntry(
+      text: normalized,
+      isUser: isUser,
+      timestamp: now,
+    ));
   }
 
   Future<void> _configureAudioSession() async {
@@ -268,26 +334,28 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     _callTimer?.cancel();
     _elapsedSeconds = 0;
     _warnedOneMinuteLeft = false;
-    
+
     _callTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!_isConnected || !mounted) return;
-      
+
       final nextElapsed = _elapsedSeconds + 1;
       final remaining = _maxCallSeconds - nextElapsed;
-      
+
       setState(() => _elapsedSeconds = nextElapsed);
-      
+
       // Warn at 1 minute remaining
       if (remaining <= 60 && remaining > 0 && !_warnedOneMinuteLeft) {
         _warnedOneMinuteLeft = true;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('1 minute remaining in this call'),
+          SnackBar(
+            content: Text(
+              AppLocalizations.of(context)!.voiceCallOneMinuteRemaining,
+            ),
             behavior: SnackBarBehavior.floating,
           ),
         );
       }
-      
+
       // End call when time is up
       if (remaining <= 0) {
         _closeCall(reason: 'time_limit_reached');
@@ -301,46 +369,172 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
+  String? _normalizeInterestTags(dynamic value) {
+    if (value is String) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+
+    if (value is List) {
+      final tags = value
+          .map((item) => item.toString().trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+      return tags.isEmpty ? null : tags.join(', ');
+    }
+
+    if (value is Map) {
+      final tags = <String>[];
+      value.forEach((key, rawValue) {
+        if (key is! String || key.trim().isEmpty) return;
+
+        final include = switch (rawValue) {
+          bool v => v,
+          num v => v > 0,
+          String v => v.trim().isNotEmpty,
+          null => false,
+          _ => true,
+        };
+
+        if (include) {
+          tags.add(key.trim());
+        }
+      });
+      return tags.isEmpty ? null : tags.join(', ');
+    }
+
+    return null;
+  }
+
+  String? _normalizeCommunicationStyle(dynamic value) {
+    if (value is String) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+
+    if (value is Map) {
+      for (final key in const ['style', 'name', 'tone']) {
+        final nested = value[key];
+        if (nested is String && nested.trim().isNotEmpty) {
+          return nested.trim();
+        }
+      }
+
+      final styles = <String>[];
+      value.forEach((key, rawValue) {
+        if (key is! String || key.trim().isEmpty) return;
+
+        final include = switch (rawValue) {
+          bool v => v,
+          num v => v > 0,
+          String v => v.trim().isNotEmpty,
+          null => false,
+          _ => true,
+        };
+
+        if (include) {
+          styles.add(key.trim());
+        }
+      });
+      return styles.isEmpty ? null : styles.join(', ');
+    }
+
+    return null;
+  }
+
+  Future<void> _finalizeUsageSession({
+    required String endReason,
+  }) async {
+    final sessionId = _callSessionId;
+    if (sessionId == null) return;
+
+    // Guard against duplicate writes when close/disconnect callbacks race.
+    _callSessionId = null;
+    try {
+      await _usageService.endVoiceCallSession(
+        sessionId: sessionId,
+        durationSeconds: _elapsedSeconds < 0 ? 0 : _elapsedSeconds,
+        endReason: endReason,
+      );
+    } catch (e) {
+      debugPrint('Error finalizing voice call session $sessionId: $e');
+    }
+  }
+
   Future<void> _startCall() async {
     if (_isConnecting || _isConnected) return;
-    
+
     // Check profile
     if (_currentProfileId == null) {
       _setStateIfMounted(() {
-        _error = 'Please select a profile first.';
+        _error = AppLocalizations.of(context)!.voiceCallSelectProfileFirst;
       });
       return;
     }
-    
+
     // Refresh and check allowance
     await _loadAllowance();
     if (_allowance == null || !_allowance!.allowed) {
       _setStateIfMounted(() {
-        _error = _allowance?.blockedReason ?? 'Voice call limit reached.';
+        _error = AppLocalizations.of(context)!.voiceCallLimitReached;
       });
       return;
     }
-    
+
     _setStateIfMounted(() {
       _isConnecting = true;
       _error = null;
       _transcript.clear();
+      _seenFinalUserTranscriptEventIds.clear();
       _currentTranscript = null;
       _elapsedSeconds = 0;
       _maxCallSeconds = _allowance!.remainingForThisCallSeconds;
     });
 
     try {
+      final profile = await _databaseService.getProfile(_currentProfileId!);
+      final resolvedProfileName = (profile?.name ?? _currentProfileName).trim();
+      final elevenUserName =
+          resolvedProfileName.isNotEmpty ? resolvedProfileName : 'there';
+      final profileCharacteristics = profile?.characteristics ?? {};
+
+      final aiPersonalityMap =
+          await _databaseService.getAIPersonalityForProfile(_currentProfileId!);
+      final interestTags = _normalizeInterestTags(
+            aiPersonalityMap?['interests'],
+          ) ??
+          _normalizeInterestTags(profileCharacteristics['interests']);
+      final communicationStyle = _normalizeCommunicationStyle(
+            aiPersonalityMap?['communication_style'],
+          ) ??
+          _normalizeCommunicationStyle(
+            profileCharacteristics['communication_style'],
+          );
+      final dynamicVariables = <String, dynamic>{
+        'user_name': elevenUserName,
+      };
+      if (interestTags != null) {
+        dynamicVariables['interest_tags'] = interestTags;
+      }
+      if (communicationStyle != null) {
+        dynamicVariables['communication_style'] = communicationStyle;
+      }
+
+      final agentIdForSelectedVoice =
+          _agentService.agentIdForVoice(voice: _selectedVoice);
+
       // Request microphone permission
       final status = await Permission.microphone.request();
       if (status != PermissionStatus.granted) {
         String errorMessage;
         if (status == PermissionStatus.permanentlyDenied) {
-          errorMessage = 'Microphone access was denied. Please enable it in Settings > Privacy > Microphone.';
+          errorMessage = AppLocalizations.of(context)!
+              .voiceCallMicrophoneDeniedPermanently;
           // Optionally open settings
           openAppSettings();
         } else {
-          errorMessage = 'Microphone permission is required for voice calls.';
+          errorMessage =
+              AppLocalizations.of(context)!.voiceCallMicrophoneRequired;
         }
         _setStateIfMounted(() {
           _isConnecting = false;
@@ -350,10 +544,12 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       }
 
       // Check if service is configured
-      if (!_agentService.isConfigured) {
+      if (agentIdForSelectedVoice == null) {
+        debugPrint(
+            'ElevenLabs call config issue: ${_agentService.configurationIssueForVoice(voice: _selectedVoice) ?? 'unknown'}');
         _setStateIfMounted(() {
           _isConnecting = false;
-          _error = 'ElevenLabs Agent is not configured. Please check your settings.';
+          _error = AppLocalizations.of(context)!.voiceCallNotConfigured;
         });
         return;
       }
@@ -361,11 +557,15 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       // Recreate client to ensure clean state
       _client?.dispose();
       _client = _buildConversationClient();
-      
+
       // Start session - SDK handles signed URL internally with agentId
-      await _client?.startSession(
-        agentId: _agentService.agentId,
-      );
+      await _client
+          ?.startSession(
+            agentId: agentIdForSelectedVoice,
+            userId: 'profile_$_currentProfileId',
+            dynamicVariables: dynamicVariables,
+          )
+          .timeout(_connectTimeout);
 
       // Only start usage tracking AFTER successful connection
       // (onConnect callback will fire, but we track here for safety)
@@ -373,30 +573,28 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         profileId: _currentProfileId!,
         isPremium: _isPremium,
       );
-      
     } catch (e) {
       debugPrint('ElevenLabs call start failed: $e');
-      
+
+      try {
+        await _client?.endSession();
+      } catch (_) {}
+
       // End usage tracking if it was started
-      if (_callSessionId != null) {
-        await _usageService.endVoiceCallSession(
-          sessionId: _callSessionId!,
-          durationSeconds: 0,
-          endReason: 'connection_failed',
-        );
-        _callSessionId = null;
-      }
-      
+      await _finalizeUsageSession(endReason: 'connection_failed');
+
       _setStateIfMounted(() {
         _isConnecting = false;
-        _error = 'Failed to connect: ${e.toString()}';
+        _error = e is TimeoutException
+            ? AppLocalizations.of(context)!.voiceCallConnectionTimedOut
+            : AppLocalizations.of(context)!.voiceCallConnectionFailed;
       });
     }
   }
 
   Future<void> _toggleMute() async {
     if (!_isConnected) return;
-    
+
     try {
       if (_isPaused) {
         await _client?.setMicMuted(false);
@@ -412,6 +610,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   Future<void> _closeCall({String reason = 'user_closed'}) async {
     if (_isClosing) return;
     _isClosing = true;
+    _pendingEndReason = reason;
     _callTimer?.cancel();
 
     _setStateIfMounted(() {
@@ -429,69 +628,38 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     await _deactivateAudioSession();
 
     // End usage tracking session
-    if (_callSessionId != null) {
-      await _usageService.endVoiceCallSession(
-        sessionId: _callSessionId!,
-        durationSeconds: _elapsedSeconds,
-        endReason: reason,
-      );
-      _callSessionId = null;
-    }
+    await _finalizeUsageSession(endReason: reason);
 
+    _pendingEndReason = null;
     _isClosing = false;
 
-    // If we have transcript, offer to save it
+    // Automatically save transcript when present.
     if (_transcript.isNotEmpty && mounted) {
-      await _showSaveTranscriptDialog();
+      await _saveTranscriptAndExit();
     } else if (mounted) {
       Navigator.of(context).pop();
     }
   }
 
-  Future<void> _showSaveTranscriptDialog() async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Call Ended'),
-        content: Text(
-          'Your ${_formatDuration(_elapsedSeconds)} call has been recorded.\n\n'
-          'Would you like to save the transcript as a new conversation?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Discard'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Save & View'),
-          ),
-        ],
+  Future<void> _saveTranscriptAndExit() async {
+    _setStateIfMounted(() => _isSavingTranscript = true);
+    final conversationId = await _saveTranscriptAsConversation();
+    _setStateIfMounted(() => _isSavingTranscript = false);
+
+    if (!mounted) return;
+
+    if (conversationId != null) {
+      Navigator.of(context).pop(conversationId);
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content:
+            Text(AppLocalizations.of(context)!.voiceCallTranscriptSaveFailed),
       ),
     );
-
-    if (result == true && mounted) {
-      // Show saving indicator
-      _setStateIfMounted(() => _isSavingTranscript = true);
-      
-      final conversationId = await _saveTranscriptAsConversation();
-      
-      _setStateIfMounted(() => _isSavingTranscript = false);
-      
-      if (conversationId != null && mounted) {
-        // Pop back to chat screen with the new conversation ID
-        Navigator.of(context).pop(conversationId);
-      } else if (mounted) {
-        // Show error and still pop
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to save transcript')),
-        );
-        Navigator.of(context).pop();
-      }
-    } else if (mounted) {
-      Navigator.of(context).pop();
-    }
+    Navigator.of(context).pop();
   }
 
   Future<int?> _saveTranscriptAsConversation() async {
@@ -499,18 +667,20 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
 
     try {
       final now = DateTime.now();
-      
+
       // Create conversation
       final conversationData = {
-        'title': 'Voice Call - ${_formatDateTime(now)}',
+        'title': AppLocalizations.of(context)!
+            .voiceCallConversationTitle(_formatDateTime(now)),
         'is_pinned': 0,
         'created_at': now.toIso8601String(),
         'updated_at': now.toIso8601String(),
         'profile_id': _currentProfileId,
       };
-      
-      final conversationId = await _databaseService.insertConversation(conversationData);
-      
+
+      final conversationId =
+          await _databaseService.insertConversation(conversationData);
+
       // Insert all transcript entries as messages
       for (final entry in _transcript) {
         final message = ChatMessage(
@@ -522,7 +692,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         );
         await _databaseService.insertChatMessage(message);
       }
-      
+
       return conversationId;
     } catch (e) {
       debugPrint('Error saving transcript: $e');
@@ -534,21 +704,31 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     return '${dt.month}/${dt.day} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
   }
 
+  DateTime _nextWeeklyResetDateTime() {
+    final now = DateTime.now();
+    final startOfWeek = DateTime(now.year, now.month, now.day)
+        .subtract(Duration(days: now.weekday - 1));
+    return startOfWeek.add(const Duration(days: 7));
+  }
+
+  String _formatResetDateTime(DateTime dt) {
+    const weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    final dayName = weekdayNames[dt.weekday - 1];
+    final hour = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
+    final minute = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$dayName ${dt.month}/${dt.day}, $hour:$minute $period';
+  }
+
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _orbPulseController.dispose();
     _callTimer?.cancel();
-    
-    // End usage tracking if still active
-    if (_callSessionId != null) {
-      _usageService.endVoiceCallSession(
-        sessionId: _callSessionId!,
-        durationSeconds: _elapsedSeconds,
-        endReason: 'disposed',
-      );
-    }
-    
+
+    _pendingEndReason ??= 'disposed';
+    unawaited(_finalizeUsageSession(endReason: _pendingEndReason!));
+
     _client?.dispose();
     super.dispose();
   }
@@ -563,281 +743,421 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primaryColor = theme.colorScheme.primary;
-    
+
     final isBlocked = _allowance != null && !_allowance!.allowed;
     final showStartButton = !_isConnected && !_isConnecting && !isBlocked;
+    final l10n = AppLocalizations.of(context)!;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isCompact = screenWidth < 360;
+    final orbSize = isCompact ? 160.0 : 200.0;
+    final verticalGap = isCompact ? 24.0 : 40.0;
+    final canSwitchVoice = !_isConnected && !_isConnecting;
+    final maleVoiceConfigured =
+        _agentService.isConfiguredForVoice(voice: ElevenLabsVoicePreset.male);
+    final femaleVoiceConfigured =
+        _agentService.isConfiguredForVoice(voice: ElevenLabsVoicePreset.female);
+    final blockedResetText =
+        '${l10n.usageReset}: ${_formatResetDateTime(_nextWeeklyResetDateTime())}';
     final statusText = _currentTranscript ??
         (_isSavingTranscript
-            ? 'Saving transcript...'
+            ? l10n.voiceCallSavingTranscript
             : _isPaused
-                ? 'Mic is muted'
+                ? l10n.voiceCallMicMuted
                 : _isConnected
-                    ? (_isAssistantSpeaking ? 'AI is speaking...' : 'Listening...')
-                    : (_isConnecting 
-                        ? 'Connecting...' 
-                        : (isBlocked ? 'Limit reached' : 'Tap to start')));
+                    ? (_isAssistantSpeaking
+                        ? l10n.voiceCallAiSpeaking
+                        : l10n.listening)
+                    : (_isConnecting
+                        ? l10n.voiceCallConnecting
+                        : (isBlocked
+                            ? l10n.voiceCallLimitReached
+                            : l10n.voiceCallTapToStart)));
 
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF1A1A2E) : const Color(0xFFF0F4FF),
+      backgroundColor:
+          isDark ? const Color(0xFF1A1A2E) : const Color(0xFFF0F4FF),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.close, color: isDark ? Colors.white : Colors.black87),
+          icon:
+              Icon(Icons.close, color: isDark ? Colors.white : Colors.black87),
           onPressed: () => _closeCall(reason: 'back_button'),
         ),
-        title: Text(
-          'Voice Call',
-          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                l10n.voiceCallFeatureTitle,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.18),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.orange.withOpacity(0.5)),
+              ),
+              child: const Text(
+                'PREVIEW',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.6,
+                  color: Colors.orange,
+                ),
+              ),
+            ),
+          ],
         ),
         actions: [
           if (_isConnected)
             IconButton(
               icon: Icon(
                 _isPaused ? Icons.mic_off : Icons.mic,
-                color: _isPaused ? Colors.red : (isDark ? Colors.white : Colors.black87),
+                color: _isPaused
+                    ? Colors.red
+                    : (isDark ? Colors.white : Colors.black87),
               ),
               onPressed: _toggleMute,
-              tooltip: _isPaused ? 'Unmute' : 'Mute',
+              tooltip: _isPaused ? l10n.voiceCallUnmute : l10n.voiceCallMute,
             ),
         ],
       ),
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Call duration / remaining time
-                if (_isConnected) ...[
-                  Text(
-                    'Time remaining: ${_formatDuration(_maxCallSeconds - _elapsedSeconds)}',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: (_maxCallSeconds - _elapsedSeconds) <= 60 
-                          ? Colors.orange 
-                          : (isDark ? Colors.white70 : Colors.black54),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Elapsed: ${_formatDuration(_elapsedSeconds)}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.white38 : Colors.black38,
-                    ),
-                  ),
-                ] else if (_allowance != null && !_isConnecting) ...[
-                  // Show quota info before call
-                  Text(
-                    _isPremium ? 'Premium' : 'Free Tier',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: _isPremium ? Colors.amber : (isDark ? Colors.white54 : Colors.black45),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Available: ${_allowance!.remainingTodayFormatted} today',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isDark ? Colors.white54 : Colors.black45,
-                    ),
-                  ),
-                ],
-                
-                const SizedBox(height: 40),
-                
-                // Animated orb / call button
-                AnimatedBuilder(
-                  animation: _orbPulseController,
-                  builder: (context, child) {
-                    final t = _orbPulseController.value;
-                    final pulseScale = showStartButton ? (1.0 + (t * 0.08)) : 1.0;
-                    final glowOpacity = showStartButton ? (0.15 + (t * 0.2)) : (isBlocked ? 0.05 : 0.1);
-                    final orbColor = isBlocked ? Colors.grey : primaryColor;
-                    
-                    return GestureDetector(
-                      onTap: showStartButton ? _startCall : null,
-                      child: Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: orbColor.withOpacity(glowOpacity),
-                              blurRadius: 40,
-                              spreadRadius: 10,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Call duration / remaining time
+                      if (_isConnected) ...[
+                        Text(
+                          l10n.voiceCallTimeRemaining(
+                            _formatDuration(_maxCallSeconds - _elapsedSeconds),
+                          ),
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: (_maxCallSeconds - _elapsedSeconds) <= 60
+                                ? Colors.orange
+                                : (isDark ? Colors.white70 : Colors.black54),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.voiceCallElapsed(
+                              _formatDuration(_elapsedSeconds)),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.white38 : Colors.black38,
+                          ),
+                        ),
+                      ] else if (_allowance != null && !_isConnecting) ...[
+                        // Show quota info before call
+                        Text(
+                          _isPremium ? l10n.premium : l10n.voiceCallFreeTier,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: _isPremium
+                                ? Colors.amber
+                                : (isDark ? Colors.white54 : Colors.black45),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          l10n.voiceCallAvailableToday(
+                              _allowance!.remainingTodayFormatted),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isDark ? Colors.white54 : Colors.black45,
+                          ),
+                        ),
+                      ],
+
+                      if (!_isConnected) ...[
+                        const SizedBox(height: 18),
+                        Text(
+                          'Voice',
+                          style: TextStyle(
+                            fontSize: 12,
+                            letterSpacing: 0.3,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white54 : Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 10,
+                          children: [
+                            ChoiceChip(
+                              label: const Text('Male'),
+                              selected:
+                                  _selectedVoice == ElevenLabsVoicePreset.male,
+                              onSelected: canSwitchVoice && maleVoiceConfigured
+                                  ? (_) {
+                                      setState(() {
+                                        _selectedVoice =
+                                            ElevenLabsVoicePreset.male;
+                                      });
+                                    }
+                                  : null,
+                            ),
+                            ChoiceChip(
+                              label: const Text('Female'),
+                              selected: _selectedVoice ==
+                                  ElevenLabsVoicePreset.female,
+                              onSelected:
+                                  canSwitchVoice && femaleVoiceConfigured
+                                      ? (_) {
+                                          setState(() {
+                                            _selectedVoice =
+                                                ElevenLabsVoicePreset.female;
+                                          });
+                                        }
+                                      : null,
                             ),
                           ],
                         ),
-                        child: Transform.scale(
-                          scale: pulseScale,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                center: const Alignment(-0.3, -0.3),
-                                radius: 1.0,
-                                colors: _isConnected
-                                    ? [
-                                        primaryColor.withOpacity(0.8),
-                                        primaryColor,
-                                        primaryColor.withOpacity(0.9),
-                                      ]
-                                    : isBlocked
-                                        ? [
-                                            Colors.grey.shade300,
-                                            Colors.grey.shade400,
-                                            Colors.grey.shade500,
-                                          ]
-                                        : [
-                                            Colors.white,
-                                            primaryColor.withOpacity(0.3),
-                                            primaryColor.withOpacity(0.6),
-                                          ],
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: orbColor.withOpacity(0.3),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    _isConnected 
-                                        ? (_isAssistantSpeaking ? Icons.volume_up : Icons.hearing)
-                                        : isBlocked
-                                            ? Icons.block
-                                            : Icons.phone,
-                                    size: 48,
-                                    color: _isConnected ? Colors.white : (isBlocked ? Colors.grey.shade600 : primaryColor),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    _isConnecting 
-                                        ? 'Calling...'
-                                        : _isConnected 
-                                            ? 'Connected' 
-                                            : isBlocked
-                                                ? 'Limit\nReached'
-                                                : 'Speak',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: isBlocked ? 18 : 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: _isConnected ? Colors.white : (isBlocked ? Colors.grey.shade600 : primaryColor),
-                                    ),
+                      ],
+
+                      SizedBox(height: verticalGap),
+
+                      // Animated orb / call button
+                      AnimatedBuilder(
+                        animation: _orbPulseController,
+                        builder: (context, child) {
+                          final t = _orbPulseController.value;
+                          final pulseScale =
+                              showStartButton ? (1.0 + (t * 0.08)) : 1.0;
+                          final glowOpacity = showStartButton
+                              ? (0.15 + (t * 0.2))
+                              : (isBlocked ? 0.05 : 0.1);
+                          final orbColor =
+                              isBlocked ? Colors.grey : primaryColor;
+
+                          return GestureDetector(
+                            onTap: showStartButton ? _startCall : null,
+                            child: Container(
+                              width: orbSize,
+                              height: orbSize,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: orbColor.withOpacity(glowOpacity),
+                                    blurRadius: 40,
+                                    spreadRadius: 10,
                                   ),
                                 ],
                               ),
+                              child: Transform.scale(
+                                scale: pulseScale,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: RadialGradient(
+                                      center: const Alignment(-0.3, -0.3),
+                                      radius: 1.0,
+                                      colors: _isConnected
+                                          ? [
+                                              primaryColor.withOpacity(0.8),
+                                              primaryColor,
+                                              primaryColor.withOpacity(0.9),
+                                            ]
+                                          : isBlocked
+                                              ? [
+                                                  Colors.grey.shade300,
+                                                  Colors.grey.shade400,
+                                                  Colors.grey.shade500,
+                                                ]
+                                              : [
+                                                  Colors.white,
+                                                  primaryColor.withOpacity(0.3),
+                                                  primaryColor.withOpacity(0.6),
+                                                ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: orbColor.withOpacity(0.3),
+                                        blurRadius: 20,
+                                        offset: const Offset(0, 10),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          _isConnected
+                                              ? (_isAssistantSpeaking
+                                                  ? Icons.volume_up
+                                                  : Icons.hearing)
+                                              : isBlocked
+                                                  ? Icons.block
+                                                  : Icons.phone,
+                                          size: isCompact ? 40 : 48,
+                                          color: _isConnected
+                                              ? Colors.white
+                                              : (isBlocked
+                                                  ? Colors.grey.shade600
+                                                  : primaryColor),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          _isConnecting
+                                              ? l10n.voiceCallCalling
+                                              : _isConnected
+                                                  ? l10n.voiceCallConnected
+                                                  : isBlocked
+                                                      ? l10n
+                                                          .voiceCallLimitReached
+                                                      : l10n.speakButtonLabel,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontSize: isBlocked
+                                                ? (isCompact ? 16 : 18)
+                                                : (isCompact ? 18 : 20),
+                                            fontWeight: FontWeight.bold,
+                                            color: _isConnected
+                                                ? Colors.white
+                                                : (isBlocked
+                                                    ? Colors.grey.shade600
+                                                    : primaryColor),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
+                          );
+                        },
+                      ),
+
+                      SizedBox(height: verticalGap),
+
+                      // Transcript / status display
+                      Container(
+                        width: double.infinity,
+                        constraints: const BoxConstraints(maxHeight: 150),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.white.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: primaryColor.withOpacity(0.2),
+                          ),
+                        ),
+                        child: SingleChildScrollView(
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
                       ),
-                    );
-                  },
+
+                      // Error message
+                      if (_error != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Text(
+                            _error!,
+                            style: const TextStyle(color: Colors.red),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+
+                      // Blocked message and upgrade button
+                      if (isBlocked) ...[
+                        Padding(
+                          padding: const EdgeInsets.only(top: 16),
+                          child: Column(
+                            children: [
+                              Text(
+                                l10n.voiceCallLimitReached,
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.orange.shade300
+                                      : Colors.orange.shade700,
+                                  fontSize: 14,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                blockedResetText,
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.white54
+                                      : Colors.grey.shade700,
+                                  fontSize: 12,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!_isPremium) ...[
+                          const SizedBox(height: 16),
+                          FilledButton.icon(
+                            onPressed: _navigateToSubscription,
+                            icon: const Icon(Icons.star),
+                            label: Text(l10n.voiceCallUpgradePrompt),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.amber,
+                              foregroundColor: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ],
+
+                      SizedBox(height: verticalGap),
+
+                      // Saving indicator
+                      if (_isSavingTranscript)
+                        const CircularProgressIndicator(),
+
+                      // End call button (when connected)
+                      if (_isConnected)
+                        FilledButton.icon(
+                          onPressed: () => _closeCall(),
+                          icon: const Icon(Icons.call_end),
+                          label: Text(l10n.voiceCallEndCall),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                
-                const SizedBox(height: 40),
-                
-                // Transcript / status display
-                Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(maxHeight: 150),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark 
-                        ? Colors.white.withOpacity(0.1) 
-                        : Colors.white.withOpacity(0.8),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: primaryColor.withOpacity(0.2),
-                    ),
-                  ),
-                  child: SingleChildScrollView(
-                    child: Text(
-                      statusText,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-                
-                // Error message
-                if (_error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Text(
-                      _error!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                
-                // Blocked message and upgrade button
-                if (isBlocked && _allowance?.blockedReason != null) ...[
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16),
-                    child: Text(
-                      _allowance!.blockedReason!,
-                      style: TextStyle(
-                        color: isDark ? Colors.orange.shade300 : Colors.orange.shade700,
-                        fontSize: 14,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                  if (!_isPremium) ...[
-                    const SizedBox(height: 16),
-                    FilledButton.icon(
-                      onPressed: _navigateToSubscription,
-                      icon: const Icon(Icons.star),
-                      label: const Text('Upgrade for More Time'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.amber,
-                        foregroundColor: Colors.black87,
-                      ),
-                    ),
-                  ],
-                ],
-                
-                const SizedBox(height: 40),
-                
-                // Saving indicator
-                if (_isSavingTranscript)
-                  const CircularProgressIndicator(),
-                
-                // End call button (when connected)
-                if (_isConnected)
-                  FilledButton.icon(
-                    onPressed: () => _closeCall(),
-                    icon: const Icon(Icons.call_end),
-                    label: const Text('End Call'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );

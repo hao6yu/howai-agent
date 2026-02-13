@@ -1001,5 +1001,96 @@
   "premiumBannerTitle4": "اكتشف ميزات بريميوم",
   "premiumBannerSubtitle4": "وصول غير محدود إلى الذكاء الاصطناعي المتقدم",
   "premiumBannerTitle5": "سرّع سير عملك",
-  "premiumBannerSubtitle5": "بريميوم يجعل كل شيء ممكنًا"
+  "premiumBannerSubtitle5": "بريميوم يجعل كل شيء ممكنًا",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "تحدث",
+  "speakButtonTooltip": "بدء مكالمة صوتية",
+  "voiceCallAiSpeaking": "الذكاء الاصطناعي يتحدث...",
+  "voiceCallAvailableToday": "Available today: {time}",
+  "voiceCallCalling": "جارٍ الاتصال...",
+  "voiceCallConnected": "متصل",
+  "voiceCallConnecting": "جارٍ الاتصال...",
+  "voiceCallConnectionFailed": "تعذّر الاتصال بالمكالمة الصوتية. يرجى المحاولة مرة أخرى.",
+  "voiceCallConnectionIssue": "حدثت مشكلة في الاتصال أثناء المكالمة الصوتية. يرجى المحاولة مرة أخرى.",
+  "voiceCallConnectionTimedOut": "انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.",
+  "voiceCallConversationTitle": "مكالمة صوتية - {time}",
+  "voiceCallDiscard": "تجاهل",
+  "voiceCallElapsed": "المدة: {time}",
+  "voiceCallEndCall": "إنهاء المكالمة",
+  "voiceCallEndedTitle": "انتهت المكالمة",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "voiceCallFreeTier": "الخطة المجانية",
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallMicMuted": "تم كتم الميكروفون",
+  "voiceCallMicrophoneDeniedPermanently": "تم رفض الوصول إلى الميكروفون. يرجى تفعيله من الإعدادات > الخصوصية > الميكروفون.",
+  "voiceCallMicrophoneRequired": "إذن الميكروفون مطلوب للمكالمات الصوتية.",
+  "voiceCallMute": "كتم",
+  "voiceCallNotConfigured": "المكالمة الصوتية غير مُعدّة. يرجى التحقق من الإعدادات.",
+  "voiceCallOneMinuteRemaining": "تبقّت دقيقة واحدة في هذه المكالمة",
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "voiceCallSaveAndView": "حفظ وعرض",
+  "voiceCallSaveTranscriptPrompt": "تم تسجيل مكالمتك لمدة {duration}.\n\nهل تريد حفظ النص كمحادثة جديدة؟",
+  "voiceCallSavingTranscript": "جارٍ حفظ النص...",
+  "voiceCallSelectProfileFirst": "يرجى اختيار ملف شخصي أولاً.",
+  "voiceCallTapToStart": "اضغط للبدء",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "voiceCallTranscriptSaveFailed": "تعذّر حفظ النص. يرجى المحاولة مرة أخرى.",
+  "voiceCallUnmute": "إلغاء الكتم",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
 }

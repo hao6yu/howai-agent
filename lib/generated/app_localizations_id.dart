@@ -2890,8 +2890,92 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get speakButtonLabel => 'Speak';
+  String get voiceCallOneMinuteRemaining => 'Sisa 1 menit dalam panggilan ini';
 
   @override
-  String get speakButtonTooltip => 'Start voice call';
+  String get voiceCallSelectProfileFirst => 'Silakan pilih profil terlebih dahulu.';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => 'Akses mikrofon ditolak. Aktifkan di Pengaturan > Privasi > Mikrofon.';
+
+  @override
+  String get voiceCallMicrophoneRequired => 'Izin mikrofon diperlukan untuk panggilan suara.';
+
+  @override
+  String get voiceCallNotConfigured => 'Panggilan suara belum dikonfigurasi. Periksa pengaturan Anda.';
+
+  @override
+  String get voiceCallConnectionTimedOut => 'Waktu koneksi habis. Silakan coba lagi.';
+
+  @override
+  String get voiceCallConnectionFailed => 'Tidak dapat terhubung ke panggilan suara. Silakan coba lagi.';
+
+  @override
+  String get voiceCallConnectionIssue => 'Terjadi masalah koneksi selama panggilan suara. Silakan coba lagi.';
+
+  @override
+  String get voiceCallEndedTitle => 'Panggilan berakhir';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return 'Panggilan Anda selama $duration telah direkam.\n\nSimpan transkrip sebagai percakapan baru?';
+  }
+
+  @override
+  String get voiceCallDiscard => 'Buang';
+
+  @override
+  String get voiceCallSaveAndView => 'Simpan & lihat';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => 'Gagal menyimpan transkrip. Silakan coba lagi.';
+
+  @override
+  String get voiceCallSavingTranscript => 'Menyimpan transkrip...';
+
+  @override
+  String get voiceCallMicMuted => 'Mikrofon dibisukan';
+
+  @override
+  String get voiceCallAiSpeaking => 'AI sedang berbicara...';
+
+  @override
+  String get voiceCallConnecting => 'Menghubungkan...';
+
+  @override
+  String get voiceCallTapToStart => 'Ketuk untuk mulai';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return 'Berjalan: $time';
+  }
+
+  @override
+  String get voiceCallFreeTier => 'Paket Gratis';
+
+  @override
+  String get voiceCallCalling => 'Memanggil...';
+
+  @override
+  String get voiceCallConnected => 'Terhubung';
+
+  @override
+  String get voiceCallUnmute => 'Nyalakan mikrofon';
+
+  @override
+  String get voiceCallMute => 'Bisukan';
+
+  @override
+  String get voiceCallEndCall => 'Akhiri panggilan';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return 'Panggilan Suara - $time';
+  }
+
+  @override
+  String get speakButtonLabel => 'Bicara';
+
+  @override
+  String get speakButtonTooltip => 'Mulai panggilan suara';
 }

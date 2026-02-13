@@ -100,3 +100,4 @@ flutter_launcher_icons:
 
 dependency_overrides:
   screenshot: ^3.0.0  # Force compatible screenshot version
+  livekit_client: 2.5.3  # Keep API compatible with elevenlabs_agents 0.3.0

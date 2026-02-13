@@ -23,7 +23,8 @@ class ImageGalleryDialog extends StatefulWidget {
   State<ImageGalleryDialog> createState() => _ImageGalleryDialogState();
 }
 
-class _ImageGalleryDialogState extends State<ImageGalleryDialog> with TickerProviderStateMixin {
+class _ImageGalleryDialogState extends State<ImageGalleryDialog>
+    with TickerProviderStateMixin {
   late PageController _pageController;
   late int _currentIndex;
   late AnimationController _saveSuccessController;
@@ -219,7 +220,8 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog> with TickerProv
               Positioned(
                 bottom: 32,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(20),
@@ -232,7 +234,9 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog> with TickerProv
               ),
 
             // Show download/save button for both local and remote images on all platforms
-            if (widget.imagePaths[_currentIndex].startsWith('http') || widget.imagePaths[_currentIndex].startsWith('data:image') || File(widget.imagePaths[_currentIndex]).existsSync())
+            if (widget.imagePaths[_currentIndex].startsWith('http') ||
+                widget.imagePaths[_currentIndex].startsWith('data:image') ||
+                File(widget.imagePaths[_currentIndex]).existsSync())
               Positioned(
                 top: 48,
                 right: 24,
@@ -242,7 +246,8 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog> with TickerProv
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.save_alt_rounded, color: Colors.white, size: 28),
+                    icon: const Icon(Icons.save_alt_rounded,
+                        color: Colors.white, size: 28),
                     tooltip: AppLocalizations.of(context)!.saveToPhotos,
                     onPressed: () async {
                       final path = widget.imagePaths[_currentIndex];
@@ -256,7 +261,8 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog> with TickerProv
                         } else if (path.startsWith('data:image')) {
                           // Handle base64 data URLs
                           final base64Data = path.split(',').last;
-                          imageBytes = Uint8List.fromList(base64Decode(base64Data));
+                          imageBytes =
+                              Uint8List.fromList(base64Decode(base64Data));
                         } else if (File(path).existsSync()) {
                           imageBytes = await File(path).readAsBytes();
                         }
@@ -280,9 +286,11 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog> with TickerProv
                                   SnackBar(
                                       content: Row(
                                         children: [
-                                          Icon(Icons.check_circle, color: Colors.white),
+                                          Icon(Icons.check_circle,
+                                              color: Colors.white),
                                           SizedBox(width: 8),
-                                          Text(AppLocalizations.of(context)!.imageSaved),
+                                          Text(AppLocalizations.of(context)!
+                                              .imageSaved),
                                         ],
                                       ),
                                       backgroundColor: Colors.green,
@@ -292,7 +300,11 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog> with TickerProv
                             } else {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(content: Text('Permission denied to save image'), duration: Duration(seconds: 2)),
+                                  SnackBar(
+                                    content: Text(AppLocalizations.of(context)!
+                                        .failedToSaveImage),
+                                    duration: Duration(seconds: 2),
+                                  ),
                                 );
                               }
                             }
@@ -300,21 +312,31 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog> with TickerProv
                             // print('Error saving image: $e');
                             if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(AppLocalizations.of(context)!.failedToSaveImage), duration: Duration(seconds: 2)),
+                                SnackBar(
+                                    content: Text(AppLocalizations.of(context)!
+                                        .failedToSaveImage),
+                                    duration: Duration(seconds: 2)),
                               );
                             }
                           }
                         } else {
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(AppLocalizations.of(context)!.failedToDownloadImage), duration: Duration(seconds: 2)),
+                              SnackBar(
+                                  content: Text(AppLocalizations.of(context)!
+                                      .failedToDownloadImage),
+                                  duration: Duration(seconds: 2)),
                             );
                           }
                         }
                       } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Error: $e'), duration: Duration(seconds: 2)),
+                            SnackBar(
+                              content: Text(AppLocalizations.of(context)!
+                                  .somethingWentWrong),
+                              duration: Duration(seconds: 2),
+                            ),
                           );
                         }
                       }
@@ -330,7 +352,8 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog> with TickerProv
                 builder: (context, child) {
                   return Positioned.fill(
                     child: Container(
-                      color: Colors.black.withOpacity(0.3 * _saveSuccessAnimation.value),
+                      color: Colors.black
+                          .withOpacity(0.3 * _saveSuccessAnimation.value),
                       child: Center(
                         child: Transform.scale(
                           scale: _saveSuccessAnimation.value,

@@ -2890,8 +2890,92 @@ class AppLocalizationsEs extends AppLocalizations {
   }
 
   @override
-  String get speakButtonLabel => 'Speak';
+  String get voiceCallOneMinuteRemaining => 'Queda 1 minuto en esta llamada';
 
   @override
-  String get speakButtonTooltip => 'Start voice call';
+  String get voiceCallSelectProfileFirst => 'Selecciona un perfil primero.';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => 'Se denegó el acceso al micrófono. Actívalo en Configuración > Privacidad > Micrófono.';
+
+  @override
+  String get voiceCallMicrophoneRequired => 'Se requiere permiso de micrófono para las llamadas de voz.';
+
+  @override
+  String get voiceCallNotConfigured => 'La llamada de voz no está configurada. Revisa tu configuración.';
+
+  @override
+  String get voiceCallConnectionTimedOut => 'La conexión agotó el tiempo. Inténtalo de nuevo.';
+
+  @override
+  String get voiceCallConnectionFailed => 'No se pudo conectar la llamada de voz. Inténtalo de nuevo.';
+
+  @override
+  String get voiceCallConnectionIssue => 'Hubo un problema de conexión durante la llamada de voz. Inténtalo de nuevo.';
+
+  @override
+  String get voiceCallEndedTitle => 'Llamada finalizada';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return 'Tu llamada de $duration se ha grabado.\n\n¿Quieres guardar la transcripción como una conversación nueva?';
+  }
+
+  @override
+  String get voiceCallDiscard => 'Descartar';
+
+  @override
+  String get voiceCallSaveAndView => 'Guardar y ver';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => 'No se pudo guardar la transcripción. Inténtalo de nuevo.';
+
+  @override
+  String get voiceCallSavingTranscript => 'Guardando transcripción...';
+
+  @override
+  String get voiceCallMicMuted => 'Micrófono silenciado';
+
+  @override
+  String get voiceCallAiSpeaking => 'La IA está hablando...';
+
+  @override
+  String get voiceCallConnecting => 'Conectando...';
+
+  @override
+  String get voiceCallTapToStart => 'Toca para empezar';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return 'Transcurrido: $time';
+  }
+
+  @override
+  String get voiceCallFreeTier => 'Plan gratuito';
+
+  @override
+  String get voiceCallCalling => 'Llamando...';
+
+  @override
+  String get voiceCallConnected => 'Conectado';
+
+  @override
+  String get voiceCallUnmute => 'Activar micrófono';
+
+  @override
+  String get voiceCallMute => 'Silenciar';
+
+  @override
+  String get voiceCallEndCall => 'Finalizar llamada';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return 'Llamada de voz - $time';
+  }
+
+  @override
+  String get speakButtonLabel => 'Hablar';
+
+  @override
+  String get speakButtonTooltip => 'Iniciar llamada de voz';
 }

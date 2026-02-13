@@ -2890,8 +2890,92 @@ class AppLocalizationsVi extends AppLocalizations {
   }
 
   @override
-  String get speakButtonLabel => 'Speak';
+  String get voiceCallOneMinuteRemaining => 'Còn 1 phút trong cuộc gọi này';
 
   @override
-  String get speakButtonTooltip => 'Start voice call';
+  String get voiceCallSelectProfileFirst => 'Vui lòng chọn hồ sơ trước.';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => 'Quyền truy cập micrô đã bị từ chối. Hãy bật trong Cài đặt > Quyền riêng tư > Micrô.';
+
+  @override
+  String get voiceCallMicrophoneRequired => 'Cần quyền micrô để gọi giọng nói.';
+
+  @override
+  String get voiceCallNotConfigured => 'Cuộc gọi giọng nói chưa được cấu hình. Vui lòng kiểm tra cài đặt.';
+
+  @override
+  String get voiceCallConnectionTimedOut => 'Kết nối đã hết thời gian chờ. Vui lòng thử lại.';
+
+  @override
+  String get voiceCallConnectionFailed => 'Không thể kết nối cuộc gọi giọng nói. Vui lòng thử lại.';
+
+  @override
+  String get voiceCallConnectionIssue => 'Đã xảy ra sự cố kết nối trong cuộc gọi giọng nói. Vui lòng thử lại.';
+
+  @override
+  String get voiceCallEndedTitle => 'Cuộc gọi đã kết thúc';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return 'Cuộc gọi $duration của bạn đã được ghi lại.\n\nBạn có muốn lưu bản ghi thành cuộc trò chuyện mới không?';
+  }
+
+  @override
+  String get voiceCallDiscard => 'Bỏ';
+
+  @override
+  String get voiceCallSaveAndView => 'Lưu và xem';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => 'Không thể lưu bản ghi. Vui lòng thử lại.';
+
+  @override
+  String get voiceCallSavingTranscript => 'Đang lưu bản ghi...';
+
+  @override
+  String get voiceCallMicMuted => 'Micrô đã tắt tiếng';
+
+  @override
+  String get voiceCallAiSpeaking => 'AI đang nói...';
+
+  @override
+  String get voiceCallConnecting => 'Đang kết nối...';
+
+  @override
+  String get voiceCallTapToStart => 'Chạm để bắt đầu';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return 'Đã trôi qua: $time';
+  }
+
+  @override
+  String get voiceCallFreeTier => 'Gói miễn phí';
+
+  @override
+  String get voiceCallCalling => 'Đang gọi...';
+
+  @override
+  String get voiceCallConnected => 'Đã kết nối';
+
+  @override
+  String get voiceCallUnmute => 'Bật tiếng micrô';
+
+  @override
+  String get voiceCallMute => 'Tắt tiếng';
+
+  @override
+  String get voiceCallEndCall => 'Kết thúc cuộc gọi';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return 'Cuộc gọi giọng nói - $time';
+  }
+
+  @override
+  String get speakButtonLabel => 'Nói';
+
+  @override
+  String get speakButtonTooltip => 'Bắt đầu cuộc gọi giọng nói';
 }

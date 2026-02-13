@@ -1000,5 +1000,96 @@
   "premiumBannerTitle4": "Откройте возможности Premium",
   "premiumBannerSubtitle4": "Безлимитный доступ к продвинутому AI",
   "premiumBannerTitle5": "Ускорьте рабочий процесс",
-  "premiumBannerSubtitle5": "С Premium возможно всё"
+  "premiumBannerSubtitle5": "С Premium возможно всё",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "Говорить",
+  "speakButtonTooltip": "Начать голосовой звонок",
+  "voiceCallAiSpeaking": "ИИ говорит...",
+  "voiceCallAvailableToday": "Available today: {time}",
+  "voiceCallCalling": "Вызов...",
+  "voiceCallConnected": "Подключено",
+  "voiceCallConnecting": "Подключение...",
+  "voiceCallConnectionFailed": "Не удалось подключить голосовой звонок. Попробуйте снова.",
+  "voiceCallConnectionIssue": "Во время голосового звонка возникла проблема с соединением. Попробуйте снова.",
+  "voiceCallConnectionTimedOut": "Время ожидания соединения истекло. Попробуйте снова.",
+  "voiceCallConversationTitle": "Голосовой звонок - {time}",
+  "voiceCallDiscard": "Не сохранять",
+  "voiceCallElapsed": "Прошло: {time}",
+  "voiceCallEndCall": "Завершить звонок",
+  "voiceCallEndedTitle": "Звонок завершён",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "voiceCallFreeTier": "Бесплатный план",
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallMicMuted": "Микрофон выключен",
+  "voiceCallMicrophoneDeniedPermanently": "Доступ к микрофону запрещён. Включите его в Настройки > Конфиденциальность > Микрофон.",
+  "voiceCallMicrophoneRequired": "Для голосовых звонков требуется разрешение на микрофон.",
+  "voiceCallMute": "Выключить микрофон",
+  "voiceCallNotConfigured": "Голосовой звонок не настроен. Проверьте настройки.",
+  "voiceCallOneMinuteRemaining": "До конца звонка осталась 1 минута",
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "voiceCallSaveAndView": "Сохранить и открыть",
+  "voiceCallSaveTranscriptPrompt": "Ваш звонок длительностью {duration} был записан.\n\nСохранить расшифровку как новый диалог?",
+  "voiceCallSavingTranscript": "Сохранение расшифровки...",
+  "voiceCallSelectProfileFirst": "Сначала выберите профиль.",
+  "voiceCallTapToStart": "Нажмите, чтобы начать",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "voiceCallTranscriptSaveFailed": "Не удалось сохранить расшифровку. Попробуйте снова.",
+  "voiceCallUnmute": "Включить микрофон",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
 }

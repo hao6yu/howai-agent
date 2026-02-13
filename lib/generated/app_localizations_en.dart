@@ -323,7 +323,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get premiumTitle => 'HowAI Premium';
+  String get premiumTitle => 'HowAI Pro';
 
   @override
   String get imageGeneration => 'Image Generation';
@@ -682,10 +682,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get inputRecommendMovies => 'Recommend movies or books about ';
 
   @override
-  String get premiumFeatureTitle => 'Premium Feature';
+  String get premiumFeatureTitle => 'Pro Feature';
 
   @override
-  String get premiumFeatureDesc => 'This feature requires a premium subscription. Upgrade to unlock advanced capabilities and enhanced AI features.';
+  String get premiumFeatureDesc => 'This feature requires a Pro subscription. Upgrade to unlock advanced capabilities and enhanced AI features.';
 
   @override
   String get maybeLater => 'Maybe Later';
@@ -962,10 +962,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldNotPlayDemoAudio => 'Could not play demo audio.';
 
   @override
-  String get premiumFeatures => 'Premium Features';
+  String get premiumFeatures => 'Pro Features';
 
   @override
-  String get freeUsersDeviceTts => 'Free users can use device text-to-speech. Premium users get natural AI voice responses with human-like quality and intonation.';
+  String get freeUsersDeviceTts => 'Free users can use device text-to-speech. Pro users get natural AI voice responses with human-like quality and intonation.';
 
   @override
   String get aiImageGeneration => 'AI Image Generation';
@@ -998,7 +998,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiProfileInsightsDesc => 'Get AI-powered analysis of your conversation patterns and personalized insights about your communication style and preferences.';
 
   @override
-  String get freeVsPremium => 'Free vs Premium';
+  String get freeVsPremium => 'Free vs Pro';
 
   @override
   String get unlimitedChatMessages => 'Unlimited Chat Messages';
@@ -1019,7 +1019,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareMessageAsPdf => 'Share Message as PDF';
 
   @override
-  String get premiumAiVoice => 'Premium AI Voice';
+  String get premiumAiVoice => 'Pro AI Voice';
 
   @override
   String get fiveTotalLimit => '5 total';
@@ -1102,7 +1102,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currentStatus => 'Current Status:';
 
   @override
-  String get premium => 'Premium';
+  String get premium => 'Pro';
 
   @override
   String get free => 'Free';
@@ -1177,7 +1177,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get extraLarge => 'Extra Large';
 
   @override
-  String get premiumFeaturesActive => 'Premium features active';
+  String get premiumFeaturesActive => 'Pro features active';
 
   @override
   String get upgradeToUnlockFeatures => 'Upgrade to unlock all features';
@@ -1459,10 +1459,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get constantlyRollingOut => 'We\'re constantly rolling out new capabilities and improvements. Have a cool AI feature idea? We\'d love to hear from you!';
 
   @override
-  String get premiumActive => 'Premium Active';
+  String get premiumActive => 'Pro Active';
 
   @override
-  String get fullAccessToFeatures => 'You have full access to all premium features';
+  String get fullAccessToFeatures => 'You have full access to all Pro features';
 
   @override
   String get planType => 'Plan Type';
@@ -1495,7 +1495,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceGenerations => 'Voice Generations';
 
   @override
-  String get yourPremiumFeatures => 'Your Premium Features';
+  String get yourPremiumFeatures => 'Your Pro Features';
 
   @override
   String get unlimitedAiImageGeneration => 'Unlimited AI Image Generation';
@@ -1534,7 +1534,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get manageInAppStore => 'Manage in App Store';
 
   @override
-  String get debugPremiumFeaturesEnabled => '🔧 Debug: Premium features enabled';
+  String get debugPremiumFeaturesEnabled => '🔧 Debug: Pro features enabled';
 
   @override
   String get debugUsingRealSubscriptionStatus => '🔧 Debug: Using real subscription status';
@@ -1878,7 +1878,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get localRecommendationDetected => 'I detected you\'re looking for local recommendations!';
 
   @override
-  String get premiumFeaturesInclude => '✨ Premium features include:';
+  String get premiumFeaturesInclude => '✨ Pro features include:';
 
   @override
   String get premiumLocationFeaturesList => '• Smart location query detection\n• Real-time local search results\n• Maps integration with directions\n• Photos, ratings, and reviews\n• Open hours and contact info';
@@ -1889,10 +1889,10 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get upgradeToPremiumFor => '✨ Upgrade to Premium for:';
+  String get upgradeToPremiumFor => '✨ Upgrade to Pro for:';
 
   @override
-  String get pdfPremiumFeaturesList => '• Unlimited PDF generation\n• Professional-quality documents\n• No waiting periods\n• All premium features';
+  String get pdfPremiumFeaturesList => '• Unlimited PDF generation\n• Professional-quality documents\n• No waiting periods\n• All Pro features';
 
   @override
   String docAnalysisLimitReached(Object limit) {
@@ -1900,7 +1900,7 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get docAnalysisPremiumFeaturesList => '• Unlimited document analysis\n• Advanced file processing\n• PDF, Word, Excel support\n• All premium features';
+  String get docAnalysisPremiumFeaturesList => '• Unlimited document analysis\n• Advanced file processing\n• PDF, Word, Excel support\n• All Pro features';
 
   @override
   String placesLimitReached(Object limit) {
@@ -1908,13 +1908,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get placesPremiumFeaturesList => '• Unlimited places exploration\n• Advanced location search\n• Real-time business info\n• All premium features';
+  String get placesPremiumFeaturesList => '• Unlimited places exploration\n• Advanced location search\n• Real-time business info\n• All Pro features';
 
   @override
-  String get pptxPremiumDesc => 'Create professional PowerPoint presentations with AI assistance. This feature is available for Premium subscribers only.';
+  String get pptxPremiumDesc => 'Create professional PowerPoint presentations with AI assistance. This feature is available for Pro subscribers only.';
 
   @override
-  String get premiumBenefits => '✨ Premium Benefits:';
+  String get premiumBenefits => '✨ Pro Benefits:';
 
   @override
   String get pptxPremiumBenefitsList => '• Create professional PPTX presentations\n• Unlimited presentation generation\n• Custom themes and layouts\n• All premium AI features unlocked';
@@ -1932,10 +1932,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiImageTips => '• Style: realistic, cartoon, digital art\n• Lighting & mood details\n• Colors & composition';
 
   @override
-  String get aiImagePremiumTitle => 'AI Image Generation - Premium Feature';
+  String get aiImagePremiumTitle => 'AI Image Generation - Pro Feature';
 
   @override
-  String get aiImagePremiumDesc => 'Create stunning artwork and images from your imagination. This feature is available for Premium subscribers.';
+  String get aiImagePremiumDesc => 'Create stunning artwork and images from your imagination. This feature is available for Pro subscribers.';
 
   @override
   String get aiPersonality => 'AI Personality';
@@ -2071,7 +2071,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get failedUpdateAvatar => 'Couldn\'t update your avatar. Please try again.';
 
   @override
-  String get premiumBadge => 'PREMIUM';
+  String get premiumBadge => 'PRO';
 
   @override
   String get howAiUnderstandsYou => 'How AI understands you';
@@ -2107,7 +2107,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unlockAiInsights => 'Unlock AI Insights';
 
   @override
-  String get upgradeToPremium => 'Upgrade to Premium';
+  String get upgradeToPremium => 'Upgrade to Pro';
 
   @override
   String get profileAndAbout => 'Profile & About';
@@ -2165,7 +2165,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get couldNotOpenStreetView => 'Could not open Street View';
 
   @override
-  String get premiumAccount => 'Premium Account';
+  String get premiumAccount => 'Pro Account';
 
   @override
   String get freeAccount => 'Free Account';
@@ -2228,16 +2228,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get elevenLabsAiVoices => 'ElevenLabs AI Voices';
 
   @override
-  String get premiumRequired => 'Premium Required';
+  String get premiumRequired => 'Pro Required';
 
   @override
   String get upgrade => 'Upgrade';
 
   @override
-  String get premiumFeature => 'Premium Feature';
+  String get premiumFeature => 'Pro Feature';
 
   @override
-  String get upgradeToPremiumVoice => 'Upgrade to Premium';
+  String get upgradeToPremiumVoice => 'Upgrade to Pro';
 
   @override
   String get enterCityOrAddress => 'Enter city or address';
@@ -2324,13 +2324,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get webSearchUpgradeTitle => 'Web Search Upgrade';
 
   @override
-  String get webSearchUpgradeDesc => 'This feature requires a premium subscription. Please upgrade to use this feature.';
+  String get webSearchUpgradeDesc => 'This feature requires a Pro subscription. Please upgrade to use this feature.';
 
   @override
   String get deepResearchUpgradeTitle => 'Deep Research Mode';
 
   @override
-  String get deepResearchUpgradeDesc => 'Deep Research Mode uses gpt-5.2 with high reasoning effort for more thorough analysis and insights. This premium feature provides comprehensive explanations, multiple perspectives, and deeper logical reasoning.\n\nUpgrade to access enhanced AI capabilities!';
+  String get deepResearchUpgradeDesc => 'Deep Research Mode uses gpt-5.2 with high reasoning effort for more thorough analysis and insights. This Pro feature provides comprehensive explanations, multiple perspectives, and deeper logical reasoning.\n\nUpgrade to access enhanced AI capabilities!';
 
   @override
   String get hideKeyboard => 'Hide keyboard';
@@ -2339,10 +2339,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get knowledgeHubTitle => 'Knowledge Hub';
 
   @override
-  String get knowledgeHubPremiumDialogTitle => 'Knowledge Hub (Premium)';
+  String get knowledgeHubPremiumDialogTitle => 'Knowledge Hub (Pro)';
 
   @override
-  String get knowledgeHubPremiumDialogMessage => 'Knowledge Hub helps HowAI remember your personal preferences, facts, and goals across conversations.\n\nUpgrade to Premium to use this feature.';
+  String get knowledgeHubPremiumDialogMessage => 'Knowledge Hub helps HowAI remember your personal preferences, facts, and goals across conversations.\n\nUpgrade to Pro to use this feature.';
 
   @override
   String get knowledgeHubReturn => 'Return';
@@ -2501,7 +2501,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get knowledgeHubDefaultDocumentMemoryTitle => 'Document Memory';
 
   @override
-  String get knowledgeHubPremiumBlockedTitle => 'Knowledge Hub is a Premium feature';
+  String get knowledgeHubPremiumBlockedTitle => 'Knowledge Hub is a Pro feature';
 
   @override
   String get knowledgeHubPremiumBlockedDesc => 'Save key details once, and HowAI remembers them in future chats so you do not need to repeat yourself.';
@@ -2525,7 +2525,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'Edit, pin, disable, or delete items any time from one place.';
 
   @override
-  String get knowledgeHubUpgradeToPremium => 'Upgrade to Premium';
+  String get knowledgeHubUpgradeToPremium => 'Upgrade to Pro';
 
   @override
   String get knowledgeHubWhatIsTitle => 'What is Knowledge Hub?';
@@ -2609,7 +2609,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get knowledgeHubSaveDialogTitle => 'Save to Knowledge Hub';
 
   @override
-  String get knowledgeHubUpgradeLimitMessage => 'Knowledge Hub is a Premium feature. Upgrade to save and reuse personal memories across conversations.';
+  String get knowledgeHubUpgradeLimitMessage => 'Knowledge Hub is a Pro feature. Upgrade to save and reuse personal memories across conversations.';
 
   @override
   String get knowledgeHubUpgradeBenefit1 => 'Save personal memory from chat messages';
@@ -2674,7 +2674,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voicePlaybackHowItWorksFree => 'Free: use your device voice for message playback.';
 
   @override
-  String get voicePlaybackHowItWorksPremium => 'Premium: switch to ElevenLabs voices for more natural sound.';
+  String get voicePlaybackHowItWorksPremium => 'Pro: switch to ElevenLabs voices for more natural sound.';
 
   @override
   String get voicePlaybackHowItWorksTrySample => 'Use the sample play button to test voices before choosing.';
@@ -2715,13 +2715,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceSpeedMaxSystem => '1.2x';
 
   @override
-  String get voicePremiumElevenLabsTitle => 'Premium ElevenLabs Voices';
+  String get voicePremiumElevenLabsTitle => 'Pro ElevenLabs Voices';
 
   @override
   String get voicePremiumElevenLabsDesc => 'Studio-quality AI voices with richer tone and clarity.';
 
   @override
-  String get voicePremiumEngineTitle => 'Premium playback engine';
+  String get voicePremiumEngineTitle => 'Pro playback engine';
 
   @override
   String get voiceSystemTts => 'System TTS';
@@ -2741,7 +2741,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceSpeedMaxElevenLabs => '1.5x';
 
   @override
-  String get voicePremiumUpgradeDescription => 'Upgrade to Premium to unlock natural ElevenLabs voices and voice preview.';
+  String get voicePremiumUpgradeDescription => 'Upgrade to Pro to unlock natural ElevenLabs voices and voice preview.';
 
   @override
   String get account => 'Account';
@@ -2831,22 +2831,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get premiumBannerTitle1 => 'Unlock your full potential';
 
   @override
-  String get premiumBannerSubtitle1 => 'Premium features are waiting for you';
+  String get premiumBannerSubtitle1 => 'Pro features are waiting for you';
 
   @override
   String get premiumBannerTitle2 => 'Ready for unlimited creativity?';
 
   @override
-  String get premiumBannerSubtitle2 => 'Remove all limits with Premium';
+  String get premiumBannerSubtitle2 => 'Remove all limits with Pro';
 
   @override
   String get premiumBannerTitle3 => 'Take your AI experience further';
 
   @override
-  String get premiumBannerSubtitle3 => 'Premium unlocks everything';
+  String get premiumBannerSubtitle3 => 'Pro unlocks everything';
 
   @override
-  String get premiumBannerTitle4 => 'Discover Premium features';
+  String get premiumBannerTitle4 => 'Discover Pro features';
 
   @override
   String get premiumBannerSubtitle4 => 'Unlimited access to advanced AI';
@@ -2855,7 +2855,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get premiumBannerTitle5 => 'Supercharge your workflow';
 
   @override
-  String get premiumBannerSubtitle5 => 'Premium makes everything possible';
+  String get premiumBannerSubtitle5 => 'Pro makes everything possible';
 
   @override
   String get voiceCallFeatureTitle => 'AI Voice Calls';
@@ -2870,7 +2870,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String voiceCallPremiumLimit(int perCall, int daily) {
-    return 'Premium: $perCall min/call, $daily min/day';
+    return 'Pro: $perCall min/call, $daily min/day';
   }
 
   @override
@@ -2887,6 +2887,90 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String voiceCallAvailableToday(String time) {
     return 'Available today: $time';
+  }
+
+  @override
+  String get voiceCallOneMinuteRemaining => '1 minute remaining in this call';
+
+  @override
+  String get voiceCallSelectProfileFirst => 'Please select a profile first.';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => 'Microphone access was denied. Please enable it in Settings > Privacy > Microphone.';
+
+  @override
+  String get voiceCallMicrophoneRequired => 'Microphone permission is required for voice calls.';
+
+  @override
+  String get voiceCallNotConfigured => 'Voice call is not configured. Please check your settings.';
+
+  @override
+  String get voiceCallConnectionTimedOut => 'Connection timed out. Please try again.';
+
+  @override
+  String get voiceCallConnectionFailed => 'Couldn\'t connect to the voice call. Please try again.';
+
+  @override
+  String get voiceCallConnectionIssue => 'Connection issue during voice call. Please try again.';
+
+  @override
+  String get voiceCallEndedTitle => 'Call Ended';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return 'Your $duration call has been recorded.\n\nWould you like to save the transcript as a new conversation?';
+  }
+
+  @override
+  String get voiceCallDiscard => 'Discard';
+
+  @override
+  String get voiceCallSaveAndView => 'Save & View';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => 'Couldn\'t save transcript. Please try again.';
+
+  @override
+  String get voiceCallSavingTranscript => 'Saving transcript...';
+
+  @override
+  String get voiceCallMicMuted => 'Mic is muted';
+
+  @override
+  String get voiceCallAiSpeaking => 'AI is speaking...';
+
+  @override
+  String get voiceCallConnecting => 'Connecting...';
+
+  @override
+  String get voiceCallTapToStart => 'Tap to start';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return 'Elapsed: $time';
+  }
+
+  @override
+  String get voiceCallFreeTier => 'Free Tier';
+
+  @override
+  String get voiceCallCalling => 'Calling...';
+
+  @override
+  String get voiceCallConnected => 'Connected';
+
+  @override
+  String get voiceCallUnmute => 'Unmute';
+
+  @override
+  String get voiceCallMute => 'Mute';
+
+  @override
+  String get voiceCallEndCall => 'End Call';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return 'Voice Call - $time';
   }
 
   @override

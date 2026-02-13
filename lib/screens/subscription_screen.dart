@@ -29,7 +29,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       _audioPlayer?.dispose();
       _audioPlayer = AudioPlayer();
 
-      final data = await rootBundle.load('assets/audio/hao_voice_demo_fixed.mp3');
+      final data =
+          await rootBundle.load('assets/audio/hao_voice_demo_fixed.mp3');
 
       final session = await AudioSession.instance;
       await session.configure(AudioSessionConfiguration.music());
@@ -44,7 +45,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       await _audioPlayer!.play();
 
       _audioPlayer!.playerStateStream.listen((state) {
-        if (state.processingState == ProcessingState.completed || state.processingState == ProcessingState.idle) {
+        if (state.processingState == ProcessingState.completed ||
+            state.processingState == ProcessingState.idle) {
           setState(() {
             _isPlaying.value = false;
             _isPaused.value = false;
@@ -54,7 +56,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppLocalizations.of(context)!.couldNotPlayDemoAudio)),
+          SnackBar(
+              content:
+                  Text(AppLocalizations.of(context)!.couldNotPlayDemoAudio)),
         );
       }
     }
@@ -93,7 +97,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     if (await launcher.canLaunchUrl(uri)) {
-      await launcher.launchUrl(uri, mode: launcher.LaunchMode.externalApplication);
+      await launcher.launchUrl(uri,
+          mode: launcher.LaunchMode.externalApplication);
     }
   }
 
@@ -125,7 +130,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           if (subscriptionService.isPremium) {
             return _buildPremiumUserScreen(subscriptionService);
           } else {
-            return _buildSubscriptionPlansScreen(subscriptionService, horizontalPadding, isTablet);
+            return _buildSubscriptionPlansScreen(
+                subscriptionService, horizontalPadding, isTablet);
           }
         },
       ),
@@ -166,7 +172,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'PREMIUM',
+                  AppLocalizations.of(context)!.premiumBadge,
                   style: TextStyle(
                     fontSize: isTablet ? 14 : 12,
                     fontWeight: FontWeight.w600,
@@ -209,7 +215,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Widget _buildSubscriptionPlans(monthlyProduct, yearlyProduct) {
     final isTablet = MediaQuery.of(context).size.width > 600;
-    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService =
+        Provider.of<SubscriptionService>(context, listen: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -219,7 +226,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           style: TextStyle(
             fontSize: isTablet ? 28 : 24,
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.black87,
           ),
         ),
         const SizedBox(height: 8),
@@ -227,7 +236,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           AppLocalizations.of(context)!.tapPlanToSubscribe,
           style: TextStyle(
             fontSize: isTablet ? 16 : 14,
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.black54,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade400
+                : Colors.black54,
           ),
         ),
         const SizedBox(height: 12),
@@ -242,7 +253,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   title: AppLocalizations.of(context)!.yearlyPlan,
                   price: subscriptionService.getActualPrice(yearlyProduct),
                   period: AppLocalizations.of(context)!.perYear,
-                  savings: AppLocalizations.of(context)!.saveThreeMonthsBestValue,
+                  savings:
+                      AppLocalizations.of(context)!.saveThreeMonthsBestValue,
                   isRecommended: true,
                   product: yearlyProduct,
                 ),
@@ -289,6 +301,60 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
+  Widget _buildTopBenefitsStrip() {
+    final isTablet = MediaQuery.of(context).size.width > 600;
+    final l10n = AppLocalizations.of(context)!;
+    final benefits = <(IconData, String)>[
+      (Icons.phone_in_talk, l10n.voiceCallFeatureTitle),
+      (Icons.psychology, l10n.featureShowcaseDeepResearchTitle),
+      (Icons.auto_awesome, l10n.knowledgeHubTitle),
+      (Icons.search, l10n.realtimeInternetSearch),
+    ];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: const Color(0xFF0078D4).withOpacity(0.18),
+          width: 1,
+        ),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: benefits
+            .map(
+              (benefit) => Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0078D4).withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(benefit.$1, size: isTablet ? 16 : 14),
+                    const SizedBox(width: 6),
+                    Text(
+                      benefit.$2,
+                      style: TextStyle(
+                        fontSize: isTablet ? 13 : 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
+  }
+
   Widget _buildPlanCard({
     required String title,
     required String price,
@@ -305,7 +371,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           : () async {
               setState(() => _isLoading = true);
               try {
-                await Provider.of<SubscriptionService>(context, listen: false).subscribe(product.id);
+                await Provider.of<SubscriptionService>(context, listen: false)
+                    .subscribe(product.id);
               } catch (e) {
                 // print("Error during subscription: $e");
               } finally {
@@ -318,7 +385,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isRecommended ? const Color(0xFF0078D4) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200),
+            color: isRecommended
+                ? const Color(0xFF0078D4)
+                : (Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade200),
             width: isRecommended ? 2 : 1,
           ),
           boxShadow: [
@@ -334,7 +405,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             Padding(
               padding: EdgeInsets.fromLTRB(
                 isTablet ? 20 : 16,
-                isRecommended ? (isTablet ? 32 : 28) : (isTablet ? 20 : 16), // Extra top padding if recommended
+                isRecommended
+                    ? (isTablet ? 32 : 28)
+                    : (isTablet ? 20 : 16), // Extra top padding if recommended
                 isTablet ? 20 : 16,
                 isTablet ? 20 : 16,
               ),
@@ -347,7 +420,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     style: TextStyle(
                       fontSize: isTablet ? 22 : 18,
                       fontWeight: FontWeight.bold,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -370,7 +445,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         period,
                         style: TextStyle(
                           fontSize: isTablet ? 16 : 14,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.black54,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.black54,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -388,7 +465,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   if (savings != null) ...[
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: Colors.green.shade100,
                         borderRadius: BorderRadius.circular(12),
@@ -448,7 +526,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             return Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade100,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade100,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -456,21 +536,24 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 children: [
                   if (!isPlaying && !isPaused)
                     IconButton(
-                      icon: const Icon(Icons.play_circle_fill, color: Color(0xFF0078D4), size: 32),
+                      icon: const Icon(Icons.play_circle_fill,
+                          color: Color(0xFF0078D4), size: 32),
                       onPressed: _playVoiceDemo,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
                   if (isPlaying)
                     IconButton(
-                      icon: const Icon(Icons.pause_circle_filled, color: Color(0xFF0078D4), size: 32),
+                      icon: const Icon(Icons.pause_circle_filled,
+                          color: Color(0xFF0078D4), size: 32),
                       onPressed: _pauseVoiceDemo,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
                   if (isPaused)
                     IconButton(
-                      icon: const Icon(Icons.play_circle_fill, color: Color(0xFF0078D4), size: 32),
+                      icon: const Icon(Icons.play_circle_fill,
+                          color: Color(0xFF0078D4), size: 32),
                       onPressed: _resumeVoiceDemo,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -478,7 +561,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   if (isPlaying || isPaused) ...[
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(Icons.stop_circle, color: Colors.red, size: 32),
+                      icon: const Icon(Icons.stop_circle,
+                          color: Colors.red, size: 32),
                       onPressed: _stopVoiceDemo,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -521,7 +605,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   style: TextStyle(
                     fontSize: isVerySmallScreen ? 18 : 20,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                   textAlign: TextAlign.center,
                 );
@@ -542,7 +628,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     Expanded(
                       flex: 3,
                       child: Text(
-                        'Features',
+                        AppLocalizations.of(context)!.features,
                         style: TextStyle(
                           fontSize: isVerySmallScreen ? 12 : 14,
                           fontWeight: FontWeight.w600,
@@ -552,7 +638,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     Expanded(
                       child: Text(
-                        'Free',
+                        AppLocalizations.of(context)!.free,
                         style: TextStyle(
                           fontSize: isVerySmallScreen ? 12 : 14,
                           fontWeight: FontWeight.w600,
@@ -563,7 +649,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                     Expanded(
                       child: Text(
-                        'Premium',
+                        AppLocalizations.of(context)!.premium,
                         style: TextStyle(
                           fontSize: isVerySmallScreen ? 12 : 14,
                           fontWeight: FontWeight.w600,
@@ -586,39 +672,80 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ),
 
           // Core features available to all
-          _buildComparisonRow(AppLocalizations.of(context)!.unlimitedChatMessages, true, true),
-          _buildComparisonRow(AppLocalizations.of(context)!.translationFeatures, true, true),
-          _buildComparisonRow(AppLocalizations.of(context)!.basicVoiceDeviceTts, true, true),
-          _buildComparisonRow(AppLocalizations.of(context)!.pdfCreationTools, true, true),
-          _buildComparisonRow(AppLocalizations.of(context)!.profileUpdates, true, true),
+          _buildComparisonRow(
+              AppLocalizations.of(context)!.unlimitedChatMessages, true, true),
+          _buildComparisonRow(
+              AppLocalizations.of(context)!.translationFeatures, true, true),
+          _buildComparisonRow(
+              AppLocalizations.of(context)!.basicVoiceDeviceTts, true, true),
+          _buildComparisonRow(
+              AppLocalizations.of(context)!.pdfCreationTools, true, true),
+          _buildComparisonRow(
+              AppLocalizations.of(context)!.profileUpdates, true, true),
 
           // Features with usage limits vs unlimited
           Consumer<SubscriptionService>(
             builder: (context, subscriptionService, child) {
               return Column(
                 children: [
-                  _buildComparisonRow(AppLocalizations.of(context)!.imageGeneration, true, true, freeNote: '${subscriptionService.limits.imageGenerationsWeekly}/week', premiumNote: AppLocalizations.of(context)!.unlimited),
-                  _buildComparisonRow(AppLocalizations.of(context)!.photoAnalysis, true, true, freeNote: '${subscriptionService.limits.imageAnalysisWeekly}/week', premiumNote: AppLocalizations.of(context)!.unlimited),
-                  _buildComparisonRow(AppLocalizations.of(context)!.shareMessageAsPdf, true, true, freeNote: '${subscriptionService.limits.pdfGenerationsWeekly}/week', premiumNote: AppLocalizations.of(context)!.unlimited),
-                  _buildComparisonRow('Places Explorer', true, true, freeNote: '${subscriptionService.limits.placesExplorerWeekly}/week', premiumNote: AppLocalizations.of(context)!.unlimited),
-                  _buildComparisonRow(AppLocalizations.of(context)!.documentAnalysis, true, true, freeNote: '${subscriptionService.limits.documentAnalysisWeekly}/week', premiumNote: AppLocalizations.of(context)!.unlimited),
-                  _buildComparisonRow('Presentation Maker', true, true, freeNote: '${subscriptionService.limits.documentAnalysisWeekly}/week', premiumNote: AppLocalizations.of(context)!.unlimited),
+                  _buildComparisonRow(
+                      AppLocalizations.of(context)!.imageGeneration, true, true,
+                      freeNote:
+                          '${subscriptionService.limits.imageGenerationsWeekly}/week',
+                      premiumNote: AppLocalizations.of(context)!.unlimited),
+                  _buildComparisonRow(
+                      AppLocalizations.of(context)!.photoAnalysis, true, true,
+                      freeNote:
+                          '${subscriptionService.limits.imageAnalysisWeekly}/week',
+                      premiumNote: AppLocalizations.of(context)!.unlimited),
+                  _buildComparisonRow(
+                      AppLocalizations.of(context)!.shareMessageAsPdf,
+                      true,
+                      true,
+                      freeNote:
+                          '${subscriptionService.limits.pdfGenerationsWeekly}/week',
+                      premiumNote: AppLocalizations.of(context)!.unlimited),
+                  _buildComparisonRow(
+                      AppLocalizations.of(context)!.placesExplorer, true, true,
+                      freeNote:
+                          '${subscriptionService.limits.placesExplorerWeekly}/week',
+                      premiumNote: AppLocalizations.of(context)!.unlimited),
+                  _buildComparisonRow(
+                      AppLocalizations.of(context)!.documentAnalysis,
+                      true,
+                      true,
+                      freeNote:
+                          '${subscriptionService.limits.documentAnalysisWeekly}/week',
+                      premiumNote: AppLocalizations.of(context)!.unlimited),
+                  _buildComparisonRow(
+                      AppLocalizations.of(context)!.presentationMaker,
+                      true,
+                      true),
                 ],
               );
             },
           ),
 
           // Premium-only features
-          _buildComparisonRow(AppLocalizations.of(context)!.premiumAiVoice, false, true),
-          _buildComparisonRow(AppLocalizations.of(context)!.realtimeInternetSearch, false, true),
-          _buildComparisonRow(AppLocalizations.of(context)!.aiProfileInsights, false, true),
-          _buildComparisonRow(AppLocalizations.of(context)!.featureShowcaseDeepResearchTitle, false, true),
+          _buildComparisonRow(
+              AppLocalizations.of(context)!.premiumAiVoice, false, true),
+          _buildComparisonRow(
+              AppLocalizations.of(context)!.realtimeInternetSearch,
+              false,
+              true),
+          _buildComparisonRow(
+              AppLocalizations.of(context)!.aiProfileInsights, false, true),
+          _buildComparisonRow(
+              AppLocalizations.of(context)!.featureShowcaseDeepResearchTitle,
+              false,
+              true),
         ],
       ),
     );
   }
 
-  Widget _buildComparisonRow(String feature, bool freeHas, bool premiumHas, {String? freeNote, String? premiumNote}) {
+  Widget _buildComparisonRow(String feature, bool freeHas, bool premiumHas,
+      {String? freeNote, String? premiumNote}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: LayoutBuilder(
@@ -633,7 +760,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   feature,
                   style: TextStyle(
                     fontSize: isVerySmallScreen ? 12 : 14,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black87,
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
@@ -652,7 +781,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                         freeNote,
                         style: TextStyle(
                           fontSize: isVerySmallScreen ? 9 : 10,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade400
+                              : Colors.grey.shade600,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -718,7 +849,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 child: Text(
                   AppLocalizations.of(context)!.startFreeMonthToday,
                   style: TextStyle(
-                    fontSize: isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 14),
+                    fontSize:
+                        isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 14),
                     fontWeight: FontWeight.w600,
                     color: Colors.green.shade700,
                   ),
@@ -812,7 +944,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               return Column(
                 children: [
                   TextButton(
-                    onPressed: () => _launchUrl('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'),
+                    onPressed: () => _launchUrl(
+                        'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'),
                     child: Text(
                       AppLocalizations.of(context)!.termsOfUse,
                       style: const TextStyle(
@@ -823,7 +956,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                   ),
                   TextButton(
-                    onPressed: () => _launchUrl('https://haoyu.io/howai-privacy.html'),
+                    onPressed: () =>
+                        _launchUrl('https://haoyu.io/howai-privacy.html'),
                     child: Text(
                       AppLocalizations.of(context)!.privacyPolicy,
                       style: const TextStyle(
@@ -843,7 +977,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               children: [
                 Flexible(
                   child: TextButton(
-                    onPressed: () => _launchUrl('https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'),
+                    onPressed: () => _launchUrl(
+                        'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'),
                     child: Text(
                       AppLocalizations.of(context)!.termsOfUse,
                       style: const TextStyle(
@@ -862,7 +997,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
                 Flexible(
                   child: TextButton(
-                    onPressed: () => _launchUrl('https://haoyu.io/howai-privacy.html'),
+                    onPressed: () =>
+                        _launchUrl('https://haoyu.io/howai-privacy.html'),
                     child: Text(
                       AppLocalizations.of(context)!.privacyPolicy,
                       style: const TextStyle(
@@ -922,7 +1058,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   // Original subscription plans screen for free users
-  Widget _buildSubscriptionPlansScreen(SubscriptionService subscriptionService, double horizontalPadding, bool isTablet) {
+  Widget _buildSubscriptionPlansScreen(SubscriptionService subscriptionService,
+      double horizontalPadding, bool isTablet) {
     final monthlyProduct = subscriptionService.monthlyProduct;
     final yearlyProduct = subscriptionService.yearlyProduct;
 
@@ -944,6 +1081,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   children: [
                     // Hero Section
                     _buildHeroSection(),
+                    const SizedBox(height: 12),
+
+                    // Top differentiators
+                    _buildTopBenefitsStrip(),
                     const SizedBox(height: 12),
 
                     // Subscription Plans Section
@@ -1017,7 +1158,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  Widget _buildSubscriptionDetailsCard(SubscriptionService subscriptionService) {
+  Widget _buildSubscriptionDetailsCard(
+      SubscriptionService subscriptionService) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -1040,15 +1182,20 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.grey.shade800,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.grey.shade800,
             ),
           ),
           const SizedBox(height: 12),
-          _buildDetailRow(AppLocalizations.of(context)!.status, AppLocalizations.of(context)!.active),
+          _buildDetailRow(AppLocalizations.of(context)!.status,
+              AppLocalizations.of(context)!.active),
           const SizedBox(height: 12),
-          _buildDetailRow(AppLocalizations.of(context)!.billing, AppLocalizations.of(context)!.managedThroughAppStore),
+          _buildDetailRow(AppLocalizations.of(context)!.billing,
+              AppLocalizations.of(context)!.managedThroughAppStore),
           const SizedBox(height: 12),
-          _buildDetailRow(AppLocalizations.of(context)!.features, AppLocalizations.of(context)!.unlimitedAccess),
+          _buildDetailRow(AppLocalizations.of(context)!.features,
+              AppLocalizations.of(context)!.unlimitedAccess),
         ],
       ),
     );
@@ -1062,7 +1209,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           label,
           style: TextStyle(
             fontSize: 16,
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade400
+                : Colors.grey.shade600,
           ),
         ),
         Text(
@@ -1070,7 +1219,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.grey.shade800,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.white
+                : Colors.grey.shade800,
           ),
         ),
       ],
@@ -1100,25 +1251,55 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.grey.shade800,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.grey.shade800,
             ),
           ),
           const SizedBox(height: 16),
-          _buildFeatureShowcaseItem(Icons.image, AppLocalizations.of(context)!.unlimitedAiImageGeneration, AppLocalizations.of(context)!.createStunningImages),
-          _buildFeatureShowcaseItem(Icons.analytics, AppLocalizations.of(context)!.unlimitedImageAnalysis, AppLocalizations.of(context)!.analyzePhotosWithAi),
-          _buildFeatureShowcaseItem(Icons.picture_as_pdf, AppLocalizations.of(context)!.unlimitedPdfCreation, AppLocalizations.of(context)!.convertImagesToPdf),
-          _buildFeatureShowcaseItem(Icons.record_voice_over, AppLocalizations.of(context)!.premiumAiVoice, AppLocalizations.of(context)!.naturalVoiceResponses),
-          _buildFeatureShowcaseItem(Icons.phone_in_talk, AppLocalizations.of(context)!.voiceCallFeatureTitle, '${AppLocalizations.of(context)!.voiceCallFeatureDesc}\n${AppLocalizations.of(context)!.voiceCallPremiumLimit(10, 60)}'),
-          _buildFeatureShowcaseItem(Icons.search, AppLocalizations.of(context)!.realtimeWebSearch, AppLocalizations.of(context)!.getLatestInformation),
-          _buildFeatureShowcaseItem(Icons.psychology, AppLocalizations.of(context)!.featureShowcaseDeepResearchTitle, AppLocalizations.of(context)!.featureShowcaseDeepResearchDesc),
-          _buildFeatureShowcaseItem(Icons.explore, AppLocalizations.of(context)!.placesExplorerTitle, AppLocalizations.of(context)!.placesExplorerDesc),
-          _buildFeatureShowcaseItem(Icons.description, AppLocalizations.of(context)!.documentAnalysisTitle, AppLocalizations.of(context)!.documentAnalysisDesc),
+          _buildFeatureShowcaseItem(
+              Icons.image,
+              AppLocalizations.of(context)!.unlimitedAiImageGeneration,
+              AppLocalizations.of(context)!.createStunningImages),
+          _buildFeatureShowcaseItem(
+              Icons.analytics,
+              AppLocalizations.of(context)!.unlimitedImageAnalysis,
+              AppLocalizations.of(context)!.analyzePhotosWithAi),
+          _buildFeatureShowcaseItem(
+              Icons.picture_as_pdf,
+              AppLocalizations.of(context)!.unlimitedPdfCreation,
+              AppLocalizations.of(context)!.convertImagesToPdf),
+          _buildFeatureShowcaseItem(
+              Icons.record_voice_over,
+              AppLocalizations.of(context)!.premiumAiVoice,
+              AppLocalizations.of(context)!.naturalVoiceResponses),
+          _buildFeatureShowcaseItem(
+              Icons.phone_in_talk,
+              AppLocalizations.of(context)!.voiceCallFeatureTitle,
+              '${AppLocalizations.of(context)!.voiceCallFeatureDesc}\n${AppLocalizations.of(context)!.voiceCallPremiumLimit(10, 60)}'),
+          _buildFeatureShowcaseItem(
+              Icons.search,
+              AppLocalizations.of(context)!.realtimeWebSearch,
+              AppLocalizations.of(context)!.getLatestInformation),
+          _buildFeatureShowcaseItem(
+              Icons.psychology,
+              AppLocalizations.of(context)!.featureShowcaseDeepResearchTitle,
+              AppLocalizations.of(context)!.featureShowcaseDeepResearchDesc),
+          _buildFeatureShowcaseItem(
+              Icons.explore,
+              AppLocalizations.of(context)!.placesExplorerTitle,
+              AppLocalizations.of(context)!.placesExplorerDesc),
+          _buildFeatureShowcaseItem(
+              Icons.description,
+              AppLocalizations.of(context)!.documentAnalysisTitle,
+              AppLocalizations.of(context)!.documentAnalysisDesc),
         ],
       ),
     );
   }
 
-  Widget _buildFeatureShowcaseItem(IconData icon, String title, String description) {
+  Widget _buildFeatureShowcaseItem(
+      IconData icon, String title, String description) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -1126,7 +1307,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.green.withOpacity(0.1) : Colors.green.shade50,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.green.withOpacity(0.1)
+                  : Colors.green.shade50,
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -1145,14 +1328,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.grey.shade800,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.grey.shade800,
                   ),
                 ),
                 Text(
                   description,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade400
+                        : Colors.grey.shade600,
                   ),
                 ),
               ],
@@ -1186,7 +1373,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.grey.shade800,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.grey.shade800,
             ),
           ),
           const SizedBox(height: 16),
@@ -1194,7 +1383,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             AppLocalizations.of(context)!.subscriptionManagedMessage,
             style: TextStyle(
               fontSize: 15,
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade400
+                  : Colors.grey.shade600,
               height: 1.4,
             ),
           ),
@@ -1202,7 +1393,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => _launchUrl('https://apps.apple.com/account/subscriptions'),
+              onPressed: () =>
+                  _launchUrl('https://apps.apple.com/account/subscriptions'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0078D4),
                 foregroundColor: Colors.white,
@@ -1225,18 +1417,4 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       ),
     );
   }
-}
-
-class _FeatureItem {
-  final IconData icon;
-  final String title;
-  final String description;
-  final Widget? trailing;
-
-  _FeatureItem({
-    required this.icon,
-    required this.title,
-    required this.description,
-    this.trailing,
-  });
 }

@@ -2890,8 +2890,92 @@ class AppLocalizationsDe extends AppLocalizations {
   }
 
   @override
-  String get speakButtonLabel => 'Speak';
+  String get voiceCallOneMinuteRemaining => 'Noch 1 Minute in diesem Anruf';
 
   @override
-  String get speakButtonTooltip => 'Start voice call';
+  String get voiceCallSelectProfileFirst => 'Bitte wähle zuerst ein Profil aus.';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => 'Der Zugriff auf das Mikrofon wurde verweigert. Bitte aktiviere ihn unter Einstellungen > Datenschutz > Mikrofon.';
+
+  @override
+  String get voiceCallMicrophoneRequired => 'Für Sprachanrufe ist die Mikrofonberechtigung erforderlich.';
+
+  @override
+  String get voiceCallNotConfigured => 'Sprachanruf ist nicht konfiguriert. Bitte überprüfe deine Einstellungen.';
+
+  @override
+  String get voiceCallConnectionTimedOut => 'Zeitüberschreitung bei der Verbindung. Bitte versuche es erneut.';
+
+  @override
+  String get voiceCallConnectionFailed => 'Verbindung zum Sprachanruf konnte nicht hergestellt werden. Bitte versuche es erneut.';
+
+  @override
+  String get voiceCallConnectionIssue => 'Verbindungsproblem während des Sprachanrufs. Bitte versuche es erneut.';
+
+  @override
+  String get voiceCallEndedTitle => 'Anruf beendet';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return 'Dein Anruf ($duration) wurde aufgezeichnet.\n\nMöchtest du das Transkript als neue Konversation speichern?';
+  }
+
+  @override
+  String get voiceCallDiscard => 'Verwerfen';
+
+  @override
+  String get voiceCallSaveAndView => 'Speichern und anzeigen';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => 'Transkript konnte nicht gespeichert werden. Bitte versuche es erneut.';
+
+  @override
+  String get voiceCallSavingTranscript => 'Transkript wird gespeichert...';
+
+  @override
+  String get voiceCallMicMuted => 'Mikrofon ist stummgeschaltet';
+
+  @override
+  String get voiceCallAiSpeaking => 'KI spricht...';
+
+  @override
+  String get voiceCallConnecting => 'Verbinden...';
+
+  @override
+  String get voiceCallTapToStart => 'Zum Starten tippen';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return 'Verstrichen: $time';
+  }
+
+  @override
+  String get voiceCallFreeTier => 'Kostenlos';
+
+  @override
+  String get voiceCallCalling => 'Rufe an...';
+
+  @override
+  String get voiceCallConnected => 'Verbunden';
+
+  @override
+  String get voiceCallUnmute => 'Stummschaltung aufheben';
+
+  @override
+  String get voiceCallMute => 'Stummschalten';
+
+  @override
+  String get voiceCallEndCall => 'Anruf beenden';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return 'Sprachanruf - $time';
+  }
+
+  @override
+  String get speakButtonLabel => 'Sprechen';
+
+  @override
+  String get speakButtonTooltip => 'Sprachanruf starten';
 }

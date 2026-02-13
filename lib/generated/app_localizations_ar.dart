@@ -2890,8 +2890,92 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
-  String get speakButtonLabel => 'Speak';
+  String get voiceCallOneMinuteRemaining => 'تبقّت دقيقة واحدة في هذه المكالمة';
 
   @override
-  String get speakButtonTooltip => 'Start voice call';
+  String get voiceCallSelectProfileFirst => 'يرجى اختيار ملف شخصي أولاً.';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => 'تم رفض الوصول إلى الميكروفون. يرجى تفعيله من الإعدادات > الخصوصية > الميكروفون.';
+
+  @override
+  String get voiceCallMicrophoneRequired => 'إذن الميكروفون مطلوب للمكالمات الصوتية.';
+
+  @override
+  String get voiceCallNotConfigured => 'المكالمة الصوتية غير مُعدّة. يرجى التحقق من الإعدادات.';
+
+  @override
+  String get voiceCallConnectionTimedOut => 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get voiceCallConnectionFailed => 'تعذّر الاتصال بالمكالمة الصوتية. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get voiceCallConnectionIssue => 'حدثت مشكلة في الاتصال أثناء المكالمة الصوتية. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get voiceCallEndedTitle => 'انتهت المكالمة';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return 'تم تسجيل مكالمتك لمدة $duration.\n\nهل تريد حفظ النص كمحادثة جديدة؟';
+  }
+
+  @override
+  String get voiceCallDiscard => 'تجاهل';
+
+  @override
+  String get voiceCallSaveAndView => 'حفظ وعرض';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => 'تعذّر حفظ النص. يرجى المحاولة مرة أخرى.';
+
+  @override
+  String get voiceCallSavingTranscript => 'جارٍ حفظ النص...';
+
+  @override
+  String get voiceCallMicMuted => 'تم كتم الميكروفون';
+
+  @override
+  String get voiceCallAiSpeaking => 'الذكاء الاصطناعي يتحدث...';
+
+  @override
+  String get voiceCallConnecting => 'جارٍ الاتصال...';
+
+  @override
+  String get voiceCallTapToStart => 'اضغط للبدء';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return 'المدة: $time';
+  }
+
+  @override
+  String get voiceCallFreeTier => 'الخطة المجانية';
+
+  @override
+  String get voiceCallCalling => 'جارٍ الاتصال...';
+
+  @override
+  String get voiceCallConnected => 'متصل';
+
+  @override
+  String get voiceCallUnmute => 'إلغاء الكتم';
+
+  @override
+  String get voiceCallMute => 'كتم';
+
+  @override
+  String get voiceCallEndCall => 'إنهاء المكالمة';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return 'مكالمة صوتية - $time';
+  }
+
+  @override
+  String get speakButtonLabel => 'تحدث';
+
+  @override
+  String get speakButtonTooltip => 'بدء مكالمة صوتية';
 }

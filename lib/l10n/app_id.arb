@@ -1001,5 +1001,96 @@
   "premiumBannerTitle4": "Temukan fitur Premium",
   "premiumBannerSubtitle4": "Akses tanpa batas ke AI canggih",
   "premiumBannerTitle5": "Percepat alur kerja Anda",
-  "premiumBannerSubtitle5": "Premium membuat semuanya mungkin"
+  "premiumBannerSubtitle5": "Premium membuat semuanya mungkin",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "Bicara",
+  "speakButtonTooltip": "Mulai panggilan suara",
+  "voiceCallAiSpeaking": "AI sedang berbicara...",
+  "voiceCallAvailableToday": "Available today: {time}",
+  "voiceCallCalling": "Memanggil...",
+  "voiceCallConnected": "Terhubung",
+  "voiceCallConnecting": "Menghubungkan...",
+  "voiceCallConnectionFailed": "Tidak dapat terhubung ke panggilan suara. Silakan coba lagi.",
+  "voiceCallConnectionIssue": "Terjadi masalah koneksi selama panggilan suara. Silakan coba lagi.",
+  "voiceCallConnectionTimedOut": "Waktu koneksi habis. Silakan coba lagi.",
+  "voiceCallConversationTitle": "Panggilan Suara - {time}",
+  "voiceCallDiscard": "Buang",
+  "voiceCallElapsed": "Berjalan: {time}",
+  "voiceCallEndCall": "Akhiri panggilan",
+  "voiceCallEndedTitle": "Panggilan berakhir",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "voiceCallFreeTier": "Paket Gratis",
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallMicMuted": "Mikrofon dibisukan",
+  "voiceCallMicrophoneDeniedPermanently": "Akses mikrofon ditolak. Aktifkan di Pengaturan > Privasi > Mikrofon.",
+  "voiceCallMicrophoneRequired": "Izin mikrofon diperlukan untuk panggilan suara.",
+  "voiceCallMute": "Bisukan",
+  "voiceCallNotConfigured": "Panggilan suara belum dikonfigurasi. Periksa pengaturan Anda.",
+  "voiceCallOneMinuteRemaining": "Sisa 1 menit dalam panggilan ini",
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "voiceCallSaveAndView": "Simpan & lihat",
+  "voiceCallSaveTranscriptPrompt": "Panggilan Anda selama {duration} telah direkam.\n\nSimpan transkrip sebagai percakapan baru?",
+  "voiceCallSavingTranscript": "Menyimpan transkrip...",
+  "voiceCallSelectProfileFirst": "Silakan pilih profil terlebih dahulu.",
+  "voiceCallTapToStart": "Ketuk untuk mulai",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "voiceCallTranscriptSaveFailed": "Gagal menyimpan transkrip. Silakan coba lagi.",
+  "voiceCallUnmute": "Nyalakan mikrofon",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
 }

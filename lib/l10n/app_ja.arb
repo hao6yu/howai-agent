@@ -1000,5 +1000,96 @@
         "type": "String"
       }
     }
-  }
+  },
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "通話",
+  "speakButtonTooltip": "音声通話を開始",
+  "voiceCallAiSpeaking": "AIが話しています...",
+  "voiceCallAvailableToday": "Available today: {time}",
+  "voiceCallCalling": "発信中...",
+  "voiceCallConnected": "接続済み",
+  "voiceCallConnecting": "接続中...",
+  "voiceCallConnectionFailed": "音声通話に接続できませんでした。もう一度お試しください。",
+  "voiceCallConnectionIssue": "音声通話中に接続の問題が発生しました。もう一度お試しください。",
+  "voiceCallConnectionTimedOut": "接続がタイムアウトしました。もう一度お試しください。",
+  "voiceCallConversationTitle": "音声通話 - {time}",
+  "voiceCallDiscard": "破棄",
+  "voiceCallElapsed": "経過時間: {time}",
+  "voiceCallEndCall": "通話を終了",
+  "voiceCallEndedTitle": "通話終了",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "voiceCallFreeTier": "無料プラン",
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallMicMuted": "マイクはミュートです",
+  "voiceCallMicrophoneDeniedPermanently": "マイクへのアクセスが拒否されました。設定 > プライバシー > マイク で有効にしてください。",
+  "voiceCallMicrophoneRequired": "音声通話にはマイクの許可が必要です。",
+  "voiceCallMute": "ミュート",
+  "voiceCallNotConfigured": "音声通話が設定されていません。設定を確認してください。",
+  "voiceCallOneMinuteRemaining": "この通話は残り1分です",
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "voiceCallSaveAndView": "保存して表示",
+  "voiceCallSaveTranscriptPrompt": "{duration} の通話が記録されました。\n\n文字起こしを新しい会話として保存しますか？",
+  "voiceCallSavingTranscript": "文字起こしを保存中...",
+  "voiceCallSelectProfileFirst": "先にプロフィールを選択してください。",
+  "voiceCallTapToStart": "タップして開始",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "voiceCallTranscriptSaveFailed": "文字起こしを保存できませんでした。もう一度お試しください。",
+  "voiceCallUnmute": "ミュート解除",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
 }

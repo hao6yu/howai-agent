@@ -1000,5 +1000,96 @@
   "premiumBannerTitle4": "Khám phá các tính năng Premium",
   "premiumBannerSubtitle4": "Truy cập không giới hạn vào AI nâng cao",
   "premiumBannerTitle5": "Tăng tốc quy trình làm việc",
-  "premiumBannerSubtitle5": "Premium giúp mọi thứ trở nên khả thi"
+  "premiumBannerSubtitle5": "Premium giúp mọi thứ trở nên khả thi",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "Nói",
+  "speakButtonTooltip": "Bắt đầu cuộc gọi giọng nói",
+  "voiceCallAiSpeaking": "AI đang nói...",
+  "voiceCallAvailableToday": "Available today: {time}",
+  "voiceCallCalling": "Đang gọi...",
+  "voiceCallConnected": "Đã kết nối",
+  "voiceCallConnecting": "Đang kết nối...",
+  "voiceCallConnectionFailed": "Không thể kết nối cuộc gọi giọng nói. Vui lòng thử lại.",
+  "voiceCallConnectionIssue": "Đã xảy ra sự cố kết nối trong cuộc gọi giọng nói. Vui lòng thử lại.",
+  "voiceCallConnectionTimedOut": "Kết nối đã hết thời gian chờ. Vui lòng thử lại.",
+  "voiceCallConversationTitle": "Cuộc gọi giọng nói - {time}",
+  "voiceCallDiscard": "Bỏ",
+  "voiceCallElapsed": "Đã trôi qua: {time}",
+  "voiceCallEndCall": "Kết thúc cuộc gọi",
+  "voiceCallEndedTitle": "Cuộc gọi đã kết thúc",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "voiceCallFreeTier": "Gói miễn phí",
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallMicMuted": "Micrô đã tắt tiếng",
+  "voiceCallMicrophoneDeniedPermanently": "Quyền truy cập micrô đã bị từ chối. Hãy bật trong Cài đặt > Quyền riêng tư > Micrô.",
+  "voiceCallMicrophoneRequired": "Cần quyền micrô để gọi giọng nói.",
+  "voiceCallMute": "Tắt tiếng",
+  "voiceCallNotConfigured": "Cuộc gọi giọng nói chưa được cấu hình. Vui lòng kiểm tra cài đặt.",
+  "voiceCallOneMinuteRemaining": "Còn 1 phút trong cuộc gọi này",
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "voiceCallSaveAndView": "Lưu và xem",
+  "voiceCallSaveTranscriptPrompt": "Cuộc gọi {duration} của bạn đã được ghi lại.\n\nBạn có muốn lưu bản ghi thành cuộc trò chuyện mới không?",
+  "voiceCallSavingTranscript": "Đang lưu bản ghi...",
+  "voiceCallSelectProfileFirst": "Vui lòng chọn hồ sơ trước.",
+  "voiceCallTapToStart": "Chạm để bắt đầu",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "voiceCallTranscriptSaveFailed": "Không thể lưu bản ghi. Vui lòng thử lại.",
+  "voiceCallUnmute": "Bật tiếng micrô",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
 }

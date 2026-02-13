@@ -2890,8 +2890,92 @@ class AppLocalizationsHi extends AppLocalizations {
   }
 
   @override
-  String get speakButtonLabel => 'Speak';
+  String get voiceCallOneMinuteRemaining => 'इस कॉल में 1 मिनट शेष है';
 
   @override
-  String get speakButtonTooltip => 'Start voice call';
+  String get voiceCallSelectProfileFirst => 'कृपया पहले एक प्रोफ़ाइल चुनें।';
+
+  @override
+  String get voiceCallMicrophoneDeniedPermanently => 'माइक्रोफ़ोन की अनुमति अस्वीकृत है। कृपया इसे सेटिंग्स > प्राइवेसी > माइक्रोफ़ोन में सक्षम करें।';
+
+  @override
+  String get voiceCallMicrophoneRequired => 'वॉइस कॉल के लिए माइक्रोफ़ोन अनुमति आवश्यक है।';
+
+  @override
+  String get voiceCallNotConfigured => 'वॉइस कॉल कॉन्फ़िगर नहीं है। कृपया अपनी सेटिंग्स जांचें।';
+
+  @override
+  String get voiceCallConnectionTimedOut => 'कनेक्शन का समय समाप्त हो गया। कृपया फिर से प्रयास करें।';
+
+  @override
+  String get voiceCallConnectionFailed => 'वॉइस कॉल से कनेक्ट नहीं हो सका। कृपया फिर से प्रयास करें।';
+
+  @override
+  String get voiceCallConnectionIssue => 'वॉइस कॉल के दौरान कनेक्शन समस्या हुई। कृपया फिर से प्रयास करें।';
+
+  @override
+  String get voiceCallEndedTitle => 'कॉल समाप्त';
+
+  @override
+  String voiceCallSaveTranscriptPrompt(String duration) {
+    return 'आपकी $duration की कॉल रिकॉर्ड हो गई है।\n\nक्या आप ट्रांसक्रिप्ट को नई बातचीत के रूप में सहेजना चाहेंगे?';
+  }
+
+  @override
+  String get voiceCallDiscard => 'हटाएँ';
+
+  @override
+  String get voiceCallSaveAndView => 'सहेजें और देखें';
+
+  @override
+  String get voiceCallTranscriptSaveFailed => 'ट्रांसक्रिप्ट सहेजा नहीं जा सका। कृपया फिर से प्रयास करें।';
+
+  @override
+  String get voiceCallSavingTranscript => 'ट्रांसक्रिप्ट सहेजा जा रहा है...';
+
+  @override
+  String get voiceCallMicMuted => 'माइक म्यूट है';
+
+  @override
+  String get voiceCallAiSpeaking => 'एआई बोल रहा है...';
+
+  @override
+  String get voiceCallConnecting => 'कनेक्ट हो रहा है...';
+
+  @override
+  String get voiceCallTapToStart => 'शुरू करने के लिए टैप करें';
+
+  @override
+  String voiceCallElapsed(String time) {
+    return 'बीता समय: $time';
+  }
+
+  @override
+  String get voiceCallFreeTier => 'फ्री प्लान';
+
+  @override
+  String get voiceCallCalling => 'कॉल हो रही है...';
+
+  @override
+  String get voiceCallConnected => 'कनेक्टेड';
+
+  @override
+  String get voiceCallUnmute => 'अनम्यूट';
+
+  @override
+  String get voiceCallMute => 'म्यूट';
+
+  @override
+  String get voiceCallEndCall => 'कॉल समाप्त करें';
+
+  @override
+  String voiceCallConversationTitle(String time) {
+    return 'वॉइस कॉल - $time';
+  }
+
+  @override
+  String get speakButtonLabel => 'बोलें';
+
+  @override
+  String get speakButtonTooltip => 'वॉइस कॉल शुरू करें';
 }

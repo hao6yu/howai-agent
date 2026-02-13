@@ -1001,5 +1001,96 @@
   "premiumBannerTitle4": "프리미엄 기능을 만나보세요",
   "premiumBannerSubtitle4": "고급 AI를 무제한으로 이용하세요",
   "premiumBannerTitle5": "워크플로를 가속하세요",
-  "premiumBannerSubtitle5": "프리미엄으로 모든 것이 가능해집니다"
+  "premiumBannerSubtitle5": "프리미엄으로 모든 것이 가능해집니다",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "통화",
+  "speakButtonTooltip": "음성 통화 시작",
+  "voiceCallAiSpeaking": "AI가 말하는 중...",
+  "voiceCallAvailableToday": "Available today: {time}",
+  "voiceCallCalling": "전화 거는 중...",
+  "voiceCallConnected": "연결됨",
+  "voiceCallConnecting": "연결 중...",
+  "voiceCallConnectionFailed": "음성 통화에 연결할 수 없습니다. 다시 시도해 주세요.",
+  "voiceCallConnectionIssue": "음성 통화 중 연결 문제가 발생했습니다. 다시 시도해 주세요.",
+  "voiceCallConnectionTimedOut": "연결 시간이 초과되었습니다. 다시 시도해 주세요.",
+  "voiceCallConversationTitle": "음성 통화 - {time}",
+  "voiceCallDiscard": "버리기",
+  "voiceCallElapsed": "경과 시간: {time}",
+  "voiceCallEndCall": "통화 종료",
+  "voiceCallEndedTitle": "통화 종료",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "voiceCallFreeTier": "무료 플랜",
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallMicMuted": "마이크가 음소거됨",
+  "voiceCallMicrophoneDeniedPermanently": "마이크 권한이 거부되었습니다. 설정 > 개인정보 보호 > 마이크에서 활성화해 주세요.",
+  "voiceCallMicrophoneRequired": "음성 통화에는 마이크 권한이 필요합니다.",
+  "voiceCallMute": "음소거",
+  "voiceCallNotConfigured": "음성 통화가 설정되지 않았습니다. 설정을 확인해 주세요.",
+  "voiceCallOneMinuteRemaining": "이 통화는 1분 남았습니다",
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "voiceCallSaveAndView": "저장 후 보기",
+  "voiceCallSaveTranscriptPrompt": "{duration} 통화가 기록되었습니다.\n\n대화 기록을 새 대화로 저장하시겠습니까?",
+  "voiceCallSavingTranscript": "대화 기록 저장 중...",
+  "voiceCallSelectProfileFirst": "먼저 프로필을 선택해 주세요.",
+  "voiceCallTapToStart": "탭하여 시작",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "voiceCallTranscriptSaveFailed": "대화 기록을 저장하지 못했습니다. 다시 시도해 주세요.",
+  "voiceCallUnmute": "음소거 해제",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
 }

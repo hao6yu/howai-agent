@@ -1000,5 +1000,96 @@
   "premiumBannerTitle4": "Premium özellikleri keşfedin",
   "premiumBannerSubtitle4": "Gelişmiş AI’ya sınırsız erişim",
   "premiumBannerTitle5": "İş akışınızı hızlandırın",
-  "premiumBannerSubtitle5": "Premium her şeyi mümkün kılar"
+  "premiumBannerSubtitle5": "Premium her şeyi mümkün kılar",
+  "@voiceCallAvailableToday": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallConversationTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallElapsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallFreeLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallPremiumLimit": {
+    "placeholders": {
+      "perCall": {
+        "type": "int"
+      },
+      "daily": {
+        "type": "int"
+      }
+    }
+  },
+  "@voiceCallSaveTranscriptPrompt": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "@voiceCallTimeRemaining": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "speakButtonLabel": "Konuş",
+  "speakButtonTooltip": "Sesli aramayı başlat",
+  "voiceCallAiSpeaking": "Yapay zeka konuşuyor...",
+  "voiceCallAvailableToday": "Available today: {time}",
+  "voiceCallCalling": "Aranıyor...",
+  "voiceCallConnected": "Bağlandı",
+  "voiceCallConnecting": "Bağlanıyor...",
+  "voiceCallConnectionFailed": "Sesli aramaya bağlanılamadı. Lütfen tekrar deneyin.",
+  "voiceCallConnectionIssue": "Sesli arama sırasında bağlantı sorunu oluştu. Lütfen tekrar deneyin.",
+  "voiceCallConnectionTimedOut": "Bağlantı zaman aşımına uğradı. Lütfen tekrar deneyin.",
+  "voiceCallConversationTitle": "Sesli Arama - {time}",
+  "voiceCallDiscard": "Vazgeç",
+  "voiceCallElapsed": "Geçen süre: {time}",
+  "voiceCallEndCall": "Aramayı bitir",
+  "voiceCallEndedTitle": "Arama sona erdi",
+  "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
+  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
+  "voiceCallFreeTier": "Ücretsiz plan",
+  "voiceCallLimitReached": "Voice call limit reached",
+  "voiceCallMicMuted": "Mikrofon kapalı",
+  "voiceCallMicrophoneDeniedPermanently": "Mikrofon erişimi reddedildi. Lütfen Ayarlar > Gizlilik > Mikrofon bölümünden etkinleştirin.",
+  "voiceCallMicrophoneRequired": "Sesli aramalar için mikrofon izni gereklidir.",
+  "voiceCallMute": "Sessize al",
+  "voiceCallNotConfigured": "Sesli arama yapılandırılmamış. Lütfen ayarları kontrol edin.",
+  "voiceCallOneMinuteRemaining": "Bu aramada 1 dakika kaldı",
+  "voiceCallPremiumLimit": "Premium: {perCall} min/call, {daily} min/day",
+  "voiceCallSaveAndView": "Kaydet ve görüntüle",
+  "voiceCallSaveTranscriptPrompt": "{duration} süren aramanız kaydedildi.\n\nDökümü yeni bir konuşma olarak kaydetmek ister misiniz?",
+  "voiceCallSavingTranscript": "Döküm kaydediliyor...",
+  "voiceCallSelectProfileFirst": "Lütfen önce bir profil seçin.",
+  "voiceCallTapToStart": "Başlamak için dokunun",
+  "voiceCallTimeRemaining": "Time remaining: {time}",
+  "voiceCallTranscriptSaveFailed": "Döküm kaydedilemedi. Lütfen tekrar deneyin.",
+  "voiceCallUnmute": "Sesi aç",
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
 }

@@ -34,6 +34,8 @@ dependencies:
   lottie: ^3.3.0
   speech_to_text: 7.0.0
   in_app_purchase: ^3.2.3  # For subscription handling
+  in_app_purchase_storekit: ^0.4.7  # iOS SK2 transaction verification
+  in_app_purchase_android: ^0.4.0  # Android Google Play billing verification
   url_launcher: ^6.3.1
   image_picker: ^1.0.4
   photo_view: ^0.15.0

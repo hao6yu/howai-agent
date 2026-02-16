@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/subscription_service.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:url_launcher/url_launcher.dart' as launcher;
 import 'package:just_audio/just_audio.dart';
 import 'package:flutter/services.dart';
@@ -917,8 +916,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               : () async {
                   setState(() => _isLoading = true);
                   try {
-                    await InAppPurchase.instance.restorePurchases();
+                    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+                    await subscriptionService.restorePurchases();
                   } catch (e) {
+                    // Silent
                   } finally {
                     if (mounted) setState(() => _isLoading = false);
                   }
@@ -1393,8 +1394,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () =>
-                  _launchUrl('https://apps.apple.com/account/subscriptions'),
+              onPressed: () => _launchUrl(
+                  Theme.of(context).platform == TargetPlatform.iOS
+                      ? 'https://apps.apple.com/account/subscriptions'
+                      : 'https://play.google.com/store/account/subscriptions'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF0078D4),
                 foregroundColor: Colors.white,

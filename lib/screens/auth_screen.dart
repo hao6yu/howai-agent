@@ -419,7 +419,6 @@ class _AuthScreenState extends State<AuthScreen> {
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.grey.shade600,
                           visualDensity: VisualDensity.compact,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: Text(
                           l10n.continueWithoutAccount,

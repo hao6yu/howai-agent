@@ -2978,4 +2978,16 @@ class AppLocalizationsHi extends AppLocalizations {
 
   @override
   String get speakButtonTooltip => 'वॉइस कॉल शुरू करें';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get menu => 'Menu';
+
+  @override
+  String get voiceNoVoicesAvailable => 'No voices available on this device';
+
+  @override
+  String get memory => 'Memory';
 }

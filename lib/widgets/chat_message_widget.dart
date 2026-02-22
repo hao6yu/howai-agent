@@ -1431,17 +1431,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     final RenderBox? overlay =
         Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
-    final bool hasQuickSave = widget.onQuickSaveToKnowledgeHub != null;
-    final bool hasDetailedSave = widget.onSaveToKnowledgeHub != null;
-    final int actionCount =
-        3 + (hasQuickSave ? 1 : 0) + (hasDetailedSave ? 1 : 0);
-    final double desiredPanelWidth = actionCount >= 5 ? 520 : 410;
-    final double panelWidth = desiredPanelWidth < (overlay.size.width - 24)
-        ? desiredPanelWidth
-        : (overlay.size.width - 24);
+    final double maxPanelWidth = overlay.size.width - 24;
     final double panelHeight = 92;
-    final double left = (_lastTapPosition!.dx - panelWidth / 2)
-        .clamp(12.0, overlay.size.width - panelWidth - 12.0);
     final double top = (_lastTapPosition!.dy - panelHeight - 12)
         .clamp(24.0, overlay.size.height - panelHeight - 24.0);
     showDialog(
@@ -1460,88 +1451,92 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               ),
             ),
             Positioned(
-              left: left,
+              left: 12,
+              right: 12,
               top: top,
               child: Material(
                 color: Colors.transparent,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey.shade800
-                        : Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.10),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _ActionButton(
-                        icon: Icons.copy,
-                        label: AppLocalizations.of(context)!.copy,
-                        onTap: () {
-                          Clipboard.setData(
-                              ClipboardData(text: message.message));
-                          Navigator.of(context).pop();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content:
-                                    Text(AppLocalizations.of(context)!.copied),
-                                duration: Duration(seconds: 2)),
-                          );
-                        },
-                      ),
-                      _ActionButton(
-                        icon: Icons.delete_outline,
-                        label: AppLocalizations.of(context)!.delete,
-                        iconColor: Colors.red,
-                        textColor: Colors.red,
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          widget.onDelete(message);
-                        },
-                      ),
-                      _ActionButton(
-                        icon: Icons.translate,
-                        label: AppLocalizations.of(context)!.translate,
-                        onTap: () {
-                          Navigator.of(context).pop();
-                          widget.onTranslate(message);
-                        },
-                      ),
-                      if (widget.onQuickSaveToKnowledgeHub != null ||
-                          widget.onSaveToKnowledgeHub != null)
+                child: Center(
+                  child: Container(
+                    constraints: BoxConstraints(maxWidth: maxPanelWidth),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade800
+                          : Colors.white,
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.10),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         _ActionButton(
-                          icon: Icons.bookmark_add_outlined,
-                          label: AppLocalizations.of(context)!
-                              .knowledgeHubAddToMemory,
+                          icon: Icons.copy,
+                          label: AppLocalizations.of(context)!.copy,
+                          onTap: () {
+                            Clipboard.setData(
+                                ClipboardData(text: message.message));
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                  content:
+                                      Text(AppLocalizations.of(context)!.copied),
+                                  duration: Duration(seconds: 2)),
+                            );
+                          },
+                        ),
+                        _ActionButton(
+                          icon: Icons.delete_outline,
+                          label: AppLocalizations.of(context)!.delete,
+                          iconColor: Colors.red,
+                          textColor: Colors.red,
                           onTap: () {
                             Navigator.of(context).pop();
-                            if (widget.onQuickSaveToKnowledgeHub != null) {
-                              widget.onQuickSaveToKnowledgeHub!(message);
-                            } else if (widget.onSaveToKnowledgeHub != null) {
+                            widget.onDelete(message);
+                          },
+                        ),
+                        _ActionButton(
+                          icon: Icons.translate,
+                          label: AppLocalizations.of(context)!.translate,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            widget.onTranslate(message);
+                          },
+                        ),
+                        if (widget.onQuickSaveToKnowledgeHub != null ||
+                            widget.onSaveToKnowledgeHub != null)
+                          _ActionButton(
+                            icon: Icons.bookmark_add_outlined,
+                            label: AppLocalizations.of(context)!
+                                .memory,
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              if (widget.onQuickSaveToKnowledgeHub != null) {
+                                widget.onQuickSaveToKnowledgeHub!(message);
+                              } else if (widget.onSaveToKnowledgeHub != null) {
+                                widget.onSaveToKnowledgeHub!(message);
+                              }
+                            },
+                          ),
+                        if (widget.onSaveToKnowledgeHub != null)
+                          _ActionButton(
+                            icon: Icons.edit_note_outlined,
+                            label: AppLocalizations.of(context)!
+                                .save,
+                            onTap: () {
+                              Navigator.of(context).pop();
                               widget.onSaveToKnowledgeHub!(message);
-                            }
-                          },
-                        ),
-                      if (widget.onSaveToKnowledgeHub != null)
-                        _ActionButton(
-                          icon: Icons.edit_note_outlined,
-                          label: AppLocalizations.of(context)!
-                              .knowledgeHubReviewAndSave,
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            widget.onSaveToKnowledgeHub!(message);
-                          },
-                        ),
-                    ],
+                            },
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -2270,16 +2265,16 @@ class _ActionButton extends StatelessWidget {
         return GestureDetector(
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   icon,
                   color: iconColor ?? const Color(0xFF0078D4),
-                  size: settings.getScaledFontSize(26),
+                  size: settings.getScaledFontSize(24),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 Text(
                   label,
                   style: TextStyle(
@@ -2287,9 +2282,11 @@ class _ActionButton extends StatelessWidget {
                         (Theme.of(context).brightness == Brightness.dark
                             ? Colors.white
                             : Colors.black87),
-                    fontSize: settings.getScaledFontSize(13),
+                    fontSize: settings.getScaledFontSize(11),
                     fontWeight: FontWeight.w500,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

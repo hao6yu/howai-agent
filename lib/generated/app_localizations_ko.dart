@@ -2978,4 +2978,16 @@ class AppLocalizationsKo extends AppLocalizations {
 
   @override
   String get speakButtonTooltip => '음성 통화 시작';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get menu => 'Menu';
+
+  @override
+  String get voiceNoVoicesAvailable => 'No voices available on this device';
+
+  @override
+  String get memory => 'Memory';
 }

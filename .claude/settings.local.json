@@ -23,7 +23,13 @@
       "Bash(flutter pub:*)",
       "Bash(flutter clean:*)",
       "Bash(flutter build:*)",
-      "Bash(git stash:*)"
+      "Bash(git stash:*)",
+      "Bash(kill:*)",
+      "Bash(git push:*)",
+      "Bash(flutter gen-l10n:*)",
+      "Bash(pod install:*)",
+      "Bash(pod list:*)",
+      "Bash(flutter devices:*)"
     ],
     "deny": [],
     "ask": []

@@ -2978,6 +2978,18 @@ class AppLocalizationsPt extends AppLocalizations {
 
   @override
   String get speakButtonTooltip => 'Iniciar chamada de voz';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get menu => 'Menu';
+
+  @override
+  String get voiceNoVoicesAvailable => 'No voices available on this device';
+
+  @override
+  String get memory => 'Memory';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).

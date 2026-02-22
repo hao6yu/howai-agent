@@ -867,6 +867,35 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                     ],
                   ),
                 ),
+              ] else ...[
+                _buildDivider(),
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.voice_over_off_rounded,
+                        color:
+                            Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey.shade500
+                                : Colors.grey.shade400,
+                        size: settings.getScaledFontSize(20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          AppLocalizations.of(context)!.voiceNoVoicesAvailable,
+                          style: TextStyle(
+                            fontSize: settings.getScaledFontSize(14),
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? Colors.grey.shade400
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
 
               _buildDivider(),

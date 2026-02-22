@@ -1146,5 +1146,9 @@
     }
   },
   "speakButtonLabel": "Speak",
-  "speakButtonTooltip": "Start voice call"
+  "speakButtonTooltip": "Start voice call",
+  "back": "Back",
+  "menu": "Menu",
+  "voiceNoVoicesAvailable": "No voices available on this device",
+  "memory": "Memory"
 }

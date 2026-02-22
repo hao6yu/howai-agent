@@ -365,19 +365,46 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     final isTablet = MediaQuery.of(context).size.width > 600;
 
     return GestureDetector(
-      onTap: _isLoading
-          ? null
-          : () async {
-              setState(() => _isLoading = true);
-              try {
-                await Provider.of<SubscriptionService>(context, listen: false)
-                    .subscribe(product.id);
-              } catch (e) {
-                // print("Error during subscription: $e");
-              } finally {
-                if (mounted) setState(() => _isLoading = false);
-              }
-            },
+      onTap: () async {
+        debugPrint('[SubscriptionScreen] Plan card tapped: ${product.id}, _isLoading=$_isLoading');
+        if (_isLoading) {
+          debugPrint('[SubscriptionScreen] TAP IGNORED — _isLoading is true (stuck state)');
+          return;
+        }
+        setState(() => _isLoading = true);
+        final subscriptionService =
+            Provider.of<SubscriptionService>(context, listen: false);
+        try {
+          debugPrint('[SubscriptionScreen] Calling subscribe for: ${product.id}');
+          await subscriptionService.subscribe(product.id)
+              .timeout(const Duration(seconds: 15), onTimeout: () {
+            debugPrint('[SubscriptionScreen] subscribe() TIMED OUT for ${product.id}');
+          });
+          debugPrint('[SubscriptionScreen] subscribe() returned. errorMessage=${subscriptionService.errorMessage}');
+          if (mounted && subscriptionService.errorMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(subscriptionService.errorMessage!),
+                backgroundColor: Colors.red.shade700,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+        } catch (e) {
+          debugPrint('[SubscriptionScreen] subscribe() threw: $e');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Purchase failed: ${e.toString()}'),
+                backgroundColor: Colors.red.shade700,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          }
+        } finally {
+          if (mounted) setState(() => _isLoading = false);
+        }
+      },
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -1066,6 +1093,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     return Column(
       children: [
+        // Error banner for expired re-subscribe scenario
+        if (subscriptionService.errorMessage != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            color: Colors.orange.shade700,
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.white, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    subscriptionService.errorMessage!,
+                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => _launchUrl('https://apps.apple.com/account/subscriptions'),
+                  child: const Text('Open', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
         // Main scrollable content
         Expanded(
           child: SingleChildScrollView(

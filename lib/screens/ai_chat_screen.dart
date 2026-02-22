@@ -2404,6 +2404,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                           Icons.menu,
                           size: settings.getScaledFontSize(24),
                         ),
+                        tooltip: AppLocalizations.of(context)?.menu ?? 'Menu',
                         onPressed: () {
                           // Unfocus text field when drawer opens
                           FocusScope.of(context).unfocus();

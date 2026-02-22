@@ -2978,4 +2978,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get speakButtonTooltip => 'بدء مكالمة صوتية';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get menu => 'Menu';
+
+  @override
+  String get voiceNoVoicesAvailable => 'No voices available on this device';
+
+  @override
+  String get memory => 'Memory';
 }

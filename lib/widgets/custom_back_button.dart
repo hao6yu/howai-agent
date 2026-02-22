@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:haogpt/generated/app_localizations.dart';
 
 class CustomBackButton extends StatelessWidget {
   final VoidCallback? onPressed;
@@ -21,7 +22,7 @@ class CustomBackButton extends StatelessWidget {
         size: size,
       ),
       onPressed: onPressed ?? () => Navigator.of(context).pop(),
-      tooltip: 'Back',
+      tooltip: AppLocalizations.of(context)?.back ?? 'Back',
       splashRadius: 20,
     );
   }

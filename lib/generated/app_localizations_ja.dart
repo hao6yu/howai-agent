@@ -2978,4 +2978,16 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get speakButtonTooltip => '音声通話を開始';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get menu => 'Menu';
+
+  @override
+  String get voiceNoVoicesAvailable => 'No voices available on this device';
+
+  @override
+  String get memory => 'Memory';
 }

@@ -10,8 +10,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'supabase_service.dart';
 
-// Debug flag to bypass subscription validation for development
-const bool kBypassSubscriptionForDebug = false; // Set to false in production
+// Bypass subscription validation in debug builds so developers with real
+// production subscriptions aren't shown the free tier during local testing.
+// In release/profile builds this is always false — real validation applies.
+// kDebugMode is a Flutter compile-time constant: true only in `flutter run`,
+// always false in release/TestFlight/App Store builds. Safe to ship as-is.
+const bool kBypassSubscriptionForDebug = kDebugMode;
 
 enum SubscriptionTier {
   free,
@@ -442,6 +446,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
       await _loadProducts();
       await checkSubscriptionStatus();
+      debugPrint('[SubscriptionService] Init complete: isSubscribed=$_isSubscribed, tier=$_subscriptionTier');
 
       // Sync from Supabase (non-blocking, informational only — does NOT grant premium)
       _loadSubscriptionFromSupabase();
@@ -779,13 +784,17 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
           continue;
         }
 
-        // StoreKit 2 pigeon bridge sends dates as epoch-ms strings
-        final expMs = int.tryParse(expStr);
+        // StoreKit 2 pigeon bridge sends dates as "yyyy-MM-dd HH:mm:ss" strings.
+        // Dart's DateTime.tryParse requires ISO 8601 (with 'T' separator),
+        // so we normalise the space to 'T' before parsing.
         DateTime? expDate;
+        final expMs = int.tryParse(expStr);
         if (expMs != null) {
+          // In case a future version sends epoch-ms
           expDate = DateTime.fromMillisecondsSinceEpoch(expMs);
         } else {
-          expDate = DateTime.tryParse(expStr);
+          // Normalise "yyyy-MM-dd HH:mm:ss" → "yyyy-MM-ddTHH:mm:ss"
+          expDate = DateTime.tryParse(expStr.replaceFirst(' ', 'T'));
         }
         if (expDate == null) {
           debugPrint('[SubscriptionService] SK2: Could not parse expirationDate: $expStr');
@@ -1011,6 +1020,24 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   Future<void> _handleSubscriptionPurchase(PurchaseDetails purchaseDetails) async {
     try {
+      // If StoreKit returns a restored-but-expired transaction during a buy
+      // attempt (not a manual restore), do NOT overwrite the current subscription
+      // state — the user may have another active subscription (e.g. monthly) that
+      // SK2 verification for this specific product won't see. Just show an error.
+      final isExpiredRestoreDuringBuy = purchaseDetails.status == PurchaseStatus.restored
+          && !_isRestoringPurchases;
+
+      if (isExpiredRestoreDuringBuy) {
+        final isEntitled = await _validateSubscriptionEntitlement(purchaseDetails);
+        if (!isEntitled) {
+          _errorMessage = 'Your previous subscription has expired. Please re-subscribe via the App Store subscription management.';
+          debugPrint('[SubscriptionService] Restored expired transaction — leaving current subscription state unchanged');
+          notifyListeners();
+          return;
+        }
+        // If somehow the restored transaction IS valid (e.g. renewed), fall through
+      }
+
       final isEntitled = await _validateSubscriptionEntitlement(purchaseDetails);
 
       _isSubscribed = isEntitled;
@@ -1032,13 +1059,14 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         // Sync to Supabase (silent, non-blocking)
         _syncSubscriptionToSupabase(purchaseDetails);
 
+        _errorMessage = null;
         debugPrint('[SubscriptionService] Subscription entitlement confirmed');
       } else {
         await _clearValidatedEntitlementCache(prefs);
+        _errorMessage = null;
         debugPrint('[SubscriptionService] Subscription entitlement not active');
       }
 
-      _errorMessage = null;
       notifyListeners();
     } catch (e) {
       debugPrint('[SubscriptionService] Error handling purchase: $e');

@@ -5890,6 +5890,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start voice call'**
   String get speakButtonTooltip;
+
+  /// No description provided for @back.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get back;
+
+  /// No description provided for @menu.
+  ///
+  /// In en, this message translates to:
+  /// **'Menu'**
+  String get menu;
+
+  /// No description provided for @voiceNoVoicesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No voices available on this device'**
+  String get voiceNoVoicesAvailable;
+
+  /// No description provided for @memory.
+  ///
+  /// In en, this message translates to:
+  /// **'Memory'**
+  String get memory;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

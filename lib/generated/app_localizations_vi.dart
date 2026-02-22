@@ -2978,4 +2978,16 @@ class AppLocalizationsVi extends AppLocalizations {
 
   @override
   String get speakButtonTooltip => 'Bắt đầu cuộc gọi giọng nói';
+
+  @override
+  String get back => 'Back';
+
+  @override
+  String get menu => 'Menu';
+
+  @override
+  String get voiceNoVoicesAvailable => 'No voices available on this device';
+
+  @override
+  String get memory => 'Memory';
 }

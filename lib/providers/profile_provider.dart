@@ -125,7 +125,7 @@ class ProfileProvider extends ChangeNotifier {
         
         // Sync basic profile info to 'profiles' table
         final profileData = {
-          'user_id': userId,
+          'id': userId,
           'name': profile.name,
           'avatar_url': avatarUrl,
           'updated_at': DateTime.now().toIso8601String(),
@@ -199,7 +199,7 @@ class ProfileProvider extends ChangeNotifier {
       final profileResponse = await supabase.client
           .from('profiles')
           .select()
-          .eq('user_id', userId)
+          .eq('id', userId)
           .maybeSingle();
       
       String? name;

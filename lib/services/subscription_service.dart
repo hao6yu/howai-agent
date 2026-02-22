@@ -11,11 +11,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'supabase_service.dart';
 
 // Bypass subscription validation in debug builds so developers with real
-// production subscriptions aren't shown the free tier during local testing.
-// In release/profile builds this is always false — real validation applies.
-// kDebugMode is a Flutter compile-time constant: true only in `flutter run`,
-// always false in release/TestFlight/App Store builds. Safe to ship as-is.
-const bool kBypassSubscriptionForDebug = kDebugMode;
+// No automatic bypass — use the debug toggle in Settings to test premium.
+const bool kBypassSubscriptionForDebug = false;
 
 enum SubscriptionTier {
   free,

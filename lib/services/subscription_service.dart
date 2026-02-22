@@ -1293,7 +1293,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   String getImageGenerationLimitMessage() {
     final remaining = remainingImageGenerations;
     if (remaining <= 0) {
-      return "🔒 **Image Generation Limit Reached**\n\nYou've used all ${limits.imageGenerationsWeekly} weekly image generations. Your limit will reset next week!\n\n✨ **Premium Benefits:**\n• Unlimited DALL-E image generation\n• Higher quality images\n• Advanced gpt-5.2 model\n• Real-time web search\n• ElevenLabs voice synthesis\n\n[Upgrade to Premium] for unlimited access.";
+      return "🔒 **Image Generation Limit Reached**\n\nYou've used all ${limits.imageGenerationsWeekly} weekly image generations. Your limit will reset next week!\n\n✨ **Premium Benefits:**\n• Unlimited image generation\n• Higher quality images\n• Advanced gpt-5.2 model\n• Real-time web search\n• ElevenLabs voice synthesis\n\n[Upgrade to Premium] for unlimited access.";
     } else if (remaining <= 1) {
       return "⚠️ **Almost at your limit!**\n\nYou have only $remaining image generation${remaining == 1 ? '' : 's'} left this week. Consider upgrading to Premium for unlimited access!";
     }

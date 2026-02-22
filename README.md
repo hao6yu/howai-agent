@@ -1,21 +1,25 @@
-# HaoGPT (HowAI) 🤖
+# HowAI Agent 🤖
 
-A powerful AI chat app for iOS, Android, and Web with advanced features like image generation, voice synthesis, and location-aware search.
+A powerful AI chat app for iOS, Android, and Web powered by GPT-5.2 with built-in image generation, web search, voice synthesis, and more.
 
 ## Features
 
 ### Core Chat
-- **Multi-model AI** - GPT-4, GPT-4 Vision, and more
+- **GPT-5.2** - OpenAI's flagship model with deep research mode
+- **GPT-5 Nano** - Fast, lightweight model for free-tier users
 - **Conversation history** - Local SQLite storage with cloud sync
 - **Multiple profiles** - Separate chat histories per profile
 - **AI personalities** - Customizable AI behavior and tone
 
 ### AI Capabilities
-- **Image analysis** - Analyze photos and screenshots
-- **Image generation** - Create images with DALL-E
+- **Image analysis** - Analyze photos, screenshots, and documents
+- **Image generation** - Built-in to GPT-5.2 (no separate model needed)
+- **Web search** - Real-time internet search integrated into responses
+- **Deep research mode** - High reasoning effort with comprehensive analysis
 - **Voice synthesis** - Text-to-speech via ElevenLabs
 - **Document analysis** - Process PDFs and files
-- **Places Explorer** - Location-aware search with Google Maps
+- **Presentation generation** - Create PowerPoint slides from chat
+- **Places Explorer** - Location-aware search with Google Maps & Street View
 
 ### Premium Features
 - **Subscription tiers** - Free and Premium plans
@@ -32,7 +36,7 @@ A powerful AI chat app for iOS, Android, and Web with advanced features like ima
 
 - **Flutter** - Cross-platform UI framework
 - **Supabase** - Auth, database, and sync
-- **OpenAI** - GPT models and DALL-E
+- **OpenAI** - GPT-5.2 (chat, vision, image generation, web search)
 - **ElevenLabs** - Text-to-speech
 - **Google Maps** - Places API and Street View
 - **SQLite** - Local data persistence
@@ -63,7 +67,11 @@ haogpt-web/         # Web deployment (Docker)
 
 ### Setup
 
-1. Clone the repository
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/hao6yu/howai-agent.git
+   cd howai-agent
+   ```
 2. Copy `env.example` to `.env` and fill in API keys:
    ```
    OPENAI_API_KEY=sk-...

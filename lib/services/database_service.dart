@@ -377,6 +377,10 @@ class DatabaseService {
         FOREIGN KEY (conversation_id) REFERENCES conversations (id)
       )
     ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_chat_messages_profile_conversation_timestamp
+      ON chat_messages(profile_id, conversation_id, timestamp DESC)
+    ''');
   }
 
   // Helper method to create ai_personalities table
@@ -824,28 +828,34 @@ class DatabaseService {
     );
   }
 
-  Future<List<ChatMessage>> getChatMessages(
-      {int? profileId, int limit = 100, int offset = 0}) async {
+  Future<List<ChatMessage>> getChatMessages({
+    int? profileId,
+    int? conversationId,
+    int limit = 100,
+    int offset = 0,
+  }) async {
     final db = await database;
-    final List<Map<String, dynamic>> maps;
+    final whereClauses = <String>[];
+    final whereArgs = <dynamic>[];
 
     if (profileId != null) {
-      maps = await db.query(
-        'chat_messages',
-        where: 'profile_id = ?',
-        whereArgs: [profileId],
-        orderBy: 'timestamp DESC',
-        limit: limit,
-        offset: offset,
-      );
-    } else {
-      maps = await db.query(
-        'chat_messages',
-        orderBy: 'timestamp DESC',
-        limit: limit,
-        offset: offset,
-      );
+      whereClauses.add('profile_id = ?');
+      whereArgs.add(profileId);
     }
+
+    if (conversationId != null) {
+      whereClauses.add('conversation_id = ?');
+      whereArgs.add(conversationId);
+    }
+
+    final maps = await db.query(
+      'chat_messages',
+      where: whereClauses.isEmpty ? null : whereClauses.join(' AND '),
+      whereArgs: whereArgs.isEmpty ? null : whereArgs,
+      orderBy: 'timestamp DESC',
+      limit: limit,
+      offset: offset,
+    );
 
     final messages =
         List.generate(maps.length, (i) => ChatMessage.fromMap(maps[i]));
@@ -1005,6 +1015,10 @@ class DatabaseService {
       column: 'message_type',
       definition: 'INTEGER DEFAULT 0',
     );
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_chat_messages_profile_conversation_timestamp
+      ON chat_messages(profile_id, conversation_id, timestamp DESC)
+    ''');
     await _safeAddColumn(
       db,
       table: 'ai_personalities',

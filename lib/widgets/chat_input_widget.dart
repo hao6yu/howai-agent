@@ -746,9 +746,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                 widget.pendingFiles.isNotEmpty;
             final isComposingText =
                 !widget.isVoiceInputMode && widget.textInputFocusNode.hasFocus;
-            final showDeepResearchButton = !_useAdaptiveActionDensity
-                ? true
-                : (!isComposingText || widget.forceDeepResearch);
+            // Keep the deep research entry point stable. Hiding it on focus
+            // makes the control appear/disappear unpredictably, especially for
+            // free users who can never keep it "enabled".
+            const showDeepResearchButton = true;
             final showInputModeToggle = !_useAdaptiveActionDensity
                 ? true
                 : (!isComposingText || !hasDraft);

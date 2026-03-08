@@ -178,6 +178,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   bool _didInitLocalization = false;
 
   int? _lastLoadedConversationId;
+  bool _conversationReconcileScheduled = false;
 
   // Add TTS instance and state
   FlutterTts? _flutterTts;
@@ -378,7 +379,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             return null;
         }
       }();
-      if (key != null && !keys.contains(key)) {
+      if (key != null && key.currentContext != null && !keys.contains(key)) {
         keys.add(key);
       }
     }
@@ -551,12 +552,19 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   Future<void> _loadMoreMessages() async {
     if (_isLoadingMore || !_hasMore) return;
+    final conversationId = Provider.of<ConversationProvider>(context,
+            listen: false)
+        .selectedConversation
+        ?.id;
+    if (conversationId == null) return;
+
     setState(() {
       _isLoadingMore = true;
     });
     try {
       final moreMessages = await _databaseService.getChatMessages(
         profileId: _currentProfileId,
+        conversationId: conversationId,
         limit: _pageSize,
         offset: _loadedCount,
       );
@@ -585,6 +593,32 @@ class _AiChatScreenState extends State<AiChatScreen>
         _isLoadingMore = false;
       });
     }
+  }
+
+  void _scheduleConversationReconciliation() {
+    if (_conversationReconcileScheduled || !mounted) {
+      return;
+    }
+
+    _conversationReconcileScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _conversationReconcileScheduled = false;
+      if (!mounted || _isSending || _isCreatingNewConversation || _isLoading) {
+        return;
+      }
+
+      final conversationProvider =
+          Provider.of<ConversationProvider>(context, listen: false);
+      final selectedConversationId =
+          conversationProvider.selectedConversation?.id;
+
+      if (selectedConversationId == _lastLoadedConversationId) {
+        return;
+      }
+
+      _lastLoadedConversationId = null;
+      _loadMessagesForConversation(selectedConversationId);
+    });
   }
 
   void _scrollToBottom({bool animated = false}) {
@@ -2315,7 +2349,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       onComplete: (index, key) {
         // print('🎯 [Showcase] Completed step ${(index ?? 0) + 1} with key: $key');
       },
-      enableAutoScroll: true,
+      enableAutoScroll: false,
       disableBarrierInteraction: false,
       builder: (context) {
         // Store the context that has access to ShowCaseWidget
@@ -2324,6 +2358,13 @@ class _AiChatScreenState extends State<AiChatScreen>
           builder: (context, conversationProvider, child) {
             final selectedConversation =
                 conversationProvider.selectedConversation;
+
+            if (!_isSending &&
+                !_isCreatingNewConversation &&
+                !_isLoading &&
+                selectedConversation?.id != _lastLoadedConversationId) {
+              _scheduleConversationReconciliation();
+            }
 
             // Filter messages for the selected conversation (important for UI consistency)
             List<ChatMessage> displayMessages = [];
@@ -2941,17 +2982,14 @@ class _AiChatScreenState extends State<AiChatScreen>
     });
 
     try {
-      // First, load all messages for the current profile
-      final allMessages = await _databaseService.getChatMessages(
+      // Load only this conversation's messages to keep pagination accurate.
+      final conversationMessages = await _databaseService.getChatMessages(
         profileId: _currentProfileId,
+        conversationId: conversationId,
         limit:
             100, // Increase limit to make sure we get all messages for this conversation
         offset: 0,
       );
-
-      // Then filter for this conversation
-      final conversationMessages =
-          allMessages.where((m) => m.conversationId == conversationId).toList();
 
       // Sort messages by timestamp to ensure proper order
       conversationMessages.sort((a, b) {
@@ -4815,6 +4853,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       isSending: _isSending,
       isCreatingNewConversation: _isCreatingNewConversation,
     )) {
+      _scheduleConversationReconciliation();
       return;
     }
 

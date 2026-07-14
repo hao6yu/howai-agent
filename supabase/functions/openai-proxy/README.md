@@ -27,7 +27,8 @@ supabase secrets set \
   OPENAI_PROXY_CHAT_MINI_MODEL=gpt-5-nano \
   OPENAI_PROXY_MODEL_NANO=gpt-5-nano \
   OPENAI_PROXY_MODEL_LUNA=gpt-5.6-luna \
-  OPENAI_PROXY_MODEL_SOL=gpt-5.6-sol
+  OPENAI_PROXY_MODEL_SOL=gpt-5.6-sol \
+  OPENAI_PROXY_EVAL_VERSION=gpt56-m1-v1
 ```
 
 `OPENAI_PROXY_ALLOWED_MODELS` is optional. Use it only if the app needs to send
@@ -35,11 +36,33 @@ additional real model names besides the two aliases.
 
 ## GPT-5.6 policy rollout
 
-The HowAI 2.0 model policy is fail-safe and double-gated. It activates only
-when both of these are true:
+The HowAI 2.0 model policy is fail-safe and triple-gated. It activates for a
+request only when all of these are true:
 
 1. `OPENAI_PROXY_POLICY_ENABLED=true` is present in Supabase secrets.
 2. The `model_policy_v2` row in `public.feature_flags` is enabled.
+3. The request's user is selected by the flag payload's rollout mode.
+
+The supported payload is:
+
+```json
+{
+  "mode": "off",
+  "rollout_percent": 0,
+  "rollout_salt": "gpt56-m1-v1"
+}
+```
+
+- `off` routes everyone through the legacy model path.
+- `internal` routes only users marked by the private
+  `app_entitlements.model_policy_canary` column.
+- `percentage` uses a deterministic 0–9,999 user bucket and the integer
+  percentage in `rollout_percent`.
+
+The payload never contains user IDs. Keep `rollout_salt` stable throughout a
+percentage canary so users do not move between cohorts. For instant rollback,
+disable the feature flag or set `mode` to `off`; `percentage` with `0` is also
+an inert route.
 
 Keep both gates off until migrations are deployed, verified paid entitlements
 are backfilled into `app_entitlements`, streaming telemetry is visible, and the
@@ -47,6 +70,11 @@ canary cohort is approved. The legacy client-written `subscription_status`
 table is not authoritative for Sol access. When the environment gate is on, a
 feature-flag lookup failure returns a temporary error instead of bypassing the
 policy.
+
+Every Responses request records the requested alias, resolved model,
+deterministic rollout cohort/bucket, reasoning effort, latency, usage, cost,
+eval version, and a bounded error category. User prompt and response content
+are not written to proxy telemetry.
 
 Optional policy limits:
 
@@ -104,3 +132,20 @@ curl -i \
   -H "apikey: <supabase-anon-key>" \
   -d '{"model":"howai-chat-mini","input":[{"role":"user","content":"Say hi"}]}'
 ```
+
+## GPT-5.6 evaluation
+
+The versioned synthetic fixture set lives in
+`supabase/functions/evals/gpt56-m1-v1/fixtures.json`. Run the automated subset
+through this proxy with:
+
+```bash
+OPENAI_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/openai-proxy \
+HOWAI_EVAL_ACCESS_TOKEN=<internal-user-access-token> \
+SUPABASE_ANON_KEY=<publishable-key> \
+node scripts/run-gpt56-evals.mjs --label baseline
+```
+
+The runner never needs or reads `OPENAI_API_KEY`; OpenAI access stays inside
+the Supabase-managed proxy. See `docs/GPT56_M1_CANARY_RUNBOOK.md` for the
+baseline, internal-canary, percentage-rollout, and rollback sequence.

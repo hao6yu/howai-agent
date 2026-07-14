@@ -11,6 +11,12 @@ import {
   type UserCohort,
 } from "../_shared/openai-policy.ts";
 import {
+  DEFAULT_MODEL_POLICY_ROLLOUT,
+  parseModelPolicyRollout,
+  resolveModelPolicyRollout,
+  type ModelPolicyRolloutDecision,
+} from "../_shared/openai-rollout.ts";
+import {
   extractResponsesUsage,
   ResponsesSseUsageCollector,
   type ResponsesUsage,
@@ -29,6 +35,7 @@ const ANON_MAX_REQUESTS_PER_DAY = Number(Deno.env.get("OPENAI_PROXY_ANON_MAX_REQ
 const CHAT_MODEL = Deno.env.get("OPENAI_PROXY_CHAT_MODEL") ?? "gpt-5.2";
 const CHAT_MINI_MODEL = Deno.env.get("OPENAI_PROXY_CHAT_MINI_MODEL") ?? "gpt-5-nano";
 const MODEL_POLICY_ENV_ENABLED = Deno.env.get("OPENAI_PROXY_POLICY_ENABLED") === "true";
+const GPT56_EVAL_VERSION = Deno.env.get("OPENAI_PROXY_EVAL_VERSION") ?? "gpt56-m1-v1";
 const MODEL_POLICY: ModelPolicyConfig = Object.freeze({
   ...DEFAULT_MODEL_POLICY,
   models: Object.freeze({
@@ -84,6 +91,16 @@ type AuthenticatedUser = {
   isAnonymous: boolean;
 };
 
+type TrustedEntitlement = {
+  cohort: UserCohort;
+  trusted: boolean;
+  internalCanary: boolean;
+};
+
+type ModelPolicyRolloutContext = ModelPolicyRolloutDecision & {
+  entitlement: TrustedEntitlement | null;
+};
+
 type PolicyContext = {
   requestId: string;
   ledgerId: string;
@@ -100,6 +117,7 @@ type SanitizedResponse = {
   model: string | null;
   stream: boolean;
   policy: PolicyContext | null;
+  rollout: ModelPolicyRolloutDecision;
 };
 
 const MODEL_ALIASES = new Map<string, string>([
@@ -127,6 +145,12 @@ type RequestLog = {
   estimated_cost_microusd?: number | null;
   actual_cost_microusd?: number | null;
   usage_ledger_id?: string | null;
+  requested_alias?: string | null;
+  rollout_cohort?: string | null;
+  rollout_bucket?: number | null;
+  rollout_percent?: number | null;
+  eval_version?: string | null;
+  error_category?: string | null;
   error?: string | null;
 };
 
@@ -332,7 +356,7 @@ function sanitizeTools(tools: unknown): unknown {
 async function sanitizeResponsesBody(
   bodyBytes: ArrayBuffer,
   user: AuthenticatedUser,
-  policyEnabled: boolean,
+  rollout: ModelPolicyRolloutContext,
 ): Promise<SanitizedResponse> {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
@@ -342,8 +366,11 @@ async function sanitizeResponsesBody(
   let resolvedModel = requestedModel ? MODEL_ALIASES.get(requestedModel) ?? requestedModel : null;
   let policyContext: PolicyContext | null = null;
 
-  if (policyEnabled) {
-    const entitlement = await getTrustedEntitlement(user);
+  if (rollout.active) {
+    const entitlement = rollout.entitlement;
+    if (!entitlement) {
+      throw new ProxyPolicyError("Model policy entitlement is temporarily unavailable.", 503);
+    }
     const intent = requestIntent(json.metadata);
     const hasAttachments = containsAttachment(json.input);
     const estimatedInputTokens = Math.ceil(bodyBytes.byteLength / 4);
@@ -478,10 +505,9 @@ async function sanitizeResponsesBody(
   json.model = resolvedModel;
   delete json.user;
   json.safety_identifier = user.id;
-  json.metadata = {
-    ...(json.metadata && typeof json.metadata === "object" ? json.metadata : {}),
-    howai_user_id: user.id,
-  };
+  if (json.metadata && typeof json.metadata === "object") {
+    delete (json.metadata as Record<string, unknown>).howai_user_id;
+  }
 
   return {
     bytes: encoder.encode(JSON.stringify(json)),
@@ -489,33 +515,63 @@ async function sanitizeResponsesBody(
     model: resolvedModel,
     stream: json.stream === true,
     policy: policyContext,
+    rollout,
   };
 }
 
-async function isModelPolicyEnabled(): Promise<boolean> {
-  if (!MODEL_POLICY_ENV_ENABLED || !supabaseAdmin) return false;
+function legacyRollout(userId: string): ModelPolicyRolloutContext {
+  return {
+    ...resolveModelPolicyRollout(
+      userId,
+      false,
+      DEFAULT_MODEL_POLICY_ROLLOUT,
+    ),
+    entitlement: null,
+  };
+}
+
+async function getModelPolicyRollout(
+  user: AuthenticatedUser,
+): Promise<ModelPolicyRolloutContext> {
+  if (!MODEL_POLICY_ENV_ENABLED || !supabaseAdmin) return legacyRollout(user.id);
   const { data, error } = await supabaseAdmin
     .from("feature_flags")
-    .select("enabled")
+    .select("enabled, payload")
     .eq("key", "model_policy_v2")
     .maybeSingle();
   if (error) {
     console.error("Model policy feature-flag lookup failed", error);
     throw new ProxyPolicyError("Model policy is temporarily unavailable.", 503);
   }
-  return data?.enabled === true;
+  if (data?.enabled !== true) return legacyRollout(user.id);
+
+  const config = parseModelPolicyRollout(data.payload);
+  if (
+    config.mode === "off" ||
+    (config.mode === "percentage" && config.rolloutPercent === 0)
+  ) {
+    return {
+      ...resolveModelPolicyRollout(user.id, false, config),
+      entitlement: null,
+    };
+  }
+
+  const entitlement = await getTrustedEntitlement(user);
+  return {
+    ...resolveModelPolicyRollout(user.id, entitlement.internalCanary, config),
+    entitlement,
+  };
 }
 
-async function getTrustedEntitlement(user: AuthenticatedUser): Promise<{
-  cohort: UserCohort;
-  trusted: boolean;
-}> {
-  if (user.isAnonymous) return { cohort: "anonymous", trusted: false };
+async function getTrustedEntitlement(user: AuthenticatedUser): Promise<TrustedEntitlement> {
+  if (user.isAnonymous) {
+    return { cohort: "anonymous", trusted: false, internalCanary: false };
+  }
   if (!supabaseAdmin) throw new Error("Supabase admin client is unavailable");
 
   const { data, error } = await supabaseAdmin
     .from("app_entitlements")
-    .select("tier, expires_at")
+    .select("tier, expires_at, model_policy_canary")
     .eq("user_id", user.id)
     .maybeSingle();
   if (error) throw new Error(`Verified entitlement lookup failed: ${error.message}`);
@@ -523,8 +579,16 @@ async function getTrustedEntitlement(user: AuthenticatedUser): Promise<{
   const expiry = typeof data?.expires_at === "string" ? Date.parse(data.expires_at) : null;
   const active = data?.tier === "paid" && (expiry == null || expiry > Date.now());
   return active
-    ? { cohort: "paid", trusted: true }
-    : { cohort: "free", trusted: false };
+    ? {
+      cohort: "paid",
+      trusted: true,
+      internalCanary: data?.model_policy_canary === true,
+    }
+    : {
+      cohort: "free",
+      trusted: false,
+      internalCanary: data?.model_policy_canary === true,
+    };
 }
 
 function requestIntent(metadata: unknown): RequestIntent {
@@ -739,6 +803,32 @@ function estimateActualCostMicrousd(
   return estimated ?? fallback;
 }
 
+function rolloutTelemetry(
+  sanitized: SanitizedResponse | null,
+): Pick<
+  RequestLog,
+  | "requested_alias"
+  | "rollout_cohort"
+  | "rollout_bucket"
+  | "rollout_percent"
+  | "eval_version"
+> {
+  return {
+    requested_alias: sanitized?.requestedAlias ?? null,
+    rollout_cohort: sanitized?.rollout.cohort ?? null,
+    rollout_bucket: sanitized?.rollout.bucket ?? null,
+    rollout_percent: sanitized?.rollout.rolloutPercent ?? null,
+    eval_version: sanitized ? GPT56_EVAL_VERSION : null,
+  };
+}
+
+function proxyErrorCategory(error: unknown): string {
+  if (error instanceof ProxyPolicyError) {
+    return error.status >= 500 ? "policy_unavailable" : "policy_rejected";
+  }
+  return "proxy_error";
+}
+
 function envNumber(name: string, fallback: number): number {
   const parsed = Number(Deno.env.get(name));
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
@@ -801,7 +891,7 @@ Deno.serve(async (req: Request) => {
       sanitized = await sanitizeResponsesBody(
         originalBodyBytes,
         user,
-        await isModelPolicyEnabled(),
+        await getModelPolicyRollout(user),
       );
       forwardBody = sanitized.bytes;
       model = sanitized.model;
@@ -826,6 +916,7 @@ Deno.serve(async (req: Request) => {
 
     if (isStreaming && upstream.ok && upstream.body) {
       const streamLogId = await logRequest({
+        ...rolloutTelemetry(sanitized),
         user_id: user.id,
         is_anonymous: user.isAnonymous,
         endpoint: path,
@@ -865,6 +956,7 @@ Deno.serve(async (req: Request) => {
               latency_ms: Math.round(performance.now() - requestStartedAt),
               time_to_first_token_ms: firstTokenMs,
               actual_cost_microusd: actualCost,
+              error_category: telemetryError ? "stream_terminal_error" : null,
               error: telemetryError,
             }),
             reconcilePolicyUsage(
@@ -883,6 +975,7 @@ Deno.serve(async (req: Request) => {
             updateRequestLog(streamLogId, {
               latency_ms: Math.round(performance.now() - requestStartedAt),
               actual_cost_microusd: cancellationCost,
+              error_category: "stream_cancelled",
               error: "stream_cancelled",
             }),
             reconcilePolicyUsage(
@@ -941,6 +1034,7 @@ Deno.serve(async (req: Request) => {
 
     await Promise.all([
       logRequest({
+        ...rolloutTelemetry(sanitized),
         user_id: user.id,
         is_anonymous: user.isAnonymous,
         endpoint: path,
@@ -959,6 +1053,7 @@ Deno.serve(async (req: Request) => {
         estimated_cost_microusd: sanitized?.policy?.reservationMicrousd ?? null,
         actual_cost_microusd: actualCost,
         usage_ledger_id: sanitized?.policy?.ledgerId ?? null,
+        error_category: upstreamError || !responseSucceeded ? "upstream_error" : null,
         error: upstreamError ?? (responseSucceeded ? null : reconciliationError),
       }),
       reconcilePolicyUsage(
@@ -980,6 +1075,7 @@ Deno.serve(async (req: Request) => {
     const status = error instanceof ProxyPolicyError ? error.status : 502;
     await Promise.all([
       logRequest({
+        ...rolloutTelemetry(sanitized),
         user_id: user.id,
         is_anonymous: user.isAnonymous,
         endpoint: path,
@@ -992,6 +1088,7 @@ Deno.serve(async (req: Request) => {
         latency_ms: Math.round(performance.now() - requestStartedAt),
         estimated_cost_microusd: sanitized?.policy?.reservationMicrousd ?? null,
         usage_ledger_id: sanitized?.policy?.ledgerId ?? null,
+        error_category: proxyErrorCategory(error),
         error: message.slice(0, 500),
       }),
       reconcilePolicyUsage(

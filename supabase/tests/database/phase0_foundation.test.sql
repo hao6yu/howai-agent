@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
-select plan(26);
+select plan(32);
 
 select is(
   (select count(*) from public.feature_flags),
@@ -56,6 +56,62 @@ select is(
   ),
   true,
   'the service role can reserve AI budget'
+);
+
+select is(
+  (
+    select column_default
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'app_entitlements'
+      and column_name = 'model_policy_canary'
+  ),
+  'false',
+  'internal model canary access defaults to disabled'
+);
+
+select is(
+  (select payload ->> 'mode' from public.feature_flags where key = 'model_policy_v2'),
+  'off',
+  'the model policy rollout mode defaults to off'
+);
+
+select is(
+  (select (payload ->> 'rollout_percent')::integer
+   from public.feature_flags where key = 'model_policy_v2'),
+  0,
+  'the model policy rollout percentage defaults to zero'
+);
+
+select is(
+  (
+    select count(*)
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'openai_proxy_requests'
+      and column_name in (
+        'requested_alias',
+        'rollout_cohort',
+        'rollout_bucket',
+        'rollout_percent',
+        'eval_version',
+        'error_category'
+      )
+  ),
+  6::bigint,
+  'all privacy-safe canary telemetry columns exist'
+);
+
+select is(
+  has_table_privilege('authenticated', 'public.openai_proxy_requests', 'insert'),
+  false,
+  'authenticated clients cannot write proxy telemetry'
+);
+
+select is(
+  has_table_privilege('service_role', 'public.openai_proxy_requests', 'insert'),
+  true,
+  'the service role can write proxy telemetry'
 );
 
 select is(

@@ -8,12 +8,14 @@ Proposed release version: `2.0.0`
 Repository scope: Flutter clients and the shared Supabase backend. The web
 client is maintained and released from its own repository.
 
-Implementation status (2026-07-14): M0 source work is complete on
-`codex/howai-2-foundation` and verified against a full local Supabase rebuild.
-No user-visible feature or GPT-5.6 route is enabled, and no application schema
-or Edge Function change has been deployed to production. The next release gate
-is a non-production Supabase deployment, verified-entitlement backfill design,
-and M1 eval/canary review.
+Implementation status (2026-07-14): M0 is deployed and the dormant M1
+GPT-5.6 evaluation/canary foundation is deployed on
+`codex/howai-2-foundation`. Production migration history, RLS, privileges,
+advisors, and Edge Function v16 have been verified. No user-visible feature or
+GPT-5.6 route is enabled: the environment gate is absent, the database flag is
+disabled, its mode is `off`, its percentage is `0`, and no internal account is
+marked. The next release gate is selecting the private internal test account,
+capturing the versioned baseline, and explicitly enabling the internal canary.
 
 M0 delivered:
 
@@ -33,6 +35,21 @@ M0 delivered:
   recording token fields that the Responses API currently returns.
 - Added Flutter, Edge policy/stream, RLS/trigger, migration, and CI
   verification.
+
+M1 foundation delivered:
+
+- Confirmed from production telemetry that the current primary model route is
+  `gpt-5.2`, not GPT-5.5; the last 30-day inventory contained 155 GPT-5.2 and
+  98 nano proxy requests as of 2026-07-14.
+- Added a private internal-account marker, deterministic 0–9,999 user buckets,
+  `off`/`internal`/`percentage` rollout modes, and database-level rollback.
+- Added requested/resolved model, cohort, bucket, eval version, latency, usage,
+  cost, and bounded error-category telemetry without prompt/response content.
+- Added the privacy-safe `gpt56-m1-v1` fixture suite and proxy evaluator; live
+  baseline/candidate runs wait for an explicit internal Supabase user session.
+- Kept explicit GPT-5.6 Sol/Luna/nano role mapping, `low` reasoning, standard
+  service tier, and server-owned output/cost controls; optional GPT-5.6 modes
+  remain disabled.
 
 ## 1. Executive decision
 

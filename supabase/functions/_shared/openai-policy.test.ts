@@ -29,6 +29,21 @@ test("a trusted paid primary chat resolves to Sol", () => {
   assert.equal(result.maxOutputTokens, 3_000);
 });
 
+test("trusted paid synchronous research preserves the legacy model and high reasoning", () => {
+  const result = resolveModelPolicy({
+    cohort: "paid",
+    entitlementTrusted: true,
+    intent: "research",
+    hasAttachments: false,
+    estimatedLunaCostMicrousd: 0,
+    freeUsage: emptyUsage,
+  });
+
+  assert.equal(result.role, "research");
+  assert.equal(result.model, "gpt-5.2");
+  assert.equal(result.reasoningEffort, "high");
+});
+
 test("an untrusted paid claim never unlocks Sol", () => {
   const result = resolveModelPolicy({
     cohort: "paid",

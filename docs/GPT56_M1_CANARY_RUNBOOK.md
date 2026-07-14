@@ -16,7 +16,7 @@ canary.
 | Primary chat | `howai-chat`, `primary_chat` | `OPENAI_PROXY_CHAT_MODEL` (fallback `gpt-5.2`) | Paid: `gpt-5.6-sol`; signed-in free: budgeted `gpt-5.6-luna` then nano |
 | Quick/background chat | `howai-chat-mini`, `lightweight` | `OPENAI_PROXY_CHAT_MINI_MODEL` | `gpt-5-nano` |
 | Title generation | `title` | Existing alias route | `gpt-5-nano` |
-| Synchronous legacy research | `research` | Existing Responses route | `gpt-5-nano` during the M1 policy; persistent Research is a later workstream |
+| Synchronous legacy research | `research` | Existing Responses route | Preserve the hosted legacy model with `high` reasoning for verified paid users; persistent Research is a later workstream |
 | Voice transcription | `/v1/audio/transcriptions` | `whisper-1` | Unchanged in M1 |
 | Realtime voice | Separate ElevenLabs/current voice path | Separate integration | OpenAI Realtime workstream, not GPT-5.6 text routing |
 
@@ -67,10 +67,14 @@ gates inert:
 Verify legacy chat, title generation, transcription, and OPTIONS health before
 changing any gate.
 
-## 3. Mark an internal account privately
+## 3. Mark two internal accounts privately
 
-Use the authenticated user's UUID. The marker is stored in the service-only
-entitlement table and is never placed in the client-readable feature flag:
+Use two dedicated QA users: one free and one temporary paid account. Do not use a
+real customer's entitlement for the paid fixture. The markers are stored in the
+service-only entitlement table and are never placed in the client-readable
+feature flag.
+
+Free fixture:
 
 ```sql
 insert into public.app_entitlements (
@@ -80,19 +84,67 @@ insert into public.app_entitlements (
   verified_at,
   model_policy_canary
 )
-values ('<internal-user-uuid>', 'free', 'admin', now(), true)
+values ('<internal-free-user-uuid>', 'free', 'admin', now(), true)
 on conflict (user_id) do update
 set model_policy_canary = true,
     updated_at = now();
 ```
 
-This statement does not downgrade or otherwise replace an existing paid
-entitlement on conflict.
+This statement does not downgrade an existing entitlement on conflict. Verify
+that the dedicated fixture actually resolves to `free` before testing.
+
+Temporary paid fixture, limited to 48 hours:
+
+```sql
+insert into public.app_entitlements (
+  user_id,
+  tier,
+  source,
+  source_reference,
+  verified_at,
+  expires_at,
+  model_policy_canary
+)
+values (
+  '<internal-paid-user-uuid>',
+  'paid',
+  'admin',
+  'gpt56-m1-internal-test',
+  now(),
+  now() + interval '48 hours',
+  true
+)
+on conflict (user_id) do update
+set tier = 'paid',
+    source = 'admin',
+    source_reference = 'gpt56-m1-internal-test',
+    verified_at = now(),
+    expires_at = now() + interval '48 hours',
+    model_policy_canary = true,
+    updated_at = now();
+```
 
 ## 4. Internal canary
 
-Set the environment gate to true, deploy the function with explicit candidate
-model secrets, then enable only the private internal cohort:
+With the database flag still off, set the environment gate and explicit model
+secrets. Hosted Supabase secrets are available to functions immediately; this
+does not replace the earlier dormant code deployment. Keep a $2 project-wide
+daily ceiling during the internal test:
+
+```bash
+supabase secrets set \
+  OPENAI_PROXY_POLICY_ENABLED=true \
+  OPENAI_PROXY_MODEL_NANO=gpt-5-nano \
+  OPENAI_PROXY_MODEL_LUNA=gpt-5.6-luna \
+  OPENAI_PROXY_MODEL_SOL=gpt-5.6-sol \
+  OPENAI_PROXY_RESEARCH_MODEL=gpt-5.2 \
+  OPENAI_PROXY_GLOBAL_DAILY_BUDGET_MICROUSD=2000000 \
+  OPENAI_PROXY_GLOBAL_MONTHLY_BUDGET_MICROUSD=10000000 \
+  OPENAI_PROXY_RESEARCH_RESERVATION_MICROUSD=250000 \
+  OPENAI_PROXY_EVAL_VERSION=gpt56-m1-v1
+```
+
+Then enable only the private internal cohort as the final activation step:
 
 ```sql
 update public.feature_flags
@@ -112,10 +164,13 @@ Run `gpt56-m1-v1` with `--label candidate-internal`. Confirm that:
 - the marked free account receives only the budgeted Luna allowance and then
   nano;
 - title and lightweight intents remain nano;
+- current synchronous Deep Research stays on the legacy model with `high`
+  reasoning for the paid fixture;
 - client attempts to select Sol, Pro mode, priority service, background mode,
   larger output, or explicit cache controls cannot override the proxy;
 - tool schemas and continuations remain compatible;
-- telemetry contains no prompt or response content.
+- telemetry contains the requested model, actual upstream model, bounded error
+  code/parameter data, and no prompt, response, or upstream error-message content.
 
 ## 5. Percentage rollout
 
@@ -138,6 +193,7 @@ Compare cohorts using aggregate telemetry only:
 select
   rollout_cohort,
   model,
+  actual_model,
   count(*) as requests,
   round(avg(latency_ms)) as average_latency_ms,
   round(avg(time_to_first_token_ms)) as average_ttft_ms,
@@ -147,8 +203,8 @@ select
   count(*) filter (where error_category is not null) as errors
 from public.openai_proxy_requests
 where created_at >= now() - interval '24 hours'
-group by rollout_cohort, model
-order by rollout_cohort, model;
+group by rollout_cohort, model, actual_model
+order by rollout_cohort, model, actual_model;
 ```
 
 Hold or roll back when task success regresses, schema/tool continuations fail,
@@ -173,14 +229,29 @@ where key = 'model_policy_v2';
 Then verify new requests record `rollout_cohort = legacy` and resolve to the
 legacy alias target. The environment gate can remain deployed while the
 database flag is off. For defense in depth after an incident, also set the
-environment gate to false and redeploy.
+environment gate secret to false; hosted secret changes are available without a
+code redeploy.
+
+After the test, remove only the dedicated QA markers and temporary entitlement:
+
+```sql
+update public.app_entitlements
+set model_policy_canary = false,
+    updated_at = now()
+where user_id = '<internal-free-user-uuid>';
+
+delete from public.app_entitlements
+where user_id = '<internal-paid-user-uuid>'
+  and source = 'admin'
+  and source_reference = 'gpt56-m1-internal-test';
+```
 
 ## Exit gates
 
 - Automated and manual fixtures pass against the candidate at no worse than
   the accepted baseline.
-- Paid primary chat resolves to Sol; free Luna and nano fallback budgets are
-  enforced atomically.
+- Paid primary chat resolves to Sol; route, per-user, and project-wide budgets
+  are enforced atomically for Sol, Luna, nano, and synchronous research.
 - Reminder/action proposals never execute without approval.
 - PPTX, web, multimodal, multilingual, multi-turn, refusal, and privacy cases
   are accepted.

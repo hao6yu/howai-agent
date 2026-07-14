@@ -21,6 +21,10 @@ import {
   ResponsesSseUsageCollector,
   type ResponsesUsage,
 } from "../_shared/openai-stream.ts";
+import {
+  extractUpstreamErrorTelemetry,
+  nonJsonUpstreamErrorTelemetry,
+} from "../_shared/openai-telemetry.ts";
 
 const OPENAI_BASE_URL = "https://api.openai.com";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -42,6 +46,7 @@ const MODEL_POLICY: ModelPolicyConfig = Object.freeze({
     nano: Deno.env.get("OPENAI_PROXY_MODEL_NANO") ?? DEFAULT_MODEL_POLICY.models.nano,
     luna: Deno.env.get("OPENAI_PROXY_MODEL_LUNA") ?? DEFAULT_MODEL_POLICY.models.luna,
     sol: Deno.env.get("OPENAI_PROXY_MODEL_SOL") ?? DEFAULT_MODEL_POLICY.models.sol,
+    research: Deno.env.get("OPENAI_PROXY_RESEARCH_MODEL") ?? CHAT_MODEL,
   }),
   freeLunaAnswersPerDay: envNumber(
     "OPENAI_PROXY_FREE_LUNA_ANSWERS_PER_DAY",
@@ -64,6 +69,58 @@ const ANONYMOUS_DAILY_BUDGET_MICROUSD = envNumber(
 const ANONYMOUS_MONTHLY_BUDGET_MICROUSD = envNumber(
   "OPENAI_PROXY_ANON_MONTHLY_BUDGET_MICROUSD",
   50_000,
+);
+const FREE_NANO_DAILY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_FREE_NANO_DAILY_BUDGET_MICROUSD",
+  20_000,
+);
+const FREE_NANO_MONTHLY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_FREE_NANO_MONTHLY_BUDGET_MICROUSD",
+  500_000,
+);
+const FREE_USER_DAILY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_FREE_USER_DAILY_BUDGET_MICROUSD",
+  50_000,
+);
+const FREE_USER_MONTHLY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_FREE_USER_MONTHLY_BUDGET_MICROUSD",
+  1_000_000,
+);
+const PAID_SOL_DAILY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_PAID_SOL_DAILY_BUDGET_MICROUSD",
+  2_000_000,
+);
+const PAID_SOL_MONTHLY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_PAID_SOL_MONTHLY_BUDGET_MICROUSD",
+  30_000_000,
+);
+const PAID_USER_DAILY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_PAID_USER_DAILY_BUDGET_MICROUSD",
+  3_000_000,
+);
+const PAID_USER_MONTHLY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_PAID_USER_MONTHLY_BUDGET_MICROUSD",
+  40_000_000,
+);
+const RESEARCH_DAILY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_RESEARCH_DAILY_BUDGET_MICROUSD",
+  1_000_000,
+);
+const RESEARCH_MONTHLY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_RESEARCH_MONTHLY_BUDGET_MICROUSD",
+  10_000_000,
+);
+const RESEARCH_FALLBACK_RESERVATION_MICROUSD = envNumber(
+  "OPENAI_PROXY_RESEARCH_RESERVATION_MICROUSD",
+  250_000,
+);
+const GLOBAL_DAILY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_GLOBAL_DAILY_BUDGET_MICROUSD",
+  10_000_000,
+);
+const GLOBAL_MONTHLY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_GLOBAL_MONTHLY_BUDGET_MICROUSD",
+  150_000_000,
 );
 const FREE_MAX_ESTIMATED_INPUT_TOKENS = envNumber(
   "OPENAI_PROXY_FREE_MAX_ESTIMATED_INPUT_TOKENS",
@@ -111,6 +168,16 @@ type PolicyContext = {
   reservationMicrousd: number;
 };
 
+type ReservationLimits = Readonly<{
+  routeDailyBudgetMicrousd: number;
+  routeMonthlyBudgetMicrousd: number;
+  userDailyBudgetMicrousd: number;
+  userMonthlyBudgetMicrousd: number;
+  globalDailyBudgetMicrousd: number;
+  globalMonthlyBudgetMicrousd: number;
+  dailyAnswerLimit: number | null;
+}>;
+
 type SanitizedResponse = {
   bytes: Uint8Array;
   requestedAlias: string | null;
@@ -130,6 +197,7 @@ type RequestLog = {
   is_anonymous: boolean;
   endpoint: string;
   model: string | null;
+  actual_model?: string | null;
   status_code: number;
   request_bytes: number;
   response_id?: string | null;
@@ -151,6 +219,8 @@ type RequestLog = {
   rollout_percent?: number | null;
   eval_version?: string | null;
   error_category?: string | null;
+  error_code?: string | null;
+  error_param?: string | null;
   error?: string | null;
 };
 
@@ -407,32 +477,20 @@ async function sanitizeResponsesBody(
       },
     }, MODEL_POLICY);
 
-    let reservation = decision.role === "luna"
-      ? await reserveBudgetedUsage(
-        user.id,
-        entitlement.cohort,
-        intent,
-        requestedModel,
-        decision,
-        lunaEstimate,
-        MODEL_POLICY.freeLunaDailyBudgetMicrousd,
-        MODEL_POLICY.freeLunaMonthlyBudgetMicrousd,
-        MODEL_POLICY.freeLunaAnswersPerDay,
-      )
-      : null;
+    let estimate = reservationEstimateMicrousd(decision, estimatedInputTokens);
+    let reservation = await reserveBudgetedUsage(
+      user.id,
+      entitlement.cohort,
+      intent,
+      requestedModel,
+      decision,
+      estimate,
+      reservationLimits(entitlement.cohort, decision),
+    );
 
-    if (decision.role === "luna" && !reservation?.accepted) {
-      decision = nanoFallbackDecision(reservation?.reason ?? "luna_reservation_failed");
-      reservation = null;
-    }
-
-    const estimate = estimateModelCostMicrousd(decision.model, {
-      inputTokens: estimatedInputTokens,
-      cacheWriteInputTokens: isGpt56Model(decision.model) ? estimatedInputTokens : 0,
-      outputTokens: decision.maxOutputTokens,
-    }) ?? 0;
-
-    if (!reservation && entitlement.cohort === "anonymous") {
+    if (decision.role === "luna" && !reservation.accepted) {
+      decision = nanoFallbackDecision(reservation.reason ?? "luna_reservation_failed");
+      estimate = reservationEstimateMicrousd(decision, estimatedInputTokens);
       reservation = await reserveBudgetedUsage(
         user.id,
         entitlement.cohort,
@@ -440,24 +498,15 @@ async function sanitizeResponsesBody(
         requestedModel,
         decision,
         estimate,
-        ANONYMOUS_DAILY_BUDGET_MICROUSD,
-        ANONYMOUS_MONTHLY_BUDGET_MICROUSD,
-        ANONYMOUS_ANSWER_LIMIT,
+        reservationLimits(entitlement.cohort, decision),
       );
-      if (!reservation.accepted) {
-        throw new ProxyPolicyError("The anonymous daily answer limit has been reached.", 429);
-      }
     }
 
-    if (!reservation) {
-      reservation = await insertUsageReservation(
-        user.id,
-        entitlement.cohort,
-        intent,
-        requestedModel,
-        decision,
-        estimate,
-      );
+    if (!reservation.accepted) {
+      const message = entitlement.cohort === "anonymous"
+        ? "The anonymous daily answer or cost limit has been reached."
+        : "The AI usage limit for the current plan has been reached.";
+      throw new ProxyPolicyError(message, 429);
     }
 
     resolvedModel = decision.model;
@@ -618,6 +667,80 @@ function nanoFallbackDecision(reason: string): ModelPolicyDecision {
   };
 }
 
+function reservationEstimateMicrousd(
+  decision: ModelPolicyDecision,
+  estimatedInputTokens: number,
+): number {
+  const pricedEstimate = estimateModelCostMicrousd(decision.model, {
+    inputTokens: estimatedInputTokens,
+    cacheWriteInputTokens: isGpt56Model(decision.model) ? estimatedInputTokens : 0,
+    outputTokens: decision.maxOutputTokens,
+  });
+  if (pricedEstimate != null) return pricedEstimate;
+  return decision.role === "research" ? RESEARCH_FALLBACK_RESERVATION_MICROUSD : 0;
+}
+
+function reservationLimits(
+  cohort: UserCohort,
+  decision: ModelPolicyDecision,
+): ReservationLimits {
+  const userDailyBudgetMicrousd = cohort === "anonymous"
+    ? ANONYMOUS_DAILY_BUDGET_MICROUSD
+    : cohort === "free"
+    ? FREE_USER_DAILY_BUDGET_MICROUSD
+    : PAID_USER_DAILY_BUDGET_MICROUSD;
+  const userMonthlyBudgetMicrousd = cohort === "anonymous"
+    ? ANONYMOUS_MONTHLY_BUDGET_MICROUSD
+    : cohort === "free"
+    ? FREE_USER_MONTHLY_BUDGET_MICROUSD
+    : PAID_USER_MONTHLY_BUDGET_MICROUSD;
+
+  if (cohort === "anonymous") {
+    return {
+      routeDailyBudgetMicrousd: ANONYMOUS_DAILY_BUDGET_MICROUSD,
+      routeMonthlyBudgetMicrousd: ANONYMOUS_MONTHLY_BUDGET_MICROUSD,
+      userDailyBudgetMicrousd,
+      userMonthlyBudgetMicrousd,
+      globalDailyBudgetMicrousd: GLOBAL_DAILY_BUDGET_MICROUSD,
+      globalMonthlyBudgetMicrousd: GLOBAL_MONTHLY_BUDGET_MICROUSD,
+      dailyAnswerLimit: ANONYMOUS_ANSWER_LIMIT,
+    };
+  }
+
+  if (decision.role === "luna") {
+    return {
+      routeDailyBudgetMicrousd: MODEL_POLICY.freeLunaDailyBudgetMicrousd,
+      routeMonthlyBudgetMicrousd: MODEL_POLICY.freeLunaMonthlyBudgetMicrousd,
+      userDailyBudgetMicrousd,
+      userMonthlyBudgetMicrousd,
+      globalDailyBudgetMicrousd: GLOBAL_DAILY_BUDGET_MICROUSD,
+      globalMonthlyBudgetMicrousd: GLOBAL_MONTHLY_BUDGET_MICROUSD,
+      dailyAnswerLimit: MODEL_POLICY.freeLunaAnswersPerDay,
+    };
+  }
+
+  const routeDailyBudgetMicrousd = decision.role === "sol"
+    ? PAID_SOL_DAILY_BUDGET_MICROUSD
+    : decision.role === "research"
+    ? RESEARCH_DAILY_BUDGET_MICROUSD
+    : FREE_NANO_DAILY_BUDGET_MICROUSD;
+  const routeMonthlyBudgetMicrousd = decision.role === "sol"
+    ? PAID_SOL_MONTHLY_BUDGET_MICROUSD
+    : decision.role === "research"
+    ? RESEARCH_MONTHLY_BUDGET_MICROUSD
+    : FREE_NANO_MONTHLY_BUDGET_MICROUSD;
+
+  return {
+    routeDailyBudgetMicrousd,
+    routeMonthlyBudgetMicrousd,
+    userDailyBudgetMicrousd,
+    userMonthlyBudgetMicrousd,
+    globalDailyBudgetMicrousd: GLOBAL_DAILY_BUDGET_MICROUSD,
+    globalMonthlyBudgetMicrousd: GLOBAL_MONTHLY_BUDGET_MICROUSD,
+    dailyAnswerLimit: null,
+  };
+}
+
 async function reserveBudgetedUsage(
   userId: string,
   cohort: UserCohort,
@@ -625,9 +748,7 @@ async function reserveBudgetedUsage(
   requestedAlias: string | null,
   decision: ModelPolicyDecision,
   reservationMicrousd: number,
-  dailyBudgetMicrousd: number,
-  monthlyBudgetMicrousd: number,
-  dailyAnswerLimit: number,
+  limits: ReservationLimits,
 ): Promise<{
   accepted: boolean;
   requestId: string;
@@ -637,7 +758,7 @@ async function reserveBudgetedUsage(
 }> {
   if (!supabaseAdmin) throw new Error("Supabase admin client is unavailable");
   const requestId = crypto.randomUUID();
-  const { data, error } = await supabaseAdmin.rpc("reserve_ai_usage", {
+  const { data, error } = await supabaseAdmin.rpc("reserve_ai_usage_v2", {
     p_user_id: userId,
     p_request_id: requestId,
     p_cohort: cohort,
@@ -647,9 +768,13 @@ async function reserveBudgetedUsage(
     p_resolved_model: decision.model,
     p_reasoning_effort: decision.reasoningEffort,
     p_reservation_microusd: reservationMicrousd,
-    p_daily_budget_microusd: dailyBudgetMicrousd,
-    p_monthly_budget_microusd: monthlyBudgetMicrousd,
-    p_daily_answer_limit: dailyAnswerLimit,
+    p_route_daily_budget_microusd: limits.routeDailyBudgetMicrousd,
+    p_route_monthly_budget_microusd: limits.routeMonthlyBudgetMicrousd,
+    p_user_daily_budget_microusd: limits.userDailyBudgetMicrousd,
+    p_user_monthly_budget_microusd: limits.userMonthlyBudgetMicrousd,
+    p_global_daily_budget_microusd: limits.globalDailyBudgetMicrousd,
+    p_global_monthly_budget_microusd: limits.globalMonthlyBudgetMicrousd,
+    p_daily_answer_limit: limits.dailyAnswerLimit,
   });
   if (error) throw new Error(`Usage reservation failed: ${error.message}`);
   const row = Array.isArray(data) ? data[0] : data;
@@ -658,47 +783,6 @@ async function reserveBudgetedUsage(
     requestId,
     ledgerId: typeof row?.ledger_id === "string" ? row.ledger_id : "",
     reason: typeof row?.reason === "string" ? row.reason : null,
-    reservationMicrousd,
-  };
-}
-
-async function insertUsageReservation(
-  userId: string,
-  cohort: UserCohort,
-  intent: RequestIntent,
-  requestedAlias: string | null,
-  decision: ModelPolicyDecision,
-  reservationMicrousd: number,
-): Promise<{
-  accepted: true;
-  requestId: string;
-  ledgerId: string;
-  reason: null;
-  reservationMicrousd: number;
-}> {
-  if (!supabaseAdmin) throw new Error("Supabase admin client is unavailable");
-  const requestId = crypto.randomUUID();
-  const { data, error } = await supabaseAdmin
-    .from("ai_usage_ledger")
-    .insert({
-      request_id: requestId,
-      user_id: userId,
-      cohort,
-      intent,
-      requested_alias: requestedAlias,
-      model_role: decision.role,
-      resolved_model: decision.model,
-      reasoning_effort: decision.reasoningEffort,
-      reservation_microusd: reservationMicrousd,
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(`Usage ledger insert failed: ${error.message}`);
-  return {
-    accepted: true,
-    requestId,
-    ledgerId: String(data.id),
-    reason: null,
     reservationMicrousd,
   };
 }
@@ -903,7 +987,7 @@ Deno.serve(async (req: Request) => {
     const upstream = await fetch(`${OPENAI_BASE_URL}${path}`, {
       method: "POST",
       headers: sanitizeForwardHeaders(req),
-      body: forwardBody,
+      body: forwardBody as BodyInit,
     });
 
     const responseHeaders = new Headers(corsHeaders(origin));
@@ -937,7 +1021,7 @@ Deno.serve(async (req: Request) => {
           const streamSucceeded = usage?.terminalEvent === "response.completed";
           const countsAsAnswer = streamSucceeded && usage?.hasFinalOutput === true;
           const actualCost = estimateActualCostMicrousd(
-            model,
+            usage?.model ?? model,
             usage,
             sanitized?.policy?.reservationMicrousd ?? null,
           );
@@ -949,6 +1033,7 @@ Deno.serve(async (req: Request) => {
           await Promise.all([
             updateRequestLog(streamLogId, {
               response_id: usage?.responseId ?? null,
+              actual_model: usage?.model ?? null,
               input_tokens: usage?.inputTokens ?? null,
               cached_input_tokens: usage?.cachedInputTokens ?? null,
               output_tokens: usage?.outputTokens ?? null,
@@ -998,20 +1083,16 @@ Deno.serve(async (req: Request) => {
 
     const responseText = await upstream.text();
     let usage: ResponsesUsage | null = null;
-    let upstreamError: string | null = null;
+    let upstreamError = nonJsonUpstreamErrorTelemetry(true);
     let responseStatus: string | null = null;
 
     try {
       const responseJson = JSON.parse(responseText) as Record<string, unknown>;
       usage = extractResponsesUsage(responseJson);
       responseStatus = typeof responseJson.status === "string" ? responseJson.status : null;
-
-      const error = responseJson.error;
-      if (error && typeof error === "object" && "message" in error) {
-        upstreamError = String((error as Record<string, unknown>).message);
-      }
+      upstreamError = extractUpstreamErrorTelemetry(responseJson);
     } catch {
-      upstreamError = upstream.ok ? null : responseText.slice(0, 500);
+      upstreamError = nonJsonUpstreamErrorTelemetry(upstream.ok);
     }
 
     const responseSucceeded = path === "/v1/responses"
@@ -1026,7 +1107,7 @@ Deno.serve(async (req: Request) => {
       : "upstream_error";
     const actualCost = usage
       ? estimateActualCostMicrousd(
-        model,
+        usage?.model ?? model,
         usage,
         upstream.ok ? sanitized?.policy?.reservationMicrousd ?? null : null,
       )
@@ -1042,6 +1123,7 @@ Deno.serve(async (req: Request) => {
         status_code: upstream.status,
         request_bytes: originalBodyBytes.byteLength,
         response_id: usage?.responseId ?? null,
+        actual_model: usage?.model ?? null,
         input_tokens: usage?.inputTokens ?? null,
         cached_input_tokens: usage?.cachedInputTokens ?? null,
         output_tokens: usage?.outputTokens ?? null,
@@ -1053,8 +1135,10 @@ Deno.serve(async (req: Request) => {
         estimated_cost_microusd: sanitized?.policy?.reservationMicrousd ?? null,
         actual_cost_microusd: actualCost,
         usage_ledger_id: sanitized?.policy?.ledgerId ?? null,
-        error_category: upstreamError || !responseSucceeded ? "upstream_error" : null,
-        error: upstreamError ?? (responseSucceeded ? null : reconciliationError),
+        error_category: upstreamError.present || !responseSucceeded ? "upstream_error" : null,
+        error_code: upstreamError.code,
+        error_param: upstreamError.param,
+        error: responseSucceeded ? null : reconciliationError,
       }),
       reconcilePolicyUsage(
         sanitized?.policy ?? null,
@@ -1089,7 +1173,7 @@ Deno.serve(async (req: Request) => {
         estimated_cost_microusd: sanitized?.policy?.reservationMicrousd ?? null,
         usage_ledger_id: sanitized?.policy?.ledgerId ?? null,
         error_category: proxyErrorCategory(error),
-        error: message.slice(0, 500),
+        error: proxyErrorCategory(error),
       }),
       reconcilePolicyUsage(
         sanitized?.policy ?? null,

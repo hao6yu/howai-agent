@@ -9,7 +9,7 @@ test("collects usage when an SSE event is split across byte chunks", () => {
   const collector = new ResponsesSseUsageCollector();
   const event = [
     "event: response.completed",
-    'data: {"type":"response.completed","response":{"id":"resp_1","output":[{"type":"message","content":[{"type":"output_text","text":"Done"}]}],"usage":{"input_tokens":120,"input_tokens_details":{"cached_tokens":20},"output_tokens":30,"total_tokens":150}}}',
+    'data: {"type":"response.completed","response":{"id":"resp_1","model":"gpt-5.6-sol-2026-07-01","output":[{"type":"message","content":[{"type":"output_text","text":"Done"}]}],"usage":{"input_tokens":120,"input_tokens_details":{"cached_tokens":20},"output_tokens":30,"total_tokens":150}}}',
     "",
     "",
   ].join("\r\n");
@@ -18,6 +18,7 @@ test("collects usage when an SSE event is split across byte chunks", () => {
   assert.equal(collector.push(bytes.slice(0, 37)), null);
   assert.deepEqual(collector.push(bytes.slice(37)), {
     responseId: "resp_1",
+    model: "gpt-5.6-sol-2026-07-01",
     inputTokens: 120,
     cachedInputTokens: 20,
     outputTokens: 30,
@@ -61,6 +62,7 @@ test("parses a final event even when no blank-line terminator arrives", () => {
 
   assert.deepEqual(collector.finish(), {
     responseId: "resp_2",
+    model: null,
     inputTokens: 2,
     cachedInputTokens: null,
     outputTokens: 3,
@@ -78,6 +80,7 @@ test("captures billed usage from a failed terminal response", () => {
 
   assert.deepEqual(collector.finish(), {
     responseId: "resp_3",
+    model: null,
     inputTokens: 7,
     cachedInputTokens: null,
     outputTokens: 1,

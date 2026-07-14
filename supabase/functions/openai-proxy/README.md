@@ -28,6 +28,9 @@ supabase secrets set \
   OPENAI_PROXY_MODEL_NANO=gpt-5-nano \
   OPENAI_PROXY_MODEL_LUNA=gpt-5.6-luna \
   OPENAI_PROXY_MODEL_SOL=gpt-5.6-sol \
+  OPENAI_PROXY_RESEARCH_MODEL=gpt-5.2 \
+  OPENAI_PROXY_GLOBAL_DAILY_BUDGET_MICROUSD=10000000 \
+  OPENAI_PROXY_GLOBAL_MONTHLY_BUDGET_MICROUSD=150000000 \
   OPENAI_PROXY_EVAL_VERSION=gpt56-m1-v1
 ```
 
@@ -71,10 +74,11 @@ table is not authoritative for Sol access. When the environment gate is on, a
 feature-flag lookup failure returns a temporary error instead of bypassing the
 policy.
 
-Every Responses request records the requested alias, resolved model,
-deterministic rollout cohort/bucket, reasoning effort, latency, usage, cost,
-eval version, and a bounded error category. User prompt and response content
-are not written to proxy telemetry.
+Every Responses request records the requested alias, resolved model, actual
+upstream model, deterministic rollout cohort/bucket, reasoning effort, latency,
+usage, cost, eval version, and bounded error category/code/parameter fields.
+User prompts, responses, and upstream error messages are not written to proxy
+telemetry.
 
 Optional policy limits:
 
@@ -82,6 +86,19 @@ Optional policy limits:
 OPENAI_PROXY_FREE_LUNA_ANSWERS_PER_DAY=3
 OPENAI_PROXY_FREE_LUNA_DAILY_BUDGET_MICROUSD=30000
 OPENAI_PROXY_FREE_LUNA_MONTHLY_BUDGET_MICROUSD=300000
+OPENAI_PROXY_FREE_NANO_DAILY_BUDGET_MICROUSD=20000
+OPENAI_PROXY_FREE_NANO_MONTHLY_BUDGET_MICROUSD=500000
+OPENAI_PROXY_FREE_USER_DAILY_BUDGET_MICROUSD=50000
+OPENAI_PROXY_FREE_USER_MONTHLY_BUDGET_MICROUSD=1000000
+OPENAI_PROXY_PAID_SOL_DAILY_BUDGET_MICROUSD=2000000
+OPENAI_PROXY_PAID_SOL_MONTHLY_BUDGET_MICROUSD=30000000
+OPENAI_PROXY_PAID_USER_DAILY_BUDGET_MICROUSD=3000000
+OPENAI_PROXY_PAID_USER_MONTHLY_BUDGET_MICROUSD=40000000
+OPENAI_PROXY_RESEARCH_DAILY_BUDGET_MICROUSD=1000000
+OPENAI_PROXY_RESEARCH_MONTHLY_BUDGET_MICROUSD=10000000
+OPENAI_PROXY_RESEARCH_RESERVATION_MICROUSD=250000
+OPENAI_PROXY_GLOBAL_DAILY_BUDGET_MICROUSD=10000000
+OPENAI_PROXY_GLOBAL_MONTHLY_BUDGET_MICROUSD=150000000
 OPENAI_PROXY_ANON_ANSWER_LIMIT=5
 OPENAI_PROXY_POLICY_WEB_SEARCH_ENABLED=false
 OPENAI_PROXY_POLICY_IMAGE_GENERATION_ENABLED=false
@@ -89,10 +106,12 @@ OPENAI_PROXY_POLICY_IMAGE_GENERATION_ENABLED=false
 
 Web search and image generation remain separately disabled in the policy path
 until their own ledgers and quotas are ready. Allowed function tools continue
-to pass through the existing allowlist. The policy also fixes reasoning to
-`low`, standard service tier, and the plan-specific output cap; client-supplied
-Pro mode, background execution, priority processing, and explicit prompt-cache
-controls are ignored.
+to pass through the existing allowlist. The policy fixes ordinary chat reasoning
+to `low`, the standard service tier, and the plan-specific output cap;
+client-supplied Pro mode, background execution, priority processing, and explicit
+prompt-cache controls are ignored. Verified paid synchronous Deep Research stays
+on the legacy hosted chat model with `high` reasoning until the persistent
+Research workstream replaces it.
 
 ## Deploy
 

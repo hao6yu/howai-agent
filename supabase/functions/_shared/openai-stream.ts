@@ -1,5 +1,6 @@
 export type ResponsesUsage = Readonly<{
   responseId: string | null;
+  model: string | null;
   inputTokens: number | null;
   cachedInputTokens: number | null;
   outputTokens: number | null;
@@ -105,6 +106,7 @@ export function extractResponsesUsage(
 
   return {
     responseId: typeof response.id === "string" ? response.id : null,
+    model: typeof response.model === "string" ? response.model : null,
     inputTokens,
     cachedInputTokens: numberOrNull(inputDetails.cached_tokens),
     outputTokens,

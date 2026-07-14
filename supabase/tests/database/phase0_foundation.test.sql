@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
-select plan(32);
+select plan(38);
 
 select is(
   (select count(*) from public.feature_flags),
@@ -59,6 +59,26 @@ select is(
 );
 
 select is(
+  has_function_privilege(
+    'authenticated',
+    'public.reserve_ai_usage_v2(uuid,uuid,text,text,text,text,text,text,bigint,bigint,bigint,bigint,bigint,bigint,bigint,integer)',
+    'execute'
+  ),
+  false,
+  'authenticated clients cannot reserve route, user, or global AI budget'
+);
+
+select is(
+  has_function_privilege(
+    'service_role',
+    'public.reserve_ai_usage_v2(uuid,uuid,text,text,text,text,text,text,bigint,bigint,bigint,bigint,bigint,bigint,bigint,integer)',
+    'execute'
+  ),
+  true,
+  'the service role can reserve route, user, and global AI budget'
+);
+
+select is(
   (
     select column_default
     from information_schema.columns
@@ -95,10 +115,13 @@ select is(
         'rollout_bucket',
         'rollout_percent',
         'eval_version',
-        'error_category'
+        'error_category',
+        'actual_model',
+        'error_code',
+        'error_param'
       )
   ),
-  6::bigint,
+  9::bigint,
   'all privacy-safe canary telemetry columns exist'
 );
 
@@ -177,6 +200,62 @@ values (
 
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 set local role service_role;
+
+select is(
+  (
+    select accepted
+    from public.reserve_ai_usage_v2(
+      '10000000-0000-0000-0000-000000000002',
+      '31000000-0000-0000-0000-000000000001',
+      'paid', 'primary_chat', 'howai-chat', 'sol', 'gpt-5.6-sol', 'low',
+      600, 1000, 10000, 2000, 20000, 1000000000, 10000000000, null
+    )
+  ),
+  true,
+  'the first Sol request reserves route, user, and global budget atomically'
+);
+
+select is(
+  (
+    select accepted
+    from public.reserve_ai_usage_v2(
+      '10000000-0000-0000-0000-000000000002',
+      '31000000-0000-0000-0000-000000000002',
+      'paid', 'primary_chat', 'howai-chat', 'sol', 'gpt-5.6-sol', 'low',
+      500, 1000, 10000, 2000, 20000, 1000000000, 10000000000, null
+    )
+  ),
+  false,
+  'the route-level daily circuit breaker rejects an over-budget Sol request'
+);
+
+select is(
+  (
+    select accepted
+    from public.reserve_ai_usage_v2(
+      '10000000-0000-0000-0000-000000000002',
+      '31000000-0000-0000-0000-000000000003',
+      'paid', 'title', 'howai-chat', 'nano', 'gpt-5-nano', 'low',
+      500, 1000, 10000, 1000, 20000, 1000000000, 10000000000, null
+    )
+  ),
+  false,
+  'the per-user circuit breaker spans model roles'
+);
+
+select is(
+  (
+    select accepted
+    from public.reserve_ai_usage_v2(
+      '10000000-0000-0000-0000-000000000001',
+      '31000000-0000-0000-0000-000000000004',
+      'free', 'title', 'howai-chat-mini', 'nano', 'gpt-5-nano', 'low',
+      500, 1000, 10000, 1000, 20000, 1000, 10000, null
+    )
+  ),
+  false,
+  'the project-wide circuit breaker spans users and model roles'
+);
 
 select is(
   (

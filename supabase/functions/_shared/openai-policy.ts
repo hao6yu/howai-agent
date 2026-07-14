@@ -1,11 +1,12 @@
 export type UserCohort = "anonymous" | "free" | "paid";
 export type RequestIntent = "primary_chat" | "lightweight" | "title" | "research";
-export type ModelRole = "nano" | "luna" | "sol";
+export type ModelRole = "nano" | "luna" | "sol" | "research";
 
 export type RuntimeModels = Readonly<{
   nano: string;
   luna: string;
   sol: string;
+  research: string;
 }>;
 
 export type FreeUsageWindow = Readonly<{
@@ -38,7 +39,7 @@ export type ModelPolicyDecision = Readonly<{
   role: ModelRole;
   model: string;
   maxOutputTokens: number;
-  reasoningEffort: "low";
+  reasoningEffort: "low" | "high";
   fallbackReason: string | null;
 }>;
 
@@ -47,6 +48,7 @@ export const DEFAULT_MODEL_POLICY: ModelPolicyConfig = Object.freeze({
     nano: "gpt-5-nano",
     luna: "gpt-5.6-luna",
     sol: "gpt-5.6-sol",
+    research: "gpt-5.2",
   }),
   freeLunaAnswersPerDay: 3,
   freeLunaDailyBudgetMicrousd: 30_000,
@@ -108,6 +110,16 @@ export function resolveModelPolicy(
   config: ModelPolicyConfig = DEFAULT_MODEL_POLICY,
 ): ModelPolicyDecision {
   if (request.cohort === "paid" && request.entitlementTrusted) {
+    if (request.intent === "research") {
+      return decision(
+        "research",
+        config.models.research,
+        config.paidMaxOutputTokens,
+        null,
+        "high",
+      );
+    }
+
     if (request.intent === "primary_chat") {
       return decision("sol", config.models.sol, config.paidMaxOutputTokens);
     }
@@ -241,12 +253,13 @@ function decision(
   model: string,
   maxOutputTokens: number,
   fallbackReason: string | null = null,
+  reasoningEffort: "low" | "high" = "low",
 ): ModelPolicyDecision {
   return {
     role,
     model,
     maxOutputTokens,
-    reasoningEffort: "low",
+    reasoningEffort,
     fallbackReason,
   };
 }

@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
-select plan(22);
+select plan(26);
 
 select is(
   (select count(*) from public.feature_flags),
@@ -56,6 +56,31 @@ select is(
   ),
   true,
   'the service role can reserve AI budget'
+);
+
+select is(
+  has_function_privilege(
+    'authenticated',
+    'public.reconcile_ai_usage(uuid,boolean,boolean,integer,integer,integer,bigint,text)',
+    'execute'
+  ),
+  false,
+  'authenticated clients cannot reconcile AI usage'
+);
+
+create function public.phase0_default_privilege_probe()
+returns void
+language sql
+as 'select null::void';
+
+select is(
+  has_function_privilege(
+    'anon',
+    'public.phase0_default_privilege_probe()',
+    'execute'
+  ),
+  false,
+  'new public functions do not default to client execution'
 );
 
 select is(
@@ -156,7 +181,7 @@ select is(
 select lives_ok(
   $$select public.reconcile_ai_usage(
     '30000000-0000-0000-0000-000000000001',
-    true, 100, 20, 50, 500, null
+    true, false, 100, 20, 50, 500, null
   )$$,
   'usage reconciliation succeeds for the service role'
 );
@@ -169,6 +194,30 @@ select is(
   ),
   'succeeded',
   'usage reconciliation commits the final status'
+);
+
+select is(
+  (
+    select counts_as_answer
+    from public.ai_usage_ledger
+    where request_id = '30000000-0000-0000-0000-000000000001'
+  ),
+  false,
+  'a completed tool step does not consume a final-answer allowance'
+);
+
+select is(
+  (
+    select accepted
+    from public.reserve_ai_usage(
+      '10000000-0000-0000-0000-000000000001',
+      '30000000-0000-0000-0000-000000000005',
+      'free', 'primary_chat', 'howai-chat', 'luna', 'gpt-5.6-luna', 'low',
+      8000, 30000, 300000, 3
+    )
+  ),
+  true,
+  'a tool-only completion releases one final-answer allowance'
 );
 
 reset role;

@@ -1,7 +1,9 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
+  applyModelPolicyControls,
   DEFAULT_MODEL_POLICY,
   estimateModelCostMicrousd,
+  legacyModelAllowlist,
   resolveModelPolicy,
   type ModelPolicyConfig,
   type ModelPolicyDecision,
@@ -67,10 +69,11 @@ const ANONYMOUS_MAX_ESTIMATED_INPUT_TOKENS = envNumber(
 const POLICY_WEB_SEARCH_ENABLED = Deno.env.get("OPENAI_PROXY_POLICY_WEB_SEARCH_ENABLED") === "true";
 const POLICY_IMAGE_GENERATION_ENABLED =
   Deno.env.get("OPENAI_PROXY_POLICY_IMAGE_GENERATION_ENABLED") === "true";
-const ALLOWED_MODELS = (`${CHAT_MODEL},${CHAT_MINI_MODEL},${MODEL_POLICY.models.nano},${MODEL_POLICY.models.luna},${MODEL_POLICY.models.sol},${Deno.env.get("OPENAI_PROXY_ALLOWED_MODELS") ?? ""}`)
-  .split(",")
-  .map((model) => model.trim())
-  .filter(Boolean);
+const ALLOWED_MODELS = legacyModelAllowlist(
+  CHAT_MODEL,
+  CHAT_MINI_MODEL,
+  Deno.env.get("OPENAI_PROXY_ALLOWED_MODELS") ?? "",
+);
 const ALLOWED_TOOL_TYPES = new Set(["web_search", "web_search_preview", "image_generation", "function"]);
 const ALLOWED_FUNCTION_NAMES = new Set(["generate_pptx"]);
 
@@ -359,6 +362,9 @@ async function sanitizeResponsesBody(
 
     const lunaEstimate = estimateModelCostMicrousd(MODEL_POLICY.models.luna, {
       inputTokens: estimatedInputTokens,
+      // GPT-5.6 does not currently expose cache-write tokens in Responses usage.
+      // Reserve the worst case, then reconcile from the returned usage below.
+      cacheWriteInputTokens: estimatedInputTokens,
       outputTokens: MODEL_POLICY.freeLunaMaxOutputTokens,
     }) ?? MODEL_POLICY.freeLunaDailyBudgetMicrousd;
     let decision = resolveModelPolicy({
@@ -395,6 +401,7 @@ async function sanitizeResponsesBody(
 
     const estimate = estimateModelCostMicrousd(decision.model, {
       inputTokens: estimatedInputTokens,
+      cacheWriteInputTokens: isGpt56Model(decision.model) ? estimatedInputTokens : 0,
       outputTokens: decision.maxOutputTokens,
     }) ?? 0;
 
@@ -427,14 +434,7 @@ async function sanitizeResponsesBody(
     }
 
     resolvedModel = decision.model;
-    json.reasoning = {
-      ...(json.reasoning && typeof json.reasoning === "object" ? json.reasoning : {}),
-      effort: decision.reasoningEffort,
-    };
-    const requestedMaxOutput = typeof json.max_output_tokens === "number"
-      ? json.max_output_tokens
-      : decision.maxOutputTokens;
-    json.max_output_tokens = Math.min(requestedMaxOutput, decision.maxOutputTokens);
+    applyModelPolicyControls(json, decision);
     if (entitlement.cohort === "paid") {
       const safeTools = sanitizeTools(json.tools);
       json.tools = Array.isArray(safeTools)
@@ -476,7 +476,8 @@ async function sanitizeResponsesBody(
     if (json.tools != null) json.tools = sanitizeTools(json.tools);
   }
   json.model = resolvedModel;
-  json.user = user.id;
+  delete json.user;
+  json.safety_identifier = user.id;
   json.metadata = {
     ...(json.metadata && typeof json.metadata === "object" ? json.metadata : {}),
     howai_user_id: user.id,
@@ -500,7 +501,7 @@ async function isModelPolicyEnabled(): Promise<boolean> {
     .maybeSingle();
   if (error) {
     console.error("Model policy feature-flag lookup failed", error);
-    return false;
+    throw new ProxyPolicyError("Model policy is temporarily unavailable.", 503);
   }
   return data?.enabled === true;
 }
@@ -641,6 +642,7 @@ async function insertUsageReservation(
 async function reconcilePolicyUsage(
   policy: PolicyContext | null,
   succeeded: boolean,
+  countsAsAnswer: boolean,
   usage: ResponsesUsage | null,
   actualCostMicrousd: number | null,
   failureCode: string | null = null,
@@ -649,6 +651,7 @@ async function reconcilePolicyUsage(
   const { error } = await supabaseAdmin.rpc("reconcile_ai_usage", {
     p_request_id: policy.requestId,
     p_succeeded: succeeded,
+    p_counts_as_answer: countsAsAnswer,
     p_input_tokens: usage?.inputTokens ?? null,
     p_cached_input_tokens: usage?.cachedInputTokens ?? null,
     p_output_tokens: usage?.outputTokens ?? null,
@@ -661,18 +664,18 @@ async function reconcilePolicyUsage(
 function monitorStreamingBody(
   body: ReadableStream<Uint8Array>,
   startedAt: number,
-  onFinished: (usage: ResponsesUsage | null, firstByteMs: number | null) => Promise<void>,
+  onFinished: (usage: ResponsesUsage | null, firstTokenMs: number | null) => Promise<void>,
   onCancelled: () => Promise<void>,
 ): ReadableStream<Uint8Array> {
   const reader = body.getReader();
   const collector = new ResponsesSseUsageCollector();
-  let firstByteMs: number | null = null;
+  let firstTokenMs: number | null = null;
   let settled = false;
 
   async function finish(usage: ResponsesUsage | null): Promise<void> {
     if (settled) return;
     settled = true;
-    await onFinished(usage, firstByteMs);
+    await onFinished(usage, firstTokenMs);
   }
 
   async function cancel(): Promise<void> {
@@ -691,8 +694,10 @@ function monitorStreamingBody(
           return;
         }
         if (value) {
-          firstByteMs ??= Math.round(performance.now() - startedAt);
           collector.push(value);
+          if (collector.sawVisibleOutputDelta) {
+            firstTokenMs ??= Math.round(performance.now() - startedAt);
+          }
           controller.enqueue(value);
         }
       } catch (error) {
@@ -705,6 +710,33 @@ function monitorStreamingBody(
       await cancel();
     },
   });
+}
+
+function isGpt56Model(model: string): boolean {
+  return model === "gpt-5.6-luna" || model.startsWith("gpt-5.6-luna-") ||
+    model === "gpt-5.6-sol" || model.startsWith("gpt-5.6-sol-");
+}
+
+function estimateActualCostMicrousd(
+  model: string | null,
+  usage: ResponsesUsage | null,
+  fallback: number | null,
+): number | null {
+  if (!model || !usage) return fallback;
+  if (usage.inputTokens == null || usage.outputTokens == null) return fallback;
+  const inputTokens = usage.inputTokens;
+  const cachedInputTokens = usage.cachedInputTokens ?? 0;
+  const estimated = estimateModelCostMicrousd(model, {
+    inputTokens,
+    cachedInputTokens,
+    // Until OpenAI returns this breakdown, treat uncached GPT-5.6 input as a
+    // cache write so free-plan budgets remain conservative.
+    cacheWriteInputTokens: isGpt56Model(model)
+      ? Math.max(0, inputTokens - cachedInputTokens)
+      : 0,
+    outputTokens: usage.outputTokens,
+  });
+  return estimated ?? fallback;
 }
 
 function envNumber(name: string, fallback: number): number {
@@ -810,15 +842,14 @@ Deno.serve(async (req: Request) => {
       const monitoredBody = monitorStreamingBody(
         upstream.body,
         requestStartedAt,
-        async (usage, firstByteMs) => {
+        async (usage, firstTokenMs) => {
           const streamSucceeded = usage?.terminalEvent === "response.completed";
-          const actualCost = usage && model
-            ? estimateModelCostMicrousd(model, {
-              inputTokens: usage.inputTokens ?? 0,
-              cachedInputTokens: usage.cachedInputTokens ?? 0,
-              outputTokens: usage.outputTokens ?? 0,
-            })
-            : sanitized?.policy?.reservationMicrousd ?? null;
+          const countsAsAnswer = streamSucceeded && usage?.hasFinalOutput === true;
+          const actualCost = estimateActualCostMicrousd(
+            model,
+            usage,
+            sanitized?.policy?.reservationMicrousd ?? null,
+          );
           const telemetryError = !usage
             ? "stream_completed_without_terminal_usage"
             : streamSucceeded
@@ -832,13 +863,14 @@ Deno.serve(async (req: Request) => {
               output_tokens: usage?.outputTokens ?? null,
               total_tokens: usage?.totalTokens ?? null,
               latency_ms: Math.round(performance.now() - requestStartedAt),
-              time_to_first_token_ms: firstByteMs,
+              time_to_first_token_ms: firstTokenMs,
               actual_cost_microusd: actualCost,
               error: telemetryError,
             }),
             reconcilePolicyUsage(
               sanitized?.policy ?? null,
               streamSucceeded,
+              countsAsAnswer,
               usage,
               actualCost,
               telemetryError,
@@ -846,16 +878,19 @@ Deno.serve(async (req: Request) => {
           ]);
         },
         async () => {
+          const cancellationCost = sanitized?.policy?.reservationMicrousd ?? null;
           await Promise.all([
             updateRequestLog(streamLogId, {
               latency_ms: Math.round(performance.now() - requestStartedAt),
+              actual_cost_microusd: cancellationCost,
               error: "stream_cancelled",
             }),
             reconcilePolicyUsage(
               sanitized?.policy ?? null,
               false,
+              false,
               null,
-              0,
+              cancellationCost,
               "stream_cancelled",
             ),
           ]);
@@ -871,10 +906,12 @@ Deno.serve(async (req: Request) => {
     const responseText = await upstream.text();
     let usage: ResponsesUsage | null = null;
     let upstreamError: string | null = null;
+    let responseStatus: string | null = null;
 
     try {
       const responseJson = JSON.parse(responseText) as Record<string, unknown>;
       usage = extractResponsesUsage(responseJson);
+      responseStatus = typeof responseJson.status === "string" ? responseJson.status : null;
 
       const error = responseJson.error;
       if (error && typeof error === "object" && "message" in error) {
@@ -884,12 +921,22 @@ Deno.serve(async (req: Request) => {
       upstreamError = upstream.ok ? null : responseText.slice(0, 500);
     }
 
-    const actualCost = usage && model
-      ? estimateModelCostMicrousd(model, {
-        inputTokens: usage.inputTokens ?? 0,
-        cachedInputTokens: usage.cachedInputTokens ?? 0,
-        outputTokens: usage.outputTokens ?? 0,
-      })
+    const responseSucceeded = path === "/v1/responses"
+      ? upstream.ok && responseStatus === "completed"
+      : upstream.ok;
+    const countsAsAnswer = path === "/v1/responses" && responseSucceeded &&
+      usage?.hasFinalOutput === true;
+    const reconciliationError = responseSucceeded
+      ? null
+      : upstream.ok && responseStatus
+      ? `response_${responseStatus}`
+      : "upstream_error";
+    const actualCost = usage
+      ? estimateActualCostMicrousd(
+        model,
+        usage,
+        upstream.ok ? sanitized?.policy?.reservationMicrousd ?? null : null,
+      )
       : null;
 
     await Promise.all([
@@ -912,14 +959,15 @@ Deno.serve(async (req: Request) => {
         estimated_cost_microusd: sanitized?.policy?.reservationMicrousd ?? null,
         actual_cost_microusd: actualCost,
         usage_ledger_id: sanitized?.policy?.ledgerId ?? null,
-        error: upstreamError,
+        error: upstreamError ?? (responseSucceeded ? null : reconciliationError),
       }),
       reconcilePolicyUsage(
         sanitized?.policy ?? null,
-        upstream.ok,
+        responseSucceeded,
+        countsAsAnswer,
         usage,
         actualCost,
-        upstream.ok ? null : "upstream_error",
+        reconciliationError,
       ),
     ]);
 
@@ -948,6 +996,7 @@ Deno.serve(async (req: Request) => {
       }),
       reconcilePolicyUsage(
         sanitized?.policy ?? null,
+        false,
         false,
         null,
         0,

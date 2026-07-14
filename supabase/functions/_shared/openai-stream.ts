@@ -4,6 +4,7 @@ export type ResponsesUsage = Readonly<{
   cachedInputTokens: number | null;
   outputTokens: number | null;
   totalTokens: number | null;
+  hasFinalOutput: boolean;
   terminalEvent?: "response.completed" | "response.failed" | "response.incomplete";
 }>;
 
@@ -11,6 +12,11 @@ export class ResponsesSseUsageCollector {
   #decoder = new TextDecoder();
   #buffer = "";
   #completedUsage: ResponsesUsage | null = null;
+  #sawVisibleOutputDelta = false;
+
+  get sawVisibleOutputDelta(): boolean {
+    return this.#sawVisibleOutputDelta;
+  }
 
   push(chunk: Uint8Array): ResponsesUsage | null {
     this.#buffer += this.#decoder.decode(chunk, { stream: true });
@@ -50,6 +56,14 @@ export class ResponsesSseUsageCollector {
 
     try {
       const parsed = JSON.parse(data) as Record<string, unknown>;
+      if (
+        (parsed.type === "response.output_text.delta" ||
+          parsed.type === "response.refusal.delta") &&
+        typeof parsed.delta === "string" &&
+        parsed.delta.length > 0
+      ) {
+        this.#sawVisibleOutputDelta = true;
+      }
       if (
         parsed.type !== "response.completed" &&
         parsed.type !== "response.failed" &&
@@ -95,8 +109,26 @@ export function extractResponsesUsage(
     cachedInputTokens: numberOrNull(inputDetails.cached_tokens),
     outputTokens,
     totalTokens,
+    hasFinalOutput: responseHasFinalOutput(response.output),
     ...(terminalEvent ? { terminalEvent } : {}),
   };
+}
+
+function responseHasFinalOutput(output: unknown): boolean {
+  if (!Array.isArray(output)) return false;
+  return output.some((item) => {
+    if (!item || typeof item !== "object") return false;
+    const record = item as Record<string, unknown>;
+    if (record.type !== "message" || !Array.isArray(record.content)) return false;
+    return record.content.some((content) => {
+      if (!content || typeof content !== "object") return false;
+      const part = content as Record<string, unknown>;
+      return (part.type === "output_text" &&
+          typeof part.text === "string" && part.text.length > 0) ||
+        (part.type === "refusal" &&
+          typeof part.refusal === "string" && part.refusal.length > 0);
+    });
+  });
 }
 
 function numberOrNull(value: unknown): number | null {

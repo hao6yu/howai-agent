@@ -26,6 +26,11 @@ M0 delivered:
   anonymous guardrails; all flags remain off.
 - Added terminal Responses SSE usage parsing so streaming requests can record
   tokens and estimated cost.
+- Completed the M0 release-gate review: policy-off clients cannot select the
+  new premium roles, policy lookup errors fail closed, cancelled streams retain
+  their reservation, and first-token latency now starts at visible text output.
+- Added conservative GPT-5.6 cache-write and long-context pricing, while only
+  recording token fields that the Responses API currently returns.
 - Added Flutter, Edge policy/stream, RLS/trigger, migration, and CI
   verification.
 
@@ -255,7 +260,7 @@ Implement entitlement and budget enforcement atomically on the server:
 
 - Resolve active subscription status in the proxy or a security-definer RPC; never rely on `isPremiumUser` from Flutter.
 - Reserve estimated budget before the OpenAI request, reconcile it from final usage, and release or adjust the reservation on failure.
-- Count cached input, cache writes, output/reasoning tokens, built-in tool calls, images/files, and long-context price multipliers in the cost ledger.
+- Count cached input, cache-write pricing, output/reasoning tokens, built-in tool calls, images/files, and long-context price multipliers in the cost ledger. Until Responses usage exposes a separate cache-write token count, reserve and reconcile GPT-5.6 input conservatively rather than fabricating token telemetry.
 - Parse the terminal Responses SSE event so streaming calls record usage, resolved model, reasoning effort, latency, and cost. The current pre-stream log is insufficient.
 - Apply per-user and global daily/monthly circuit breakers in addition to request-rate limits, and expose an administrative kill switch for each expensive route.
 

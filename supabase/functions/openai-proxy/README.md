@@ -44,7 +44,9 @@ when both of these are true:
 Keep both gates off until migrations are deployed, verified paid entitlements
 are backfilled into `app_entitlements`, streaming telemetry is visible, and the
 canary cohort is approved. The legacy client-written `subscription_status`
-table is not authoritative for Sol access.
+table is not authoritative for Sol access. When the environment gate is on, a
+feature-flag lookup failure returns a temporary error instead of bypassing the
+policy.
 
 Optional policy limits:
 
@@ -59,7 +61,10 @@ OPENAI_PROXY_POLICY_IMAGE_GENERATION_ENABLED=false
 
 Web search and image generation remain separately disabled in the policy path
 until their own ledgers and quotas are ready. Allowed function tools continue
-to pass through the existing allowlist.
+to pass through the existing allowlist. The policy also fixes reasoning to
+`low`, standard service tier, and the plan-specific output cap; client-supplied
+Pro mode, background execution, priority processing, and explicit prompt-cache
+controls are ignored.
 
 ## Deploy
 

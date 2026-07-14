@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  applyModelPolicyControls,
   DEFAULT_MODEL_POLICY,
   estimateModelCostMicrousd,
+  legacyModelAllowlist,
   resolveModelPolicy,
 } from "./openai-policy.ts";
 
@@ -84,6 +86,46 @@ test("background checks remain on nano for every tier", () => {
   assert.equal(result.model, "gpt-5-nano");
 });
 
+test("the server strips client cost-control overrides from policy requests", () => {
+  const payload: Record<string, unknown> = {
+    model: "gpt-5.6-sol",
+    reasoning: { effort: "max", mode: "pro" },
+    service_tier: "priority",
+    background: true,
+    max_output_tokens: 100_000,
+    prompt_cache_key: "client-controlled",
+    prompt_cache_retention: "24h",
+  };
+
+  applyModelPolicyControls(payload, {
+    role: "luna",
+    model: "gpt-5.6-luna",
+    maxOutputTokens: 1_200,
+    reasoningEffort: "low",
+    fallbackReason: null,
+  });
+
+  assert.equal(payload.model, "gpt-5.6-luna");
+  assert.deepEqual(payload.reasoning, { effort: "low" });
+  assert.equal(payload.service_tier, "default");
+  assert.equal(payload.background, false);
+  assert.equal(payload.max_output_tokens, 1_200);
+  assert.equal("prompt_cache_key" in payload, false);
+  assert.equal("prompt_cache_retention" in payload, false);
+});
+
+test("the legacy allowlist excludes new premium roles unless explicitly configured", () => {
+  const defaultModels = legacyModelAllowlist("gpt-5.2", "gpt-5-nano");
+  assert.deepEqual(defaultModels, ["gpt-5.2", "gpt-5-nano"]);
+  assert.equal(defaultModels.includes("gpt-5.6-luna"), false);
+  assert.equal(defaultModels.includes("gpt-5.6-sol"), false);
+
+  assert.deepEqual(
+    legacyModelAllowlist("gpt-5.2", "gpt-5-nano", "gpt-5.6-luna"),
+    ["gpt-5.2", "gpt-5-nano", "gpt-5.6-luna"],
+  );
+});
+
 test("cost estimation accounts for cached input pricing", () => {
   assert.equal(
     estimateModelCostMicrousd("gpt-5.6-luna", {
@@ -106,5 +148,24 @@ test("cost estimation accounts for cached input pricing", () => {
       outputTokens: 1,
     }),
     null,
+  );
+});
+
+test("GPT-5.6 cost estimation includes cache writes and long-context pricing", () => {
+  assert.equal(
+    estimateModelCostMicrousd("gpt-5.6-luna", {
+      inputTokens: 1_000,
+      cachedInputTokens: 300,
+      cacheWriteInputTokens: 200,
+      outputTokens: 0,
+    }),
+    780,
+  );
+  assert.equal(
+    estimateModelCostMicrousd("gpt-5.6-sol", {
+      inputTokens: 272_001,
+      outputTokens: 10,
+    }),
+    2_720_460,
   );
 });

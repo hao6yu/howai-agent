@@ -57,11 +57,51 @@ export const DEFAULT_MODEL_POLICY: ModelPolicyConfig = Object.freeze({
   paidMaxOutputTokens: 3_000,
 });
 
+export function applyModelPolicyControls(
+  payload: Record<string, unknown>,
+  decision: ModelPolicyDecision,
+): void {
+  payload.model = decision.model;
+  payload.reasoning = { effort: decision.reasoningEffort };
+  payload.service_tier = "default";
+  payload.background = false;
+  delete payload.prompt_cache_key;
+  delete payload.prompt_cache_retention;
+
+  const requestedMaxOutput = typeof payload.max_output_tokens === "number"
+    ? payload.max_output_tokens
+    : decision.maxOutputTokens;
+  payload.max_output_tokens = Math.min(requestedMaxOutput, decision.maxOutputTokens);
+}
+
+export function legacyModelAllowlist(
+  chatModel: string,
+  miniModel: string,
+  explicitlyAllowedModels = "",
+): string[] {
+  return `${chatModel},${miniModel},${explicitlyAllowedModels}`
+    .split(",")
+    .map((model) => model.trim())
+    .filter(Boolean);
+}
+
 const MODEL_PRICE_USD_PER_MILLION = Object.freeze({
   "gpt-5-nano": Object.freeze({ input: 0.05, cachedInput: 0.005, output: 0.4 }),
-  "gpt-5.6-luna": Object.freeze({ input: 1, cachedInput: 0.1, output: 6 }),
-  "gpt-5.6-sol": Object.freeze({ input: 5, cachedInput: 0.5, output: 30 }),
+  "gpt-5.6-luna": Object.freeze({
+    input: 1,
+    cachedInput: 0.1,
+    cacheWriteInput: 1.25,
+    output: 6,
+  }),
+  "gpt-5.6-sol": Object.freeze({
+    input: 5,
+    cachedInput: 0.5,
+    cacheWriteInput: 6.25,
+    output: 30,
+  }),
 });
+
+const GPT_5_6_LONG_CONTEXT_THRESHOLD = 272_000;
 
 export function resolveModelPolicy(
   request: PolicyRequest,
@@ -144,6 +184,7 @@ export function estimateModelCostMicrousd(
   usage: Readonly<{
     inputTokens: number;
     cachedInputTokens?: number;
+    cacheWriteInputTokens?: number;
     outputTokens: number;
   }>,
 ): number | null {
@@ -155,15 +196,33 @@ export function estimateModelCostMicrousd(
     inputTokens,
     nonNegativeInteger(usage.cachedInputTokens ?? 0),
   );
-  const uncachedInputTokens = inputTokens - cachedInputTokens;
+  const cacheWriteInputTokens = Math.min(
+    inputTokens - cachedInputTokens,
+    nonNegativeInteger(usage.cacheWriteInputTokens ?? 0),
+  );
+  const uncachedInputTokens = inputTokens - cachedInputTokens - cacheWriteInputTokens;
   const outputTokens = nonNegativeInteger(usage.outputTokens);
+  const isLongContext = isGpt56Model(model) &&
+    inputTokens > GPT_5_6_LONG_CONTEXT_THRESHOLD;
+  const inputMultiplier = isLongContext ? 2 : 1;
+  const outputMultiplier = isLongContext ? 1.5 : 1;
 
   // A $1.00 / 1M-token price is exactly one micro-USD per token.
   return Math.ceil(
-    uncachedInputTokens * prices.input +
+    inputMultiplier * (
+      uncachedInputTokens * prices.input +
       cachedInputTokens * prices.cachedInput +
-      outputTokens * prices.output,
+      cacheWriteInputTokens * ("cacheWriteInput" in prices
+        ? prices.cacheWriteInput
+        : prices.input)
+    ) +
+      outputMultiplier * outputTokens * prices.output,
   );
+}
+
+function isGpt56Model(model: string): boolean {
+  return model === "gpt-5.6-luna" || model.startsWith("gpt-5.6-luna-") ||
+    model === "gpt-5.6-sol" || model.startsWith("gpt-5.6-sol-");
 }
 
 function priceForModel(model: string) {

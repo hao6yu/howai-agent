@@ -574,8 +574,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
       // Configure request parameters for gpt-5.2 Responses API
       // Format matches Teams bot: instructions separate from input, no tool_choice
+      final requestIntent = isDeepResearchMode ? 'research' : 'primary_chat';
       final requestPayload = {
         'model': modelToUse,
+        'metadata': {'howai_intent': requestIntent},
         'instructions':
             systemPrompt, // System prompt as separate field (not in input)
         'input':
@@ -773,6 +775,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
           for (int attempt = 1; attempt <= maxContinuationAttempts; attempt++) {
             final continuationPayload = {
               'model': modelToUse,
+              'metadata': {'howai_intent': requestIntent},
               'previous_response_id': previousResponseId,
               'input': [
                 {
@@ -1019,6 +1022,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
             // Use previous_response_id to continue the conversation
             final followupPayload = {
               'model': modelToUse,
+              'metadata': {'howai_intent': requestIntent},
               'input':
                   functionCallOutputs, // Send function call outputs directly
               'previous_response_id':
@@ -1286,6 +1290,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
                   final secondFollowupPayload = {
                     'model': modelToUse,
+                    'metadata': {'howai_intent': requestIntent},
                     'input': secondFunctionCallOutputs,
                     'previous_response_id':
                         followupData['id'], // Reference the follow-up response
@@ -1380,6 +1385,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
                   // Send additional prompt to complete PPTX generation using Responses API format
                   final completionPayload = {
                     'model': modelToUse,
+                    'metadata': {'howai_intent': requestIntent},
                     'input': [
                       {
                         'role': 'user',
@@ -1687,8 +1693,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
     }
 
     // Build request payload with stream: true
+    final requestIntent = isDeepResearchMode ? 'research' : 'primary_chat';
     Map<String, dynamic> requestPayload = {
       'model': modelToUse,
+      'metadata': {'howai_intent': requestIntent},
       'instructions': systemPrompt,
       'input': inputMessages,
       'stream': true, // Enable streaming
@@ -1964,6 +1972,7 @@ Be concise and specific. Only include characteristics you're confident about.
         await _buildHeaders(),
         jsonEncode({
           'model': _chatMiniModel,
+          'metadata': {'howai_intent': 'lightweight'},
           'instructions': systemPrompt, // System prompt as separate field
           'input': userMessage, // Only user message
           'max_output_tokens': 500,
@@ -2332,6 +2341,7 @@ Answer ONLY with "YES" or "NO" - nothing else.
         await _buildHeaders(),
         jsonEncode({
           'model': _chatMiniModel, // Use gpt-5-nano for intent detection
+          'metadata': {'howai_intent': 'lightweight'},
           'instructions':
               intentDetectionPrompt, // System prompt as separate field
           'input': inputMessages, // Only conversation + user messages

@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  timeout: 240000, // 4 minutes timeout for image generation (doubled)
-})
+function createOpenAIClient() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    timeout: 240000,
+  })
+}
 
 // Increase timeout for image generation API
 export const maxDuration = 240 // 4 minutes in seconds (doubled)
 
 export async function POST(request: NextRequest) {
   try {
+    const openai = createOpenAIClient()
     const { prompt, size = '1024x1024', quality = 'standard' } = await request.json()
 
     if (!prompt) {
@@ -37,7 +40,8 @@ export async function POST(request: NextRequest) {
       style: 'natural' // Changed from 'vivid' to 'natural' - faster generation
     })
 
-    const imageUrl = response.data[0]?.url
+    const generatedImage = response.data?.[0]
+    const imageUrl = generatedImage?.url
 
     if (!imageUrl) {
       console.error('[Image Generation] No image URL returned from OpenAI')
@@ -54,7 +58,7 @@ export async function POST(request: NextRequest) {
       prompt,
       size: validatedSize,
       quality: validatedQuality,
-      revised_prompt: response.data[0]?.revised_prompt
+      revised_prompt: generatedImage.revised_prompt
     })
 
   } catch (error) {

@@ -5,10 +5,12 @@ import { AIPersonalityService } from '@/services/aiPersonalityService'
 import { UserProfileService } from '@/services/userProfileService'
 import { AIPersonalityConfigService } from '@/services/aiPersonalityConfigService'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  timeout: 240000, // 4 minutes timeout for image generation (doubled)
-})
+function createOpenAIClient() {
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    timeout: 240000,
+  })
+}
 
 // Increase timeout for this API route (especially for image generation)
 export const maxDuration = 240 // 4 minutes in seconds (doubled)
@@ -16,6 +18,7 @@ export const maxDuration = 240 // 4 minutes in seconds (doubled)
 export async function POST(request: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   try {
+    const openai = createOpenAIClient()
     const { message, conversationId, deepResearch, attachments = [], generateTitle = false, allowWebSearch = false, enableAIWebSearchDetection = true } = await request.json()
 
     console.log('[Chat API] Request parameters:', {
@@ -36,7 +39,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get the authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -242,7 +245,7 @@ export async function POST(request: NextRequest) {
     
     // If AI detection is enabled and web search is not forced, check if web search is needed
     if (enableAIWebSearchDetection && !allowWebSearch) {
-      shouldEnableWebSearch = await detectWebSearchIntent(message, messages || [])
+      shouldEnableWebSearch = await detectWebSearchIntent(message, messages || [], openai)
       console.log('[Chat API] AI web search detection result:', shouldEnableWebSearch)
     }
 
@@ -722,7 +725,11 @@ export async function POST(request: NextRequest) {
 }
 
 // Helper function to detect if web search is needed using AI
-async function detectWebSearchIntent(currentMessage: string, recentMessages: any[]): Promise<boolean> {
+async function detectWebSearchIntent(
+  currentMessage: string,
+  recentMessages: any[],
+  openai: OpenAI,
+): Promise<boolean> {
   try {
     // Take the last 5 messages for context
     const contextMessages = recentMessages.slice(-5).map(msg => ({

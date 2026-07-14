@@ -7,7 +7,7 @@ import { UserProfileService } from '@/services/userProfileService'
  */
 export async function GET() {
   try {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
   try {
     const { conversationId } = await request.json()
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()

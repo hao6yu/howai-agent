@@ -54,7 +54,7 @@ export class UserProfileService {
    * Get or create user profile
    */
   static async getOrCreateProfile(userId: string): Promise<UserProfile> {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data: profile } = await supabase
       .from('user_profiles')
@@ -120,7 +120,7 @@ export class UserProfileService {
     }
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-    const supabase = createClient()
+    const supabase = await createClient()
 
     try {
       // Get current profile

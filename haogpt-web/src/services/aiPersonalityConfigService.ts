@@ -21,7 +21,7 @@ export class AIPersonalityConfigService {
    * Get or create AI personality configuration for a user
    */
   static async getOrCreatePersonality(userId: string): Promise<AIPersonalityConfig> {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Try to get existing personality
     const { data: personality } = await supabase
@@ -222,7 +222,7 @@ export class AIPersonalityConfigService {
    * Merge manual personality config with learned profile
    */
   static async getMergedContext(userId: string): Promise<string> {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get both personality config and learned profile
     const [personalityResult, profileResult] = await Promise.all([
@@ -267,7 +267,7 @@ export class AIPersonalityConfigService {
    * Reset user's personality to master template defaults
    */
   static async resetToMasterDefaults(userId: string): Promise<AIPersonalityConfig | null> {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     try {
       // Get master template
@@ -317,7 +317,7 @@ export class AIPersonalityConfigService {
    * Get the master personality template
    */
   static async getMasterPersonality(): Promise<AIPersonalityConfig | null> {
-    const supabase = createClient()
+    const supabase = await createClient()
 
     const { data: masterPersonality } = await supabase
       .from('ai_personalities')

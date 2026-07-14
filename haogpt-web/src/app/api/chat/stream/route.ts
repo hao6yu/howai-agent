@@ -5,19 +5,20 @@ import { AIPersonalityService } from '@/services/aiPersonalityService'
 import { UserProfileService } from '@/services/userProfileService'
 import { AIPersonalityConfigService } from '@/services/aiPersonalityConfigService'
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+function createOpenAIClient() {
+  return new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const openai = createOpenAIClient()
     const { message, conversationId, deepResearch, attachments = [] } = await request.json()
 
     if ((!message && attachments.length === 0) || !conversationId) {
       return new Response('Message or attachments and conversation ID are required', { status: 400 })
     }
 
-    const supabase = createClient()
+    const supabase = await createClient()
 
     // Get the authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser()

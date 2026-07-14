@@ -6,9 +6,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:haogpt/generated/app_localizations.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' as json;
+import '../config/app_config.dart';
 import '../services/location_service.dart';
 import '../providers/settings_provider.dart';
 import 'street_view_modal.dart';
@@ -2056,9 +2056,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
   Future<PlaceDetails?> _getPlaceDetailsWithReviews(String placeId) async {
     try {
       final String url = 'https://places.googleapis.com/v1/places/$placeId';
-      final apiKey = dotenv.env['GOOGLE_API_KEY'];
+      final apiKey = AppConfig.googleApiKey;
 
-      if (apiKey == null || apiKey.isEmpty) {
+      if (apiKey.isEmpty) {
         return null;
       }
 
@@ -3878,7 +3878,7 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
 
   Future<void> _calculateRoute(double originLat, double originLng, double destLat, double destLng, {String mode = 'driving'}) async {
     try {
-      final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+      final apiKey = AppConfig.googleMapsApiKey;
       if (apiKey.isEmpty) {
         //// print('[Map Route] Google Maps API key not found');
         return;
@@ -6147,9 +6147,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
   Future<PlaceDetails?> _getPlaceDetailsWithReviews(String placeId) async {
     try {
       final String url = 'https://places.googleapis.com/v1/places/$placeId';
-      final apiKey = dotenv.env['GOOGLE_API_KEY'];
+      final apiKey = AppConfig.googleApiKey;
 
-      if (apiKey == null || apiKey.isEmpty) {
+      if (apiKey.isEmpty) {
         return null;
       }
 

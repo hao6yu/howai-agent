@@ -14,8 +14,14 @@ class SupabaseService {
   // Get current user
   User? get currentUser => _client.auth.currentUser;
 
-  // Check if user is authenticated
-  bool get isAuthenticated => currentUser != null;
+  // Anonymous users are real Supabase sessions used for secure proxy access,
+  // but they should not be treated as cloud-sync accounts.
+  bool get hasSession => currentUser != null;
+  bool get isAnonymous => currentUser?.isAnonymous ?? false;
+  bool get hasSyncAccount => hasSession && !isAnonymous;
+
+  // Check if user has a recoverable account for cloud sync.
+  bool get isAuthenticated => hasSyncAccount;
 
   // Listen to auth state changes
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
@@ -56,6 +62,18 @@ class SupabaseService {
     }
   }
 
+  // Create an anonymous session for local/accountless app usage.
+  Future<AuthResponse> signInAnonymously() async {
+    try {
+      final response = await _client.auth.signInAnonymously();
+      debugPrint('[SupabaseService] Anonymous sign in successful');
+      return response;
+    } catch (e) {
+      debugPrint('[SupabaseService] Anonymous sign in error: $e');
+      rethrow;
+    }
+  }
+
   // Sign in with Google using Supabase OAuth (web-based flow)
   Future<AuthResponse> signInWithGoogle() async {
     try {
@@ -90,9 +108,8 @@ class SupabaseService {
       // For web: Use the web app URL
       // Note: Apple requires HTTPS URLs in Apple Developer Console, but Supabase
       // will accept the custom scheme and handle the OAuth callback server-side
-      final String redirectUrl = kIsWeb
-          ? 'https://chat.howai.io'
-          : 'com.hyu.haogpt://login-callback';
+      final String redirectUrl =
+          kIsWeb ? 'https://chat.howai.io' : 'com.hyu.haogpt://login-callback';
 
       final result = await _client.auth.signInWithOAuth(
         OAuthProvider.apple,
@@ -102,7 +119,8 @@ class SupabaseService {
 
       // The OAuth flow was initiated successfully
       // Supabase will handle the HTTPS callback from Apple, then redirect to our deep link
-      debugPrint('[SupabaseService] Apple OAuth flow initiated with redirect: $redirectUrl, result: $result');
+      debugPrint(
+          '[SupabaseService] Apple OAuth flow initiated with redirect: $redirectUrl, result: $result');
 
       // Return a response indicating the flow was started
       // The actual auth state will be updated via the auth state listener
@@ -158,7 +176,11 @@ class SupabaseService {
   // Get user profile from profiles table
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
-      final response = await _client.from('profiles').select().eq('id', userId).maybeSingle();
+      final response = await _client
+          .from('profiles')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
       return response;
     } catch (e) {
       debugPrint('[SupabaseService] Get user profile error: $e');

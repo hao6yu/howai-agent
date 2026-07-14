@@ -64,6 +64,9 @@ coverage/
 # Test outputs
 test-results/
 
+# Supabase local project metadata
+supabase/.temp/
+
 # Firebase
 firebase-debug.log
 .firebase/

@@ -72,13 +72,13 @@ haogpt-web/         # Web deployment (Docker)
    git clone https://github.com/hao6yu/howai-agent.git
    cd howai-agent
    ```
-2. Copy `env.example` to `.env` and fill in API keys:
+2. Copy `env.example` to `.env` for local build-time configuration:
    ```
-   OPENAI_API_KEY=sk-...
-   # Optional in production: route through your backend proxy
-   OPENAI_PROXY_BASE_URL=https://your-proxy.example.com
-   OPENAI_PROXY_TOKEN=...
-   ELEVENLABS_API_KEY=...
+   # Local development only. Do not include OpenAI keys in production mobile builds.
+   OPENAI_API_KEY=
+   # Production: route through the Supabase Edge Function proxy.
+   OPENAI_PROXY_BASE_URL=https://your-project.supabase.co/functions/v1/openai-proxy
+   ELEVENLABS_PROXY_BASE_URL=https://your-project.supabase.co/functions/v1/elevenlabs-proxy
    GOOGLE_MAPS_API_KEY=...
    SUPABASE_URL=https://...
    SUPABASE_ANON_KEY=...
@@ -93,35 +93,66 @@ haogpt-web/         # Web deployment (Docker)
    ```
 5. Run the app:
    ```bash
-   flutter run
+   flutter run --dart-define-from-file=.env
    ```
+
+`.env` is intentionally not bundled as a Flutter asset. Values passed with
+`--dart-define` are still visible in a compiled mobile app, so only put public
+client config there for production. Keep server secrets, especially
+`OPENAI_API_KEY`, in Supabase secrets.
 
 ### Optional: OpenAI Proxy (Recommended for Production)
 
 Use the included Supabase Edge Function proxy to keep OpenAI keys off-device:
 
-1. Deploy function:
+1. Enable anonymous sign-ins in Supabase Dashboard:
+   `Authentication` → `Sign In / Providers` → `Anonymous Sign-Ins`.
+2. Deploy function:
    ```bash
    supabase functions deploy openai-proxy
    ```
-2. Set function secrets:
+3. Set function secrets:
    ```bash
-   supabase secrets set OPENAI_API_KEY=sk-... PROXY_SHARED_TOKEN=your-shared-token
+   supabase secrets set OPENAI_API_KEY=sk-...
    ```
-3. Configure mobile app `.env`:
+4. Configure mobile app build config:
    ```bash
    OPENAI_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/openai-proxy
-   OPENAI_PROXY_TOKEN=your-shared-token
    ```
+
+Model names can now be changed server-side with Supabase secrets:
+
+```bash
+supabase secrets set \
+  OPENAI_PROXY_CHAT_MODEL=gpt-5.2 \
+  OPENAI_PROXY_CHAT_MINI_MODEL=gpt-5-nano
+supabase functions deploy openai-proxy
+```
+
+### Optional: ElevenLabs Proxy (Recommended for Production)
+
+Use the included Supabase Edge Function proxy to keep ElevenLabs keys off-device:
+
+```bash
+supabase db push
+supabase secrets set ELEVENLABS_API_KEY=sk_...
+supabase functions deploy elevenlabs-proxy
+```
+
+Configure mobile app build config:
+
+```bash
+ELEVENLABS_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/elevenlabs-proxy
+```
 
 ### Building
 
 ```bash
 # iOS
-flutter build ios --release
+flutter build ios --release --dart-define-from-file=.env
 
 # Android
-flutter build apk --release
+flutter build apk --release --dart-define-from-file=.env
 
 # Web (see haogpt-web/README.md)
 cd haogpt-web && docker build -t haogpt-web .

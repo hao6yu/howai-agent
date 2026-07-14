@@ -503,8 +503,8 @@ class SyncService {
   /// Upload a conversation to Supabase
   Future<String?> uploadConversation(Conversation conversation) async {
     if (!_supabase.isAuthenticated) {
-      // Queue for later sync
-      _queueOperation('conversation', 'create', conversation.toMap());
+      debugPrint(
+          '[SyncService] Skipping conversation upload in local/anonymous mode');
       return null;
     }
 
@@ -564,8 +564,7 @@ class SyncService {
   /// Upload a message to Supabase
   Future<String?> uploadMessage(ChatMessage message) async {
     if (!_supabase.isAuthenticated) {
-      // Queue for later sync
-      _queueOperation('message', 'create', message.toMap());
+      debugPrint('[SyncService] Skipping message upload in local/anonymous mode');
       return null;
     }
 

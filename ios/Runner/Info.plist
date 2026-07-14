@@ -61,6 +61,8 @@
 	<string>This app needs location access to find restaurants, hotels, and places of interest near you.</string>
 	<key>GOOGLE_MAPS_API_KEY</key>
 	<string>$(GOOGLE_MAPS_API_KEY)</string>
+	<key>DART_DEFINES</key>
+	<string>$(DART_DEFINES)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

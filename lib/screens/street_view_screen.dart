@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../config/app_config.dart';
 import '../providers/settings_provider.dart';
 import '../services/location_service.dart';
 import 'package:haogpt/generated/app_localizations.dart';
@@ -79,7 +79,7 @@ class _StreetViewScreenState extends State<StreetViewScreen> {
   String _buildStreetViewUrl() {
     final lat = widget.place.latitude;
     final lng = widget.place.longitude;
-    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+    final apiKey = AppConfig.googleMapsApiKey;
 
     // Log for debugging
     // print('[Street View] Building URL with API key: ${apiKey.isNotEmpty ? 'Present' : 'Missing'}');

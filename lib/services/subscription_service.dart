@@ -7,7 +7,7 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_storekit/store_kit_2_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../config/app_config.dart';
 import 'supabase_service.dart';
 
 // Bypass subscription validation in debug builds so developers with real
@@ -345,9 +345,9 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   String get allowedModel {
     if (isPremium) {
-      return dotenv.env['OPENAI_CHAT_MODEL'] ?? 'gpt-5.2';
+      return AppConfig.openAIChatModel;
     } else {
-      return dotenv.env['OPENAI_CHAT_MINI_MODEL'] ?? 'gpt-5-nano';
+      return AppConfig.openAIChatMiniModel;
     }
   }
 

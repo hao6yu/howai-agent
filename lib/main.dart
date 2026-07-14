@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'config/app_config.dart';
 import 'providers/profile_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/conversation_provider.dart';
@@ -28,13 +28,10 @@ void main() async {
 
   //// print('====== HowAI APP STARTED ======');
 
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
-
   // Initialize Supabase with deep link handling
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    url: AppConfig.supabaseUrl,
+    anonKey: AppConfig.supabaseAnonKey,
     authOptions: const FlutterAuthClientOptions(
       authFlowType: AuthFlowType.pkce,
     ),

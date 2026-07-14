@@ -4,19 +4,38 @@ Secure proxy for OpenAI APIs used by mobile app:
 - `POST /v1/responses`
 - `POST /v1/audio/transcriptions`
 
-This prevents exposing `OPENAI_API_KEY` in the client app.
+This prevents exposing `OPENAI_API_KEY` in the client app and requires a
+Supabase Auth user session before forwarding requests.
 
 ## Required secrets
 
 Set in Supabase project secrets:
 
 ```bash
-supabase secrets set OPENAI_API_KEY=sk-... PROXY_SHARED_TOKEN=your-shared-token
+supabase secrets set OPENAI_API_KEY=sk-...
 ```
+
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are
+available automatically in hosted Supabase Edge Functions.
+
+Optional tuning secrets:
+
+```bash
+supabase secrets set \
+  OPENAI_PROXY_MAX_REQUESTS_PER_HOUR=120 \
+  OPENAI_PROXY_ANON_MAX_REQUESTS_PER_DAY=300 \
+  OPENAI_PROXY_MAX_OUTPUT_TOKENS=3000 \
+  OPENAI_PROXY_CHAT_MODEL=gpt-5.2 \
+  OPENAI_PROXY_CHAT_MINI_MODEL=gpt-5-nano
+```
+
+`OPENAI_PROXY_ALLOWED_MODELS` is optional. Use it only if the app needs to send
+additional real model names besides the two aliases.
 
 ## Deploy
 
 ```bash
+supabase db push
 supabase functions deploy openai-proxy
 ```
 
@@ -28,9 +47,15 @@ Use this as `OPENAI_PROXY_BASE_URL` in app `.env`:
 https://<project-ref>.supabase.co/functions/v1/openai-proxy
 ```
 
-Set `OPENAI_PROXY_TOKEN` in app `.env` to the same `PROXY_SHARED_TOKEN` value.
+The mobile app sends the current Supabase session access token as:
 
-When token auth is enabled, requests must also include `X-HowAI-Timestamp` (unix seconds, +/- 5 minutes).
+```text
+Authorization: Bearer <supabase-access-token>
+```
+
+The app can send `howai-chat` or `howai-chat-mini` as model aliases. The proxy
+resolves those aliases from `OPENAI_PROXY_CHAT_MODEL` and
+`OPENAI_PROXY_CHAT_MINI_MODEL`, so model changes do not require an app rebuild.
 
 ## Local test
 
@@ -38,7 +63,7 @@ When token auth is enabled, requests must also include `X-HowAI-Timestamp` (unix
 curl -i \
   -X POST "https://<project-ref>.supabase.co/functions/v1/openai-proxy/v1/responses" \
   -H "Content-Type: application/json" \
-  -H "X-HowAI-Proxy-Token: your-shared-token" \
-  -H "X-HowAI-Timestamp: $(date +%s)" \
-  -d '{"model":"gpt-5-nano","input":[{"role":"user","content":"Say hi"}]}'
+  -H "Authorization: Bearer <supabase-access-token>" \
+  -H "apikey: <supabase-anon-key>" \
+  -d '{"model":"howai-chat-mini","input":[{"role":"user","content":"Say hi"}]}'
 ```

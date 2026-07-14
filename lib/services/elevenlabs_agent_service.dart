@@ -1,8 +1,10 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../config/app_config.dart';
 
 enum ElevenLabsVoicePreset {
   male,
@@ -14,10 +16,12 @@ enum ElevenLabsVoicePreset {
 /// This handles token resolution for the ElevenLabs Agent SDK, supporting
 /// both direct API access and optional proxy configurations.
 class ElevenLabsAgentService {
-  static const String _directLiveKitTokenEndpoint =
+  static String _signedUrlEndpoint =
       'https://api.elevenlabs.io/v1/convai/conversation/get-signed-url';
 
   final String? _apiKey;
+  final String? _proxyBaseUrl;
+  final String? _supabaseAnonKey;
   final String? _legacyAgentId;
   final String? _maleAgentId;
   final String? _femaleAgentId;
@@ -37,28 +41,38 @@ class ElevenLabsAgentService {
     String? agentId,
     String? maleAgentId,
     String? femaleAgentId,
-  })  : _apiKey = _firstNonEmpty([
+  })  : _proxyBaseUrl = AppConfig.elevenLabsProxyBaseUrl.trim().isEmpty
+            ? null
+            : AppConfig.elevenLabsProxyBaseUrl.trim(),
+        _supabaseAnonKey = AppConfig.supabaseAnonKey.trim(),
+        _apiKey = _firstNonEmpty([
           apiKey,
-          dotenv.env['ELEVENLABS_API_KEY'],
-          dotenv.env['XI_API_KEY'],
+          AppConfig.elevenLabsApiKey,
+          AppConfig.elevenLabsXiApiKey,
         ]),
         _legacyAgentId = _firstNonEmpty([
           agentId,
-          dotenv.env['ELEVENLABS_AGENT_ID'],
-          dotenv.env['ELEVENLABS_CONVAI_AGENT_ID'],
-          dotenv.env['ELEVENLABS_CONVERSATIONAL_AGENT_ID'],
-          dotenv.env['ELEVENLABS_CONVERSATIONAL_AI_AGENT_ID'],
+          AppConfig.elevenLabsAgentId,
+          AppConfig.elevenLabsConvaiAgentId,
+          AppConfig.elevenLabsConversationalAgentId,
+          AppConfig.elevenLabsConversationalAiAgentId,
         ]),
         _maleAgentId = _firstNonEmpty([
           maleAgentId,
-          dotenv.env['ELEVENLABS_AGENT_ID_MALE'],
-          dotenv.env['ELEVENLABS_MALE_AGENT_ID'],
+          AppConfig.elevenLabsAgentIdMale,
+          AppConfig.elevenLabsMaleAgentId,
         ]),
         _femaleAgentId = _firstNonEmpty([
           femaleAgentId,
-          dotenv.env['ELEVENLABS_AGENT_ID_FEMALE'],
-          dotenv.env['ELEVENLABS_FEMALE_AGENT_ID'],
-        ]);
+          AppConfig.elevenLabsAgentIdFemale,
+          AppConfig.elevenLabsFemaleAgentId,
+        ]) {
+    if (_proxyBaseUrl != null) {
+      final normalized = _proxyBaseUrl!.replaceFirst(RegExp(r'/+$'), '');
+      _signedUrlEndpoint =
+          '$normalized/v1/convai/conversation/get-signed-url';
+    }
+  }
 
   bool get _hasAnyVoiceSpecificAgent =>
       _maleAgentId != null || _femaleAgentId != null;
@@ -101,23 +115,31 @@ class ElevenLabsAgentService {
       isConfiguredForVoice(voice: ElevenLabsVoicePreset.female);
 
   /// Whether an ElevenLabs API key is configured.
-  bool get hasApiKey => _apiKey != null && _apiKey!.isNotEmpty;
+  bool get hasApiKey =>
+      (_proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty) ||
+      (_apiKey != null && _apiKey!.isNotEmpty);
 
   /// Whether the service is properly configured for voice calls.
   ///
-  /// The SDK call path in this app only requires `agentId`.
-  bool get isConfigured => hasAgentId;
+  /// The SDK call path in this app requires an agent id plus either the
+  /// Supabase proxy or a local development API key.
+  bool get isConfigured => hasAgentId && hasApiKey;
 
   /// Human-readable missing configuration summary for debugging.
   String? get configurationIssue {
     if (!hasAgentId) {
       return 'Missing agent id (ELEVENLABS_AGENT_ID or ELEVENLABS_AGENT_ID_MALE/FEMALE)';
     }
+    if (!hasApiKey) {
+      return 'Missing ElevenLabs proxy URL';
+    }
     return null;
   }
 
   String? configurationIssueForVoice({required ElevenLabsVoicePreset voice}) {
-    if (isConfiguredForVoice(voice: voice)) return null;
+    if (isConfiguredForVoice(voice: voice)) {
+      return hasApiKey ? null : 'Missing ElevenLabs proxy URL';
+    }
 
     if (_hasAnyVoiceSpecificAgent) {
       return switch (voice) {
@@ -148,15 +170,12 @@ class ElevenLabsAgentService {
     }
 
     try {
-      final uri = Uri.parse(_directLiveKitTokenEndpoint)
+      final uri = Uri.parse(_signedUrlEndpoint)
           .replace(queryParameters: {'agent_id': resolvedAgentId});
 
       final response = await http.get(
         uri,
-        headers: {
-          'xi-api-key': _apiKey!,
-          'Accept': 'application/json',
-        },
+        headers: await _buildHeaders(),
       );
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -196,5 +215,42 @@ class ElevenLabsAgentService {
           'ElevenLabsAgentService: Error parsing signed URL response - $e');
     }
     return null;
+  }
+
+  Future<Map<String, String>> _buildHeaders() async {
+    final headers = <String, String>{'Accept': 'application/json'};
+
+    if (_proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty) {
+      final accessToken = await _getSupabaseAccessToken();
+      if (accessToken != null && accessToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $accessToken';
+      }
+      if (_supabaseAnonKey != null && _supabaseAnonKey!.isNotEmpty) {
+        headers['apikey'] = _supabaseAnonKey!;
+      }
+    } else if (_apiKey != null && _apiKey!.isNotEmpty) {
+      headers['xi-api-key'] = _apiKey!;
+    }
+
+    return headers;
+  }
+
+  Future<String?> _getSupabaseAccessToken() async {
+    final auth = Supabase.instance.client.auth;
+    var session = auth.currentSession;
+    if (session == null) {
+      return null;
+    }
+
+    if (session.isExpired) {
+      try {
+        final refreshed = await auth.refreshSession();
+        session = refreshed.session ?? auth.currentSession;
+      } catch (_) {
+        return session?.accessToken;
+      }
+    }
+
+    return session?.accessToken;
   }
 }

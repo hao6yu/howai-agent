@@ -29,7 +29,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   void _checkAuthAndNavigate() {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    if (authProvider.isAuthenticated && mounted) {
+    if (authProvider.hasSyncAccount && mounted) {
       // User is authenticated, navigate to home
       Navigator.of(context).pushReplacementNamed('/home');
     }
@@ -102,9 +102,21 @@ class _AuthScreenState extends State<AuthScreen> {
     // will trigger navigation when the user successfully authenticates
   }
 
-  void _continueWithoutAccount() {
-    // Navigate directly to main app without authentication
-    Navigator.of(context).pushReplacementNamed('/home');
+  Future<void> _continueWithoutAccount() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final success = await authProvider.signInAnonymously();
+
+    if (success && mounted) {
+      Navigator.of(context).pushReplacementNamed('/home');
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            authProvider.errorMessage ?? 'Could not continue right now.',
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -116,7 +128,7 @@ class _AuthScreenState extends State<AuthScreen> {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         // If user is authenticated, navigate to home
-        if (authProvider.isAuthenticated) {
+        if (authProvider.hasSyncAccount) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               Navigator.of(context).pushReplacementNamed('/home');
@@ -153,9 +165,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
                           // Title
                           Text(
-                            _isSignUp
-                                ? l10n.signUpToHowAI
-                                : l10n.signInToHowAI,
+                            _isSignUp ? l10n.signUpToHowAI : l10n.signInToHowAI,
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.bold,
                               fontSize: 22,
@@ -170,8 +180,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ? null
                                 : _handleGoogleSignIn,
                             style: OutlinedButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -206,8 +215,7 @@ class _AuthScreenState extends State<AuthScreen> {
                             icon: const Icon(Icons.apple, size: 20),
                             label: Text(l10n.continueWithApple),
                             style: OutlinedButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -228,8 +236,8 @@ class _AuthScreenState extends State<AuthScreen> {
                             children: [
                               const Expanded(child: Divider()),
                               Padding(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 16),
                                 child: Text(
                                   l10n.orContinueWithEmail,
                                   style: TextStyle(
@@ -327,8 +335,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ),
                                 onPressed: () {
                                   setState(() {
-                                    _isPasswordVisible =
-                                        !_isPasswordVisible;
+                                    _isPasswordVisible = !_isPasswordVisible;
                                   });
                                 },
                               ),
@@ -341,8 +348,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 return l10n.pleaseEnterYourPassword;
                               }
                               if (_isSignUp && value.length < 6) {
-                                return l10n
-                                    .passwordMustBeAtLeast6Characters;
+                                return l10n.passwordMustBeAtLeast6Characters;
                               }
                               return null;
                             },
@@ -355,8 +361,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 ? null
                                 : _handleEmailAuth,
                             style: ElevatedButton.styleFrom(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 12),
+                              padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -370,9 +375,8 @@ class _AuthScreenState extends State<AuthScreen> {
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      valueColor:
-                                          AlwaysStoppedAnimation<Color>(
-                                              Colors.white),
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
                                     ),
                                   )
                                 : Text(
@@ -415,7 +419,9 @@ class _AuthScreenState extends State<AuthScreen> {
                   child: Column(
                     children: [
                       TextButton(
-                        onPressed: _continueWithoutAccount,
+                        onPressed: authProvider.isLoading
+                            ? null
+                            : _continueWithoutAccount,
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.grey.shade600,
                           visualDensity: VisualDensity.compact,

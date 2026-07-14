@@ -45,6 +45,7 @@ class ChatMessageWidget extends StatefulWidget {
   final Function(ChatMessage)? onQuickSaveToKnowledgeHub;
   final Function(ChatMessage)? onSaveToKnowledgeHub;
   final bool forcePlainText;
+  final bool isStreaming;
 
   const ChatMessageWidget({
     super.key,
@@ -68,6 +69,7 @@ class ChatMessageWidget extends StatefulWidget {
     this.onQuickSaveToKnowledgeHub,
     this.onSaveToKnowledgeHub,
     this.forcePlainText = false,
+    this.isStreaming = false,
   });
 
   @override
@@ -81,15 +83,19 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   @override
   void initState() {
     super.initState();
-    _messageReportFuture = _getMessageReportStatus();
+    _messageReportFuture = widget.isStreaming
+        ? Future.value({'isReported': false, 'shouldHide': false})
+        : _getMessageReportStatus();
   }
 
   @override
   void didUpdateWidget(covariant ChatMessageWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.message.id != widget.message.id ||
-        oldWidget.message.message != widget.message.message) {
-      _messageReportFuture = _getMessageReportStatus();
+    if (oldWidget.isStreaming != widget.isStreaming ||
+        oldWidget.message.id != widget.message.id) {
+      _messageReportFuture = widget.isStreaming
+          ? Future.value({'isReported': false, 'shouldHide': false})
+          : _getMessageReportStatus();
     }
   }
 
@@ -160,7 +166,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           ),
 
           // Action buttons for AI messages (copy and translate only)
-          if (!isUserMessage) _buildAIMessageActions(),
+          if (!isUserMessage && !widget.isStreaming) _buildAIMessageActions(),
         ],
       ),
     );
@@ -201,6 +207,22 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   }
 
   Widget _buildAIMessage() {
+    if (widget.isStreaming) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildAIAvatar(),
+          const SizedBox(width: 8),
+          Flexible(
+            child: RepaintBoundary(
+              child: _buildMessageContent(false),
+            ),
+          ),
+        ],
+      );
+    }
+
     return FutureBuilder<Map<String, dynamic>>(
       future: _messageReportFuture,
       builder: (context, snapshot) {
@@ -270,275 +292,281 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
         widget.message.locationResults != null &&
         widget.message.locationResults!.isNotEmpty;
 
-    // Reduce AI message width to prevent overlap, keep user messages same
-    final maxWidth = isUserMessage
-        ? MediaQuery.of(context).size.width *
-            0.60 // User messages reduced from 0.7 to 0.65
-        : MediaQuery.of(context).size.width *
-            0.72; // AI messages increased from 0.65 to 0.72
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxWidth: maxWidth,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            children: [
-              Container(
-                margin: EdgeInsets.only(
-                  left: isUserMessage
-                      ? 0
-                      : 0, // Removed padding, changed from 6 to 0
-                  right: isUserMessage
-                      ? 0
-                      : 0, // Removed padding, changed from 6 to 0
-                ),
-                padding: EdgeInsets.symmetric(
-                  horizontal: 12, // Increased for speech bubble
-                  vertical: 8, // Increased for speech bubble
-                ),
-                decoration: isUserMessage
-                    ? BoxDecoration(
-                        // User messages: subtle gray bubble (ChatGPT style)
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey.shade800
-                            : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Reduce AI message width to prevent overlap, keep user messages same.
+        var maxWidth = isUserMessage ? screenWidth * 0.60 : screenWidth * 0.72;
+        if (constraints.maxWidth.isFinite && maxWidth > constraints.maxWidth) {
+          maxWidth = constraints.maxWidth;
+        }
+
+        final messageColumn = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                Container(
+                  margin: EdgeInsets.only(
+                    left: isUserMessage
+                        ? 0
+                        : 0, // Removed padding, changed from 6 to 0
+                    right: isUserMessage
+                        ? 0
+                        : 0, // Removed padding, changed from 6 to 0
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12, // Increased for speech bubble
+                    vertical: 8, // Increased for speech bubble
+                  ),
+                  decoration: isUserMessage
+                      ? BoxDecoration(
+                          // User messages: subtle gray bubble (ChatGPT style)
                           color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey.shade700
-                              : Colors.grey.shade300,
-                          width: 0.5,
+                              ? Colors.grey.shade800
+                              : Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade700
+                                    : Colors.grey.shade300,
+                            width: 0.5,
+                          ),
+                        )
+                      : null, // AI messages: no background, clean look
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (widget.message.imagePaths != null &&
+                          widget.message.imagePaths!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: widget.message.imagePaths!
+                                .where((path) =>
+                                    path.startsWith('http') ||
+                                    path.startsWith('data:image') ||
+                                    File(path).existsSync())
+                                .map((path) => GestureDetector(
+                                      onTap: () {
+                                        final imagePaths = widget
+                                            .message.imagePaths!
+                                            .where((p) =>
+                                                p.startsWith('http') ||
+                                                p.startsWith('data:image') ||
+                                                File(p).existsSync())
+                                            .toList();
+                                        final initialIndex =
+                                            imagePaths.indexOf(path);
+                                        showDialog(
+                                          context: context,
+                                          barrierColor: Colors.black,
+                                          builder: (_) => ImageGalleryDialog(
+                                            imagePaths: imagePaths,
+                                            initialIndex: initialIndex,
+                                          ),
+                                        );
+                                      },
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(10),
+                                        child: path.startsWith('http')
+                                            ? Image.network(
+                                                path,
+                                                width: 96,
+                                                height: 96,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error,
+                                                    stackTrace) {
+                                                  return Container(
+                                                    width: 96,
+                                                    height: 96,
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          Colors.grey.shade200,
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              8),
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.broken_image,
+                                                      color:
+                                                          Colors.grey.shade400,
+                                                      size: 32,
+                                                    ),
+                                                  );
+                                                },
+                                              )
+                                            : path.startsWith('data:image')
+                                                ? Image.memory(
+                                                    base64Decode(
+                                                        path.split(',').last),
+                                                    width: 96,
+                                                    height: 96,
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (context,
+                                                        error, stackTrace) {
+                                                      return Container(
+                                                        width: 96,
+                                                        height: 96,
+                                                        decoration:
+                                                            BoxDecoration(
+                                                          color: Colors
+                                                              .grey.shade200,
+                                                          borderRadius:
+                                                              BorderRadius
+                                                                  .circular(8),
+                                                        ),
+                                                        child: Icon(
+                                                          Icons.broken_image,
+                                                          color: Colors
+                                                              .grey.shade400,
+                                                          size: 32,
+                                                        ),
+                                                      );
+                                                    },
+                                                  )
+                                                : _buildSafeLocalImage(
+                                                    path, 96, 96),
+                                      ),
+                                    ))
+                                .toList(),
+                          ),
                         ),
-                      )
-                    : null, // AI messages: no background, clean look
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.message.imagePaths != null &&
-                        widget.message.imagePaths!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: widget.message.imagePaths!
-                              .where((path) =>
-                                  path.startsWith('http') ||
-                                  path.startsWith('data:image') ||
-                                  File(path).existsSync())
-                              .map((path) => GestureDetector(
-                                    onTap: () {
-                                      final imagePaths = widget
-                                          .message.imagePaths!
-                                          .where((p) =>
-                                              p.startsWith('http') ||
-                                              p.startsWith('data:image') ||
-                                              File(p).existsSync())
-                                          .toList();
-                                      final initialIndex =
-                                          imagePaths.indexOf(path);
-                                      showDialog(
-                                        context: context,
-                                        barrierColor: Colors.black,
-                                        builder: (_) => ImageGalleryDialog(
-                                          imagePaths: imagePaths,
-                                          initialIndex: initialIndex,
-                                        ),
-                                      );
-                                    },
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: path.startsWith('http')
-                                          ? Image.network(
-                                              path,
-                                              width: 96,
-                                              height: 96,
-                                              fit: BoxFit.cover,
-                                              errorBuilder:
-                                                  (context, error, stackTrace) {
-                                                return Container(
-                                                  width: 96,
-                                                  height: 96,
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.grey.shade200,
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            8),
-                                                  ),
-                                                  child: Icon(
-                                                    Icons.broken_image,
-                                                    color: Colors.grey.shade400,
-                                                    size: 32,
-                                                  ),
-                                                );
-                                              },
-                                            )
-                                          : path.startsWith('data:image')
-                                              ? Image.memory(
-                                                  base64Decode(
-                                                      path.split(',').last),
-                                                  width: 96,
-                                                  height: 96,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error,
-                                                      stackTrace) {
-                                                    return Container(
-                                                      width: 96,
-                                                      height: 96,
-                                                      decoration: BoxDecoration(
-                                                        color: Colors
-                                                            .grey.shade200,
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(8),
-                                                      ),
-                                                      child: Icon(
-                                                        Icons.broken_image,
-                                                        color: Colors
-                                                            .grey.shade400,
-                                                        size: 32,
-                                                      ),
-                                                    );
-                                                  },
-                                                )
-                                              : _buildSafeLocalImage(
-                                                  path, 96, 96),
-                                    ),
-                                  ))
-                              .toList(),
-                        ),
-                      ),
 
-                    // File attachments display
-                    if (widget.message.filePaths != null &&
-                        widget.message.filePaths!.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: widget.message.filePaths!
-                              .where((path) => path.isNotEmpty)
-                              .map((path) {
-                            // Check file existence
-                            final fileExists = File(path).existsSync();
+                      // File attachments display
+                      if (widget.message.filePaths != null &&
+                          widget.message.filePaths!.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: widget.message.filePaths!
+                                .where((path) => path.isNotEmpty)
+                                .map((path) {
+                              // Check file existence
+                              final fileExists = File(path).existsSync();
 
-                            return GestureDetector(
-                              onTap: () => _openFile(path),
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 8.0),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14.0, vertical: 10.0),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.grey.shade700
-                                      : Colors.grey.shade100,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
+                              return GestureDetector(
+                                onTap: () => _openFile(path),
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 8.0),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 14.0, vertical: 10.0),
+                                  decoration: BoxDecoration(
                                     color: Theme.of(context).brightness ==
                                             Brightness.dark
-                                        ? Colors.grey.shade600
-                                        : Colors.grey.shade300,
-                                    width: 1,
+                                        ? Colors.grey.shade700
+                                        : Colors.grey.shade100,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.grey.shade600
+                                          : Colors.grey.shade300,
+                                      width: 1,
+                                    ),
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    // Simple file icon
-                                    Icon(
-                                      _getFileIcon(path),
-                                      color: const Color(0xFF0078D4),
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 10),
+                                  child: Row(
+                                    children: [
+                                      // Simple file icon
+                                      Icon(
+                                        _getFileIcon(path),
+                                        color: const Color(0xFF0078D4),
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 10),
 
-                                    // File name and type
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            _getFileName(path),
-                                            style: TextStyle(
-                                              color: Theme.of(context)
-                                                          .brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.white
-                                                  : Colors.black87,
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          if (!fileExists) ...[
-                                            const SizedBox(height: 2),
+                                      // File name and type
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
                                             Text(
-                                              'File not accessible',
+                                              _getFileName(path),
                                               style: TextStyle(
-                                                color: Colors.orange.shade600,
-                                                fontSize: 12,
-                                                fontStyle: FontStyle.italic,
+                                                color: Theme.of(context)
+                                                            .brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.white
+                                                    : Colors.black87,
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w500,
                                               ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
                                             ),
+                                            if (!fileExists) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                'File not accessible',
+                                                style: TextStyle(
+                                                  color: Colors.orange.shade600,
+                                                  fontSize: 12,
+                                                  fontStyle: FontStyle.italic,
+                                                ),
+                                              ),
+                                            ],
                                           ],
-                                        ],
-                                      ),
-                                    ),
-
-                                    // File type badge
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? const Color(0xFF0078D4)
-                                                .withOpacity(0.3)
-                                            : const Color(0xFF0078D4)
-                                                .withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        _getFileExtension(path).toUpperCase(),
-                                        style: TextStyle(
-                                          color: Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? Colors.blue.shade300
-                                              : const Color(0xFF0078D4),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
 
-                    if (widget.message.message.isNotEmpty)
-                      isUserMessage || widget.forcePlainText
-                          ? Text(
-                              widget.message.message,
-                              style: TextStyle(
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.white
-                                    : Colors.black87,
-                                fontSize: settings.getScaledFontSize(14),
-                              ),
-                            )
-                          : MarkdownBody(
-                              data: widget.message.message,
-                              imageBuilder: (uri, title, alt) {
+                                      // File type badge
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? const Color(0xFF0078D4)
+                                                  .withOpacity(0.3)
+                                              : const Color(0xFF0078D4)
+                                                  .withOpacity(0.1),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          _getFileExtension(path).toUpperCase(),
+                                          style: TextStyle(
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                        Brightness.dark
+                                                    ? Colors.blue.shade300
+                                                    : const Color(0xFF0078D4),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+
+                      if (widget.message.message.isNotEmpty)
+                        isUserMessage || widget.forcePlainText
+                            ? Text(
+                                widget.message.message,
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black87,
+                                  fontSize: settings.getScaledFontSize(14),
+                                  height: 1.4,
+                                ),
+                              )
+                            : MarkdownBody(
+                                data: widget.message.message,
+                                imageBuilder: (uri, title, alt) {
                                   // Custom image builder that handles missing local files safely and makes images clickable
                                   if (uri.scheme.isEmpty ||
                                       uri.scheme == 'file') {
@@ -803,96 +831,106 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                     fontSize: settings.getScaledFontSize(14),
                                   ),
                                 ),
-                              onTapLink: (text, href, title) async {
-                                if (href != null) {
-                                  if (href.endsWith('.pdf') &&
-                                      File(href).existsSync()) {
-                                    await OpenFile.open(href);
-                                  } else {
-                                    final isImage = href.endsWith('.png') ||
-                                        href.endsWith('.jpg') ||
-                                        href.endsWith('.jpeg') ||
-                                        href.endsWith('.gif') ||
-                                        href.contains('oaidalleapiprodscus');
-                                    if (isImage) {
-                                      _showSingleImagePreview(context, href);
+                                onTapLink: (text, href, title) async {
+                                  if (href != null) {
+                                    if (href.endsWith('.pdf') &&
+                                        File(href).existsSync()) {
+                                      await OpenFile.open(href);
                                     } else {
-                                      final uri = Uri.tryParse(href);
-                                      if (uri != null &&
-                                          await canLaunchUrl(uri)) {
-                                        await launchUrl(uri,
-                                            mode: LaunchMode
-                                                .externalApplication);
+                                      final isImage = href.endsWith('.png') ||
+                                          href.endsWith('.jpg') ||
+                                          href.endsWith('.jpeg') ||
+                                          href.endsWith('.gif') ||
+                                          href.contains('oaidalleapiprodscus');
+                                      if (isImage) {
+                                        _showSingleImagePreview(context, href);
+                                      } else {
+                                        final uri = Uri.tryParse(href);
+                                        if (uri != null &&
+                                            await canLaunchUrl(uri)) {
+                                          await launchUrl(uri,
+                                              mode: LaunchMode
+                                                  .externalApplication);
+                                        }
                                       }
                                     }
                                   }
-                                }
-                              },
-                            ),
+                                },
+                              ),
 
-                    // Location results are now handled separately in the chat screen
-                    // No longer embedded in message bubbles
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (widget.translatedMessages.containsKey(widget.messageKey) &&
-              widget.translatedMessages[widget.messageKey] != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 6.0, left: 8.0, right: 8.0),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? Colors.amber.shade900.withOpacity(0.3)
-                      : Colors.yellow[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.amber.shade600
-                        : (Colors.yellow[700] ?? Colors.orange),
-                    width: 1,
+                      // Location results are now handled separately in the chat screen
+                      // No longer embedded in message bubbles
+                    ],
                   ),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        widget.translatedMessages[widget.messageKey] ?? '',
-                        style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white
-                              : Colors.black87,
-                          fontSize: settings.getScaledFontSize(15),
+              ],
+            ),
+            if (widget.translatedMessages.containsKey(widget.messageKey) &&
+                widget.translatedMessages[widget.messageKey] != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 6.0, left: 8.0, right: 8.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.amber.shade900.withOpacity(0.3)
+                        : Colors.yellow[50],
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.amber.shade600
+                          : (Colors.yellow[700] ?? Colors.orange),
+                      width: 1,
+                    ),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.translatedMessages[widget.messageKey] ?? '',
+                          style: TextStyle(
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.white
+                                    : Colors.black87,
+                            fontSize: settings.getScaledFontSize(15),
+                          ),
                         ),
                       ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          widget.translatedMessages.remove(widget.messageKey);
-                        });
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 6.0, top: 2.0),
-                        child: Icon(
-                          Icons.close,
-                          size: 18,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey.shade400
-                              : Colors.grey[600],
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            widget.translatedMessages.remove(widget.messageKey);
+                          });
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 6.0, top: 2.0),
+                          child: Icon(
+                            Icons.close,
+                            size: 18,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey[600],
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-        ],
-      ),
+          ],
+        );
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: widget.isStreaming && !isUserMessage
+              ? SizedBox(width: maxWidth, child: messageColumn)
+              : messageColumn,
+        );
+      },
     );
   }
 
@@ -1392,8 +1430,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                             Navigator.of(context).pop();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                  content:
-                                      Text(AppLocalizations.of(context)!.copied),
+                                  content: Text(
+                                      AppLocalizations.of(context)!.copied),
                                   duration: Duration(seconds: 2)),
                             );
                           },
@@ -1420,8 +1458,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                             widget.onSaveToKnowledgeHub != null)
                           _ActionButton(
                             icon: Icons.bookmark_add_outlined,
-                            label: AppLocalizations.of(context)!
-                                .memory,
+                            label: AppLocalizations.of(context)!.memory,
                             onTap: () {
                               Navigator.of(context).pop();
                               if (widget.onQuickSaveToKnowledgeHub != null) {
@@ -1434,8 +1471,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                         if (widget.onSaveToKnowledgeHub != null)
                           _ActionButton(
                             icon: Icons.edit_note_outlined,
-                            label: AppLocalizations.of(context)!
-                                .save,
+                            label: AppLocalizations.of(context)!.save,
                             onTap: () {
                               Navigator.of(context).pop();
                               widget.onSaveToKnowledgeHub!(message);

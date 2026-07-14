@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_pptx/flutter_pptx.dart';
 import 'package:path_provider/path_provider.dart';
+import '../config/app_config.dart';
 import 'ai_personality_service.dart';
 import 'subscription_service.dart';
 import 'file_service.dart';
@@ -78,10 +79,11 @@ class OpenAIService {
   static String? _apiKey;
   static String? _proxyBaseUrl;
   static String? _proxyToken;
+  static String? _supabaseAnonKey;
   static String _chatModel =
-      'gpt-5.2'; // Default value - gpt-5.2 flagship model
+      'howai-chat'; // Server-side alias resolved by the Supabase proxy
   static String _chatMiniModel =
-      'gpt-5-nano'; // Default value - GPT-5 mini model
+      'howai-chat-mini'; // Server-side alias resolved by the Supabase proxy
 
   // HTTP timeout configurations - optimized for faster responses
   static const Duration _httpTimeout = Duration(
@@ -109,9 +111,10 @@ class OpenAIService {
 
   // Initialize with env variables or direct values
   static Future<void> initialize({String? apiKey}) async {
-    _apiKey = apiKey ?? dotenv.env['OPENAI_API_KEY'];
-    _proxyBaseUrl = dotenv.env['OPENAI_PROXY_BASE_URL']?.trim();
-    _proxyToken = dotenv.env['OPENAI_PROXY_TOKEN']?.trim();
+    _apiKey = apiKey ?? AppConfig.openAIApiKey;
+    _proxyBaseUrl = AppConfig.openAIProxyBaseUrl.trim();
+    _proxyToken = AppConfig.openAIProxyToken.trim();
+    _supabaseAnonKey = AppConfig.supabaseAnonKey.trim();
 
     if (_proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty) {
       final normalized = _proxyBaseUrl!.replaceFirst(RegExp(r'/+$'), '');
@@ -123,9 +126,8 @@ class OpenAIService {
       //// _log('Warning: OpenAI API key not set');
     }
 
-    // Initialize model names from .env
-    _chatModel = dotenv.env['OPENAI_CHAT_MODEL'] ?? 'gpt-5.2';
-    _chatMiniModel = dotenv.env['OPENAI_CHAT_MINI_MODEL'] ?? 'gpt-5-nano';
+    _chatModel = AppConfig.openAIChatModel;
+    _chatMiniModel = AppConfig.openAIChatMiniModel;
   }
 
   static bool get _isUsingProxy =>
@@ -133,16 +135,21 @@ class OpenAIService {
   static bool get _hasApiKey => _apiKey != null && _apiKey!.isNotEmpty;
   static bool get _isConfigured => _isUsingProxy || _hasApiKey;
 
-  static Map<String, String> _buildHeaders(
-      {bool includeJsonContentType = true}) {
+  static Future<Map<String, String>> _buildHeaders(
+      {bool includeJsonContentType = true}) async {
     final headers = <String, String>{};
     if (includeJsonContentType) {
       headers['Content-Type'] = 'application/json';
     }
 
     if (_isUsingProxy) {
-      headers['X-HowAI-Timestamp'] =
-          '${DateTime.now().millisecondsSinceEpoch ~/ 1000}';
+      final accessToken = await _getSupabaseAccessToken();
+      if (accessToken != null && accessToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $accessToken';
+      }
+      if (_supabaseAnonKey != null && _supabaseAnonKey!.isNotEmpty) {
+        headers['apikey'] = _supabaseAnonKey!;
+      }
       if (_proxyToken != null && _proxyToken!.isNotEmpty) {
         headers['X-HowAI-Proxy-Token'] = _proxyToken!;
       }
@@ -151,6 +158,25 @@ class OpenAIService {
     }
 
     return headers;
+  }
+
+  static Future<String?> _getSupabaseAccessToken() async {
+    final auth = Supabase.instance.client.auth;
+    var session = auth.currentSession;
+    if (session == null) {
+      return null;
+    }
+
+    if (session.isExpired) {
+      try {
+        final refreshed = await auth.refreshSession();
+        session = refreshed.session ?? auth.currentSession;
+      } catch (e) {
+        _log('[OpenAIService] Could not refresh Supabase session: $e');
+      }
+    }
+
+    return session?.accessToken;
   }
 
   // Helper method for HTTP requests with timeout using persistent client
@@ -592,7 +618,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
       final response = await _httpPostWithTimeout(
         _baseUrl,
-        _buildHeaders(),
+        await _buildHeaders(),
         jsonEncode(requestPayload),
         _httpTimeout,
       );
@@ -763,7 +789,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
             final continuationResponse = await _httpPostWithTimeout(
               _baseUrl,
-              _buildHeaders(),
+              await _buildHeaders(),
               jsonEncode(continuationPayload),
               _followupTimeout,
             );
@@ -1026,7 +1052,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
             do {
               followupResponse = await _httpPostWithTimeout(
                 _baseUrl,
-                _buildHeaders(),
+                await _buildHeaders(),
                 jsonEncode(followupPayload),
                 _followupTimeout,
               );
@@ -1272,7 +1298,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
                   //// _log('[OpenAIService] Sending second follow-up for PPTX generation');
                   final secondFollowupResponse = await _httpPostWithTimeout(
                     _baseUrl,
-                    _buildHeaders(),
+                    await _buildHeaders(),
                     jsonEncode(secondFollowupPayload),
                     _followupTimeout,
                   );
@@ -1373,7 +1399,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
                   //// _log('[OpenAIService] Sending completion prompt for PPTX generation');
                   final completionResponse = await _httpPostWithTimeout(
                     _baseUrl,
-                    _buildHeaders(),
+                    await _buildHeaders(),
                     jsonEncode(completionPayload),
                     _followupTimeout,
                   );
@@ -1678,7 +1704,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
     try {
       final request = http.Request('POST', Uri.parse(_baseUrl));
-      request.headers.addAll(_buildHeaders());
+      request.headers.addAll(await _buildHeaders());
       request.body = jsonEncode(requestPayload);
 
       final streamedResponse =
@@ -1722,7 +1748,22 @@ Note: Could not extract text content from this file. Please describe what you'd 
             final event = jsonDecode(jsonStr);
             final eventType = event['type'] as String?;
 
-            if (eventType == 'response.output_text.delta') {
+            if (eventType == 'error') {
+              final error = event['error'];
+              final message = error is Map && error['message'] != null
+                  ? error['message'].toString()
+                  : 'Streaming response failed';
+              yield StreamEvent.error(message);
+              return;
+            } else if (eventType == 'response.failed') {
+              final response = event['response'];
+              final error = response is Map ? response['error'] : null;
+              final message = error is Map && error['message'] != null
+                  ? error['message'].toString()
+                  : 'Streaming response failed';
+              yield StreamEvent.error(message);
+              return;
+            } else if (eventType == 'response.output_text.delta') {
               // Text delta event
               final delta = event['delta'] as String?;
               if (delta != null && delta.isNotEmpty) {
@@ -1808,6 +1849,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
       // Emit final done event
       _log(
           '[OpenAIService-Stream] ✅ Stream complete - text: ${fullText.length} chars, images: ${images.length}, title: $title');
+      if (fullText.isEmpty && images.isEmpty && files.isEmpty) {
+        yield StreamEvent.error('The response completed without content.');
+        return;
+      }
       yield StreamEvent.done(
         fullText: fullText,
         title: title,
@@ -1830,7 +1875,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
     // Create a multipart request
     final request =
         http.MultipartRequest('POST', Uri.parse(_audioTranscriptionUrl));
-    request.headers.addAll(_buildHeaders(includeJsonContentType: false));
+    request.headers.addAll(await _buildHeaders(includeJsonContentType: false));
 
     // Add the audio file as a multipart field
     request.files.add(
@@ -1916,7 +1961,7 @@ Be concise and specific. Only include characteristics you're confident about.
     try {
       final response = await _httpPostWithTimeout(
         _baseUrl,
-        _buildHeaders(),
+        await _buildHeaders(),
         jsonEncode({
           'model': _chatMiniModel,
           'instructions': systemPrompt, // System prompt as separate field
@@ -2284,7 +2329,7 @@ Answer ONLY with "YES" or "NO" - nothing else.
     try {
       final response = await _httpPostWithTimeout(
         _baseUrl,
-        _buildHeaders(),
+        await _buildHeaders(),
         jsonEncode({
           'model': _chatMiniModel, // Use gpt-5-nano for intent detection
           'instructions':

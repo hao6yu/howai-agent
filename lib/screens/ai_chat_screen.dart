@@ -552,10 +552,10 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   Future<void> _loadMoreMessages() async {
     if (_isLoadingMore || !_hasMore) return;
-    final conversationId = Provider.of<ConversationProvider>(context,
-            listen: false)
-        .selectedConversation
-        ?.id;
+    final conversationId =
+        Provider.of<ConversationProvider>(context, listen: false)
+            .selectedConversation
+            ?.id;
     if (conversationId == null) return;
 
     setState(() {
@@ -791,6 +791,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     DateTime? lastAutoScrollAt;
     const autoScrollInterval = Duration(milliseconds: 250);
     bool shouldFollowStream = false;
+    bool streamAborted = false;
 
     // Helper to strip title JSON from text
     String _stripTitleJson(String text) {
@@ -825,6 +826,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       await for (final event in stream) {
         // Check if request was cancelled
         if (_requestCancelled || _currentRequestId != requestId) {
+          streamAborted = true;
           break;
         }
 
@@ -950,10 +952,31 @@ class _AiChatScreenState extends State<AiChatScreen>
         }
       }
 
+      if (streamAborted) {
+        final shouldClearSending =
+            _currentRequestId == requestId || _requestCancelled;
+        setState(() {
+          _messages.removeWhere((m) =>
+              !m.isUserMessage &&
+              m.id == null &&
+              (m.timestamp == timestamp ||
+                  m.conversationId == conversationId ||
+                  m.conversationId == null));
+          _streamingMessageIndex = null;
+          _streamingMessageAdded = false;
+          _activeStreamingMessageTimestamp = null;
+          if (shouldClearSending) {
+            _isSending = false;
+          }
+        });
+        return null;
+      }
+
       // Clean up the final text
       String cleanedText = _stripTitleJson(fullText);
 
-      // Ensure the latest streamed text is rendered before we remove the temporary message.
+      // Ensure the latest streamed text is rendered before the temporary
+      // message is replaced by the persisted row.
       final finalPlaceholderIndex = _messages.lastIndexWhere((m) =>
           !m.isUserMessage &&
           m.id == null &&
@@ -974,24 +997,9 @@ class _AiChatScreenState extends State<AiChatScreen>
         });
       }
 
-      // Remove the streaming message - it will be re-added by the normal flow with proper DB save
-      if (finalPlaceholderIndex != -1) {
-        setState(() {
-          _messages.removeAt(finalPlaceholderIndex);
-        });
-      }
-      // Fallback cleanup in case index tracking became stale during rebuilds.
-      setState(() {
-        _messages.removeWhere((m) =>
-            !m.isUserMessage &&
-            m.id == null &&
-            (m.conversationId == conversationId ||
-                m.timestamp == timestamp ||
-                m.conversationId == null));
-        _streamingMessageIndex = null;
-        _streamingMessageAdded = false;
-        _activeStreamingMessageTimestamp = null;
-      });
+      // Keep the temporary streamed row visible while the final message is
+      // saved. The persisted row replaces it later in a single setState, which
+      // avoids a visible remove-then-readd blink at the end of streaming.
 
       // Return response in the same format as non-streaming
       return {
@@ -1605,6 +1613,15 @@ class _AiChatScreenState extends State<AiChatScreen>
             //// print('[ChatScreen] Existing message with same content and files already exists');
             // Just update state from database, but don't add a new message
             setState(() {
+              if (streamTimestamp != null && streamTimestamp.isNotEmpty) {
+                _messages.removeWhere((existing) =>
+                    !existing.isUserMessage &&
+                    existing.id == null &&
+                    existing.timestamp == streamTimestamp);
+              }
+              _streamingMessageIndex = null;
+              _streamingMessageAdded = false;
+              _activeStreamingMessageTimestamp = null;
               _isSending = false;
               _isCreatingNewConversation = false;
               _currentRequestId = null;
@@ -1752,6 +1769,9 @@ class _AiChatScreenState extends State<AiChatScreen>
             // Add all messages to state with their database IDs
             _messages.addAll(completedMessages);
             _pruneStreamingGhostAssistantRows(conversationId: conversationId);
+            _streamingMessageIndex = null;
+            _streamingMessageAdded = false;
+            _activeStreamingMessageTimestamp = null;
 
             // Debug: Log _messages state after adding
             //// print('[ChatScreen] _messages state now has ${_messages.length} total messages');
@@ -2622,6 +2642,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                     messageKey: messageKey,
                                                     forcePlainText:
                                                         isStreamingRow,
+                                                    isStreaming: isStreamingRow,
                                                     selectionMode:
                                                         _selectionMode,
                                                     selectedMessages:

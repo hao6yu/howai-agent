@@ -254,7 +254,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildAccountRow() {
     return Consumer<AuthProvider>(
       builder: (context, auth, _) {
-        if (auth.isAuthenticated) {
+        if (auth.hasSyncAccount) {
           return _buildNavItem(
             icon: Icons.account_circle,
             title: auth.user?.email ?? AppLocalizations.of(context)!.account,
@@ -789,14 +789,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showClearChatDialog() {
-    final isAuthenticated =
-        Provider.of<AuthProvider>(context, listen: false).isAuthenticated;
+    final hasSyncAccount =
+        Provider.of<AuthProvider>(context, listen: false).hasSyncAccount;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context)!.clearChatHistoryTitle),
         content: Text(
-          isAuthenticated
+          hasSyncAccount
               ? 'This will permanently delete all your conversations from both this device and the cloud.'
               : AppLocalizations.of(context)!.clearChatHistoryWarning,
         ),
@@ -967,7 +967,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final currentProfileId = profileProvider.selectedProfileId;
 
       if (currentProfileId != null) {
-        if (authProvider.isAuthenticated) {
+        if (authProvider.hasSyncAccount) {
           final supabase = SupabaseService();
           final userId = supabase.currentUser?.id;
           if (userId != null) {

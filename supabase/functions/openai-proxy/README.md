@@ -10,7 +10,7 @@ Supabase Auth user session before forwarding requests.
 ## Required secret
 
 `OPENAI_API_KEY` must remain in Supabase project secrets. Reuse the existing
-managed secret; never copy it into Flutter, Next.js public environment values,
+managed secret; never copy it into Flutter or any other client-side environment,
 the repository, logs, or local documentation.
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are

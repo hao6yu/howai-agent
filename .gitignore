@@ -80,12 +80,5 @@ firebase-debug.log
 # Generated localization missing files (temporary)
 lib/l10n/missing/
 
-# Web build
-/haogpt-web/node_modules/
-/haogpt-web/.next/
-/haogpt-web/.env
-/haogpt-web/dist/
-/haogpt-web/*.tsbuildinfo
-
 # Android local properties (contains API keys)
 android/local.properties

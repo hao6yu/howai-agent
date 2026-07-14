@@ -53,9 +53,9 @@ lib/
 ├── services/       # Business logic and APIs
 ├── utils/          # Helper functions
 └── widgets/        # Reusable UI components
-
-haogpt-web/         # Web deployment (Docker)
 ```
+
+The web client is maintained in a separate repository.
 
 ## Getting Started
 
@@ -153,9 +153,6 @@ flutter build ios --release --dart-define-from-file=.env
 
 # Android
 flutter build apk --release --dart-define-from-file=.env
-
-# Web (see haogpt-web/README.md)
-cd haogpt-web && docker build -t haogpt-web .
 ```
 
 ## Screens

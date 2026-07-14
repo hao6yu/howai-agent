@@ -5,6 +5,9 @@ Date: 2026-07-14
 Current app version: `1.3.16+39`
 Proposed release version: `2.0.0`
 
+Repository scope: Flutter clients and the shared Supabase backend. The web
+client is maintained and released from its own repository.
+
 Implementation status (2026-07-14): M0 source work is complete on
 `codex/howai-2-foundation` and verified against a full local Supabase rebuild.
 No user-visible feature or GPT-5.6 route is enabled, and no application schema
@@ -23,11 +26,8 @@ M0 delivered:
   anonymous guardrails; all flags remain off.
 - Added terminal Responses SSE usage parsing so streaming requests can record
   tokens and estimated cost.
-- Added Flutter, Edge policy/stream, RLS/trigger, migration, web lint/type/build,
-  and dependency-audit verification.
-- Upgraded the supported web baseline to Node 24, Next.js 15.5.20, React 19.2,
-  OpenAI SDK 6.47, Supabase JS 2.110, and jsPDF 4.2.1; production dependency
-  audit now reports zero known vulnerabilities.
+- Added Flutter, Edge policy/stream, RLS/trigger, migration, and CI
+  verification.
 
 ## 1. Executive decision
 
@@ -109,7 +109,6 @@ Itinerary building can follow in a 2.x release using the existing Places/Maps fo
 - Model choice is currently made partly from client-provided premium state. The proxy authenticates and rate-limits the user but does not verify subscription entitlement before resolving either chat alias, so a modified client can request the higher-cost route.
 - The current streaming proxy writes its request log before the stream completes and therefore misses token usage. In the linked project's last 30 days, usage was captured for only 31 of 255 proxy requests; cost telemetry must be repaired before a GPT-5.6 canary.
 - Free image analysis currently forces the main model, and free streaming requests can include web search by default. Both behaviors need server-enforced quotas because model, tool, and multimodal costs are separate.
-- The Next.js web chat still contains hard-coded `gpt-5` routes and older Chat Completions usage, so model behavior is not currently aligned across platforms.
 - Voice calling is currently implemented through ElevenLabs in a dedicated 1,165-line screen and service.
 - `OPENAI_REALTIME_MODEL` still references an old preview value and is not the production voice path.
 - Firebase/FlutterFire is not configured. Android already declares the Android 13 notification permission, but the Firebase packages and platform configuration files do not exist.
@@ -230,7 +229,6 @@ This workstream applies to primary text chat and text-agent orchestration. OpenA
 - Evaluate `gpt-5.6-luna` as a metered free-tier experience. Do not replace `gpt-5-nano` globally: Luna is 20 times its input price and 15 times its output price.
 - Reserve `gpt-5.6-terra` for evaluated fallback or a future mid-tier use case; free clients cannot request Terra or Sol directly.
 - Treat background Research and Realtime voice as separate model roles.
-- If the Next.js web client remains a supported product surface, migrate its active chat routes to the Responses API and the same server-controlled model role. Do not leave hard-coded `gpt-5` routes in production.
 
 ### 0.2 Entitlement routing and cost controls
 

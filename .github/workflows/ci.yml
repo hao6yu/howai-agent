@@ -24,23 +24,6 @@ jobs:
       - run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - run: flutter test
 
-  web:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: haogpt-web
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: npm
-          cache-dependency-path: haogpt-web/package-lock.json
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run build
-
   edge-functions:
     runs-on: ubuntu-latest
     steps:

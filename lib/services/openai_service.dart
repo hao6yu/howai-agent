@@ -29,6 +29,7 @@ class StreamEvent {
   final String? title; // For done events (new conversations)
   final List<String>? images; // For done events
   final List<String>? files; // For done events
+  final Map<String, dynamic>? actionToolCall; // Server-approved action proposal
   final String? error; // For error events
 
   StreamEvent({
@@ -38,6 +39,7 @@ class StreamEvent {
     this.title,
     this.images,
     this.files,
+    this.actionToolCall,
     this.error,
   });
 
@@ -61,6 +63,7 @@ class StreamEvent {
     String? title,
     List<String>? images,
     List<String>? files,
+    Map<String, dynamic>? actionToolCall,
   }) =>
       StreamEvent(
         type: StreamEventType.done,
@@ -68,6 +71,7 @@ class StreamEvent {
         title: title,
         images: images,
         files: files,
+        actionToolCall: actionToolCall,
       );
 }
 
@@ -121,6 +125,90 @@ class OpenAIService {
     if (kDebugMode) {
       debugPrint(message.toString());
     }
+  }
+
+  static Map<String, dynamic> _reminderCreateTool() => {
+        'type': 'function',
+        'name': 'reminders_create',
+        'description':
+            'Draft a one-time or recurring reminder only when the user clearly asks to be reminded. Never claim it is saved; the app will require explicit user approval. Ask a concise clarification instead of calling when the time or intent is ambiguous.',
+        'strict': true,
+        'parameters': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'title': {
+              'type': 'string',
+              'description': 'Short, actionable reminder title.'
+            },
+            'notes': {
+              'type': ['string', 'null'],
+              'description': 'Optional supporting detail, or null.'
+            },
+            'timezone': {
+              'type': 'string',
+              'description': 'IANA timezone provided in the instructions.'
+            },
+            'start_local': {
+              'type': 'string',
+              'description':
+                  'First local wall-clock occurrence as YYYY-MM-DDTHH:mm:ss without a timezone suffix.'
+            },
+            'recurrence': {
+              'type': ['object', 'null'],
+              'description': 'Structured recurrence, or null for one time.',
+              'additionalProperties': false,
+              'properties': {
+                'frequency': {
+                  'type': 'string',
+                  'enum': ['daily', 'weekly', 'monthly'],
+                },
+                'interval': {
+                  'type': 'integer',
+                  'minimum': 1,
+                  'maximum': 365,
+                },
+                'weekdays': {
+                  'type': 'array',
+                  'items': {'type': 'integer', 'minimum': 1, 'maximum': 7},
+                  'description': 'ISO weekdays 1=Monday through 7=Sunday.',
+                },
+                'day_of_month': {
+                  'type': ['integer', 'null'],
+                  'minimum': 1,
+                  'maximum': 31,
+                },
+                'ends_at': {
+                  'type': ['string', 'null'],
+                  'description': 'Optional inclusive ISO-8601 end instant.',
+                },
+              },
+              'required': [
+                'frequency',
+                'interval',
+                'weekdays',
+                'day_of_month',
+                'ends_at',
+              ],
+            },
+          },
+          'required': [
+            'title',
+            'notes',
+            'timezone',
+            'start_local',
+            'recurrence',
+          ],
+        },
+      };
+
+  static String _reminderInstructions(String timezone) {
+    final now = DateTime.now();
+    return '\n\nREMINDER ACTIONS: The user timezone is $timezone and the current '
+        'local date/time is ${now.toIso8601String().split('.').first}. When the '
+        'user clearly requests a reminder, call reminders_create with timezone '
+        '$timezone. A tool call only drafts a proposal; tell the user to review '
+        'it and never say the reminder was created or scheduled yet.';
   }
 
   // System prompt cache for improved performance
@@ -295,6 +383,8 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
     bool isDeepResearch =
         false, // Deep research mode uses reasoning.effort: high
     String? reasoningEffortOverride,
+    bool allowReminderActions = false,
+    String? reminderTimezone,
     SubscriptionService? subscriptionService, // Add subscription service
     dynamic aiPersonality, // Add AI personality parameter
   }) async {
@@ -359,6 +449,10 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
       userWantsPresentations: userWantsPresentations,
       isSimpleQuery: responseProfile.profile == _HowAiResponseProfile.quick,
     );
+
+    if (allowReminderActions && reminderTimezone != null) {
+      systemPrompt += _reminderInstructions(reminderTimezone);
+    }
 
     // Add special instructions for deep research mode (gpt-5.2 with high reasoning effort)
     if (isDeepResearchMode) {
@@ -592,6 +686,9 @@ Note: Could not extract text content from this file. Please describe what you'd 
             }
           });
         }
+        if (allowReminderActions && reminderTimezone != null) {
+          tools.add(_reminderCreateTool());
+        }
       } // Close the tools block
 
       // Configure request parameters for gpt-5.2 Responses API
@@ -677,6 +774,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
         List<String> imageUrls = [];
         List<String> filePaths = [];
         List<dynamic>? toolCalls;
+        Map<String, dynamic>? actionToolCall;
         // Debug: Print raw response structure
         _log('[OpenAIService] 📥 Raw response keys: ${data.keys.toList()}');
         _log('[OpenAIService] 📥 Response status: ${data['status']}');
@@ -965,6 +1063,24 @@ Note: Could not extract text content from this file. Please describe what you'd 
 
             _log(
                 '[OpenAIService] 🔧 Processing tool call: $functionName, id: $toolCallId');
+
+            if (functionName == 'reminders_create' && functionArgs != null) {
+              try {
+                final decoded = functionArgs is String
+                    ? jsonDecode(functionArgs)
+                    : functionArgs;
+                if (decoded is Map) {
+                  actionToolCall = {
+                    'name': functionName,
+                    'call_id': toolCallId,
+                    'arguments': Map<String, dynamic>.from(decoded),
+                  };
+                }
+              } catch (_) {
+                _log('[OpenAIService] Invalid reminders_create arguments');
+              }
+              continue;
+            }
 
             // Handle PPTX generation (custom function - the only one we handle manually now)
             if (functionName == 'generate_pptx' && functionArgs != null) {
@@ -1570,6 +1686,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
           'images': imageUrls,
           'files': filePaths,
           'title': conversationTitle,
+          'actionToolCall': actionToolCall,
         };
       } else {
         //// _log('Error - Status code: ${response.statusCode}');
@@ -1599,6 +1716,8 @@ Note: Could not extract text content from this file. Please describe what you'd 
     bool allowImageGeneration = true,
     bool isDeepResearch = false,
     String? reasoningEffortOverride,
+    bool allowReminderActions = false,
+    String? reminderTimezone,
     SubscriptionService? subscriptionService,
     dynamic aiPersonality,
   }) async* {
@@ -1654,6 +1773,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
       userWantsPresentations: userWantsPresentations,
       isSimpleQuery: responseProfile.profile == _HowAiResponseProfile.quick,
     );
+
+    if (allowReminderActions && reminderTimezone != null) {
+      systemPrompt += _reminderInstructions(reminderTimezone);
+    }
 
     if (isDeepResearchMode) {
       systemPrompt +=
@@ -1738,6 +1861,9 @@ Note: Could not extract text content from this file. Please describe what you'd 
         'search_context_size': 'low',
       });
     }
+    if (!forceWebSearch && allowReminderActions && reminderTimezone != null) {
+      tools.add(_reminderCreateTool());
+    }
 
     // Build request payload with stream: true
     final requestIntent = isDeepResearchMode ? 'research' : 'primary_chat';
@@ -1783,6 +1909,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
       String? title;
       List<String> images = [];
       List<String> files = [];
+      Map<String, dynamic>? actionToolCall;
       bool sawFirstDelta = false;
       // Process SSE stream. Keep a buffer because chunks may split lines/JSON.
       String sseBuffer = '';
@@ -1877,6 +2004,24 @@ Note: Could not extract text content from this file. Please describe what you'd 
                       images.add('data:image/png;base64,$base64Data');
                       _log('[OpenAIService-Stream] 🖼️ Added image to list');
                     }
+                  } else if (item['type'] == 'function_call' &&
+                      item['name'] == 'reminders_create') {
+                    try {
+                      final decoded = item['arguments'] is String
+                          ? jsonDecode(item['arguments'])
+                          : item['arguments'];
+                      if (decoded is Map) {
+                        actionToolCall = {
+                          'name': 'reminders_create',
+                          'call_id': item['call_id'] ?? item['id'],
+                          'arguments': Map<String, dynamic>.from(decoded),
+                        };
+                      }
+                    } catch (_) {
+                      _log(
+                        '[OpenAIService-Stream] Invalid reminders_create arguments',
+                      );
+                    }
                   }
                 }
               }
@@ -1910,7 +2055,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
       // Emit final done event
       _log(
           '[OpenAIService-Stream] ✅ Stream complete - text: ${fullText.length} chars, images: ${images.length}, title: $title');
-      if (fullText.isEmpty && images.isEmpty && files.isEmpty) {
+      if (fullText.isEmpty &&
+          images.isEmpty &&
+          files.isEmpty &&
+          actionToolCall == null) {
         yield StreamEvent.error('The response completed without content.');
         return;
       }
@@ -1919,6 +2067,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
         title: title,
         images: images.isNotEmpty ? images : null,
         files: files.isNotEmpty ? files : null,
+        actionToolCall: actionToolCall,
       );
     } catch (e) {
       yield StreamEvent.error('Stream error: $e');

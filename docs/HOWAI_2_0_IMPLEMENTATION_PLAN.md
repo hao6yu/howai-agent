@@ -11,10 +11,11 @@ client is maintained and released from its own repository.
 Implementation status (2026-07-14): M0 and the M1 GPT-5.6
 evaluation/canary foundation are deployed. Production migration history, RLS,
 privileges, advisors, and the current Edge Functions have been verified. The
-private internal canary is enabled for one administrative test account and a
+private internal canary is enabled for internal test accounts and a
 signed iPhone build has verified that its primary chat route resolves to
 `gpt-5.6-sol`; the general user rollout remains disabled. M2 UX beta work is in
-progress on `codex/howai-2-ux-beta`.
+progress on `codex/howai-2-ux-beta`. M3 Actions beta implementation is now in
+progress behind the existing `reminders` kill switch.
 
 M0 delivered:
 
@@ -109,6 +110,22 @@ Free web search server slice — internal testing active:
   v26 are deployed. The environment gate and `internal` database mode now
   expose the feature to one dedicated Free QA account; general users remain
   excluded.
+
+M3 Actions beta implementation in progress:
+
+- Added service-owned `reminders` and `agent_action_runs` tables with owner-only
+  reads, no client mutation grants, explicit audit state, per-user idempotency,
+  and optimistic reminder versions.
+- Added a JWT-protected `reminder-actions` endpoint. Model output can only create
+  a proposal; an explicit user approval invokes the service-only atomic RPC.
+- Added DST-safe one-time, daily, selected-weekday/weekly, and monthly-date
+  recurrence using IANA timezones plus local wall-clock intent. Ordinal monthly,
+  yearly, and occurrence-count rules remain later recurrence extensions.
+- Added the internal-beta strict `reminders_create` model tool for paid and free
+  signed-in testers, an inline chat approval card, and an Actions workspace for
+  review/edit/snooze/pause/resume/skip/complete/delete.
+- Push delivery is intentionally excluded from M3 and begins in M4. Until M4,
+  saved reminders are durable and manageable but do not notify the device.
 
 ## 1. Executive decision
 

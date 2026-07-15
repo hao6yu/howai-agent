@@ -196,7 +196,10 @@ const ALLOWED_TOOL_TYPES = new Set([
   "image_generation",
   "function",
 ]);
-const ALLOWED_FUNCTION_NAMES = new Set(["generate_pptx"]);
+const ALLOWED_FUNCTION_NAMES = new Set([
+  "generate_pptx",
+  "reminders_create",
+]);
 
 type ProxyPath = "/v1/responses" | "/v1/audio/transcriptions";
 
@@ -661,7 +664,17 @@ async function sanitizeResponsesBody(
         delete json.tool_choice;
       }
     } else {
-      delete json.tools;
+      const safeTools = sanitizeTools(json.tools);
+      const safeFunctionTools = Array.isArray(safeTools)
+        ? safeTools.filter((tool) =>
+          (tool as Record<string, unknown>).type === "function"
+        )
+        : [];
+      if (safeFunctionTools.length > 0) {
+        json.tools = safeFunctionTools;
+      } else {
+        delete json.tools;
+      }
       delete json.tool_choice;
       delete json.max_tool_calls;
       if (json.metadata && typeof json.metadata === "object") {
@@ -675,7 +688,10 @@ async function sanitizeResponsesBody(
           intent,
         })
       ) {
-        json.tools = [{ type: "web_search" }];
+        json.tools = [
+          ...(Array.isArray(json.tools) ? json.tools : []),
+          { type: "web_search" },
+        ];
       }
     }
     policyContext = {

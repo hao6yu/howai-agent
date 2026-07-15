@@ -74,4 +74,19 @@ void main() {
     expect(result.isSuccess, isFalse);
     expect(result.toJson()['retryable'], isTrue);
   });
+
+  test('action results parse the server execution contract', () {
+    final result = ActionResult.fromJson({
+      'status': 'succeeded',
+      'display_message': 'Reminder created.',
+      'retryable': false,
+      'audit_id': 'audit-1',
+      'resource_type': 'reminder',
+      'resource_id': 'reminder-1',
+    });
+
+    expect(result.isSuccess, isTrue);
+    expect(result.resourceType, 'reminder');
+    expect(result.resourceId, 'reminder-1');
+  });
 }

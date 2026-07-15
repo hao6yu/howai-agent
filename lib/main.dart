@@ -11,6 +11,7 @@ import 'providers/settings_provider.dart';
 import 'providers/conversation_provider.dart';
 import 'providers/ai_personality_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/reminder_provider.dart';
 import 'screens/ai_chat_screen.dart';
 import 'services/elevenlabs_service.dart';
 import 'services/openai_service.dart';
@@ -22,6 +23,7 @@ import 'screens/settings_screen.dart';
 import 'screens/instructions_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/knowledge_hub_screen.dart';
+import 'features/actions/presentation/actions_workspace_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -81,6 +83,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SubscriptionService()),
         ChangeNotifierProvider(create: (_) => ConversationProvider()),
         ChangeNotifierProvider(create: (_) => AIPersonalityProvider()),
+        ChangeNotifierProvider(create: (_) => ReminderProvider()),
       ],
       child: const HowAIMainApp(),
     ),
@@ -268,6 +271,9 @@ class HowAIMainApp extends StatelessWidget {
             '/settings': (context) =>
                 SettingsScreen(onBack: () => Navigator.pop(context)),
             '/knowledge-hub': (context) => const KnowledgeHubScreen(),
+            '/actions': (context) => ActionsWorkspaceScreen(
+                  onCreateInChat: () => Navigator.of(context).pop(),
+                ),
           },
         );
       },

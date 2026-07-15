@@ -228,6 +228,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                 ),
 
                 // Settings section at bottom
+                _buildActionsSection(),
                 _buildKnowledgeHubSection(),
                 _buildSettingsSection(),
               ],
@@ -755,6 +756,31 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildActionsSection() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : const Color(0xFFF2F6FC),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ListTile(
+        leading: const Icon(
+          Icons.checklist_rounded,
+          color: Color(0xFF0078D4),
+        ),
+        title: const Text('Actions'),
+        subtitle: const Text('Reminders and recurring tasks'),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.pushNamed(context, '/actions');
+        },
+      ),
     );
   }
 }

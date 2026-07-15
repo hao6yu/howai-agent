@@ -380,6 +380,9 @@ deno_version = 2
 [functions.verify-apple-entitlement]
 verify_jwt = true
 
+[functions.reminder-actions]
+verify_jwt = true
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

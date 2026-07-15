@@ -37,6 +37,7 @@ import '../constants/chat_ui_constants.dart';
 import '../models/chat_message.dart';
 import '../models/knowledge_item.dart';
 import '../models/thinking_level.dart';
+import '../core/agent/agent_action_contracts.dart';
 import '../services/database_service.dart';
 import '../services/openai_service.dart';
 import '../services/elevenlabs_service.dart';
@@ -45,6 +46,7 @@ import '../services/audio_recorder_service.dart';
 import '../providers/profile_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/reminder_provider.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import '../widgets/conversation_drawer.dart';
 import '../providers/conversation_provider.dart';
@@ -55,6 +57,7 @@ import '../services/file_service.dart';
 import '../services/location_service.dart';
 import '../services/sync_service.dart';
 import '../services/id_mapping_service.dart';
+import '../services/device_timezone_service.dart';
 import '../widgets/place_result_widget.dart';
 import '../services/chat_integration_helper.dart';
 import '../services/profile_translation_service.dart';
@@ -68,6 +71,7 @@ import '../utils/chat_snackbar_service.dart';
 import '../widgets/language_selection_popup.dart';
 import '../widgets/full_language_selection_dialog.dart';
 import '../widgets/location_search_dialog.dart';
+import '../features/actions/presentation/action_approval_card.dart';
 
 class AiChatScreen extends StatefulWidget {
   final VoidCallback? onNavigateToGuide;
@@ -196,6 +200,9 @@ class _AiChatScreenState extends State<AiChatScreen>
   // Paid GPT-5.6 reasoning control. Auto preserves the server-selected profile.
   ThinkingLevel _thinkingLevel = ThinkingLevel.auto;
 
+  ActionProposal? _pendingActionProposal;
+  bool _pendingActionBusy = false;
+
   // Showcase GlobalKeys for feature highlighting
   final GlobalKey _drawerButtonKey = GlobalKey();
   final GlobalKey _quickActionsKey = GlobalKey();
@@ -237,6 +244,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     _loadMessages();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _addWelcomeMessageIfNeeded();
+      context.read<ReminderProvider>().ensureCapability();
     });
 
     // Listen for conversation selection changes
@@ -678,6 +686,8 @@ class _AiChatScreenState extends State<AiChatScreen>
     required String requestId,
     required String aiName,
     String? reasoningEffortOverride,
+    bool allowReminderActions = false,
+    String? reminderTimezone,
   }) async {
     final timestamp = DateTime.now().toIso8601String();
 
@@ -695,6 +705,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     String? title;
     List<String>? images;
     List<String>? files;
+    Map<String, dynamic>? actionToolCall;
     String lastRenderedText = '';
     DateTime? lastUiUpdateAt;
     DateTime? lastAutoScrollAt;
@@ -732,6 +743,8 @@ class _AiChatScreenState extends State<AiChatScreen>
         subscriptionService: subscriptionService,
         aiPersonality: aiPersonality,
         reasoningEffortOverride: reasoningEffortOverride,
+        allowReminderActions: allowReminderActions,
+        reminderTimezone: reminderTimezone,
       );
 
       await for (final event in stream) {
@@ -840,6 +853,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             title = event.title ?? title ?? _extractTitle(fullText);
             images = event.images;
             files = event.files;
+            actionToolCall = event.actionToolCall;
             break;
 
           case StreamEventType.error:
@@ -919,6 +933,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         'images': images,
         'files': files,
         'streamTimestamp': timestamp,
+        'actionToolCall': actionToolCall,
       };
     } catch (e) {
       print('[ChatScreen] Streaming exception: $e');
@@ -1038,6 +1053,8 @@ class _AiChatScreenState extends State<AiChatScreen>
         null) {
       setState(() {
         _messages = [];
+        _pendingActionProposal = null;
+        _pendingActionBusy = false;
       });
     }
 
@@ -1279,6 +1296,13 @@ class _AiChatScreenState extends State<AiChatScreen>
       final reasoningEffortOverride =
           subscriptionService.isPremium ? _thinkingLevel.reasoningEffort : null;
 
+      final reminderProvider =
+          Provider.of<ReminderProvider>(context, listen: false);
+      final allowReminderActions = await reminderProvider.ensureCapability();
+      final reminderTimezone = allowReminderActions
+          ? await DeviceTimezoneService.currentIdentifier()
+          : null;
+
       // Check if streaming is enabled
       // Image-generation style requests stay non-streaming because the
       // streaming path does not receive the generated image result reliably.
@@ -1316,6 +1340,8 @@ class _AiChatScreenState extends State<AiChatScreen>
           requestId: requestId,
           aiName: aiName,
           reasoningEffortOverride: reasoningEffortOverride,
+          allowReminderActions: allowReminderActions,
+          reminderTimezone: reminderTimezone,
         );
       } else {
         print('[ChatScreen] Using NON-STREAMING response path');
@@ -1335,6 +1361,8 @@ class _AiChatScreenState extends State<AiChatScreen>
           subscriptionService: subscriptionService,
           fileAttachments: files,
           aiPersonality: aiPersonality,
+          allowReminderActions: allowReminderActions,
+          reminderTimezone: reminderTimezone,
         );
       }
 
@@ -1389,6 +1417,10 @@ class _AiChatScreenState extends State<AiChatScreen>
         List<String>? generatedImages = response['images'] as List<String>?;
         List<String>? generatedFiles = response['files'] as List<String>?;
         final String? streamTimestamp = response['streamTimestamp'] as String?;
+        final rawActionToolCall = response['actionToolCall'];
+        final actionToolCall = rawActionToolCall is Map
+            ? Map<String, dynamic>.from(rawActionToolCall)
+            : null;
 
         // Strip any title JSON that may have leaked into the response text (anywhere in text)
         aiText = aiText
@@ -1459,6 +1491,38 @@ class _AiChatScreenState extends State<AiChatScreen>
           }
         } else {
           conversationId = conversationProvider.selectedConversation!.id;
+        }
+
+        if (actionToolCall != null) {
+          try {
+            final conversationUuid = conversationId == null
+                ? null
+                : IDMappingService().getConversationUUID(conversationId);
+            final proposal = await reminderProvider.proposeToolCall(
+              actionToolCall,
+              origin: _isVoiceInputMode
+                  ? AgentActionOrigin.voice
+                  : AgentActionOrigin.text,
+              conversationId: conversationUuid,
+            );
+            if (mounted) {
+              setState(() => _pendingActionProposal = proposal);
+            }
+            if (aiText.trim().isEmpty) {
+              aiText =
+                  'I drafted this reminder. Review it below before I save it.';
+            }
+          } catch (error) {
+            if (aiText.trim().isEmpty) {
+              aiText =
+                  'I could not prepare that reminder. Please check the time and try again.';
+            }
+            if (mounted) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _showErrorSnackBar(error.toString());
+              });
+            }
+          }
         }
 
         // Post-process: download and replace image URLs with local file paths
@@ -2259,6 +2323,35 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
   }
 
+  Future<void> _decidePendingAction(AgentActionDecision decision) async {
+    final proposal = _pendingActionProposal;
+    if (proposal == null || _pendingActionBusy) return;
+    setState(() => _pendingActionBusy = true);
+    try {
+      final result = await context.read<ReminderProvider>().decide(
+            proposal,
+            decision,
+            channel: _isVoiceInputMode
+                ? AgentActionOrigin.voice
+                : AgentActionOrigin.text,
+          );
+      if (!mounted) return;
+      setState(() {
+        _pendingActionProposal = null;
+        _pendingActionBusy = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(result?.displayMessage ?? 'Reminder dismissed.'),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _pendingActionBusy = false);
+      _showErrorSnackBar(error.toString());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ShowCaseWidget(
@@ -2742,6 +2835,21 @@ class _AiChatScreenState extends State<AiChatScreen>
                           ),
 
                         // Horizontal action cards removed - features accessible via + button menu
+
+                        if (_pendingActionProposal != null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: ActionApprovalCard(
+                              proposal: _pendingActionProposal!,
+                              isBusy: _pendingActionBusy,
+                              onApprove: () => _decidePendingAction(
+                                AgentActionDecision.approved,
+                              ),
+                              onReject: () => _decidePendingAction(
+                                AgentActionDecision.rejected,
+                              ),
+                            ),
+                          ),
 
                         // Chat input area (with attachments)
                         ChatInputWidget(
@@ -4787,6 +4895,8 @@ class _AiChatScreenState extends State<AiChatScreen>
       // Clear messages before loading new ones to prevent mixing
       setState(() {
         _messages = [];
+        _pendingActionProposal = null;
+        _pendingActionBusy = false;
       });
 
       // Always force a reload when the conversation changes

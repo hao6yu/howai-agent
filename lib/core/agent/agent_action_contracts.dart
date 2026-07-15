@@ -121,6 +121,31 @@ class ActionResult {
   final String? resourceType;
   final String? resourceId;
 
+  factory ActionResult.fromJson(Map<String, dynamic> json) {
+    _rejectUnknownKeys(json, const {
+      'status',
+      'display_message',
+      'retryable',
+      'audit_id',
+      'resource_type',
+      'resource_id',
+    });
+    final retryable = json['retryable'];
+    if (retryable is! bool) {
+      throw const FormatException('retryable must be a boolean');
+    }
+    return ActionResult(
+      status: AgentActionStatus.values.byName(
+        _requiredString(json, 'status'),
+      ),
+      displayMessage: _requiredString(json, 'display_message'),
+      retryable: retryable,
+      auditId: _requiredString(json, 'audit_id'),
+      resourceType: _optionalString(json, 'resource_type'),
+      resourceId: _optionalString(json, 'resource_id'),
+    );
+  }
+
   bool get isSuccess => status == AgentActionStatus.succeeded;
 
   Map<String, dynamic> toJson() => {
@@ -137,6 +162,15 @@ String _requiredString(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value is! String || value.trim().isEmpty) {
     throw FormatException('$key must be a non-empty string');
+  }
+  return value;
+}
+
+String? _optionalString(Map<String, dynamic> json, String key) {
+  final value = json[key];
+  if (value == null) return null;
+  if (value is! String || value.trim().isEmpty) {
+    throw FormatException('$key must be a non-empty string when present');
   }
   return value;
 }

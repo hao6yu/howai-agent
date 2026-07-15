@@ -1,3 +1,5 @@
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,6 +14,7 @@ import 'providers/conversation_provider.dart';
 import 'providers/ai_personality_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/reminder_provider.dart';
+import 'providers/push_notification_provider.dart';
 import 'screens/ai_chat_screen.dart';
 import 'services/elevenlabs_service.dart';
 import 'services/openai_service.dart';
@@ -24,6 +27,10 @@ import 'screens/instructions_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/knowledge_hub_screen.dart';
 import 'features/actions/presentation/actions_workspace_screen.dart';
+import 'firebase_options.dart';
+import 'services/push_notification_service.dart';
+
+final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +45,18 @@ void main() async {
       authFlowType: AuthFlowType.pkce,
     ),
   );
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await PushNotificationService.instance.initialize(
+      navigatorKey: rootNavigatorKey,
+    );
+  } catch (error) {
+    debugPrint('Push notification initialization is unavailable: $error');
+  }
 
   // Check database integrity and repair if needed
   try {
@@ -84,10 +103,14 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ConversationProvider()),
         ChangeNotifierProvider(create: (_) => AIPersonalityProvider()),
         ChangeNotifierProvider(create: (_) => ReminderProvider()),
+        ChangeNotifierProvider(create: (_) => PushNotificationProvider()),
       ],
       child: const HowAIMainApp(),
     ),
   );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    PushNotificationService.instance.flushPendingNavigation();
+  });
 }
 
 class HowAIMainApp extends StatelessWidget {
@@ -107,6 +130,7 @@ class HowAIMainApp extends StatelessWidget {
           }
         }
         return MaterialApp(
+          navigatorKey: rootNavigatorKey,
           title: 'HowAI',
           debugShowCheckedModeBanner: false,
           themeMode: settings.themeMode,

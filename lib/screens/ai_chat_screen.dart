@@ -47,6 +47,7 @@ import '../providers/profile_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/reminder_provider.dart';
+import '../providers/push_notification_provider.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import '../widgets/conversation_drawer.dart';
 import '../providers/conversation_provider.dart';
@@ -2336,6 +2337,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                 : AgentActionOrigin.text,
           );
       if (!mounted) return;
+      if (decision == AgentActionDecision.approved &&
+          proposal.actionType == 'reminders_create' &&
+          result?.isSuccess == true) {
+        await context.read<PushNotificationProvider>().enable();
+        if (!mounted) return;
+      }
       setState(() {
         _pendingActionProposal = null;
         _pendingActionBusy = false;

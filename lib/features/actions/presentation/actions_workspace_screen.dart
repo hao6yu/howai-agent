@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/agent/agent_action_contracts.dart';
 import '../../../models/reminder.dart';
 import '../../../providers/reminder_provider.dart';
+import '../../../providers/push_notification_provider.dart';
 import 'action_approval_card.dart';
 
 enum _ReminderMenuAction {
@@ -35,6 +37,7 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ReminderProvider>().ensureInitialized();
+      context.read<PushNotificationProvider>().ensureInitialized();
     });
   }
 
@@ -51,8 +54,8 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
           ),
         ],
       ),
-      body: Consumer<ReminderProvider>(
-        builder: (context, provider, _) {
+      body: Consumer2<ReminderProvider, PushNotificationProvider>(
+        builder: (context, provider, pushProvider, _) {
           if (provider.isLoading && provider.reminders.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -75,6 +78,11 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
               children: [
+                if (pushProvider.isAvailable && !pushProvider.canDeliver)
+                  _PushNotificationBanner(
+                    provider: pushProvider,
+                    onOpenSettings: openAppSettings,
+                  ),
                 if (provider.errorMessage != null)
                   _ErrorBanner(message: provider.errorMessage!),
                 if (provider.pendingProposals.isNotEmpty) ...[
@@ -193,6 +201,18 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
                   if (reminder.notes?.trim().isNotEmpty ?? false) ...[
                     const SizedBox(height: 8),
                     Text(reminder.notes!),
+                  ],
+                  if (reminder.lastDeliveryNeedsAttention) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      reminder.lastDeliveryStatus == 'no_devices'
+                          ? 'Notification was not delivered because no device was registered.'
+                          : 'The last notification could not be delivered.',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.error,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -415,6 +435,12 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
     try {
       final result = await provider.decide(proposal, decision);
       if (!mounted) return;
+      if (decision == AgentActionDecision.approved &&
+          proposal.actionType == 'reminders_create' &&
+          result?.isSuccess == true) {
+        await context.read<PushNotificationProvider>().enable();
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -462,6 +488,12 @@ class _ActionApprovalDialogState extends State<_ActionApprovalDialog> {
     setState(() => _busy = true);
     try {
       final result = await widget.onDecision(decision);
+      if (decision == AgentActionDecision.approved &&
+          widget.proposal.actionType == 'reminders_create' &&
+          result?.isSuccess == true &&
+          mounted) {
+        await context.read<PushNotificationProvider>().enable();
+      }
       if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -607,6 +639,74 @@ class _ErrorBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(message),
+    );
+  }
+}
+
+class _PushNotificationBanner extends StatelessWidget {
+  const _PushNotificationBanner({
+    required this.provider,
+    required this.onOpenSettings,
+  });
+
+  final PushNotificationProvider provider;
+  final Future<bool> Function() onOpenSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.notifications_active_outlined,
+            color: theme.colorScheme.primary,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  provider.isDenied
+                      ? 'Notifications are off'
+                      : 'Get reminders on this device',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  provider.errorMessage ??
+                      'Allow HowAI to notify you when a reminder is due.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          TextButton(
+            onPressed: provider.isLoading
+                ? null
+                : provider.isDenied
+                    ? onOpenSettings
+                    : provider.enable,
+            child: provider.isLoading
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(provider.isDenied ? 'Settings' : 'Enable'),
+          ),
+        ],
+      ),
     );
   }
 }

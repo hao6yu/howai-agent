@@ -66,6 +66,8 @@ class Reminder {
     this.conversationId,
     this.notes,
     this.recurrence,
+    this.lastDeliveryStatus,
+    this.lastDeliveryAt,
   });
 
   factory Reminder.fromJson(Map<String, dynamic> json) {
@@ -88,6 +90,10 @@ class Reminder {
       version: (json['version'] as num).toInt(),
       createdAt: DateTime.parse(json['created_at'] as String).toUtc(),
       updatedAt: DateTime.parse(json['updated_at'] as String).toUtc(),
+      lastDeliveryStatus: json['last_delivery_status'] as String?,
+      lastDeliveryAt: json['last_delivery_at'] == null
+          ? null
+          : DateTime.parse(json['last_delivery_at'] as String).toUtc(),
     );
   }
 
@@ -104,8 +110,13 @@ class Reminder {
   final int version;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String? lastDeliveryStatus;
+  final DateTime? lastDeliveryAt;
 
   bool get isRecurring => recurrence != null;
+
+  bool get lastDeliveryNeedsAttention =>
+      lastDeliveryStatus == 'failed' || lastDeliveryStatus == 'no_devices';
 
   Map<String, dynamic> scheduleArguments() => {
         'title': title,

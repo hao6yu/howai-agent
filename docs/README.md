@@ -1,5 +1,10 @@
 # HowAI
 
+Release runbooks:
+
+- [M3 Actions beta](M3_ACTIONS_BETA_RUNBOOK.md)
+- [M4 Notification beta](M4_NOTIFICATION_BETA_RUNBOOK.md)
+
 ## Environment Variables
 
 This app uses build-time variables for public client configuration. Create a

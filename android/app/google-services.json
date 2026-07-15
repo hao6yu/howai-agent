@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "922966871493",
+    "project_id": "howai-fcm-sender",
+    "storage_bucket": "howai-fcm-sender.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:922966871493:android:6297a6445667ed46b48fac",
+        "android_client_info": {
+          "package_name": "com.hyu.haogpt"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCh--PByLvleYABEpjq5WDsSaiGMHnWUGk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

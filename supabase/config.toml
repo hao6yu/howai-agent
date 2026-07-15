@@ -383,6 +383,12 @@ verify_jwt = true
 [functions.reminder-actions]
 verify_jwt = true
 
+[functions.push-devices]
+verify_jwt = true
+
+[functions.dispatch-reminders]
+verify_jwt = false
+
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"
 

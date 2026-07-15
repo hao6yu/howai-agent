@@ -8,14 +8,17 @@ Proposed release version: `2.0.0`
 Repository scope: Flutter clients and the shared Supabase backend. The web
 client is maintained and released from its own repository.
 
-Implementation status (2026-07-14): M0 and the M1 GPT-5.6
+Implementation status (2026-07-15): M0 and the M1 GPT-5.6
 evaluation/canary foundation are deployed. Production migration history, RLS,
 privileges, advisors, and the current Edge Functions have been verified. The
 private internal canary is enabled for internal test accounts and a
 signed iPhone build has verified that its primary chat route resolves to
 `gpt-5.6-sol`; the general user rollout remains disabled. M2 UX beta work is in
 progress on `codex/howai-2-ux-beta`. M3 Actions beta implementation is now in
-progress behind the existing `reminders` kill switch.
+progress behind the existing `reminders` kill switch. M4 notification delivery
+is implemented behind its own disabled `push_notifications` flag. Its Firebase
+sender and Supabase scheduler credentials are installed; production enablement
+waits for the APNs key and a physical-device acceptance pass.
 
 M0 delivered:
 
@@ -111,7 +114,7 @@ Free web search server slice — internal testing active:
   expose the feature to one dedicated Free QA account; general users remain
   excluded.
 
-M3 Actions beta implementation in progress:
+M3 Actions beta delivered:
 
 - Added service-owned `reminders` and `agent_action_runs` tables with owner-only
   reads, no client mutation grants, explicit audit state, per-user idempotency,
@@ -124,8 +127,31 @@ M3 Actions beta implementation in progress:
 - Added the internal-beta strict `reminders_create` model tool for paid and free
   signed-in testers, an inline chat approval card, and an Actions workspace for
   review/edit/snooze/pause/resume/skip/complete/delete.
-- Push delivery is intentionally excluded from M3 and begins in M4. Until M4,
-  saved reminders are durable and manageable but do not notify the device.
+- M3 shipped durable scheduling and management without device wake-up; M4 now
+  owns notification delivery independently of the reminder-write flag.
+
+M4 Notification beta implementation in progress:
+
+- Registered the existing Android and iOS application identifiers in the
+  personal, push-only Firebase project `howai-fcm-sender` and generated the
+  non-secret FlutterFire platform configuration. Supabase remains the app's
+  auth and data backend.
+- Added contextual notification permission, authenticated FCM token rotation,
+  multi-device registration, sign-out cleanup, Android foreground
+  presentation, and notification-to-Actions navigation.
+- Added private device, occurrence, and per-device attempt records plus an
+  idempotent `SKIP LOCKED` claim/lease worker, bounded retry, permanent-token
+  cleanup, recurrence advancement, and a minute-level Supabase Cron trigger.
+- The FCM HTTP v1 sender exchanges a server-only Firebase service-account key
+  for short-lived OAuth tokens. No sender credential or FCM token is stored in
+  Flutter source, Firebase configuration, or client-readable tables.
+- Installed the least-privilege Firebase sender JSON and a random dispatcher
+  secret in Supabase Edge Function secrets, stored the matching scheduler
+  values in Vault, and verified the Cron-authenticated path returns HTTP 200.
+- Database, Edge, Flutter, Android, and iOS device-target builds pass. The Xcode
+  27 beta simulator currently trips a Flutter 3.35 packaging architecture check
+  after successful compilation; physical-device notification testing remains
+  the release gate because the iOS Simulator cannot validate APNs delivery.
 
 ## 1. Executive decision
 
@@ -214,8 +240,10 @@ Itinerary building can follow in a 2.x release using the existing Places/Maps fo
 - Free image analysis currently forces the main model, and free streaming requests can include web search by default. Both behaviors need server-enforced quotas because model, tool, and multimodal costs are separate.
 - Voice calling is currently implemented through ElevenLabs in a dedicated 1,165-line screen and service.
 - `OPENAI_REALTIME_MODEL` still references an old preview value and is not the production voice path.
-- Firebase/FlutterFire is not configured. Android already declares the Android 13 notification permission, but the Firebase packages and platform configuration files do not exist.
-- The iOS push entitlement is empty and Push Notifications/Remote Notifications still need to be configured.
+- Firebase/FlutterFire is configured for the existing Android and iOS bundle
+  identifiers in the personal `howai-fcm-sender` project. The Firebase sender
+  credential is installed in Supabase; production delivery still needs an APNs
+  `.p8` key uploaded to Firebase.
 - The primary UI files are large: `ai_chat_screen.dart` is 6,803 lines and `chat_input_widget.dart` is 2,123 lines.
 - The current UX backlog already calls for reducing composer action density.
 - There is no `test/`, `integration_test/`, or CI workflow in the repository.
@@ -1069,9 +1097,8 @@ These defaults let implementation begin without blocking the architecture:
 
 ## 21. External setup checklist
 
-The following cannot be completed from source code alone:
+The following require external project credentials or store-console access:
 
-- Firebase project ownership and Android/iOS app registration.
 - APNs key, Apple Team ID, and push entitlement provisioning.
 - FCM service-account permission for HTTP v1 sending.
 - OpenAI project access and rate limits for GPT-5.6 Sol, Realtime, background Research, and webhook creation.

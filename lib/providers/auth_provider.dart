@@ -4,6 +4,7 @@ import '../services/supabase_service.dart';
 import '../services/migration_service.dart';
 import '../services/sync_service.dart';
 import '../services/subscription_service.dart';
+import '../services/push_notification_service.dart';
 import 'profile_provider.dart';
 import 'dart:async';
 
@@ -236,6 +237,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signOut() async {
     try {
       _errorMessage = null;
+      await PushNotificationService.instance.unregisterCurrentDevice();
       await _supabaseService.signOut();
       _user = null;
       notifyListeners();

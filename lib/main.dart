@@ -305,48 +305,24 @@ class AuthGate extends StatelessWidget {
   }
 }
 
-class MainTabScaffold extends StatefulWidget {
+class MainTabScaffold extends StatelessWidget {
   const MainTabScaffold({super.key});
 
-  @override
-  State<MainTabScaffold> createState() => _MainTabScaffoldState();
-}
-
-class _MainTabScaffoldState extends State<MainTabScaffold> {
-  // Default to chat screen - no tab switching needed
-  Widget _currentScreen = const AiChatScreen();
-
-  void _navigateToGuide() {
-    setState(() {
-      _currentScreen = InstructionsScreen(onBack: _navigateToChat);
-    });
-  }
-
-  void _navigateToChat() {
-    setState(() {
-      _currentScreen = const AiChatScreen();
-    });
+  void _navigateToGuide(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => InstructionsScreen(
+          onBack: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // No bottom navigation bar - full screen for content
-      body: _buildScreenWithNavigation(),
+    return AiChatScreenWithNavigation(
+      onNavigateToGuide: () => _navigateToGuide(context),
     );
-  }
-
-  Widget _buildScreenWithNavigation() {
-    // Pass navigation callbacks to the chat screen if it's currently active
-    if (_currentScreen is AiChatScreen) {
-      return AiChatScreenWithNavigation(
-        onNavigateToGuide: _navigateToGuide,
-      );
-    }
-
-    // For non-chat screens, just show the screen directly
-    // The CustomAppBar will handle the back button functionality
-    return _currentScreen;
   }
 }
 

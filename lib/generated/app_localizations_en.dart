@@ -805,7 +805,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Got it';
 
   @override
-  String get chatInputHint => 'Ask me anything to start our conversation...';
+  String get chatInputHint => 'Ask HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2990,4 +2990,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memory => 'Memory';
+
+  @override
+  String get research => 'Research';
+
+  @override
+  String get thinkingLevel => 'Thinking level';
+
+  @override
+  String get thinkingAuto => 'Auto';
+
+  @override
+  String get thinkingFast => 'Fast';
+
+  @override
+  String get thinkingBalanced => 'Balanced';
+
+  @override
+  String get thinkingDeep => 'Deep';
+
+  @override
+  String get thinkingLevelNote => 'Higher levels take longer and use more reasoning tokens.';
 }

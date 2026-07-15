@@ -805,7 +805,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Mengerti';
 
   @override
-  String get chatInputHint => 'Tanyakan apa saja untuk memulai...';
+  String get chatInputHint => 'Tanya HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,14 +2980,35 @@ class AppLocalizationsId extends AppLocalizations {
   String get speakButtonTooltip => 'Mulai panggilan suara';
 
   @override
-  String get back => 'Back';
+  String get back => 'Kembali';
 
   @override
   String get menu => 'Menu';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'Tidak ada suara yang tersedia di perangkat ini';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Memori';
+
+  @override
+  String get research => 'Riset';
+
+  @override
+  String get thinkingLevel => 'Tingkat pemikiran';
+
+  @override
+  String get thinkingAuto => 'Otomatis';
+
+  @override
+  String get thinkingFast => 'Cepat';
+
+  @override
+  String get thinkingBalanced => 'Seimbang';
+
+  @override
+  String get thinkingDeep => 'Mendalam';
+
+  @override
+  String get thinkingLevelNote => 'Tingkat yang lebih tinggi memerlukan waktu dan token penalaran lebih banyak.';
 }

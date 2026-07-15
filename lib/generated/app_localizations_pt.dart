@@ -805,7 +805,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Entendido';
 
   @override
-  String get chatInputHint => 'Pergunte qualquer coisa para começar...';
+  String get chatInputHint => 'Pergunte ao HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,16 +2980,37 @@ class AppLocalizationsPt extends AppLocalizations {
   String get speakButtonTooltip => 'Iniciar chamada de voz';
 
   @override
-  String get back => 'Back';
+  String get back => 'Voltar';
 
   @override
   String get menu => 'Menu';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'Não há vozes disponíveis neste dispositivo';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Memória';
+
+  @override
+  String get research => 'Pesquisa';
+
+  @override
+  String get thinkingLevel => 'Nível de raciocínio';
+
+  @override
+  String get thinkingAuto => 'Automático';
+
+  @override
+  String get thinkingFast => 'Rápido';
+
+  @override
+  String get thinkingBalanced => 'Equilibrado';
+
+  @override
+  String get thinkingDeep => 'Profundo';
+
+  @override
+  String get thinkingLevelNote => 'Os níveis mais altos demoram mais e usam mais tokens de raciocínio.';
 }
 
 /// The translations for Portuguese, as used in Brazil (`pt_BR`).
@@ -3793,7 +3814,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get voiceInputTipsGotIt => 'Entendi';
 
   @override
-  String get chatInputHint => 'Pergunte qualquer coisa para começar...';
+  String get chatInputHint => 'Pergunte ao HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -5966,4 +5987,37 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get speakButtonTooltip => 'Iniciar chamada de voz';
+
+  @override
+  String get back => 'Voltar';
+
+  @override
+  String get menu => 'Menu';
+
+  @override
+  String get voiceNoVoicesAvailable => 'Não há vozes disponíveis neste dispositivo';
+
+  @override
+  String get memory => 'Memória';
+
+  @override
+  String get research => 'Pesquisa';
+
+  @override
+  String get thinkingLevel => 'Nível de raciocínio';
+
+  @override
+  String get thinkingAuto => 'Automático';
+
+  @override
+  String get thinkingFast => 'Rápido';
+
+  @override
+  String get thinkingBalanced => 'Equilibrado';
+
+  @override
+  String get thinkingDeep => 'Profundo';
+
+  @override
+  String get thinkingLevelNote => 'Os níveis mais altos demoram mais e usam mais tokens de raciocínio.';
 }

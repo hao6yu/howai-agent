@@ -805,7 +805,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Anladım';
 
   @override
-  String get chatInputHint => 'Başlamak için bana bir şey sorun...';
+  String get chatInputHint => 'HowAI\'a sor';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,14 +2980,35 @@ class AppLocalizationsTr extends AppLocalizations {
   String get speakButtonTooltip => 'Sesli aramayı başlat';
 
   @override
-  String get back => 'Back';
+  String get back => 'Geri';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'Menü';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'Bu cihazda kullanılabilir ses yok';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Hafıza';
+
+  @override
+  String get research => 'Araştırma';
+
+  @override
+  String get thinkingLevel => 'Düşünme düzeyi';
+
+  @override
+  String get thinkingAuto => 'Otomatik';
+
+  @override
+  String get thinkingFast => 'Hızlı';
+
+  @override
+  String get thinkingBalanced => 'Dengeli';
+
+  @override
+  String get thinkingDeep => 'Derin';
+
+  @override
+  String get thinkingLevelNote => 'Daha yüksek düzeyler daha uzun sürer ve daha fazla akıl yürütme belirteci kullanır.';
 }

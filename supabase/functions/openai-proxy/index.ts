@@ -4,17 +4,17 @@ import {
   DEFAULT_MODEL_POLICY,
   estimateModelCostMicrousd,
   legacyModelAllowlist,
-  resolveModelPolicy,
   type ModelPolicyConfig,
   type ModelPolicyDecision,
   type RequestIntent,
+  resolveModelPolicy,
   type UserCohort,
 } from "../_shared/openai-policy.ts";
 import {
   DEFAULT_MODEL_POLICY_ROLLOUT,
+  type ModelPolicyRolloutDecision,
   parseModelPolicyRollout,
   resolveModelPolicyRollout,
-  type ModelPolicyRolloutDecision,
 } from "../_shared/openai-rollout.ts";
 import {
   extractResponsesUsage,
@@ -22,30 +22,59 @@ import {
   type ResponsesUsage,
 } from "../_shared/openai-stream.ts";
 import {
+  applyResponseProfile,
+  applyWebSearchOutputGuidance,
+  type ResponseProfile,
+  type WebSearchMode,
+} from "../_shared/openai-response-profile.ts";
+import {
   extractUpstreamErrorTelemetry,
   nonJsonUpstreamErrorTelemetry,
 } from "../_shared/openai-telemetry.ts";
+import {
+  DEFAULT_FREE_WEB_SEARCH_RESERVATION_MICROUSD,
+  type FreeWebSearchRollout,
+  resolveFreeWebSearchRollout,
+  shouldOfferFreeWebSearch,
+  webSearchAccountedCostMicrousd,
+  webSearchToolCostMicrousd,
+} from "../_shared/openai-web-search.ts";
 
 const OPENAI_BASE_URL = "https://api.openai.com";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+  "";
 
-const MAX_BODY_BYTES = Number(Deno.env.get("OPENAI_PROXY_MAX_BODY_BYTES") ?? 25 * 1024 * 1024);
-const MAX_OUTPUT_TOKENS = Number(Deno.env.get("OPENAI_PROXY_MAX_OUTPUT_TOKENS") ?? 3000);
-const MAX_REQUESTS_PER_HOUR = Number(Deno.env.get("OPENAI_PROXY_MAX_REQUESTS_PER_HOUR") ?? 120);
-const ANON_MAX_REQUESTS_PER_DAY = Number(Deno.env.get("OPENAI_PROXY_ANON_MAX_REQUESTS_PER_DAY") ?? 300);
+const MAX_BODY_BYTES = Number(
+  Deno.env.get("OPENAI_PROXY_MAX_BODY_BYTES") ?? 25 * 1024 * 1024,
+);
+const MAX_OUTPUT_TOKENS = Number(
+  Deno.env.get("OPENAI_PROXY_MAX_OUTPUT_TOKENS") ?? 3000,
+);
+const MAX_REQUESTS_PER_HOUR = Number(
+  Deno.env.get("OPENAI_PROXY_MAX_REQUESTS_PER_HOUR") ?? 120,
+);
+const ANON_MAX_REQUESTS_PER_DAY = Number(
+  Deno.env.get("OPENAI_PROXY_ANON_MAX_REQUESTS_PER_DAY") ?? 300,
+);
 const CHAT_MODEL = Deno.env.get("OPENAI_PROXY_CHAT_MODEL") ?? "gpt-5.2";
-const CHAT_MINI_MODEL = Deno.env.get("OPENAI_PROXY_CHAT_MINI_MODEL") ?? "gpt-5-nano";
-const MODEL_POLICY_ENV_ENABLED = Deno.env.get("OPENAI_PROXY_POLICY_ENABLED") === "true";
-const GPT56_EVAL_VERSION = Deno.env.get("OPENAI_PROXY_EVAL_VERSION") ?? "gpt56-m1-v1";
+const CHAT_MINI_MODEL = Deno.env.get("OPENAI_PROXY_CHAT_MINI_MODEL") ??
+  "gpt-5-nano";
+const MODEL_POLICY_ENV_ENABLED =
+  Deno.env.get("OPENAI_PROXY_POLICY_ENABLED") === "true";
+const GPT56_EVAL_VERSION = Deno.env.get("OPENAI_PROXY_EVAL_VERSION") ??
+  "gpt56-m1-v1";
 const MODEL_POLICY: ModelPolicyConfig = Object.freeze({
   ...DEFAULT_MODEL_POLICY,
   models: Object.freeze({
-    nano: Deno.env.get("OPENAI_PROXY_MODEL_NANO") ?? DEFAULT_MODEL_POLICY.models.nano,
-    luna: Deno.env.get("OPENAI_PROXY_MODEL_LUNA") ?? DEFAULT_MODEL_POLICY.models.luna,
-    sol: Deno.env.get("OPENAI_PROXY_MODEL_SOL") ?? DEFAULT_MODEL_POLICY.models.sol,
+    nano: Deno.env.get("OPENAI_PROXY_MODEL_NANO") ??
+      DEFAULT_MODEL_POLICY.models.nano,
+    luna: Deno.env.get("OPENAI_PROXY_MODEL_LUNA") ??
+      DEFAULT_MODEL_POLICY.models.luna,
+    sol: Deno.env.get("OPENAI_PROXY_MODEL_SOL") ??
+      DEFAULT_MODEL_POLICY.models.sol,
     research: Deno.env.get("OPENAI_PROXY_RESEARCH_MODEL") ?? CHAT_MODEL,
   }),
   freeLunaAnswersPerDay: envNumber(
@@ -130,7 +159,30 @@ const ANONYMOUS_MAX_ESTIMATED_INPUT_TOKENS = envNumber(
   "OPENAI_PROXY_ANON_MAX_ESTIMATED_INPUT_TOKENS",
   8_000,
 );
-const POLICY_WEB_SEARCH_ENABLED = Deno.env.get("OPENAI_PROXY_POLICY_WEB_SEARCH_ENABLED") === "true";
+const POLICY_WEB_SEARCH_ENABLED =
+  Deno.env.get("OPENAI_PROXY_POLICY_WEB_SEARCH_ENABLED") === "true";
+const FREE_WEB_SEARCH_ENV_ENABLED =
+  Deno.env.get("OPENAI_PROXY_FREE_WEB_SEARCH_ENABLED") === "true";
+const FREE_WEB_SEARCH_ANSWERS_PER_DAY = envNumber(
+  "OPENAI_PROXY_FREE_WEB_SEARCH_ANSWERS_PER_DAY",
+  2,
+);
+const FREE_WEB_SEARCH_ANSWERS_PER_MONTH = envNumber(
+  "OPENAI_PROXY_FREE_WEB_SEARCH_ANSWERS_PER_MONTH",
+  20,
+);
+const FREE_WEB_SEARCH_RESERVATION_MICROUSD = envNumber(
+  "OPENAI_PROXY_FREE_WEB_SEARCH_RESERVATION_MICROUSD",
+  DEFAULT_FREE_WEB_SEARCH_RESERVATION_MICROUSD,
+);
+const FREE_WEB_SEARCH_GLOBAL_DAILY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_FREE_WEB_SEARCH_GLOBAL_DAILY_BUDGET_MICROUSD",
+  1_000_000,
+);
+const FREE_WEB_SEARCH_GLOBAL_MONTHLY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_FREE_WEB_SEARCH_GLOBAL_MONTHLY_BUDGET_MICROUSD",
+  10_000_000,
+);
 const POLICY_IMAGE_GENERATION_ENABLED =
   Deno.env.get("OPENAI_PROXY_POLICY_IMAGE_GENERATION_ENABLED") === "true";
 const ALLOWED_MODELS = legacyModelAllowlist(
@@ -138,7 +190,12 @@ const ALLOWED_MODELS = legacyModelAllowlist(
   CHAT_MINI_MODEL,
   Deno.env.get("OPENAI_PROXY_ALLOWED_MODELS") ?? "",
 );
-const ALLOWED_TOOL_TYPES = new Set(["web_search", "web_search_preview", "image_generation", "function"]);
+const ALLOWED_TOOL_TYPES = new Set([
+  "web_search",
+  "web_search_preview",
+  "image_generation",
+  "function",
+]);
 const ALLOWED_FUNCTION_NAMES = new Set(["generate_pptx"]);
 
 type ProxyPath = "/v1/responses" | "/v1/audio/transcriptions";
@@ -156,7 +213,16 @@ type TrustedEntitlement = {
 
 type ModelPolicyRolloutContext = ModelPolicyRolloutDecision & {
   entitlement: TrustedEntitlement | null;
+  freeWebSearch: FreeWebSearchRollout;
 };
+
+type FreeWebSearchReservation = Readonly<{
+  reserved: boolean;
+  reservationMicrousd: number;
+  quotaDenied: boolean;
+  reason: string | null;
+  resetAt: string | null;
+}>;
 
 type PolicyContext = {
   requestId: string;
@@ -166,6 +232,7 @@ type PolicyContext = {
   modelRole: string;
   reasoningEffort: string;
   reservationMicrousd: number;
+  freeWebSearch: FreeWebSearchReservation;
 };
 
 type ReservationLimits = Readonly<{
@@ -183,6 +250,12 @@ type SanitizedResponse = {
   requestedAlias: string | null;
   model: string | null;
   stream: boolean;
+  intent: RequestIntent;
+  responseProfile: ResponseProfile;
+  webSearchMode: WebSearchMode;
+  reasoningEffort: string;
+  webSearchOffered: boolean;
+  webSearchQuotaDenied: boolean;
   policy: PolicyContext | null;
   rollout: ModelPolicyRolloutDecision;
 };
@@ -221,6 +294,10 @@ type RequestLog = {
   error_category?: string | null;
   error_code?: string | null;
   error_param?: string | null;
+  web_search_offered?: boolean;
+  web_search_calls?: number | null;
+  web_search_quota_denied?: boolean;
+  web_search_citations_present?: boolean | null;
   error?: string | null;
 };
 
@@ -247,7 +324,11 @@ function corsHeaders(origin: string | null): HeadersInit {
   };
 }
 
-function jsonResponse(status: number, body: Record<string, unknown>, origin: string | null): Response {
+function jsonResponse(
+  status: number,
+  body: Record<string, unknown>,
+  origin: string | null,
+): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -260,7 +341,9 @@ function jsonResponse(status: number, body: Record<string, unknown>, origin: str
 
 function targetPath(pathname: string): ProxyPath | null {
   if (pathname.endsWith("/v1/responses")) return "/v1/responses";
-  if (pathname.endsWith("/v1/audio/transcriptions")) return "/v1/audio/transcriptions";
+  if (pathname.endsWith("/v1/audio/transcriptions")) {
+    return "/v1/audio/transcriptions";
+  }
   return null;
 }
 
@@ -270,7 +353,9 @@ function getBearerToken(req: Request): string | null {
   return match?.[1] ?? null;
 }
 
-async function authenticateUser(req: Request): Promise<AuthenticatedUser | null> {
+async function authenticateUser(
+  req: Request,
+): Promise<AuthenticatedUser | null> {
   const accessToken = getBearerToken(req);
   if (!accessToken || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return null;
@@ -341,7 +426,9 @@ async function isWithinRateLimit(user: AuthenticatedUser): Promise<boolean> {
 
 async function logRequest(log: RequestLog): Promise<string | null> {
   if (!supabaseAdmin) {
-    console.error("Supabase service role client is not configured; skipping proxy request log.");
+    console.error(
+      "Supabase service role client is not configured; skipping proxy request log.",
+    );
     return null;
   }
 
@@ -380,7 +467,10 @@ function sanitizeForwardHeaders(req: Request): Headers {
   return headers;
 }
 
-function validateContentLength(req: Request, origin: string | null): Response | null {
+function validateContentLength(
+  req: Request,
+  origin: string | null,
+): Response | null {
   const contentLengthRaw = req.headers.get("content-length");
   if (!contentLengthRaw) {
     return null;
@@ -413,7 +503,8 @@ function sanitizeTools(tools: unknown): unknown {
     if (toolType === "function") {
       const name = typeof candidate.name === "string"
         ? candidate.name
-        : typeof (candidate.function as Record<string, unknown> | undefined)?.name === "string"
+        : typeof (candidate.function as Record<string, unknown> | undefined)
+            ?.name === "string"
         ? String((candidate.function as Record<string, unknown>).name)
         : "";
       return ALLOWED_FUNCTION_NAMES.has(name);
@@ -421,6 +512,34 @@ function sanitizeTools(tools: unknown): unknown {
 
     return true;
   });
+}
+
+function removeWebSearchTools(payload: Record<string, unknown>): void {
+  if (Array.isArray(payload.tools)) {
+    payload.tools = payload.tools.filter((tool) => {
+      if (!tool || typeof tool !== "object") return false;
+      const type = (tool as Record<string, unknown>).type;
+      return type !== "web_search" && type !== "web_search_preview";
+    });
+  }
+  if (Array.isArray(payload.tools) && payload.tools.length === 0) {
+    delete payload.tools;
+  }
+  delete payload.tool_choice;
+  delete payload.max_tool_calls;
+}
+
+function emptyFreeWebSearchReservation(
+  overrides: Partial<FreeWebSearchReservation> = {},
+): FreeWebSearchReservation {
+  return {
+    reserved: false,
+    reservationMicrousd: 0,
+    quotaDenied: false,
+    reason: null,
+    resetAt: null,
+    ...overrides,
+  };
 }
 
 async function sanitizeResponsesBody(
@@ -433,15 +552,20 @@ async function sanitizeResponsesBody(
   const json = JSON.parse(decoder.decode(bodyBytes)) as Record<string, unknown>;
 
   const requestedModel = typeof json.model === "string" ? json.model : null;
-  let resolvedModel = requestedModel ? MODEL_ALIASES.get(requestedModel) ?? requestedModel : null;
+  let resolvedModel = requestedModel
+    ? MODEL_ALIASES.get(requestedModel) ?? requestedModel
+    : null;
   let policyContext: PolicyContext | null = null;
+  const intent = requestIntent(json.metadata);
 
   if (rollout.active) {
     const entitlement = rollout.entitlement;
     if (!entitlement) {
-      throw new ProxyPolicyError("Model policy entitlement is temporarily unavailable.", 503);
+      throw new ProxyPolicyError(
+        "Model policy entitlement is temporarily unavailable.",
+        503,
+      );
     }
-    const intent = requestIntent(json.metadata);
     const hasAttachments = containsAttachment(json.input);
     const estimatedInputTokens = Math.ceil(bodyBytes.byteLength / 4);
     const maxEstimatedInputTokens = entitlement.cohort === "anonymous"
@@ -451,10 +575,16 @@ async function sanitizeResponsesBody(
       : Number.MAX_SAFE_INTEGER;
 
     if (estimatedInputTokens > maxEstimatedInputTokens) {
-      throw new ProxyPolicyError("This request is too large for the current plan.", 413);
+      throw new ProxyPolicyError(
+        "This request is too large for the current plan.",
+        413,
+      );
     }
     if (hasAttachments && entitlement.cohort !== "paid") {
-      throw new ProxyPolicyError("Attachments require a paid plan during the HowAI 2.0 beta.", 403);
+      throw new ProxyPolicyError(
+        "Attachments require a paid plan during the HowAI 2.0 beta.",
+        403,
+      );
     }
 
     const lunaEstimate = estimateModelCostMicrousd(MODEL_POLICY.models.luna, {
@@ -489,7 +619,9 @@ async function sanitizeResponsesBody(
     );
 
     if (decision.role === "luna" && !reservation.accepted) {
-      decision = nanoFallbackDecision(reservation.reason ?? "luna_reservation_failed");
+      decision = nanoFallbackDecision(
+        reservation.reason ?? "luna_reservation_failed",
+      );
       estimate = reservationEstimateMicrousd(decision, estimatedInputTokens);
       reservation = await reserveBudgetedUsage(
         user.id,
@@ -519,14 +651,32 @@ async function sanitizeResponsesBody(
           if (type === "web_search" || type === "web_search_preview") {
             return POLICY_WEB_SEARCH_ENABLED;
           }
-          if (type === "image_generation") return POLICY_IMAGE_GENERATION_ENABLED;
+          if (type === "image_generation") {
+            return POLICY_IMAGE_GENERATION_ENABLED;
+          }
           return true;
         })
         : safeTools;
-      if (Array.isArray(json.tools) && json.tools.length === 0) delete json.tool_choice;
+      if (Array.isArray(json.tools) && json.tools.length === 0) {
+        delete json.tool_choice;
+      }
     } else {
       delete json.tools;
       delete json.tool_choice;
+      delete json.max_tool_calls;
+      if (json.metadata && typeof json.metadata === "object") {
+        delete (json.metadata as Record<string, unknown>).howai_web_search;
+      }
+      if (
+        shouldOfferFreeWebSearch({
+          rolloutActive: rollout.freeWebSearch.active,
+          cohort: entitlement.cohort,
+          modelRole: decision.role,
+          intent,
+        })
+      ) {
+        json.tools = [{ type: "web_search" }];
+      }
     }
     policyContext = {
       requestId: reservation.requestId,
@@ -536,21 +686,86 @@ async function sanitizeResponsesBody(
       modelRole: decision.role,
       reasoningEffort: decision.reasoningEffort,
       reservationMicrousd: reservation.reservationMicrousd,
+      freeWebSearch: emptyFreeWebSearchReservation(),
     };
   } else {
-    const isServerSideAlias = requestedModel ? MODEL_ALIASES.has(requestedModel) : false;
-    if (!resolvedModel || (!isServerSideAlias && !ALLOWED_MODELS.includes(resolvedModel))) {
-      throw new ProxyPolicyError(`Model is not allowed: ${requestedModel ?? "missing"}`, 400);
+    const isServerSideAlias = requestedModel
+      ? MODEL_ALIASES.has(requestedModel)
+      : false;
+    if (
+      !resolvedModel ||
+      (!isServerSideAlias && !ALLOWED_MODELS.includes(resolvedModel))
+    ) {
+      throw new ProxyPolicyError(
+        `Model is not allowed: ${requestedModel ?? "missing"}`,
+        400,
+      );
     }
 
     if (typeof json.max_output_tokens === "number") {
-      json.max_output_tokens = Math.min(json.max_output_tokens, MAX_OUTPUT_TOKENS);
+      json.max_output_tokens = Math.min(
+        json.max_output_tokens,
+        MAX_OUTPUT_TOKENS,
+      );
     } else if (json.max_output_tokens == null) {
       json.max_output_tokens = MAX_OUTPUT_TOKENS;
     }
 
     if (json.tools != null) json.tools = sanitizeTools(json.tools);
   }
+
+  if (!resolvedModel) {
+    throw new ProxyPolicyError("A model is required.", 400);
+  }
+  let appliedProfile = applyResponseProfile(json, resolvedModel, {
+    allowReasoningOverride: rollout.active &&
+      rollout.entitlement?.cohort === "paid" &&
+      rollout.entitlement.trusted &&
+      isGpt56Model(resolvedModel),
+  });
+  if (policyContext) {
+    if (
+      policyContext.cohort === "free" &&
+      policyContext.modelRole === "luna" &&
+      appliedProfile.webSearchMode === "auto"
+    ) {
+      json.max_tool_calls = 1;
+      const searchReservation = await reserveFreeWebSearch(
+        user.id,
+        policyContext.requestId,
+      );
+      if (searchReservation.accepted) {
+        policyContext = {
+          ...policyContext,
+          freeWebSearch: {
+            reserved: true,
+            reservationMicrousd: FREE_WEB_SEARCH_RESERVATION_MICROUSD,
+            quotaDenied: false,
+            reason: null,
+            resetAt: null,
+          },
+        };
+      } else {
+        removeWebSearchTools(json);
+        appliedProfile = applyResponseProfile(json, resolvedModel, {
+          allowReasoningOverride: false,
+        });
+        policyContext = {
+          ...policyContext,
+          freeWebSearch: emptyFreeWebSearchReservation({
+            quotaDenied: true,
+            reason: searchReservation.reason,
+            resetAt: searchReservation.resetAt,
+          }),
+        };
+      }
+    }
+    policyContext = {
+      ...policyContext,
+      reasoningEffort: appliedProfile.reasoningEffort,
+    };
+  }
+  applyWebSearchOutputGuidance(json, appliedProfile.webSearchMode);
   json.model = resolvedModel;
   delete json.user;
   json.safety_identifier = user.id;
@@ -563,6 +778,12 @@ async function sanitizeResponsesBody(
     requestedAlias: requestedModel,
     model: resolvedModel,
     stream: json.stream === true,
+    intent,
+    responseProfile: appliedProfile.profile,
+    webSearchMode: appliedProfile.webSearchMode,
+    reasoningEffort: appliedProfile.reasoningEffort,
+    webSearchOffered: appliedProfile.webSearchMode !== "disabled",
+    webSearchQuotaDenied: policyContext?.freeWebSearch.quotaDenied ?? false,
     policy: policyContext,
     rollout,
   };
@@ -576,25 +797,29 @@ function legacyRollout(userId: string): ModelPolicyRolloutContext {
       DEFAULT_MODEL_POLICY_ROLLOUT,
     ),
     entitlement: null,
+    freeWebSearch: { active: false, mode: "off" },
   };
 }
 
 async function getModelPolicyRollout(
   user: AuthenticatedUser,
 ): Promise<ModelPolicyRolloutContext> {
-  if (!MODEL_POLICY_ENV_ENABLED || !supabaseAdmin) return legacyRollout(user.id);
+  if (!MODEL_POLICY_ENV_ENABLED || !supabaseAdmin) {
+    return legacyRollout(user.id);
+  }
   const { data, error } = await supabaseAdmin
     .from("feature_flags")
-    .select("enabled, payload")
-    .eq("key", "model_policy_v2")
-    .maybeSingle();
+    .select("key, enabled, payload")
+    .in("key", ["model_policy_v2", "free_web_search"]);
   if (error) {
     console.error("Model policy feature-flag lookup failed", error);
     throw new ProxyPolicyError("Model policy is temporarily unavailable.", 503);
   }
-  if (data?.enabled !== true) return legacyRollout(user.id);
+  const modelFlag = data?.find((row) => row.key === "model_policy_v2");
+  const freeSearchFlag = data?.find((row) => row.key === "free_web_search");
+  if (modelFlag?.enabled !== true) return legacyRollout(user.id);
 
-  const config = parseModelPolicyRollout(data.payload);
+  const config = parseModelPolicyRollout(modelFlag.payload);
   if (
     config.mode === "off" ||
     (config.mode === "percentage" && config.rolloutPercent === 0)
@@ -602,17 +827,31 @@ async function getModelPolicyRollout(
     return {
       ...resolveModelPolicyRollout(user.id, false, config),
       entitlement: null,
+      freeWebSearch: { active: false, mode: "off" },
     };
   }
 
   const entitlement = await getTrustedEntitlement(user);
+  const modelRollout = resolveModelPolicyRollout(
+    user.id,
+    entitlement.internalCanary,
+    config,
+  );
   return {
-    ...resolveModelPolicyRollout(user.id, entitlement.internalCanary, config),
+    ...modelRollout,
     entitlement,
+    freeWebSearch: resolveFreeWebSearchRollout({
+      environmentEnabled: FREE_WEB_SEARCH_ENV_ENABLED && modelRollout.active,
+      flagEnabled: freeSearchFlag?.enabled === true,
+      payload: freeSearchFlag?.payload,
+      internalCanary: entitlement.internalCanary,
+    }),
   };
 }
 
-async function getTrustedEntitlement(user: AuthenticatedUser): Promise<TrustedEntitlement> {
+async function getTrustedEntitlement(
+  user: AuthenticatedUser,
+): Promise<TrustedEntitlement> {
   if (user.isAnonymous) {
     return { cohort: "anonymous", trusted: false, internalCanary: false };
   }
@@ -623,10 +862,15 @@ async function getTrustedEntitlement(user: AuthenticatedUser): Promise<TrustedEn
     .select("tier, expires_at, model_policy_canary")
     .eq("user_id", user.id)
     .maybeSingle();
-  if (error) throw new Error(`Verified entitlement lookup failed: ${error.message}`);
+  if (error) {
+    throw new Error(`Verified entitlement lookup failed: ${error.message}`);
+  }
 
-  const expiry = typeof data?.expires_at === "string" ? Date.parse(data.expires_at) : null;
-  const active = data?.tier === "paid" && (expiry == null || expiry > Date.now());
+  const expiry = typeof data?.expires_at === "string"
+    ? Date.parse(data.expires_at)
+    : null;
+  const active = data?.tier === "paid" &&
+    (expiry == null || expiry > Date.now());
   return active
     ? {
       cohort: "paid",
@@ -644,7 +888,8 @@ function requestIntent(metadata: unknown): RequestIntent {
   const candidate = metadata && typeof metadata === "object"
     ? (metadata as Record<string, unknown>).howai_intent
     : null;
-  return candidate === "lightweight" || candidate === "title" || candidate === "research"
+  return candidate === "lightweight" || candidate === "title" ||
+      candidate === "research"
     ? candidate
     : "primary_chat";
 }
@@ -653,7 +898,9 @@ function containsAttachment(value: unknown): boolean {
   if (Array.isArray(value)) return value.some(containsAttachment);
   if (!value || typeof value !== "object") return false;
   const record = value as Record<string, unknown>;
-  if (record.type === "input_image" || record.type === "input_file") return true;
+  if (record.type === "input_image" || record.type === "input_file") {
+    return true;
+  }
   return Object.values(record).some(containsAttachment);
 }
 
@@ -673,11 +920,15 @@ function reservationEstimateMicrousd(
 ): number {
   const pricedEstimate = estimateModelCostMicrousd(decision.model, {
     inputTokens: estimatedInputTokens,
-    cacheWriteInputTokens: isGpt56Model(decision.model) ? estimatedInputTokens : 0,
+    cacheWriteInputTokens: isGpt56Model(decision.model)
+      ? estimatedInputTokens
+      : 0,
     outputTokens: decision.maxOutputTokens,
   });
   if (pricedEstimate != null) return pricedEstimate;
-  return decision.role === "research" ? RESEARCH_FALLBACK_RESERVATION_MICROUSD : 0;
+  return decision.role === "research"
+    ? RESEARCH_FALLBACK_RESERVATION_MICROUSD
+    : 0;
 }
 
 function reservationLimits(
@@ -787,6 +1038,50 @@ async function reserveBudgetedUsage(
   };
 }
 
+async function reserveFreeWebSearch(
+  userId: string,
+  requestId: string,
+): Promise<{
+  accepted: boolean;
+  reason: string | null;
+  resetAt: string | null;
+}> {
+  if (!supabaseAdmin) {
+    return {
+      accepted: false,
+      reason: "reservation_unavailable",
+      resetAt: null,
+    };
+  }
+
+  const { data, error } = await supabaseAdmin.rpc("reserve_free_web_search", {
+    p_user_id: userId,
+    p_request_id: requestId,
+    p_reservation_microusd: FREE_WEB_SEARCH_RESERVATION_MICROUSD,
+    p_user_daily_answer_limit: FREE_WEB_SEARCH_ANSWERS_PER_DAY,
+    p_user_monthly_answer_limit: FREE_WEB_SEARCH_ANSWERS_PER_MONTH,
+    p_global_daily_budget_microusd:
+      FREE_WEB_SEARCH_GLOBAL_DAILY_BUDGET_MICROUSD,
+    p_global_monthly_budget_microusd:
+      FREE_WEB_SEARCH_GLOBAL_MONTHLY_BUDGET_MICROUSD,
+  });
+  if (error) {
+    console.error("Free web-search reservation failed", error);
+    return {
+      accepted: false,
+      reason: "reservation_unavailable",
+      resetAt: null,
+    };
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    accepted: row?.accepted === true,
+    reason: typeof row?.reason === "string" ? row.reason : null,
+    resetAt: typeof row?.reset_at === "string" ? row.reset_at : null,
+  };
+}
+
 async function reconcilePolicyUsage(
   policy: PolicyContext | null,
   succeeded: boolean,
@@ -796,23 +1091,50 @@ async function reconcilePolicyUsage(
   failureCode: string | null = null,
 ): Promise<void> {
   if (!policy || !supabaseAdmin) return;
-  const { error } = await supabaseAdmin.rpc("reconcile_ai_usage", {
-    p_request_id: policy.requestId,
-    p_succeeded: succeeded,
-    p_counts_as_answer: countsAsAnswer,
-    p_input_tokens: usage?.inputTokens ?? null,
-    p_cached_input_tokens: usage?.cachedInputTokens ?? null,
-    p_output_tokens: usage?.outputTokens ?? null,
-    p_actual_cost_microusd: actualCostMicrousd,
-    p_failure_code: failureCode,
-  });
-  if (error) console.error("Usage reconciliation failed", error);
+  const webSearchCalls = Math.max(0, usage?.webSearchCalls ?? 0);
+  const operations = [
+    supabaseAdmin.rpc("reconcile_ai_usage_v2", {
+      p_request_id: policy.requestId,
+      p_succeeded: succeeded,
+      p_counts_as_answer: countsAsAnswer,
+      p_input_tokens: usage?.inputTokens ?? null,
+      p_cached_input_tokens: usage?.cachedInputTokens ?? null,
+      p_output_tokens: usage?.outputTokens ?? null,
+      p_tool_calls: { web_search: webSearchCalls },
+      p_actual_cost_microusd: actualCostMicrousd,
+      p_failure_code: failureCode,
+    }),
+  ];
+
+  if (policy.freeWebSearch.reserved) {
+    operations.push(supabaseAdmin.rpc("reconcile_free_web_search", {
+      p_request_id: policy.requestId,
+      p_succeeded: succeeded && countsAsAnswer &&
+        usage?.hasWebSearchCitations === true,
+      p_web_search_calls: Math.min(1, webSearchCalls),
+      p_accounted_cost_microusd: webSearchAccountedCostMicrousd(
+        webSearchCalls,
+        policy.freeWebSearch.reservationMicrousd,
+        actualCostMicrousd,
+      ),
+    }));
+  }
+
+  const results = await Promise.all(operations);
+  for (const result of results) {
+    if (result.error) {
+      console.error("Usage reconciliation failed", result.error);
+    }
+  }
 }
 
 function monitorStreamingBody(
   body: ReadableStream<Uint8Array>,
   startedAt: number,
-  onFinished: (usage: ResponsesUsage | null, firstTokenMs: number | null) => Promise<void>,
+  onFinished: (
+    usage: ResponsesUsage | null,
+    firstTokenMs: number | null,
+  ) => Promise<void>,
   onCancelled: () => Promise<void>,
 ): ReadableStream<Uint8Array> {
   const reader = body.getReader();
@@ -884,7 +1206,9 @@ function estimateActualCostMicrousd(
       : 0,
     outputTokens: usage.outputTokens,
   });
-  return estimated ?? fallback;
+  return estimated == null
+    ? fallback
+    : estimated + webSearchToolCostMicrousd(usage.webSearchCalls);
 }
 
 function rolloutTelemetry(
@@ -926,10 +1250,17 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!OPENAI_API_KEY) {
-    return jsonResponse(500, { error: "OPENAI_API_KEY is not configured on proxy" }, origin);
+    return jsonResponse(500, {
+      error: "OPENAI_API_KEY is not configured on proxy",
+    }, origin);
   }
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY || !supabaseAdmin) {
-    return jsonResponse(500, { error: "Supabase proxy auth/logging secrets are not configured" }, origin);
+  if (
+    !SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY ||
+    !supabaseAdmin
+  ) {
+    return jsonResponse(500, {
+      error: "Supabase proxy auth/logging secrets are not configured",
+    }, origin);
   }
 
   if (req.method !== "POST") {
@@ -942,7 +1273,11 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!(await isWithinRateLimit(user))) {
-    return jsonResponse(429, { error: "Temporary usage limit reached" }, origin);
+    return jsonResponse(
+      429,
+      { error: "Temporary usage limit reached" },
+      origin,
+    );
   }
 
   const url = new URL(req.url);
@@ -1007,11 +1342,13 @@ Deno.serve(async (req: Request) => {
         model,
         status_code: upstream.status,
         request_bytes: originalBodyBytes.byteLength,
-        intent: sanitized?.policy?.intent ?? null,
+        intent: sanitized?.intent ?? null,
         model_role: sanitized?.policy?.modelRole ?? null,
-        reasoning_effort: sanitized?.policy?.reasoningEffort ?? null,
+        reasoning_effort: sanitized?.reasoningEffort ?? null,
         estimated_cost_microusd: sanitized?.policy?.reservationMicrousd ?? null,
         usage_ledger_id: sanitized?.policy?.ledgerId ?? null,
+        web_search_offered: sanitized?.webSearchOffered ?? false,
+        web_search_quota_denied: sanitized?.webSearchQuotaDenied ?? false,
       });
 
       const monitoredBody = monitorStreamingBody(
@@ -1019,7 +1356,8 @@ Deno.serve(async (req: Request) => {
         requestStartedAt,
         async (usage, firstTokenMs) => {
           const streamSucceeded = usage?.terminalEvent === "response.completed";
-          const countsAsAnswer = streamSucceeded && usage?.hasFinalOutput === true;
+          const countsAsAnswer = streamSucceeded &&
+            usage?.hasFinalOutput === true;
           const actualCost = estimateActualCostMicrousd(
             usage?.model ?? model,
             usage,
@@ -1038,6 +1376,9 @@ Deno.serve(async (req: Request) => {
               cached_input_tokens: usage?.cachedInputTokens ?? null,
               output_tokens: usage?.outputTokens ?? null,
               total_tokens: usage?.totalTokens ?? null,
+              web_search_calls: usage?.webSearchCalls ?? null,
+              web_search_citations_present: usage?.hasWebSearchCitations ??
+                null,
               latency_ms: Math.round(performance.now() - requestStartedAt),
               time_to_first_token_ms: firstTokenMs,
               actual_cost_microusd: actualCost,
@@ -1055,7 +1396,8 @@ Deno.serve(async (req: Request) => {
           ]);
         },
         async () => {
-          const cancellationCost = sanitized?.policy?.reservationMicrousd ?? null;
+          const cancellationCost = sanitized?.policy?.reservationMicrousd ??
+            null;
           await Promise.all([
             updateRequestLog(streamLogId, {
               latency_ms: Math.round(performance.now() - requestStartedAt),
@@ -1089,7 +1431,9 @@ Deno.serve(async (req: Request) => {
     try {
       const responseJson = JSON.parse(responseText) as Record<string, unknown>;
       usage = extractResponsesUsage(responseJson);
-      responseStatus = typeof responseJson.status === "string" ? responseJson.status : null;
+      responseStatus = typeof responseJson.status === "string"
+        ? responseJson.status
+        : null;
       upstreamError = extractUpstreamErrorTelemetry(responseJson);
     } catch {
       upstreamError = nonJsonUpstreamErrorTelemetry(upstream.ok);
@@ -1128,14 +1472,20 @@ Deno.serve(async (req: Request) => {
         cached_input_tokens: usage?.cachedInputTokens ?? null,
         output_tokens: usage?.outputTokens ?? null,
         total_tokens: usage?.totalTokens ?? null,
-        intent: sanitized?.policy?.intent ?? null,
+        intent: sanitized?.intent ?? null,
         model_role: sanitized?.policy?.modelRole ?? null,
-        reasoning_effort: sanitized?.policy?.reasoningEffort ?? null,
+        reasoning_effort: sanitized?.reasoningEffort ?? null,
         latency_ms: Math.round(performance.now() - requestStartedAt),
         estimated_cost_microusd: sanitized?.policy?.reservationMicrousd ?? null,
         actual_cost_microusd: actualCost,
         usage_ledger_id: sanitized?.policy?.ledgerId ?? null,
-        error_category: upstreamError.present || !responseSucceeded ? "upstream_error" : null,
+        web_search_offered: sanitized?.webSearchOffered ?? false,
+        web_search_calls: usage?.webSearchCalls ?? null,
+        web_search_quota_denied: sanitized?.webSearchQuotaDenied ?? false,
+        web_search_citations_present: usage?.hasWebSearchCitations ?? null,
+        error_category: upstreamError.present || !responseSucceeded
+          ? "upstream_error"
+          : null,
         error_code: upstreamError.code,
         error_param: upstreamError.param,
         error: responseSucceeded ? null : reconciliationError,
@@ -1166,12 +1516,14 @@ Deno.serve(async (req: Request) => {
         model: sanitized?.model ?? null,
         status_code: status,
         request_bytes: requestBytes,
-        intent: sanitized?.policy?.intent ?? null,
+        intent: sanitized?.intent ?? null,
         model_role: sanitized?.policy?.modelRole ?? null,
-        reasoning_effort: sanitized?.policy?.reasoningEffort ?? null,
+        reasoning_effort: sanitized?.reasoningEffort ?? null,
         latency_ms: Math.round(performance.now() - requestStartedAt),
         estimated_cost_microusd: sanitized?.policy?.reservationMicrousd ?? null,
         usage_ledger_id: sanitized?.policy?.ledgerId ?? null,
+        web_search_offered: sanitized?.webSearchOffered ?? false,
+        web_search_quota_denied: sanitized?.webSearchQuotaDenied ?? false,
         error_category: proxyErrorCategory(error),
         error: proxyErrorCategory(error),
       }),
@@ -1188,6 +1540,10 @@ Deno.serve(async (req: Request) => {
     if (error instanceof ProxyPolicyError) {
       return jsonResponse(status, { error: message }, origin);
     }
-    return jsonResponse(502, { error: "Proxy upstream request failed" }, origin);
+    return jsonResponse(
+      502,
+      { error: "Proxy upstream request failed" },
+      origin,
+    );
   }
 });

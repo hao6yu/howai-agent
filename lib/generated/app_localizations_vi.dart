@@ -805,7 +805,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Đã hiểu';
 
   @override
-  String get chatInputHint => 'Hỏi bất cứ điều gì để bắt đầu...';
+  String get chatInputHint => 'Hỏi HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,14 +2980,35 @@ class AppLocalizationsVi extends AppLocalizations {
   String get speakButtonTooltip => 'Bắt đầu cuộc gọi giọng nói';
 
   @override
-  String get back => 'Back';
+  String get back => 'Quay lại';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'Trình đơn';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'Không có giọng nói nào khả dụng trên thiết bị này';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Bộ nhớ';
+
+  @override
+  String get research => 'Nghiên cứu';
+
+  @override
+  String get thinkingLevel => 'Mức suy luận';
+
+  @override
+  String get thinkingAuto => 'Tự động';
+
+  @override
+  String get thinkingFast => 'Nhanh';
+
+  @override
+  String get thinkingBalanced => 'Cân bằng';
+
+  @override
+  String get thinkingDeep => 'Sâu';
+
+  @override
+  String get thinkingLevelNote => 'Mức cao hơn mất nhiều thời gian và dùng nhiều token suy luận hơn.';
 }

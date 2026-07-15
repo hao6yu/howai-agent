@@ -259,7 +259,7 @@
   "voiceInputTipsSwitchInputDesc": "वॉयस और कीबोर्ड के बीच स्विच करने के लिए बाईं ओर के आइकन पर टैप करें",
   "voiceInputTipsDontShowAgain": "फिर से न दिखाएं",
   "voiceInputTipsGotIt": "समझ गया",
-  "chatInputHint": "बातचीत शुरू करने के लिए कुछ भी पूछें...",
+  "chatInputHint": "HowAI से पूछें",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "HowAI के साथ जितना चाहें चैट करें।",
   "playTooltip": "हाओ की आवाज़ सुनें",
@@ -1091,5 +1091,16 @@
   "voiceCallTimeRemaining": "Time remaining: {time}",
   "voiceCallTranscriptSaveFailed": "ट्रांसक्रिप्ट सहेजा नहीं जा सका। कृपया फिर से प्रयास करें।",
   "voiceCallUnmute": "अनम्यूट",
-  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time",
+  "back": "वापस",
+  "menu": "मेन्यू",
+  "voiceNoVoicesAvailable": "इस डिवाइस पर कोई आवाज़ उपलब्ध नहीं है",
+  "memory": "मेमोरी",
+  "research": "शोध",
+  "thinkingLevel": "सोचने का स्तर",
+  "thinkingAuto": "अपने आप",
+  "thinkingFast": "तेज़",
+  "thinkingBalanced": "संतुलित",
+  "thinkingDeep": "गहरा",
+  "thinkingLevelNote": "ऊँचे स्तरों में अधिक समय और अधिक रीजनिंग टोकन लगते हैं।"
 }

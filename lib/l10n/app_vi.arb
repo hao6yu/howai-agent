@@ -259,7 +259,7 @@
   "voiceInputTipsSwitchInputDesc": "Nhấn biểu tượng bên trái để chuyển đổi giữa giọng nói và bàn phím",
   "voiceInputTipsDontShowAgain": "Không hiển thị lại",
   "voiceInputTipsGotIt": "Đã hiểu",
-  "chatInputHint": "Hỏi bất cứ điều gì để bắt đầu...",
+  "chatInputHint": "Hỏi HowAI",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "Trò chuyện không giới hạn với HowAI.",
   "playTooltip": "Phát Giọng nói của Hao",
@@ -1091,5 +1091,16 @@
   "voiceCallTimeRemaining": "Time remaining: {time}",
   "voiceCallTranscriptSaveFailed": "Không thể lưu bản ghi. Vui lòng thử lại.",
   "voiceCallUnmute": "Bật tiếng micrô",
-  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time",
+  "back": "Quay lại",
+  "menu": "Trình đơn",
+  "voiceNoVoicesAvailable": "Không có giọng nói nào khả dụng trên thiết bị này",
+  "memory": "Bộ nhớ",
+  "research": "Nghiên cứu",
+  "thinkingLevel": "Mức suy luận",
+  "thinkingAuto": "Tự động",
+  "thinkingFast": "Nhanh",
+  "thinkingBalanced": "Cân bằng",
+  "thinkingDeep": "Sâu",
+  "thinkingLevelNote": "Mức cao hơn mất nhiều thời gian và dùng nhiều token suy luận hơn."
 }

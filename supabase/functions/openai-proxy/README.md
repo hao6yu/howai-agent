@@ -102,16 +102,31 @@ OPENAI_PROXY_GLOBAL_MONTHLY_BUDGET_MICROUSD=150000000
 OPENAI_PROXY_ANON_ANSWER_LIMIT=5
 OPENAI_PROXY_POLICY_WEB_SEARCH_ENABLED=false
 OPENAI_PROXY_POLICY_IMAGE_GENERATION_ENABLED=false
+OPENAI_PROXY_FREE_WEB_SEARCH_ENABLED=false
+OPENAI_PROXY_FREE_WEB_SEARCH_ANSWERS_PER_DAY=2
+OPENAI_PROXY_FREE_WEB_SEARCH_ANSWERS_PER_MONTH=20
+OPENAI_PROXY_FREE_WEB_SEARCH_RESERVATION_MICROUSD=40000
+OPENAI_PROXY_FREE_WEB_SEARCH_GLOBAL_DAILY_BUDGET_MICROUSD=1000000
+OPENAI_PROXY_FREE_WEB_SEARCH_GLOBAL_MONTHLY_BUDGET_MICROUSD=10000000
 ```
 
-Web search and image generation remain separately disabled in the policy path
-until their own ledgers and quotas are ready. Allowed function tools continue
-to pass through the existing allowlist. The policy fixes ordinary chat reasoning
-to `low`, the standard service tier, and the plan-specific output cap;
-client-supplied Pro mode, background execution, priority processing, and explicit
-prompt-cache controls are ignored. Verified paid synchronous Deep Research stays
-on the legacy hosted chat model with `high` reasoning until the persistent
-Research workstream replaces it.
+Paid web search and image generation remain controlled by their existing
+separate environment gates. Limited Free automatic search is triple-gated: the
+model policy must select an eligible signed-in Free Luna request,
+`OPENAI_PROXY_FREE_WEB_SEARCH_ENABLED` must be `true`, and the disabled-by-default
+`free_web_search` database flag must be in `internal` or `on` mode. The proxy
+reserves the 2-per-day/20-per-30-days allowance and conservative four-cent cost
+headroom before the OpenAI call, releases it when the model does not search,
+clamps Free responses to one built-in tool call, and reconciles the complete
+searched-response estimate. Provider spend is retained without consuming a
+user's allowance when a searched response fails or lacks citations.
+
+Allowed function tools continue to pass through the existing allowlist. The
+policy fixes ordinary chat reasoning to `low`, the standard service tier, and
+the plan-specific output cap. Client-supplied Pro mode, background execution,
+priority processing, and explicit prompt-cache controls are ignored. Verified
+paid synchronous Deep Research stays on the legacy hosted chat model with
+`high` reasoning until the persistent Research workstream replaces it.
 
 ## Deploy
 
@@ -122,6 +137,14 @@ supabase functions deploy openai-proxy
 
 Apply and verify database migrations before deploying the function. Enabling a
 feature flag is a separate release action after both deployments succeed.
+
+For Free web search, deploy in this order:
+
+1. Apply `free_web_search_quota` and run the database security/advisor checks.
+2. Deploy `openai-proxy` while both Free-search gates remain off.
+3. Set the environment gate, then use database mode `internal` for physical
+   testing. Move directly to `on` only after the internal cost/citation checks
+   pass.
 
 ## Base URL for mobile app
 

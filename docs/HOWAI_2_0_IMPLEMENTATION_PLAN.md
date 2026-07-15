@@ -8,14 +8,13 @@ Proposed release version: `2.0.0`
 Repository scope: Flutter clients and the shared Supabase backend. The web
 client is maintained and released from its own repository.
 
-Implementation status (2026-07-14): M0 is deployed and the dormant M1
-GPT-5.6 evaluation/canary foundation is deployed on
-`codex/howai-2-foundation`. Production migration history, RLS, privileges,
-advisors, and Edge Function v16 have been verified. No user-visible feature or
-GPT-5.6 route is enabled: the environment gate is absent, the database flag is
-disabled, its mode is `off`, its percentage is `0`, and no internal account is
-marked. The next release gate is selecting the private internal test account,
-capturing the versioned baseline, and explicitly enabling the internal canary.
+Implementation status (2026-07-14): M0 and the M1 GPT-5.6
+evaluation/canary foundation are deployed. Production migration history, RLS,
+privileges, advisors, and the current Edge Functions have been verified. The
+private internal canary is enabled for one administrative test account and a
+signed iPhone build has verified that its primary chat route resolves to
+`gpt-5.6-sol`; the general user rollout remains disabled. M2 UX beta work is in
+progress on `codex/howai-2-ux-beta`.
 
 M0 delivered:
 
@@ -51,6 +50,66 @@ M1 foundation delivered:
   service tier, and server-owned output/cost controls; optional GPT-5.6 modes
   remain disabled.
 
+M1 paid-entitlement bridge delivered:
+
+- Added a JWT-protected Supabase Edge Function that verifies StoreKit 2 JWS
+  transactions with Apple's official server library and pinned Apple roots.
+- Kept local StoreKit as the app UI/paywall source while caching only
+  server-verified paid access in the service-only `app_entitlements` table.
+- Existing subscribers bootstrap from the latest signed renewal in StoreKit
+  history after sign-in, app resume, purchase, or restore; no repurchase is
+  required.
+- Enforced one App Store original transaction per HowAI account and preserved
+  administrative entitlements during expired/revoked client syncs.
+- Deployed the ownership migration and verifier while leaving the GPT-5.6
+  environment gate and database rollout flag disabled.
+
+M2 UX beta in progress:
+
+- Removed the space-heavy persistent Chat, Research, and Actions tab bar; the
+  unfinished workspaces remain hidden until they provide durable user value.
+- Rebuilt the chat composer as one compact adaptive surface: it rests slightly
+  inset, expands on focus, exposes dictation beside the live voice agent, and
+  replaces both voice controls with Send while a draft exists. Web Search is
+  model-selected automatically for eligible requests.
+- Replaced the synchronous Deep Research toggle with a GPT-5.6 Thinking level
+  control (`Auto`, `Fast`, `Balanced`, `Deep`). Paid users can select a level.
+  Free users see the same control with a clear `Pro` label so the capability is
+  discoverable; tapping it opens a concise upgrade explanation without losing
+  the current draft. The proxy accepts only `low`, `medium`, or `high` for
+  trusted paid GPT-5.6 requests and ignores the client override for free,
+  legacy, or non-GPT-5.6 traffic.
+- Shortened the input placeholder to a localized `Ask HowAI`, verified the
+  one-line keyboard-open layout on iPhone, and added composer and large-text
+  accessibility widget tests.
+- Removed the forced first-run feature tour, delayed broad subscription banners
+  until after users receive chat value, and fixed the dark-theme landing title.
+- Added reusable Research/Actions empty states and the shared action-approval
+  card that M3 reminders will consume.
+- Added conversation content search, recency grouping, rename, archive/restore,
+  delete, and synchronized archive state. The nullable production schema change
+  is deployed with clean lint and advisor checks.
+- Remaining M2 gates: replace preview workspaces with feature-flag-aware beta
+  states, localize the new workspace and conversation labels, complete dynamic
+  text/semantics review, and run the product UX review.
+
+Free web search server slice — internal testing active:
+
+- Give signed-in Free users limited automatic web search, following the same
+  product principle as ChatGPT Free while retaining HowAI-owned cost limits.
+- Keep the composer free of a persistent search toggle. Eligible Luna requests
+  expose search with automatic tool choice; the model decides whether to call
+  it.
+- Enforce search eligibility, reservations, counters, and circuit breakers in
+  the Supabase proxy and service-owned database layer before enabling the
+  Flutter client.
+- Added the disabled-by-default migration, private reservation table,
+  service-only atomic RPCs, proxy eligibility, one-call clamp, SSE/JSON call and
+  citation detection, and focused tests. The production migration and proxy
+  v26 are deployed. The environment gate and `internal` database mode now
+  expose the feature to one dedicated Free QA account; general users remain
+  excluded.
+
 ## 1. Executive decision
 
 This should be treated as a major release. It changes HowAI from a chat-first app with separate utility features into an assistant workspace with persistent projects, realtime conversation, and user-approved actions.
@@ -63,7 +122,11 @@ The release has five product pillars:
 4. Firebase-backed push notifications orchestrated by Supabase.
 5. OpenAI Realtime voice and a persistent Research workspace.
 
-The release should be developed behind feature flags and shipped through internal, beta, and staged production rollouts. The existing ElevenLabs voice path should remain available as a fallback until OpenAI Realtime meets the release gates.
+The release should be developed behind feature flags, validated with internal
+accounts, and then enabled for all eligible users once its release gates pass.
+Percentage cohorts are not part of the normal rollout process for this hobby
+project. The existing ElevenLabs voice path should remain available as a
+fallback until OpenAI Realtime meets the release gates.
 
 ### Delivery model
 
@@ -106,7 +169,8 @@ At release, a user should be able to:
 - OpenAI Realtime speech-to-speech voice over WebRTC.
 - Persistent voice transcripts and shared text/voice tools.
 - Persistent background Research projects, runs, sources, and reports.
-- Feature flags, kill switches, structured telemetry, tests, CI, and staged rollout.
+- Feature flags, kill switches, structured telemetry, tests, CI, and an
+  internal-to-full rollout.
 - Entitlement-aware text-model routing, with GPT-5.6 Sol for paid primary chat, metered GPT-5.6 Luna access for free accounts, evals, a canary, and instant rollback.
 
 ### Explicitly excluded from 2.0
@@ -283,6 +347,137 @@ Implement entitlement and budget enforcement atomically on the server:
 
 The beta allowance is a starting economic guardrail, not a permanent product promise. Recalibrate it after two weeks of complete usage telemetry and conversion/retention data.
 
+### 0.2.1 Free web search release policy
+
+Status: **internal Free-account testing active**. The production migration and
+proxy v26 have passed deployment, privilege, advisor, and route checks. The
+environment gate is enabled and the database flag is limited to `mode:
+internal`; one dedicated Free QA account is allowlisted. General users remain
+excluded.
+
+Internal test log (2026-07-15, iPhone Simulator): the first current-news
+request passed the server path—`gpt-5.6-luna`, one completed search call,
+citations detected, both ledgers reconciled, and no exposure outside the
+dedicated account. The sample reached visible text in 8.647 seconds and
+completed in 10.423 seconds. Its conservative total request estimate was
+30,153 microUSD while the separate Free-search circuit breaker accounted
+15,000 microUSD. The internal hardening pass is now deployed: search requests
+pre-reserve 40,000 microUSD for concurrency safety and reconcile the search
+circuit breaker to the complete actual request estimate; server-owned response
+guidance requires the requested item count and inline citations without a
+second source appendix. The Flutter client no longer inserts the subscription
+banner above active conversations or duplicates citation annotations as a raw
+source list. Remaining internal checks are a simulator retest of the second
+allowed searched answer, a no-search small-talk request, quota denial on the
+third searched answer, cancellation, and the kill switch.
+
+ChatGPT currently makes search available to Free users and can decide
+automatically when a prompt benefits from current web information. HowAI will
+adopt the same availability principle, but not attempt to copy undisclosed
+ChatGPT rate limits. HowAI owns the API bill and therefore uses explicit,
+remotely configurable allowances.
+
+Initial beta defaults:
+
+| Cohort | Search access | Per-user allowance | Model/tool policy |
+| --- | --- | --- | --- |
+| Anonymous | Disabled | 0 | Keep nano-only abuse boundary for the first release |
+| Signed-in Free | Automatic | 2 completed searched answers per rolling day and 20 per rolling month | Luna only, `tool_choice: auto`, low search context, at most one web-search call per response |
+| Paid | Automatic | Existing paid cost circuit breakers; does not consume the Free allowance | Sol, automatic tool choice, server-owned limits |
+
+Additional global Free-search circuit breakers start at `$1.00` per rolling day
+and `$10.00` per rolling month, including the search tool charge and estimated
+search-content/model tokens. These are safety ceilings for the hobby-project
+beta, not product promises. They must be remotely configurable without an app
+release.
+
+#### Product and UX behavior
+
+- Do not restore a persistent Web Search button or an active-mode chip.
+- Do not add a classifier API call before each message. Search is offered only
+  on an otherwise eligible Luna request; the model decides whether it is
+  necessary.
+- Quick/small-talk requests keep the existing no-search profile. Search never
+  turns a greeting into a slower Luna/tool request by itself.
+- A searched answer must retain its inline citations and source links in both
+  streaming and non-streaming paths.
+- If the Free search allowance or global circuit breaker is exhausted, remove
+  the tool before the upstream request and add a bounded instruction that the
+  assistant must not claim it verified current information. For a clearly
+  time-sensitive question, return a localized explanation with the next reset
+  time and the paid option instead of silently presenting stale facts.
+- Do not advertise Free search as unlimited. The limit/reset state should be
+  visible only when relevant, not as permanent composer clutter.
+
+#### Server-owned eligibility and accounting
+
+- The Flutter client may request automatic search, but it cannot grant itself
+  a model, entitlement, allowance, or larger tool-call limit.
+- The proxy verifies a trusted signed-in entitlement and resolves the request
+  to Luna before allowing Free search. Nano fallback does not receive web
+  search in the first release.
+- Clamp the Responses request to `max_tool_calls: 1` when Free web search is
+  available. Expose only the normalized `web_search` tool with low search
+  context on that route.
+- Reserve a conservative search budget atomically before calling OpenAI. The
+  reservation covers the current `$0.01` tool-call price plus configurable
+  search-content/model-token headroom.
+- Release the search reservation and consume no user search allowance when the
+  model does not emit a `web_search_call`.
+- Count a user allowance only when a final answer succeeds and includes a
+  completed `web_search_call`. Record actual provider spend even if a search
+  occurred before a later response failure, so global cost telemetry remains
+  honest without penalizing the user's allowance for a failed answer.
+- Reconcile both terminal JSON and terminal SSE responses. Store the actual
+  search-call count in `ai_usage_ledger.tool_calls`; do not infer a call merely
+  because the request exposed the tool.
+- Search-capable Free responses consume the existing Luna answer/cost allowance
+  as well as the separate search allowance. Reservation and reconciliation
+  must remain safe under simultaneous requests from the same user.
+- Keep quota tables and reservation functions service-owned in a private,
+  unexposed schema. If privileged database functions are required, revoke
+  `PUBLIC` execution, authenticate in the Edge Function, and do not expose the
+  service-role key to Flutter.
+
+#### Flags, telemetry, and rollback
+
+- Add a server-managed `free_web_search` flag with `off`, `internal`, and `on`
+  modes. `internal` limits access to approved test accounts; `on` enables all
+  otherwise eligible signed-in Free accounts. `off` must instantly restore the
+  current behavior without a client release.
+- Record search offered, search called, quota denied, reservation/reconciliation
+  result, resolved model, citations present, first-token latency, total latency,
+  and estimated cost. Do not record prompts, responses, or raw search queries.
+- Roll out to internal Free test accounts, then enable all eligible signed-in
+  Free accounts after cost and citation checks pass.
+- Keep a separate global Free-search kill switch even after full rollout.
+
+#### Implementation order and exit gates
+
+1. **Complete locally:** add the private atomic reservation/reconciliation
+   migration and concurrency-oriented quota tests without enabling search.
+2. **Complete locally:** extend `openai-proxy` to enforce entitlement, Luna
+   routing, normalized tool shape, `max_tool_calls`, SSE/JSON call detection,
+   citation telemetry, and transparent fallback.
+3. Enable Free automatic search in Flutter only after the migration and proxy
+   deployments are verified; keep the UI toggle absent.
+4. Run internal tests for current news, weather, prices, sports, no-search small
+   talk, citations, allowance reset, two simultaneous requests, upstream
+   failure, streaming cancellation, and the global kill switch.
+5. Approve full rollout only when no client can bypass the limits, every
+   searched answer has usable citations, non-search latency is unchanged, and
+   observed cost remains within the configured budgets.
+
+Official references:
+
+- [ChatGPT Search availability and automatic behavior](https://help.openai.com/en/articles/9237897-chatgpt-search)
+- [ChatGPT Free plan capabilities](https://help.openai.com/en/articles/9275245-using-chatgpt-s-free-plan)
+- [OpenAI built-in tool behavior](https://developers.openai.com/api/docs/guides/tools)
+- [OpenAI API pricing](https://developers.openai.com/api/docs/pricing)
+- [Responses API request controls](https://developers.openai.com/api/reference/resources/responses/methods/create)
+- [Supabase Edge Functions](https://supabase.com/docs/guides/functions)
+- [Supabase database functions](https://supabase.com/docs/guides/database/functions)
+
 ### 0.3 Preserve behavior before prompt changes
 
 - Use an explicit reasoning effort for the first GPT-5.6 comparison: `low` for ordinary/mobile chat and `high` for the current synchronous Deep Research path.
@@ -317,13 +512,16 @@ After the model-only baseline:
 - Keep action approval rules compact and centralized so GPT-5.6 can be proactive inside safe boundaries without executing external or side-effecting work prematurely.
 - Re-run the same fixtures after each prompt or reasoning change.
 
-### 0.6 Canary and rollback
+### 0.6 Internal validation and rollback
 
-- Extend `openai-proxy` with a candidate model setting, deterministic user cohort, and rollout percentage.
-- Suggested sequence: internal accounts, 5%, 25%, 50%, then 100% after gates pass.
+- Use the existing candidate-model and internal-account cohort controls. The
+  percentage-bucket machinery may remain as rollback infrastructure, but it is
+  not a release stage and requires no additional rollout UI or process.
+- Follow a simple operating sequence: internal accounts, then all eligible
+  users after the gates pass.
 - Log requested alias, resolved model, cohort, reasoning effort, latency, usage, tool outcome, and error category without logging user content.
 - Roll back by setting the GPT-5.6 cohort to 0%; no client release should be required.
-- After 100% stabilization, update the source fallback and active configuration together so deployment behavior is not dependent on an old `gpt-5.2` fallback.
+- After full-release stabilization, update the source fallback and active configuration together so deployment behavior is not dependent on an old `gpt-5.2` fallback.
 
 ### 0.7 GPT-5.6 exit gates
 
@@ -376,6 +574,17 @@ The resting composer contains:
 - Send button.
 
 Research, Places, Images, Documents, and other modes move into a single mode/tool sheet. Remove duplicate Research affordances and keep mode state visibly attached to the composer only while active.
+
+The Thinking level is also available from this sheet:
+
+- Paid users can choose `Auto`, `Fast`, `Balanced`, or `Deep`; the selected
+  level remains visible near the composer only while it differs from `Auto`.
+- Free users see a compact `Thinking · Pro` row rather than a hidden feature or
+  a permanently disabled composer control. Tapping it previews the levels and
+  opens the contextual subscription screen; it does not change the active
+  request.
+- The client display is promotional, not authoritative. Entitlement and the
+  final reasoning effort remain server-owned.
 
 ### A4. First-run and empty states
 
@@ -796,6 +1005,8 @@ Track the minimum telemetry needed to operate the release:
 - Research start, provider status, webhook latency, completion, failure, and notification result.
 - Feature-flag exposure so metrics can be compared by cohort.
 - Requested and resolved text model, GPT-5.6 rollout cohort, reasoning effort, cache usage, and eval version.
+- Free web search offered/called/denied counts, citation presence, allowance
+  consumption, reservation/reconciliation result, latency, and estimated cost.
 
 Do not log prompt contents, reminder notes, transcripts, research reports, API keys, or device tokens in operational logs by default.
 
@@ -804,13 +1015,13 @@ Do not log prompt contents, reminder notes, transcripts, research reports, API k
 | Milestone | Scope | Exit criteria |
 | --- | --- | --- |
 | M0 — Release foundation | Schema reconciliation, staging environments, feature flags, CI/tests, component seams, tool contracts | Clean reproducible baseline; no production behavior change |
-| M1 — GPT-5.6 canary | Model inventory, eval fixtures, Sol baseline, targeted prompt tuning, proxy cohort and rollback | Model/tool/safety/cost gates pass; canary and rollback verified |
+| M1 — GPT-5.6 canary | Model inventory, eval fixtures, Sol baseline, targeted prompt tuning, proxy cohort and rollback, limited Free automatic web search | Model/tool/safety/cost gates pass; canary, Free-search quotas, citations, and rollback verified |
 | M2 — UX beta | Navigation, composer, onboarding, conversation management, paywall cleanup, shared approval cards | Existing chat functions pass regression tests; UX review approved |
 | M3 — Actions beta | Reminder schema, tools, action endpoint, Actions UI, recurrence engine, offline states | Text-created reminders work end-to-end without push |
 | M4 — Notification beta | Firebase setup, device registration, queue/dispatcher, FCM, deep links, notification actions | Physical-device delivery and duplicate tests pass |
 | M5 — Realtime voice beta | Ephemeral session endpoint, WebRTC client, transcript, interruption, reminder tools, ElevenLabs fallback | Voice quality, safety, usage, and fallback gates pass |
 | M6 — Research beta | Persistent projects/runs/sources, background Responses, webhook, completion push | Leave/resume/completion flow passes and sources remain durable |
-| M7 — Release candidate | Localization, accessibility, performance, security review, store assets/privacy, staged rollout controls | All release gates pass and rollback is tested |
+| M7 — Release candidate | Localization, accessibility, performance, security review, store assets/privacy, internal-to-full rollout controls | All release gates pass and rollback is tested |
 
 M0 and external Firebase/APNs setup can begin together. M1 must stabilize the text model and tool behavior before reminder tools are accepted as production-ready. After the shared action contracts are stable, reminder backend/client work and Realtime transport work can proceed in parallel. Research depends on the notification service but not on reminder UI.
 

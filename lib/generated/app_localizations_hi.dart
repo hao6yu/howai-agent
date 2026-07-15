@@ -805,7 +805,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get voiceInputTipsGotIt => 'समझ गया';
 
   @override
-  String get chatInputHint => 'बातचीत शुरू करने के लिए कुछ भी पूछें...';
+  String get chatInputHint => 'HowAI से पूछें';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,14 +2980,35 @@ class AppLocalizationsHi extends AppLocalizations {
   String get speakButtonTooltip => 'वॉइस कॉल शुरू करें';
 
   @override
-  String get back => 'Back';
+  String get back => 'वापस';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'मेन्यू';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'इस डिवाइस पर कोई आवाज़ उपलब्ध नहीं है';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'मेमोरी';
+
+  @override
+  String get research => 'शोध';
+
+  @override
+  String get thinkingLevel => 'सोचने का स्तर';
+
+  @override
+  String get thinkingAuto => 'अपने आप';
+
+  @override
+  String get thinkingFast => 'तेज़';
+
+  @override
+  String get thinkingBalanced => 'संतुलित';
+
+  @override
+  String get thinkingDeep => 'गहरा';
+
+  @override
+  String get thinkingLevelNote => 'ऊँचे स्तरों में अधिक समय और अधिक रीजनिंग टोकन लगते हैं।';
 }

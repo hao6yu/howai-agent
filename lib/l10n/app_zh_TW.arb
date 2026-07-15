@@ -259,7 +259,7 @@
   "voiceInputTipsSwitchInputDesc": "點擊左側圖示在語音和鍵盤間切換",
   "voiceInputTipsDontShowAgain": "不再顯示",
   "voiceInputTipsGotIt": "知道了",
-  "chatInputHint": "問我任何問題，開始我們的對話...",
+  "chatInputHint": "詢問 HowAI",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "與 HowAI 無限暢聊。",
   "playTooltip": "播放 Hao 的語音",
@@ -1091,5 +1091,16 @@
   "voiceCallTimeRemaining": "剩餘時間：{time}",
   "voiceCallTranscriptSaveFailed": "儲存通話紀錄失敗，請再試一次。",
   "voiceCallUnmute": "取消靜音",
-  "voiceCallUpgradePrompt": "升級以獲得更多語音通話時間"
+  "voiceCallUpgradePrompt": "升級以獲得更多語音通話時間",
+  "back": "返回",
+  "menu": "選單",
+  "voiceNoVoicesAvailable": "此裝置上沒有可用的語音",
+  "memory": "記憶",
+  "research": "研究",
+  "thinkingLevel": "思考級別",
+  "thinkingAuto": "自動",
+  "thinkingFast": "快速",
+  "thinkingBalanced": "均衡",
+  "thinkingDeep": "深度",
+  "thinkingLevelNote": "級別越高，耗時越長，並會使用更多推理權杖。"
 }

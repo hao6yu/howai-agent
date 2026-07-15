@@ -805,7 +805,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Compris';
 
   @override
-  String get chatInputHint => 'Demandez-moi n\'importe quoi pour commencer...';
+  String get chatInputHint => 'Demandez à HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,14 +2980,35 @@ class AppLocalizationsFr extends AppLocalizations {
   String get speakButtonTooltip => 'Démarrer un appel vocal';
 
   @override
-  String get back => 'Back';
+  String get back => 'Retour';
 
   @override
   String get menu => 'Menu';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'Aucune voix n’est disponible sur cet appareil';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Mémoire';
+
+  @override
+  String get research => 'Recherche';
+
+  @override
+  String get thinkingLevel => 'Niveau de réflexion';
+
+  @override
+  String get thinkingAuto => 'Automatique';
+
+  @override
+  String get thinkingFast => 'Rapide';
+
+  @override
+  String get thinkingBalanced => 'Équilibré';
+
+  @override
+  String get thinkingDeep => 'Approfondi';
+
+  @override
+  String get thinkingLevelNote => 'Les niveaux supérieurs prennent plus de temps et utilisent plus de jetons de raisonnement.';
 }

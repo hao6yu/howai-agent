@@ -805,7 +805,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get voiceInputTipsGotIt => '了解';
 
   @override
-  String get chatInputHint => '何でも聞いて会話を始めましょう...';
+  String get chatInputHint => 'HowAIに質問';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,14 +2980,35 @@ class AppLocalizationsJa extends AppLocalizations {
   String get speakButtonTooltip => '音声通話を開始';
 
   @override
-  String get back => 'Back';
+  String get back => '戻る';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'メニュー';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'このデバイスで利用できる音声がありません';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'メモリ';
+
+  @override
+  String get research => 'リサーチ';
+
+  @override
+  String get thinkingLevel => '思考レベル';
+
+  @override
+  String get thinkingAuto => '自動';
+
+  @override
+  String get thinkingFast => '高速';
+
+  @override
+  String get thinkingBalanced => 'バランス';
+
+  @override
+  String get thinkingDeep => '深く';
+
+  @override
+  String get thinkingLevelNote => '高いレベルほど時間がかかり、推論トークンを多く使用します。';
 }

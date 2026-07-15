@@ -263,7 +263,7 @@
   "voiceInputTipsSwitchInputDesc": "Tap the icon on the left to switch between voice and keyboard",
   "voiceInputTipsDontShowAgain": "Don't show again",
   "voiceInputTipsGotIt": "Got it",
-  "chatInputHint": "Ask me anything to start our conversation...",
+  "chatInputHint": "Ask HowAI",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "Chat as much as you want with HowAI.",
   "playTooltip": "Play Hao's Voice",
@@ -1150,5 +1150,12 @@
   "back": "Back",
   "menu": "Menu",
   "voiceNoVoicesAvailable": "No voices available on this device",
-  "memory": "Memory"
+  "memory": "Memory",
+  "research": "Research",
+  "thinkingLevel": "Thinking level",
+  "thinkingAuto": "Auto",
+  "thinkingFast": "Fast",
+  "thinkingBalanced": "Balanced",
+  "thinkingDeep": "Deep",
+  "thinkingLevelNote": "Higher levels take longer and use more reasoning tokens."
 }

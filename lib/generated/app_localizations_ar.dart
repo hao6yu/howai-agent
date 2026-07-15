@@ -805,7 +805,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get voiceInputTipsGotIt => 'فهمت';
 
   @override
-  String get chatInputHint => 'اسأل أي شيء لبدء محادثتنا...';
+  String get chatInputHint => 'اسأل HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,14 +2980,35 @@ class AppLocalizationsAr extends AppLocalizations {
   String get speakButtonTooltip => 'بدء مكالمة صوتية';
 
   @override
-  String get back => 'Back';
+  String get back => 'رجوع';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'القائمة';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'لا توجد أصوات متاحة على هذا الجهاز';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'الذاكرة';
+
+  @override
+  String get research => 'بحث';
+
+  @override
+  String get thinkingLevel => 'مستوى التفكير';
+
+  @override
+  String get thinkingAuto => 'تلقائي';
+
+  @override
+  String get thinkingFast => 'سريع';
+
+  @override
+  String get thinkingBalanced => 'متوازن';
+
+  @override
+  String get thinkingDeep => 'عميق';
+
+  @override
+  String get thinkingLevelNote => 'تستغرق المستويات الأعلى وقتًا أطول وتستخدم رموز استدلال أكثر.';
 }

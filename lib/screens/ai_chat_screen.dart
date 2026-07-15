@@ -17,6 +17,7 @@ import '../widgets/chat_message_widget.dart';
 import '../widgets/chat_input_widget.dart';
 import '../widgets/pptx_generation_dialog.dart';
 import '../widgets/translation_dialog.dart';
+import '../widgets/subscription_banner.dart';
 import '../utils/chat_utils.dart';
 
 // Import the extracted services
@@ -35,6 +36,7 @@ import '../constants/chat_ui_constants.dart';
 
 import '../models/chat_message.dart';
 import '../models/knowledge_item.dart';
+import '../models/thinking_level.dart';
 import '../services/database_service.dart';
 import '../services/openai_service.dart';
 import '../services/elevenlabs_service.dart';
@@ -49,7 +51,6 @@ import '../providers/conversation_provider.dart';
 import '../providers/ai_personality_provider.dart';
 import '../services/subscription_service.dart';
 import '../widgets/upgrade_dialog.dart';
-import '../widgets/subscription_banner.dart';
 import '../services/file_service.dart';
 import '../services/location_service.dart';
 import '../services/sync_service.dart';
@@ -192,16 +193,13 @@ class _AiChatScreenState extends State<AiChatScreen>
   // Add system instruction for PPTX generation
   String? _pendingSystemInstruction;
 
-  // Deep research/thinking mode toggle state (premium feature)
-  bool _forceDeepResearch = false;
+  // Paid GPT-5.6 reasoning control. Auto preserves the server-selected profile.
+  ThinkingLevel _thinkingLevel = ThinkingLevel.auto;
 
   // Showcase GlobalKeys for feature highlighting
-  final GlobalKey _deepResearchKey = GlobalKey();
   final GlobalKey _drawerButtonKey = GlobalKey();
   final GlobalKey _quickActionsKey = GlobalKey();
   final GlobalKey _speakButtonKey = GlobalKey();
-  bool _showcaseCompleted = false;
-  BuildContext? _showcaseContext;
 
   @override
   void initState() {
@@ -263,9 +261,6 @@ class _AiChatScreenState extends State<AiChatScreen>
       _applyPremiumVoiceDefaultsIfNeeded();
     });
 
-    // Initialize feature showcase
-    _initializeFeatureShowcase();
-
     // Setup real-time sync for current conversation
     _setupRealtimeSync();
   }
@@ -296,94 +291,6 @@ class _AiChatScreenState extends State<AiChatScreen>
       debugPrint('[AIChatScreen] Error setting up real-time sync (silent): $e');
       // Silent failure - doesn't affect user experience
     }
-  }
-
-  // Initialize feature showcase
-  void _initializeFeatureShowcase() async {
-    // print('🎯 [ChatScreen] Initializing feature showcase...');
-
-    // Wait for UI to fully load before checking for showcase
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    if (!mounted) {
-      // print('🎯 [ChatScreen] Widget not mounted, skipping showcase');
-      return;
-    }
-
-    // print('🎯 [ChatScreen] Checking if should show showcase...');
-    final shouldShow = await FeatureShowcaseService.shouldShowShowcase();
-    // print('🎯 [ChatScreen] Should show showcase: $shouldShow');
-
-    if (shouldShow) {
-      // print('🎯 [ChatScreen] Starting feature showcase...');
-      _startFeatureShowcase();
-    } else {
-      // print('🎯 [ChatScreen] Not showing showcase');
-
-      // Debug: Print showcase status
-      final status = await FeatureShowcaseService.getShowcaseStatus();
-      // print('🎯 [ChatScreen] Showcase status: $status');
-    }
-  }
-
-  void _startFeatureShowcase() {
-    if (!mounted || _showcaseCompleted || _showcaseContext == null) {
-      // print('🎯 [ChatScreen] Cannot start showcase - mounted: $mounted, completed: $_showcaseCompleted, context: ${_showcaseContext != null}');
-      return;
-    }
-
-    // Get features from service (single source of truth)
-    final features =
-        FeatureShowcaseService.getFeaturesForCurrentVersion(context);
-    final keysToShow = _mapFeaturesToKeys(features);
-
-    if (keysToShow.isEmpty) {
-      // print('🎯 [ChatScreen] No features to showcase');
-      return;
-    }
-
-    // print('🎯 [ChatScreen] Starting showcase with ${keysToShow.length} features');
-
-    // Verify ShowCaseWidget is available
-    try {
-      final showcaseWidget = ShowCaseWidget.of(_showcaseContext!);
-      // print('🎯 [ChatScreen] ShowCaseWidget found: ${showcaseWidget != null}');
-
-      // Start the showcase with features from service
-      ShowCaseWidget.of(_showcaseContext!).startShowCase(keysToShow);
-      // print('🎯 [ChatScreen] ✅ Showcase started successfully!');
-    } catch (e) {
-      // print('🎯 [ChatScreen] ❌ Error starting showcase: $e');
-    }
-  }
-
-  // Map feature IDs to GlobalKeys
-  List<GlobalKey> _mapFeaturesToKeys(List<ShowcaseFeature> features) {
-    final keys = <GlobalKey>[];
-    for (final feature in features) {
-      final key = () {
-        switch (feature.id) {
-          case 'drawer_button':
-          case 'knowledge_hub':
-            return _drawerButtonKey;
-          case 'tools_mode':
-          case 'web_search':
-          case 'quick_actions':
-            return _quickActionsKey;
-          case 'deep_research':
-            return _deepResearchKey;
-          case 'speak_button':
-            return _speakButtonKey;
-          default:
-            // print('🎯 [ChatScreen] ⚠️ Unknown feature ID: ${feature.id}');
-            return null;
-        }
-      }();
-      if (key != null && key.currentContext != null && !keys.contains(key)) {
-        keys.add(key);
-      }
-    }
-    return keys;
   }
 
   // Get showcase data for a specific feature ID
@@ -763,12 +670,14 @@ class _AiChatScreenState extends State<AiChatScreen>
     required bool generateTitle,
     required bool isPremiumUser,
     required bool allowWebSearch,
+    required bool forceWebSearch,
     required bool allowImageGeneration,
     SubscriptionService? subscriptionService,
     dynamic aiPersonality,
     int? conversationId,
     required String requestId,
     required String aiName,
+    String? reasoningEffortOverride,
   }) async {
     final timestamp = DateTime.now().toIso8601String();
 
@@ -818,9 +727,11 @@ class _AiChatScreenState extends State<AiChatScreen>
         generateTitle: generateTitle,
         isPremiumUser: isPremiumUser,
         allowWebSearch: allowWebSearch,
+        forceWebSearch: forceWebSearch,
         allowImageGeneration: allowImageGeneration,
         subscriptionService: subscriptionService,
         aiPersonality: aiPersonality,
+        reasoningEffortOverride: reasoningEffortOverride,
       );
 
       await for (final event in stream) {
@@ -1101,7 +1012,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     // Get subscription service
     final subscriptionService =
         Provider.of<SubscriptionService>(context, listen: false);
-
     // Check image analysis limits if images are present (but don't consume usage yet)
     if (images != null && images.isNotEmpty) {
       if (!subscriptionService.isPremium) {
@@ -1244,8 +1154,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
 
     // Set loading state first
-    final isDeepResearchMode =
-        _forceDeepResearch && subscriptionService.isPremium;
     setState(() {
       _isSending = true;
       _textController.clear();
@@ -1253,7 +1161,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       _isPdfWorkflowActive =
           false; // Reset PDF workflow flag when sending message
     });
-    _startLoadingMessageRotation(aiName, isDeepResearch: isDeepResearchMode);
+    _startLoadingMessageRotation(aiName);
 
     // Add message to UI state AFTER building the history, but check for duplicates
     setState(() {
@@ -1368,26 +1276,20 @@ class _AiChatScreenState extends State<AiChatScreen>
         subscriptionService: subscriptionService,
       );
 
-      // Determine if we should use deep research mode
-      final isDeepResearchMode =
-          _forceDeepResearch && subscriptionService.isPremium;
-      if (isDeepResearchMode) {
-        // print('[ChatScreen] Deep Research Mode ENABLED - Using reasoning model');
-      }
+      final reasoningEffortOverride =
+          subscriptionService.isPremium ? _thinkingLevel.reasoningEffort : null;
 
       // Check if streaming is enabled
-      // Disable streaming for:
-      // 1) deep research mode (reasoning takes too long to stream)
-      // 2) image-generation style requests (streaming path skips image tool)
+      // Image-generation style requests stay non-streaming because the
+      // streaming path does not receive the generated image result reliably.
       final isLikelyImageGenerationRequest =
           _looksLikeImageGenerationRequest(finalMessage);
-      final useStreaming = settings.useStreaming &&
-          !isDeepResearchMode &&
-          !isLikelyImageGenerationRequest;
+      final useStreaming =
+          settings.useStreaming && !isLikelyImageGenerationRequest;
       print(
         '[ChatScreen] Streaming decision => useStreaming=$useStreaming '
         '(settings.useStreaming=${settings.useStreaming}, '
-        'isDeepResearchMode=$isDeepResearchMode, '
+        'reasoningEffortOverride=$reasoningEffortOverride, '
         'isLikelyImageGenerationRequest=$isLikelyImageGenerationRequest)',
       );
 
@@ -1405,6 +1307,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           generateTitle: shouldGenerateAiTitle,
           isPremiumUser: subscriptionService.isPremium,
           allowWebSearch: subscriptionService.canUseWebSearch,
+          forceWebSearch: false,
           allowImageGeneration: true,
           subscriptionService: subscriptionService,
           fileAttachments: files,
@@ -1412,6 +1315,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           conversationId: conversationId,
           requestId: requestId,
           aiName: aiName,
+          reasoningEffortOverride: reasoningEffortOverride,
         );
       } else {
         print('[ChatScreen] Using NON-STREAMING response path');
@@ -1425,8 +1329,9 @@ class _AiChatScreenState extends State<AiChatScreen>
           generateTitle: shouldGenerateAiTitle,
           isPremiumUser: subscriptionService.isPremium,
           allowWebSearch: subscriptionService.canUseWebSearch,
+          forceWebSearch: false,
           allowImageGeneration: true,
-          isDeepResearch: isDeepResearchMode,
+          reasoningEffortOverride: reasoningEffortOverride,
           subscriptionService: subscriptionService,
           fileAttachments: files,
           aiPersonality: aiPersonality,
@@ -2360,8 +2265,6 @@ class _AiChatScreenState extends State<AiChatScreen>
       onFinish: () async {
         // Mark showcase as completed so it won't show again
         await FeatureShowcaseService.markShowcaseShown();
-        _showcaseCompleted = true;
-        // print('🎉 Feature showcase completed!');
       },
       onStart: (index, key) {
         // print('🎯 [Showcase] Started step ${(index ?? 0) + 1} with key: $key');
@@ -2372,8 +2275,6 @@ class _AiChatScreenState extends State<AiChatScreen>
       enableAutoScroll: false,
       disableBarrierInteraction: false,
       builder: (context) {
-        // Store the context that has access to ShowCaseWidget
-        _showcaseContext = context;
         return Consumer<ConversationProvider>(
           builder: (context, conversationProvider, child) {
             final selectedConversation =
@@ -2450,6 +2351,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             return Scaffold(
               drawer: ConversationDrawer(profileId: _currentProfileId),
               appBar: AppBar(
+                toolbarHeight: 48,
                 title: BrandedAppTitle(
                   onTap: () {
                     // Optional: Navigate to subscription screen when tapped
@@ -2536,9 +2438,6 @@ class _AiChatScreenState extends State<AiChatScreen>
                     maintainBottomViewPadding: true,
                     child: Column(
                       children: [
-                        // Subscription banner
-                        SubscriptionBanner(),
-
                         // Chat messages list
                         Expanded(
                           child: _isLoading
@@ -2918,13 +2817,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                             _showTranslationDialog();
                           },
                           onSpeakCall: _startElevenLabsCall,
-                          forceDeepResearch: _forceDeepResearch,
-                          onDeepResearchToggle: (enabled) {
+                          thinkingLevel: _thinkingLevel,
+                          onThinkingLevelChanged: (level) {
                             setState(() {
-                              _forceDeepResearch = enabled;
+                              _thinkingLevel = level;
                             });
                           },
-                          deepResearchKey: _deepResearchKey,
                           quickActionsKey: _quickActionsKey,
                           speakKey: _speakButtonKey,
                           onQuickAction: (prompt) {
@@ -5460,7 +5358,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(24),
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF1C1C1E),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                   textAlign: TextAlign.center,
                 ),

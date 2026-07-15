@@ -259,7 +259,7 @@
   "voiceInputTipsSwitchInputDesc": "点击左侧图标在语音和键盘间切换",
   "voiceInputTipsDontShowAgain": "不再显示",
   "voiceInputTipsGotIt": "知道了",
-  "chatInputHint": "问我任何问题，开始我们的对话...",
+  "chatInputHint": "询问 HowAI",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "与 HowAI 无限畅聊。",
   "playTooltip": "播放 Hao 的语音",
@@ -1073,5 +1073,16 @@
     }
   },
   "speakButtonLabel": "对话",
-  "speakButtonTooltip": "开始语音通话"
+  "speakButtonTooltip": "开始语音通话",
+  "back": "返回",
+  "menu": "菜单",
+  "voiceNoVoicesAvailable": "此设备上没有可用的语音",
+  "memory": "记忆",
+  "research": "研究",
+  "thinkingLevel": "思考级别",
+  "thinkingAuto": "自动",
+  "thinkingFast": "快速",
+  "thinkingBalanced": "均衡",
+  "thinkingDeep": "深度",
+  "thinkingLevelNote": "级别越高，耗时越长，并会使用更多推理令牌。"
 }

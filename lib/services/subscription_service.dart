@@ -130,7 +130,8 @@ class UsageStats {
       pdfGenerationsCount: json['pdfGenerationsCount'] ?? 0,
       placesExplorerCount: json['placesExplorerCount'] ?? 0,
       documentAnalysisCount: json['documentAnalysisCount'] ?? 0,
-      lastReset: DateTime.fromMillisecondsSinceEpoch(json['lastReset'] ?? DateTime.now().millisecondsSinceEpoch),
+      lastReset: DateTime.fromMillisecondsSinceEpoch(
+          json['lastReset'] ?? DateTime.now().millisecondsSinceEpoch),
     );
   }
 }
@@ -150,31 +151,41 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   // ---------------------------------------------------------------------------
 
   // iOS App Store IDs (mixed case - existing subscribers)
-  static const String _iosMonthlySubscriptionId = 'com.hyu.HaoGPT.premium.monthly';
-  static const String _iosYearlySubscriptionId = 'com.haoyu.HaoGPT.premium.yearly';
+  static const String _iosMonthlySubscriptionId =
+      'com.hyu.HaoGPT.premium.monthly';
+  static const String _iosYearlySubscriptionId =
+      'com.haoyu.HaoGPT.premium.yearly';
 
   // Google Play Store IDs (lowercase only - new requirement)
-  static const String _androidMonthlySubscriptionId = 'com.hyu.haogpt.premium.monthly';
-  static const String _androidYearlySubscriptionId = 'com.haoyu.haogpt.premium.yearly';
+  static const String _androidMonthlySubscriptionId =
+      'com.hyu.haogpt.premium.monthly';
+  static const String _androidYearlySubscriptionId =
+      'com.haoyu.haogpt.premium.yearly';
 
   // Get platform-specific product IDs
   static String get monthlySubscriptionId {
-    return Platform.isIOS ? _iosMonthlySubscriptionId : _androidMonthlySubscriptionId;
+    return Platform.isIOS
+        ? _iosMonthlySubscriptionId
+        : _androidMonthlySubscriptionId;
   }
 
   static String get yearlySubscriptionId {
-    return Platform.isIOS ? _iosYearlySubscriptionId : _androidYearlySubscriptionId;
+    return Platform.isIOS
+        ? _iosYearlySubscriptionId
+        : _androidYearlySubscriptionId;
   }
 
   // All subscription product IDs for this platform
-  static Set<String> get _allSubscriptionIds => {monthlySubscriptionId, yearlySubscriptionId};
+  static Set<String> get _allSubscriptionIds =>
+      {monthlySubscriptionId, yearlySubscriptionId};
 
   // ---------------------------------------------------------------------------
   // Constants for entitlement cache & throttle
   // ---------------------------------------------------------------------------
 
   static const String _isSubscribedKey = 'isSubscribed';
-  static const String _subscriptionValidUntilMsKey = 'subscription_valid_until_ms';
+  static const String _subscriptionValidUntilMsKey =
+      'subscription_valid_until_ms';
   // Used for Google Play cache expiry estimation and fallback heuristic
   static const int _subscriptionCycleDays = 31;
   static const int _subscriptionGraceDays = 7;
@@ -206,7 +217,9 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
     if (product.rawPrice > 0) {
       final actualPrice = product.rawPrice / 1000000;
-      final currencySymbol = product.currencySymbol.isNotEmpty ? product.currencySymbol : _getCurrencySymbol(product.currencyCode);
+      final currencySymbol = product.currencySymbol.isNotEmpty
+          ? product.currencySymbol
+          : _getCurrencySymbol(product.currencyCode);
       return '$currencySymbol${actualPrice.toStringAsFixed(2)}';
     }
 
@@ -221,18 +234,30 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   String _getCurrencySymbol(String currencyCode) {
     switch (currencyCode.toUpperCase()) {
-      case 'USD': return '\$';
-      case 'EUR': return '€';
-      case 'GBP': return '£';
-      case 'JPY': return '¥';
-      case 'CNY': return '¥';
-      case 'KRW': return '₩';
-      case 'INR': return '₹';
-      case 'BRL': return 'R\$';
-      case 'RUB': return '₽';
-      case 'CAD': return 'C\$';
-      case 'AUD': return 'A\$';
-      default: return '$currencyCode ';
+      case 'USD':
+        return '\$';
+      case 'EUR':
+        return '€';
+      case 'GBP':
+        return '£';
+      case 'JPY':
+        return '¥';
+      case 'CNY':
+        return '¥';
+      case 'KRW':
+        return '₩';
+      case 'INR':
+        return '₹';
+      case 'BRL':
+        return 'R\$';
+      case 'RUB':
+        return '₽';
+      case 'CAD':
+        return 'C\$';
+      case 'AUD':
+        return 'A\$';
+      default:
+        return '$currencyCode ';
     }
   }
 
@@ -305,8 +330,10 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   List<ProductDetails> _products = [];
   List<ProductDetails> get products => _products;
 
-  ProductDetails? get monthlyProduct => _products.where((p) => p.id == monthlySubscriptionId).firstOrNull;
-  ProductDetails? get yearlyProduct => _products.where((p) => p.id == yearlySubscriptionId).firstOrNull;
+  ProductDetails? get monthlyProduct =>
+      _products.where((p) => p.id == monthlySubscriptionId).firstOrNull;
+  ProductDetails? get yearlyProduct =>
+      _products.where((p) => p.id == yearlySubscriptionId).firstOrNull;
 
   bool _isLoading = true;
   bool get isLoading => _isLoading;
@@ -322,7 +349,9 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   bool _isCheckingStatus = false;
 
   // Get real subscription status (without debug override)
-  bool get _realSubscriptionStatus => kBypassSubscriptionForDebug || (_isSubscribed && _subscriptionTier == SubscriptionTier.premium);
+  bool get _realSubscriptionStatus =>
+      kBypassSubscriptionForDebug ||
+      (_isSubscribed && _subscriptionTier == SubscriptionTier.premium);
 
   // Convenience getters for subscription status (with debug override)
   bool get isPremium {
@@ -334,7 +363,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   bool get isFree => !isPremium;
 
-  SubscriptionLimits get limits => isPremium ? SubscriptionLimits.premium : SubscriptionLimits.free;
+  SubscriptionLimits get limits =>
+      isPremium ? SubscriptionLimits.premium : SubscriptionLimits.free;
 
   // Feature access methods
   bool get canUseWebSearch => limits.hasWebSearch;
@@ -385,37 +415,43 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   int get remainingImageAnalysis {
     if (isPremium) return -1;
     if (limits.imageAnalysisWeekly == -1) return -1;
-    return (limits.imageAnalysisWeekly - _usageStats.imageAnalysisCount).clamp(0, limits.imageAnalysisWeekly);
+    return (limits.imageAnalysisWeekly - _usageStats.imageAnalysisCount)
+        .clamp(0, limits.imageAnalysisWeekly);
   }
 
   int get remainingVoiceGenerations {
     if (isPremium) return -1;
     if (limits.voiceGenerationsWeekly == -1) return -1;
-    return (limits.voiceGenerationsWeekly - _usageStats.voiceGenerationsCount).clamp(0, limits.voiceGenerationsWeekly);
+    return (limits.voiceGenerationsWeekly - _usageStats.voiceGenerationsCount)
+        .clamp(0, limits.voiceGenerationsWeekly);
   }
 
   int get remainingImageGenerations {
     if (isPremium) return -1;
     if (limits.imageGenerationsWeekly == -1) return -1;
-    return (limits.imageGenerationsWeekly - _usageStats.imageGenerationsCount).clamp(0, limits.imageGenerationsWeekly);
+    return (limits.imageGenerationsWeekly - _usageStats.imageGenerationsCount)
+        .clamp(0, limits.imageGenerationsWeekly);
   }
 
   int get remainingPdfGenerations {
     if (isPremium) return -1;
     if (limits.pdfGenerationsWeekly == -1) return -1;
-    return (limits.pdfGenerationsWeekly - _usageStats.pdfGenerationsCount).clamp(0, limits.pdfGenerationsWeekly);
+    return (limits.pdfGenerationsWeekly - _usageStats.pdfGenerationsCount)
+        .clamp(0, limits.pdfGenerationsWeekly);
   }
 
   int get remainingPlacesExplorer {
     if (isPremium) return -1;
     if (limits.placesExplorerWeekly == -1) return -1;
-    return (limits.placesExplorerWeekly - _usageStats.placesExplorerCount).clamp(0, limits.placesExplorerWeekly);
+    return (limits.placesExplorerWeekly - _usageStats.placesExplorerCount)
+        .clamp(0, limits.placesExplorerWeekly);
   }
 
   int get remainingDocumentAnalysis {
     if (isPremium) return -1;
     if (limits.documentAnalysisWeekly == -1) return -1;
-    return (limits.documentAnalysisWeekly - _usageStats.documentAnalysisCount).clamp(0, limits.documentAnalysisWeekly);
+    return (limits.documentAnalysisWeekly - _usageStats.documentAnalysisCount)
+        .clamp(0, limits.documentAnalysisWeekly);
   }
 
   // ---------------------------------------------------------------------------
@@ -429,7 +465,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       await _loadDebugOverride();
       await _loadUsageStats();
 
-      final Stream<List<PurchaseDetails>> purchaseUpdated = _inAppPurchase.purchaseStream;
+      final Stream<List<PurchaseDetails>> purchaseUpdated =
+          _inAppPurchase.purchaseStream;
       _subscription = purchaseUpdated.listen(
         _listenToPurchaseUpdated,
         onDone: () {
@@ -443,7 +480,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
       await _loadProducts();
       await checkSubscriptionStatus();
-      debugPrint('[SubscriptionService] Init complete: isSubscribed=$_isSubscribed, tier=$_subscriptionTier');
+      debugPrint(
+          '[SubscriptionService] Init complete: isSubscribed=$_isSubscribed, tier=$_subscriptionTier');
 
       // Sync from Supabase (non-blocking, informational only — does NOT grant premium)
       _loadSubscriptionFromSupabase();
@@ -486,7 +524,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
             final key = keyValue[0].trim();
             final value = keyValue[1].trim();
             if (key == 'lastReset') {
-              data[key] = int.tryParse(value) ?? DateTime.now().millisecondsSinceEpoch;
+              data[key] =
+                  int.tryParse(value) ?? DateTime.now().millisecondsSinceEpoch;
             } else {
               data[key] = int.tryParse(value) ?? 0;
             }
@@ -540,7 +579,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   Future<bool> tryUseImageAnalysis() async {
     if (isPremium) return true;
-    if (_usageStats.imageAnalysisCount >= limits.imageAnalysisWeekly) return false;
+    if (_usageStats.imageAnalysisCount >= limits.imageAnalysisWeekly)
+      return false;
 
     _usageStats = UsageStats(
       imageAnalysisCount: _usageStats.imageAnalysisCount + 1,
@@ -564,7 +604,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<bool> tryUseImageGeneration() async {
     if (isPremium) return true;
     await _checkAndResetWeeklyUsage();
-    if (_usageStats.imageGenerationsCount >= limits.imageGenerationsWeekly) return false;
+    if (_usageStats.imageGenerationsCount >= limits.imageGenerationsWeekly)
+      return false;
 
     _usageStats = UsageStats(
       imageAnalysisCount: _usageStats.imageAnalysisCount,
@@ -590,7 +631,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<bool> tryUsePdfGeneration() async {
     if (isPremium) return true;
     await _checkAndResetWeeklyUsage();
-    if (_usageStats.pdfGenerationsCount >= limits.pdfGenerationsWeekly) return false;
+    if (_usageStats.pdfGenerationsCount >= limits.pdfGenerationsWeekly)
+      return false;
 
     _usageStats = UsageStats(
       imageAnalysisCount: _usageStats.imageAnalysisCount,
@@ -610,7 +652,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<bool> tryUsePlacesExplorer() async {
     if (isPremium) return true;
     await _checkAndResetWeeklyUsage();
-    if (_usageStats.placesExplorerCount >= limits.placesExplorerWeekly) return false;
+    if (_usageStats.placesExplorerCount >= limits.placesExplorerWeekly)
+      return false;
 
     _usageStats = UsageStats(
       imageAnalysisCount: _usageStats.imageAnalysisCount,
@@ -630,7 +673,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<bool> tryUseDocumentAnalysis() async {
     if (isPremium) return true;
     await _checkAndResetWeeklyUsage();
-    if (_usageStats.documentAnalysisCount >= limits.documentAnalysisWeekly) return false;
+    if (_usageStats.documentAnalysisCount >= limits.documentAnalysisWeekly)
+      return false;
 
     _usageStats = UsageStats(
       imageAnalysisCount: _usageStats.imageAnalysisCount,
@@ -664,16 +708,19 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         return;
       }
 
-      final ProductDetailsResponse response = await _inAppPurchase.queryProductDetails(productIds);
+      final ProductDetailsResponse response =
+          await _inAppPurchase.queryProductDetails(productIds);
 
       if (response.notFoundIDs.isNotEmpty) {
-        _errorMessage = "Some products could not be found: ${response.notFoundIDs.join(", ")}";
+        _errorMessage =
+            "Some products could not be found: ${response.notFoundIDs.join(", ")}";
       }
 
       _products = response.productDetails;
 
       if (_products.isEmpty) {
-        _errorMessage = "No subscription products found for ${Platform.operatingSystem}";
+        _errorMessage =
+            "No subscription products found for ${Platform.operatingSystem}";
       }
 
       notifyListeners();
@@ -720,24 +767,30 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       if (!hasActiveSubscription) {
         hasActiveSubscription = await _hasCachedValidatedEntitlement(prefs);
         if (hasActiveSubscription) {
-          debugPrint('[SubscriptionService] Using cached entitlement (offline/error fallback)');
+          debugPrint(
+              '[SubscriptionService] Using cached entitlement (offline/error fallback)');
         }
       }
 
       _isSubscribed = hasActiveSubscription;
-      _subscriptionTier = hasActiveSubscription ? SubscriptionTier.premium : SubscriptionTier.free;
+      _subscriptionTier = hasActiveSubscription
+          ? SubscriptionTier.premium
+          : SubscriptionTier.free;
       await prefs.setBool(_isSubscribedKey, hasActiveSubscription);
-      await prefs.setString('subscriptionTier', hasActiveSubscription ? 'premium' : 'free');
+      await prefs.setString(
+          'subscriptionTier', hasActiveSubscription ? 'premium' : 'free');
 
       if (previousStatus != _isSubscribed) {
-        debugPrint('[SubscriptionService] Subscription status changed: $previousStatus -> $_isSubscribed');
+        debugPrint(
+            '[SubscriptionService] Subscription status changed: $previousStatus -> $_isSubscribed');
       }
 
       _lastFullCheckTime = DateTime.now();
       notifyListeners();
       return _isSubscribed;
     } catch (e) {
-      debugPrint('[SubscriptionService] Error checking subscription status: $e');
+      debugPrint(
+          '[SubscriptionService] Error checking subscription status: $e');
       _isSubscribed = false;
       _subscriptionTier = SubscriptionTier.free;
       notifyListeners();
@@ -767,7 +820,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     try {
       debugPrint('[SubscriptionService] SK2: Querying transactions...');
       final transactions = await SK2Transaction.transactions();
-      debugPrint('[SubscriptionService] SK2: Found ${transactions.length} transactions');
+      debugPrint(
+          '[SubscriptionService] SK2: Found ${transactions.length} transactions');
 
       DateTime? latestExpiry;
 
@@ -775,26 +829,16 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         // Check all subscription product IDs (monthly + yearly)
         if (!_allSubscriptionIds.contains(t.productId)) continue;
 
-        final expStr = t.expirationDate;
-        if (expStr == null) {
-          debugPrint('[SubscriptionService] SK2: Transaction has no expirationDate, skipping');
+        if (t.expirationDate == null) {
+          debugPrint(
+              '[SubscriptionService] SK2: Transaction has no expirationDate, skipping');
           continue;
         }
 
-        // StoreKit 2 pigeon bridge sends dates as "yyyy-MM-dd HH:mm:ss" strings.
-        // Dart's DateTime.tryParse requires ISO 8601 (with 'T' separator),
-        // so we normalise the space to 'T' before parsing.
-        DateTime? expDate;
-        final expMs = int.tryParse(expStr);
-        if (expMs != null) {
-          // In case a future version sends epoch-ms
-          expDate = DateTime.fromMillisecondsSinceEpoch(expMs);
-        } else {
-          // Normalise "yyyy-MM-dd HH:mm:ss" → "yyyy-MM-ddTHH:mm:ss"
-          expDate = DateTime.tryParse(expStr.replaceFirst(' ', 'T'));
-        }
+        final expDate = _parseStoreKitDate(t.expirationDate);
         if (expDate == null) {
-          debugPrint('[SubscriptionService] SK2: Could not parse expirationDate: $expStr');
+          debugPrint(
+              '[SubscriptionService] SK2: Could not parse expirationDate');
           continue;
         }
 
@@ -804,18 +848,26 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         }
       }
 
+      // Server verification is additive: local StoreKit remains the source for
+      // the UI, while the signed JWS establishes the trusted backend tier.
+      unawaited(_syncVerifiedAppleEntitlement(transactions: transactions));
+
       final prefs = await SharedPreferences.getInstance();
 
       if (latestExpiry != null && latestExpiry.isAfter(DateTime.now())) {
-        debugPrint('[SubscriptionService] SK2: Active subscription, expires $latestExpiry');
-        await _setValidatedEntitlementCache(prefs, expiresAtMs: latestExpiry.millisecondsSinceEpoch);
+        debugPrint(
+            '[SubscriptionService] SK2: Active subscription, expires $latestExpiry');
+        await _setValidatedEntitlementCache(prefs,
+            expiresAtMs: latestExpiry.millisecondsSinceEpoch);
         return true;
       }
 
       if (latestExpiry != null) {
-        debugPrint('[SubscriptionService] SK2: Subscription expired on $latestExpiry');
+        debugPrint(
+            '[SubscriptionService] SK2: Subscription expired on $latestExpiry');
       } else {
-        debugPrint('[SubscriptionService] SK2: No subscription transactions found');
+        debugPrint(
+            '[SubscriptionService] SK2: No subscription transactions found');
       }
       await _clearValidatedEntitlementCache(prefs);
       return false;
@@ -831,15 +883,18 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   Future<bool> _verifyViaGooglePlay() async {
     try {
-      debugPrint('[SubscriptionService] Google Play: Querying past purchases...');
-      final androidAddition = _inAppPurchase.getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+      debugPrint(
+          '[SubscriptionService] Google Play: Querying past purchases...');
+      final androidAddition = _inAppPurchase
+          .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
 
       // queryPastPurchases calls BillingClient.queryPurchases for both
       // inapp and subs. Google Play only returns currently active purchases.
       final result = await androidAddition.queryPastPurchases();
 
       if (result.error != null) {
-        debugPrint('[SubscriptionService] Google Play query error: ${result.error}');
+        debugPrint(
+            '[SubscriptionService] Google Play query error: ${result.error}');
       }
 
       for (final purchase in result.pastPurchases) {
@@ -848,18 +903,22 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         final billingPurchase = purchase.billingClientPurchase;
 
         // Google only returns this purchase if it's currently active
-        debugPrint('[SubscriptionService] Google Play: Active subscription found '
+        debugPrint(
+            '[SubscriptionService] Google Play: Active subscription found '
             '(autoRenewing=${billingPurchase.isAutoRenewing})');
 
         // Cache entitlement — estimate expiry from now + cycle + grace.
         final expMs = DateTime.now().millisecondsSinceEpoch +
-            const Duration(days: _subscriptionCycleDays + _subscriptionGraceDays).inMilliseconds;
+            const Duration(
+                    days: _subscriptionCycleDays + _subscriptionGraceDays)
+                .inMilliseconds;
         final prefs = await SharedPreferences.getInstance();
         await _setValidatedEntitlementCache(prefs, expiresAtMs: expMs);
         return true;
       }
 
-      debugPrint('[SubscriptionService] Google Play: No active subscription found');
+      debugPrint(
+          '[SubscriptionService] Google Play: No active subscription found');
       final prefs = await SharedPreferences.getInstance();
       await _clearValidatedEntitlementCache(prefs);
       return false;
@@ -879,7 +938,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     return DateTime.now().millisecondsSinceEpoch < validUntilMs;
   }
 
-  Future<void> _setValidatedEntitlementCache(SharedPreferences prefs, {int? expiresAtMs}) async {
+  Future<void> _setValidatedEntitlementCache(SharedPreferences prefs,
+      {int? expiresAtMs}) async {
     final fallbackValidUntil = DateTime.now()
         .add(const Duration(hours: _defaultValidatedCacheHours))
         .millisecondsSinceEpoch;
@@ -904,9 +964,11 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
           await _verifyViaGooglePlay();
         }
       } catch (e) {
-        debugPrint('[SubscriptionService] Background cache update failed (non-fatal): $e');
+        debugPrint(
+            '[SubscriptionService] Background cache update failed (non-fatal): $e');
       }
     }
+
     doUpdate();
   }
 
@@ -921,8 +983,11 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     final transactionMs = int.tryParse(transactionDateRaw);
     if (transactionMs == null) return false;
 
-    final transactionTime = DateTime.fromMillisecondsSinceEpoch(transactionMs, isUtc: true).toLocal();
-    final daysSinceTransaction = DateTime.now().difference(transactionTime).inDays;
+    final transactionTime =
+        DateTime.fromMillisecondsSinceEpoch(transactionMs, isUtc: true)
+            .toLocal();
+    final daysSinceTransaction =
+        DateTime.now().difference(transactionTime).inDays;
     final activeWindowDays = _subscriptionCycleDays + _subscriptionGraceDays;
     return daysSinceTransaction <= activeWindowDays;
   }
@@ -965,16 +1030,21 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       final targetProductId = productId ?? monthlySubscriptionId;
       final productDetails = _products.firstWhere(
         (product) => product.id == targetProductId,
-        orElse: () => throw Exception("Subscription product not found: $targetProductId"),
+        orElse: () =>
+            throw Exception("Subscription product not found: $targetProductId"),
       );
 
-      debugPrint('[SubscriptionService] Starting purchase for: ${productDetails.id}');
+      debugPrint(
+          '[SubscriptionService] Starting purchase for: ${productDetails.id}');
 
       final PurchaseParam purchaseParam = PurchaseParam(
         productDetails: productDetails,
+        applicationUserName:
+            _supabase.isAuthenticated ? _supabase.currentUser?.id : null,
       );
 
-      final bool success = await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
+      final bool success =
+          await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
 
       if (!success) {
         _errorMessage = "Failed to initiate purchase. Please try again.";
@@ -991,15 +1061,19 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   // Purchase stream listener
   // ---------------------------------------------------------------------------
 
-  void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) async {
+  void _listenToPurchaseUpdated(
+      List<PurchaseDetails> purchaseDetailsList) async {
     for (final PurchaseDetails purchaseDetails in purchaseDetailsList) {
-      debugPrint('[SubscriptionService] Purchase status: ${purchaseDetails.status} for ${purchaseDetails.productID}');
+      debugPrint(
+          '[SubscriptionService] Purchase status: ${purchaseDetails.status} for ${purchaseDetails.productID}');
 
       if (purchaseDetails.status == PurchaseStatus.pending) {
         // Waiting for user/store action
       } else if (purchaseDetails.status == PurchaseStatus.error) {
-        debugPrint('[SubscriptionService] Purchase error: ${purchaseDetails.error}');
-        _errorMessage = "Purchase error: ${purchaseDetails.error?.message ?? 'Unknown error'}";
+        debugPrint(
+            '[SubscriptionService] Purchase error: ${purchaseDetails.error}');
+        _errorMessage =
+            "Purchase error: ${purchaseDetails.error?.message ?? 'Unknown error'}";
         notifyListeners();
       } else if (purchaseDetails.status == PurchaseStatus.purchased ||
           purchaseDetails.status == PurchaseStatus.restored) {
@@ -1015,34 +1089,42 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  Future<void> _handleSubscriptionPurchase(PurchaseDetails purchaseDetails) async {
+  Future<void> _handleSubscriptionPurchase(
+      PurchaseDetails purchaseDetails) async {
     try {
       // If StoreKit returns a restored-but-expired transaction during a buy
       // attempt (not a manual restore), do NOT overwrite the current subscription
       // state — the user may have another active subscription (e.g. monthly) that
       // SK2 verification for this specific product won't see. Just show an error.
-      final isExpiredRestoreDuringBuy = purchaseDetails.status == PurchaseStatus.restored
-          && !_isRestoringPurchases;
+      final isExpiredRestoreDuringBuy =
+          purchaseDetails.status == PurchaseStatus.restored &&
+              !_isRestoringPurchases;
 
       if (isExpiredRestoreDuringBuy) {
-        final isEntitled = await _validateSubscriptionEntitlement(purchaseDetails);
+        final isEntitled =
+            await _validateSubscriptionEntitlement(purchaseDetails);
         if (!isEntitled) {
-          _errorMessage = 'Your previous subscription has expired. Please re-subscribe via the App Store subscription management.';
-          debugPrint('[SubscriptionService] Restored expired transaction — leaving current subscription state unchanged');
+          _errorMessage =
+              'Your previous subscription has expired. Please re-subscribe via the App Store subscription management.';
+          debugPrint(
+              '[SubscriptionService] Restored expired transaction — leaving current subscription state unchanged');
           notifyListeners();
           return;
         }
         // If somehow the restored transaction IS valid (e.g. renewed), fall through
       }
 
-      final isEntitled = await _validateSubscriptionEntitlement(purchaseDetails);
+      final isEntitled =
+          await _validateSubscriptionEntitlement(purchaseDetails);
 
       _isSubscribed = isEntitled;
-      _subscriptionTier = isEntitled ? SubscriptionTier.premium : SubscriptionTier.free;
+      _subscriptionTier =
+          isEntitled ? SubscriptionTier.premium : SubscriptionTier.free;
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_isSubscribedKey, isEntitled);
-      await prefs.setString('subscriptionTier', isEntitled ? 'premium' : 'free');
+      await prefs.setString(
+          'subscriptionTier', isEntitled ? 'premium' : 'free');
 
       if (isEntitled) {
         if (purchaseDetails.status == PurchaseStatus.purchased) {
@@ -1055,6 +1137,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
         // Sync to Supabase (silent, non-blocking)
         _syncSubscriptionToSupabase(purchaseDetails);
+        unawaited(_syncVerifiedAppleEntitlement());
 
         _errorMessage = null;
         debugPrint('[SubscriptionService] Subscription entitlement confirmed');
@@ -1072,10 +1155,12 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  Future<bool> _validateSubscriptionEntitlement(PurchaseDetails purchaseDetails) async {
+  Future<bool> _validateSubscriptionEntitlement(
+      PurchaseDetails purchaseDetails) async {
     // Fresh purchase (not a restore): trusted immediately — Apple/Google
     // already validated it.
-    if (purchaseDetails.status == PurchaseStatus.purchased && !_isRestoringPurchases) {
+    if (purchaseDetails.status == PurchaseStatus.purchased &&
+        !_isRestoringPurchases) {
       return true;
     }
 
@@ -1102,26 +1187,38 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         final userId = _supabase.currentUser!.id;
         final platform = Platform.isIOS ? 'ios' : 'android';
 
-        final existing = await _supabase.client.from('subscription_status').select().eq('user_id', userId).eq('platform', platform).maybeSingle();
+        final existing = await _supabase.client
+            .from('subscription_status')
+            .select()
+            .eq('user_id', userId)
+            .eq('platform', platform)
+            .maybeSingle();
 
         final data = {
           'user_id': userId,
           'platform': platform,
           'subscription_type': 'premium',
           'is_active': true,
-          'purchase_token': purchaseDetails.verificationData.serverVerificationData,
+          'purchase_token':
+              purchaseDetails.verificationData.serverVerificationData,
           'updated_at': DateTime.now().toIso8601String(),
         };
 
         if (existing != null) {
-          await _supabase.client.from('subscription_status').update(data).eq('user_id', userId).eq('platform', platform);
+          await _supabase.client
+              .from('subscription_status')
+              .update(data)
+              .eq('user_id', userId)
+              .eq('platform', platform);
         } else {
           await _supabase.client.from('subscription_status').insert(data);
         }
 
-        debugPrint('[SubscriptionService] Subscription status synced to Supabase');
+        debugPrint(
+            '[SubscriptionService] Subscription status synced to Supabase');
       } catch (e) {
-        debugPrint('[SubscriptionService] Error syncing subscription (silent): $e');
+        debugPrint(
+            '[SubscriptionService] Error syncing subscription (silent): $e');
       }
     });
   }
@@ -1133,7 +1230,12 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       final userId = _supabase.currentUser!.id;
       final platform = Platform.isIOS ? 'ios' : 'android';
 
-      final existing = await _supabase.client.from('subscription_status').select().eq('user_id', userId).eq('platform', platform).maybeSingle();
+      final existing = await _supabase.client
+          .from('subscription_status')
+          .select()
+          .eq('user_id', userId)
+          .eq('platform', platform)
+          .maybeSingle();
 
       final data = {
         'user_id': userId,
@@ -1144,17 +1246,94 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       };
 
       if (existing != null) {
-        await _supabase.client.from('subscription_status').update(data).eq('user_id', userId).eq('platform', platform);
+        await _supabase.client
+            .from('subscription_status')
+            .update(data)
+            .eq('user_id', userId)
+            .eq('platform', platform);
       } else {
         await _supabase.client.from('subscription_status').insert(data);
       }
 
-      debugPrint('[SubscriptionService] Current subscription status synced to Supabase (isPremium: $isPremium)');
+      debugPrint(
+          '[SubscriptionService] Current subscription status synced to Supabase (isPremium: $isPremium)');
 
       await syncUsageStatsToSupabase();
+
+      // Existing subscribers are bootstrapped from StoreKit 2 transaction
+      // history after sign-in; no new purchase or manual restore is required.
+      await _syncVerifiedAppleEntitlement();
     } catch (e) {
-      debugPrint('[SubscriptionService] Error syncing current subscription (silent): $e');
+      debugPrint(
+          '[SubscriptionService] Error syncing current subscription (silent): $e');
     }
+  }
+
+  Future<void> _syncVerifiedAppleEntitlement({
+    List<SK2Transaction>? transactions,
+  }) async {
+    if (!Platform.isIOS || !_supabase.isAuthenticated) return;
+
+    try {
+      final availableTransactions =
+          transactions ?? await SK2Transaction.transactions();
+      final latest = _latestAppleSubscriptionTransaction(availableTransactions);
+      final signedTransaction = latest?.receiptData?.trim() ?? '';
+      if (signedTransaction.isEmpty) {
+        debugPrint(
+            '[SubscriptionService] No signed StoreKit 2 transaction available for server verification');
+        return;
+      }
+
+      final response = await _supabase.client.functions.invoke(
+        'verify-apple-entitlement',
+        body: {'signed_transaction': signedTransaction},
+      ).timeout(const Duration(seconds: 15));
+
+      final data = response.data;
+      final entitlement = data is Map ? data['entitlement'] : null;
+      final active = entitlement is Map ? entitlement['active'] : null;
+      debugPrint(
+          '[SubscriptionService] Server-verified Apple entitlement synced (active: $active)');
+    } catch (e) {
+      // Local StoreKit access remains unchanged if Apple or Supabase is down.
+      debugPrint(
+          '[SubscriptionService] Server Apple entitlement sync failed (silent): $e');
+    }
+  }
+
+  SK2Transaction? _latestAppleSubscriptionTransaction(
+    List<SK2Transaction> transactions,
+  ) {
+    SK2Transaction? latest;
+    DateTime? latestDate;
+
+    for (final transaction in transactions) {
+      if (!_allSubscriptionIds.contains(transaction.productId)) continue;
+      if (transaction.receiptData?.trim().isEmpty ?? true) continue;
+
+      final candidateDate = _parseStoreKitDate(transaction.expirationDate) ??
+          _parseStoreKitDate(transaction.purchaseDate);
+      if (candidateDate == null) continue;
+
+      if (latestDate == null || candidateDate.isAfter(latestDate)) {
+        latest = transaction;
+        latestDate = candidateDate;
+      }
+    }
+
+    return latest;
+  }
+
+  DateTime? _parseStoreKitDate(String? value) {
+    if (value == null || value.isEmpty) return null;
+    final epochMilliseconds = int.tryParse(value);
+    if (epochMilliseconds != null) {
+      return DateTime.fromMillisecondsSinceEpoch(epochMilliseconds);
+    }
+
+    // StoreKit's bridge may send "yyyy-MM-dd HH:mm:ss" instead of ISO 8601.
+    return DateTime.tryParse(value.replaceFirst(' ', 'T'));
   }
 
   /// Load subscription info from Supabase — informational only.
@@ -1165,16 +1344,22 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
       final userId = _supabase.currentUser!.id;
 
-      final response = await _supabase.client.from('subscription_status').select().eq('user_id', userId).maybeSingle();
+      final response = await _supabase.client
+          .from('subscription_status')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
 
       if (response != null) {
         final isActive = response['is_active'] as bool? ?? false;
-        debugPrint('[SubscriptionService] Supabase subscription record: is_active=$isActive (informational only)');
+        debugPrint(
+            '[SubscriptionService] Supabase subscription record: is_active=$isActive (informational only)');
       }
 
       await _loadUsageStatsFromSupabase();
     } catch (e) {
-      debugPrint('[SubscriptionService] Error loading subscription from Supabase (silent): $e');
+      debugPrint(
+          '[SubscriptionService] Error loading subscription from Supabase (silent): $e');
     }
   }
 
@@ -1183,15 +1368,20 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       if (!_supabase.isAuthenticated) return;
 
       final userId = _supabase.currentUser!.id;
-      final response = await _supabase.client.from('usage_statistics').select().eq('user_id', userId);
+      final response = await _supabase.client
+          .from('usage_statistics')
+          .select()
+          .eq('user_id', userId);
 
       for (final stat in response) {
         final featureName = stat['feature_name'] as String;
         final usageCount = stat['usage_count'] as int? ?? 0;
-        debugPrint('[SubscriptionService] Cloud $featureName usage: $usageCount');
+        debugPrint(
+            '[SubscriptionService] Cloud $featureName usage: $usageCount');
       }
     } catch (e) {
-      debugPrint('[SubscriptionService] Error loading usage stats from Supabase (silent): $e');
+      debugPrint(
+          '[SubscriptionService] Error loading usage stats from Supabase (silent): $e');
     }
   }
 
@@ -1211,7 +1401,12 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       };
 
       for (final entry in features.entries) {
-        final existing = await _supabase.client.from('usage_statistics').select().eq('user_id', userId).eq('feature_name', entry.key).maybeSingle();
+        final existing = await _supabase.client
+            .from('usage_statistics')
+            .select()
+            .eq('user_id', userId)
+            .eq('feature_name', entry.key)
+            .maybeSingle();
 
         final data = {
           'user_id': userId,
@@ -1222,7 +1417,11 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         };
 
         if (existing != null) {
-          await _supabase.client.from('usage_statistics').update(data).eq('user_id', userId).eq('feature_name', entry.key);
+          await _supabase.client
+              .from('usage_statistics')
+              .update(data)
+              .eq('user_id', userId)
+              .eq('feature_name', entry.key);
         } else {
           await _supabase.client.from('usage_statistics').insert(data);
         }
@@ -1230,7 +1429,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
       debugPrint('[SubscriptionService] Usage stats synced to Supabase');
     } catch (e) {
-      debugPrint('[SubscriptionService] Error syncing usage stats (silent): $e');
+      debugPrint(
+          '[SubscriptionService] Error syncing usage stats (silent): $e');
     }
   }
 

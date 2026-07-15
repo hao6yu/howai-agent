@@ -259,7 +259,7 @@
   "voiceInputTipsSwitchInputDesc": "Нажмите на иконку слева для переключения между голосом и клавиатурой",
   "voiceInputTipsDontShowAgain": "Больше не показывать",
   "voiceInputTipsGotIt": "Понятно",
-  "chatInputHint": "Спросите что угодно, чтобы начать...",
+  "chatInputHint": "Спросите HowAI",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "Общайтесь сколько угодно с HowAI.",
   "playTooltip": "Воспроизвести голос Hao",
@@ -1091,5 +1091,16 @@
   "voiceCallTimeRemaining": "Time remaining: {time}",
   "voiceCallTranscriptSaveFailed": "Не удалось сохранить расшифровку. Попробуйте снова.",
   "voiceCallUnmute": "Включить микрофон",
-  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time",
+  "back": "Назад",
+  "menu": "Меню",
+  "voiceNoVoicesAvailable": "На этом устройстве нет доступных голосов",
+  "memory": "Память",
+  "research": "Исследование",
+  "thinkingLevel": "Уровень рассуждения",
+  "thinkingAuto": "Авто",
+  "thinkingFast": "Быстро",
+  "thinkingBalanced": "Сбалансированно",
+  "thinkingDeep": "Глубоко",
+  "thinkingLevelNote": "Более высокие уровни работают дольше и используют больше токенов рассуждения."
 }

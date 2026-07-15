@@ -259,7 +259,7 @@
   "voiceInputTipsSwitchInputDesc": "Tippen Sie auf das Symbol links, um zwischen Sprache und Tastatur zu wechseln",
   "voiceInputTipsDontShowAgain": "Nicht mehr anzeigen",
   "voiceInputTipsGotIt": "Verstanden",
-  "chatInputHint": "Fragen Sie mich alles, um zu beginnen...",
+  "chatInputHint": "HowAI fragen",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "Chatten Sie so viel Sie möchten mit HowAI.",
   "playTooltip": "AIs Stimme abspielen",
@@ -1091,5 +1091,16 @@
   "voiceCallTimeRemaining": "Time remaining: {time}",
   "voiceCallTranscriptSaveFailed": "Transkript konnte nicht gespeichert werden. Bitte versuche es erneut.",
   "voiceCallUnmute": "Stummschaltung aufheben",
-  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time",
+  "back": "Zurück",
+  "menu": "Menü",
+  "voiceNoVoicesAvailable": "Auf diesem Gerät sind keine Stimmen verfügbar",
+  "memory": "Erinnerungen",
+  "research": "Forschung",
+  "thinkingLevel": "Denkstufe",
+  "thinkingAuto": "Automatisch",
+  "thinkingFast": "Schnell",
+  "thinkingBalanced": "Ausgewogen",
+  "thinkingDeep": "Tief",
+  "thinkingLevelNote": "Höhere Stufen dauern länger und verwenden mehr Reasoning-Tokens."
 }

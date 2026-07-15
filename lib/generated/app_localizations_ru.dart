@@ -805,7 +805,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Понятно';
 
   @override
-  String get chatInputHint => 'Спросите что угодно, чтобы начать...';
+  String get chatInputHint => 'Спросите HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,14 +2980,35 @@ class AppLocalizationsRu extends AppLocalizations {
   String get speakButtonTooltip => 'Начать голосовой звонок';
 
   @override
-  String get back => 'Back';
+  String get back => 'Назад';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'Меню';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'На этом устройстве нет доступных голосов';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Память';
+
+  @override
+  String get research => 'Исследование';
+
+  @override
+  String get thinkingLevel => 'Уровень рассуждения';
+
+  @override
+  String get thinkingAuto => 'Авто';
+
+  @override
+  String get thinkingFast => 'Быстро';
+
+  @override
+  String get thinkingBalanced => 'Сбалансированно';
+
+  @override
+  String get thinkingDeep => 'Глубоко';
+
+  @override
+  String get thinkingLevelNote => 'Более высокие уровни работают дольше и используют больше токенов рассуждения.';
 }

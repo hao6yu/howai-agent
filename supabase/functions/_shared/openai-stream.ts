@@ -6,7 +6,12 @@ export type ResponsesUsage = Readonly<{
   outputTokens: number | null;
   totalTokens: number | null;
   hasFinalOutput: boolean;
-  terminalEvent?: "response.completed" | "response.failed" | "response.incomplete";
+  webSearchCalls: number;
+  hasWebSearchCitations: boolean;
+  terminalEvent?:
+    | "response.completed"
+    | "response.failed"
+    | "response.incomplete";
 }>;
 
 export class ResponsesSseUsageCollector {
@@ -89,7 +94,10 @@ export class ResponsesSseUsageCollector {
 
 export function extractResponsesUsage(
   response: Record<string, unknown>,
-  terminalEvent?: "response.completed" | "response.failed" | "response.incomplete",
+  terminalEvent?:
+    | "response.completed"
+    | "response.failed"
+    | "response.incomplete",
 ): ResponsesUsage {
   const usage = response.usage && typeof response.usage === "object"
     ? response.usage as Record<string, unknown>
@@ -100,9 +108,13 @@ export function extractResponsesUsage(
     : {};
 
   const inputTokens = numberOrNull(usage.input_tokens ?? usage.prompt_tokens);
-  const outputTokens = numberOrNull(usage.output_tokens ?? usage.completion_tokens);
+  const outputTokens = numberOrNull(
+    usage.output_tokens ?? usage.completion_tokens,
+  );
   const totalTokens = numberOrNull(usage.total_tokens) ??
-    (inputTokens != null && outputTokens != null ? inputTokens + outputTokens : null);
+    (inputTokens != null && outputTokens != null
+      ? inputTokens + outputTokens
+      : null);
 
   return {
     responseId: typeof response.id === "string" ? response.id : null,
@@ -112,8 +124,41 @@ export function extractResponsesUsage(
     outputTokens,
     totalTokens,
     hasFinalOutput: responseHasFinalOutput(response.output),
+    webSearchCalls: completedWebSearchCallCount(response.output),
+    hasWebSearchCitations: responseHasWebSearchCitations(response.output),
     ...(terminalEvent ? { terminalEvent } : {}),
   };
+}
+
+function completedWebSearchCallCount(output: unknown): number {
+  if (!Array.isArray(output)) return 0;
+  return output.reduce((count, item) => {
+    if (!item || typeof item !== "object") return count;
+    const record = item as Record<string, unknown>;
+    return record.type === "web_search_call" && record.status === "completed"
+      ? count + 1
+      : count;
+  }, 0);
+}
+
+function responseHasWebSearchCitations(output: unknown): boolean {
+  if (!Array.isArray(output)) return false;
+  return output.some((item) => {
+    if (!item || typeof item !== "object") return false;
+    const record = item as Record<string, unknown>;
+    if (record.type !== "message" || !Array.isArray(record.content)) {
+      return false;
+    }
+    return record.content.some((content) => {
+      if (!content || typeof content !== "object") return false;
+      const annotations = (content as Record<string, unknown>).annotations;
+      return Array.isArray(annotations) &&
+        annotations.some((annotation) =>
+          annotation && typeof annotation === "object" &&
+          (annotation as Record<string, unknown>).type === "url_citation"
+        );
+    });
+  });
 }
 
 function responseHasFinalOutput(output: unknown): boolean {
@@ -121,12 +166,14 @@ function responseHasFinalOutput(output: unknown): boolean {
   return output.some((item) => {
     if (!item || typeof item !== "object") return false;
     const record = item as Record<string, unknown>;
-    if (record.type !== "message" || !Array.isArray(record.content)) return false;
+    if (record.type !== "message" || !Array.isArray(record.content)) {
+      return false;
+    }
     return record.content.some((content) => {
       if (!content || typeof content !== "object") return false;
       const part = content as Record<string, unknown>;
       return (part.type === "output_text" &&
-          typeof part.text === "string" && part.text.length > 0) ||
+        typeof part.text === "string" && part.text.length > 0) ||
         (part.type === "refusal" &&
           typeof part.refusal === "string" && part.refusal.length > 0);
     });

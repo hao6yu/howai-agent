@@ -57,7 +57,8 @@ class MigrationService {
       }
 
       _migrationStatus = 'Migrating conversations...';
-      debugPrint('[MigrationService] Found $_totalItems conversations to migrate');
+      debugPrint(
+          '[MigrationService] Found $_totalItems conversations to migrate');
 
       // Migrate conversations in batches
       for (int i = 0; i < conversations.length; i++) {
@@ -69,7 +70,8 @@ class MigrationService {
 
         // Log progress every 10 conversations
         if (_migratedItems % 10 == 0) {
-          debugPrint('[MigrationService] Migrated $_migratedItems/$_totalItems conversations');
+          debugPrint(
+              '[MigrationService] Migrated $_migratedItems/$_totalItems conversations');
         }
       }
 
@@ -108,11 +110,16 @@ class MigrationService {
         'user_id': userId,
         'title': conversation.title,
         'is_pinned': conversation.isPinned,
+        'archived_at': conversation.archivedAt?.toIso8601String(),
         'created_at': conversation.createdAt.toIso8601String(),
         'updated_at': conversation.updatedAt.toIso8601String(),
       };
 
-      final response = await _supabase.client.from('conversations').insert(data).select().single();
+      final response = await _supabase.client
+          .from('conversations')
+          .insert(data)
+          .select()
+          .single();
 
       final uuid = response['id'] as String;
 
@@ -122,17 +129,21 @@ class MigrationService {
       // Migrate messages for this conversation
       await _migrateConversationMessages(localId, uuid);
     } catch (e) {
-      debugPrint('[MigrationService] Error migrating conversation (silent): $e');
+      debugPrint(
+          '[MigrationService] Error migrating conversation (silent): $e');
       // Continue with next conversation
     }
   }
 
   /// Migrate messages for a conversation
-  Future<void> _migrateConversationMessages(int localConversationId, String conversationUuid) async {
+  Future<void> _migrateConversationMessages(
+      int localConversationId, String conversationUuid) async {
     try {
-      final messages = await _database.getConversationMessages(localConversationId);
+      final messages =
+          await _database.getConversationMessages(localConversationId);
 
-      debugPrint('[MigrationService] Migrating ${messages.length} messages for conversation $localConversationId');
+      debugPrint(
+          '[MigrationService] Migrating ${messages.length} messages for conversation $localConversationId');
 
       for (final msgData in messages) {
         final localId = msgData['id'] as int;
@@ -154,7 +165,11 @@ class MigrationService {
           'created_at': message.timestamp,
         };
 
-        final response = await _supabase.client.from('messages').insert(data).select().single();
+        final response = await _supabase.client
+            .from('messages')
+            .insert(data)
+            .select()
+            .single();
 
         final uuid = response['id'] as String;
 

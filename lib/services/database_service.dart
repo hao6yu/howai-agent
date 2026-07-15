@@ -34,7 +34,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'haogpt.db');
     final db = await openDatabase(
       path,
-      version: 18,
+      version: 19,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
       onConfigure: (db) async {
@@ -92,6 +92,7 @@ class DatabaseService {
         is_pinned INTEGER DEFAULT 0,
         created_at TEXT,
         updated_at TEXT,
+        archived_at TEXT,
         profile_id INTEGER
       )
     ''');
@@ -309,6 +310,15 @@ class DatabaseService {
       } catch (e) {
         // print('Error creating voice_call_sessions table: $e');
       }
+    }
+
+    if (oldVersion < 19) {
+      await _safeAddColumn(
+        db,
+        table: 'conversations',
+        column: 'archived_at',
+        definition: 'TEXT',
+      );
     }
 
     // Add avatarPath and createdAt columns if missing
@@ -950,6 +960,7 @@ class DatabaseService {
         is_pinned INTEGER DEFAULT 0,
         created_at TEXT,
         updated_at TEXT,
+        archived_at TEXT,
         profile_id INTEGER
       )
     ''');
@@ -996,6 +1007,12 @@ class DatabaseService {
       table: 'chat_messages',
       column: 'is_welcome_message',
       definition: 'INTEGER DEFAULT 0',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'conversations',
+      column: 'archived_at',
+      definition: 'TEXT',
     );
     await _safeAddColumn(
       db,
@@ -1126,28 +1143,81 @@ class DatabaseService {
 
   Future<int> deleteConversation(int id) async {
     final db = await database;
-    return await db.delete(
-      'conversations',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return db.transaction((txn) async {
+      await txn.update(
+        'knowledge_items',
+        {'conversation_id': null},
+        where: 'conversation_id = ?',
+        whereArgs: [id],
+      );
+      await txn.delete(
+        'chat_messages',
+        where: 'conversation_id = ?',
+        whereArgs: [id],
+      );
+      return txn.delete(
+        'conversations',
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    });
   }
 
   Future<List<Map<String, dynamic>>> getConversations(
-      {int? profileId, bool pinnedFirst = true}) async {
+      {int? profileId,
+      bool pinnedFirst = true,
+      bool includeArchived = false,
+      bool archivedOnly = false}) async {
     final db = await database;
-    String orderBy =
+    final orderBy =
         pinnedFirst ? 'is_pinned DESC, updated_at DESC' : 'updated_at DESC';
+    final where = <String>[];
+    final whereArgs = <Object?>[];
+
     if (profileId != null) {
-      return await db.query(
-        'conversations',
-        where: 'profile_id = ?',
-        whereArgs: [profileId],
-        orderBy: orderBy,
-      );
-    } else {
-      return await db.query('conversations', orderBy: orderBy);
+      where.add('profile_id = ?');
+      whereArgs.add(profileId);
     }
+    if (archivedOnly) {
+      where.add('archived_at IS NOT NULL');
+    } else if (!includeArchived) {
+      where.add('archived_at IS NULL');
+    }
+
+    return db.query(
+      'conversations',
+      where: where.isEmpty ? null : where.join(' AND '),
+      whereArgs: whereArgs.isEmpty ? null : whereArgs,
+      orderBy: orderBy,
+    );
+  }
+
+  Future<Set<int>> searchConversationMessageIds(
+    String query, {
+    int? profileId,
+  }) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return <int>{};
+
+    final db = await database;
+    final where = <String>[
+      'conversation_id IS NOT NULL',
+      'instr(lower(message), lower(?)) > 0',
+    ];
+    final whereArgs = <Object?>[trimmed];
+    if (profileId != null) {
+      where.add('profile_id = ?');
+      whereArgs.add(profileId);
+    }
+
+    final rows = await db.query(
+      'chat_messages',
+      columns: ['conversation_id'],
+      distinct: true,
+      where: where.join(' AND '),
+      whereArgs: whereArgs,
+    );
+    return rows.map((row) => row['conversation_id']).whereType<int>().toSet();
   }
 
   // Get all conversations (for migration)

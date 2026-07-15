@@ -1688,7 +1688,7 @@ abstract class AppLocalizations {
   /// No description provided for @chatInputHint.
   ///
   /// In en, this message translates to:
-  /// **'Ask me anything to start our conversation...'**
+  /// **'Ask HowAI'**
   String get chatInputHint;
 
   /// No description provided for @appBarTitleHao.
@@ -5914,6 +5914,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Memory'**
   String get memory;
+
+  /// No description provided for @research.
+  ///
+  /// In en, this message translates to:
+  /// **'Research'**
+  String get research;
+
+  /// No description provided for @thinkingLevel.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking level'**
+  String get thinkingLevel;
+
+  /// No description provided for @thinkingAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get thinkingAuto;
+
+  /// No description provided for @thinkingFast.
+  ///
+  /// In en, this message translates to:
+  /// **'Fast'**
+  String get thinkingFast;
+
+  /// No description provided for @thinkingBalanced.
+  ///
+  /// In en, this message translates to:
+  /// **'Balanced'**
+  String get thinkingBalanced;
+
+  /// No description provided for @thinkingDeep.
+  ///
+  /// In en, this message translates to:
+  /// **'Deep'**
+  String get thinkingDeep;
+
+  /// No description provided for @thinkingLevelNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Higher levels take longer and use more reasoning tokens.'**
+  String get thinkingLevelNote;
 }
 
 class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {

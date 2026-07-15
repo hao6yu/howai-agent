@@ -71,6 +71,24 @@ class StreamEvent {
       );
 }
 
+enum _HowAiResponseProfile { quick, standard, research }
+
+class _ResponseProfileConfig {
+  final _HowAiResponseProfile profile;
+  final int maxOutputTokens;
+  final String reasoningEffort;
+  final String verbosity;
+
+  const _ResponseProfileConfig({
+    required this.profile,
+    required this.maxOutputTokens,
+    required this.reasoningEffort,
+    required this.verbosity,
+  });
+
+  String get name => profile.name;
+}
+
 class OpenAIService {
   // gpt-5.2 Responses API endpoint
   static String _baseUrl = 'https://api.openai.com/v1/responses';
@@ -272,9 +290,11 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
     // New subscription-related parameters
     bool isPremiumUser = false,
     bool allowWebSearch = true,
+    bool forceWebSearch = false,
     bool allowImageGeneration = true,
     bool isDeepResearch =
         false, // Deep research mode uses reasoning.effort: high
+    String? reasoningEffortOverride,
     SubscriptionService? subscriptionService, // Add subscription service
     dynamic aiPersonality, // Add AI personality parameter
   }) async {
@@ -318,6 +338,16 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
 
     // Lightweight local heuristic to avoid the dead/disabled workflow path.
     bool userWantsPresentations = _looksLikePresentationRequest(message);
+    final responseProfile = _resolveResponseProfile(
+      message: message,
+      model: modelToUse,
+      isDeepResearch: isDeepResearchMode,
+      forceWebSearch: forceWebSearch,
+      hasAttachments: (attachments?.isNotEmpty ?? false) ||
+          (fileAttachments?.isNotEmpty ?? false),
+      requestsPresentation: userWantsPresentations,
+      reasoningEffortOverride: reasoningEffortOverride,
+    );
 
     // Generate system prompt using cached approach for better performance
     String systemPrompt = _getCachedSystemPrompt(
@@ -327,7 +357,7 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
       isPremiumUser: allowWebSearch,
       aiPersonality: aiPersonality,
       userWantsPresentations: userWantsPresentations,
-      isSimpleQuery: _isSimpleQuery(message),
+      isSimpleQuery: responseProfile.profile == _HowAiResponseProfile.quick,
     );
 
     // Add special instructions for deep research mode (gpt-5.2 with high reasoning effort)
@@ -491,16 +521,26 @@ Note: Could not extract text content from this file. Please describe what you'd 
       // gpt-5.2 supports both built-in tools and function calling
       List<Map<String, dynamic>> tools = [];
 
-      // Add built-in tools - OpenAI handles these natively
-      {
+      // Forced search exposes only the web tool so `required` guarantees that
+      // the request actually searches. Automatic mode lets the model decide.
+      if (forceWebSearch && allowWebSearch) {
+        tools.add({
+          'type': 'web_search',
+          'search_context_size': 'low',
+        });
+      } else {
         // Image generation - built-in tool (OpenAI handles DALL-E internally)
         if (allowImageGeneration) {
           tools.add({'type': 'image_generation'});
         }
 
         // Web search - built-in tool (OpenAI handles search internally)
-        if (allowWebSearch) {
-          tools.add({'type': 'web_search'});
+        if (allowWebSearch &&
+            responseProfile.profile != _HowAiResponseProfile.quick) {
+          tools.add({
+            'type': 'web_search',
+            'search_context_size': 'low',
+          });
         }
 
         // PPTX generation - only add if user wants presentations
@@ -554,44 +594,35 @@ Note: Could not extract text content from this file. Please describe what you'd 
         }
       } // Close the tools block
 
-      // Detect if this is a simple/small talk query for faster, shorter responses
-      final isSimpleQuery = _isSimpleQuery(message);
-
-      // Configure response length based on query complexity
-      int maxTokens;
-      String reasoningEffort;
-
-      if (isDeepResearchMode) {
-        maxTokens = 3000;
-        reasoningEffort = 'high';
-      } else if (isSimpleQuery) {
-        maxTokens = 500; // Short responses for small talk
-        reasoningEffort = 'low';
-      } else {
-        maxTokens = 1500;
-        reasoningEffort = 'low'; // Optimized for speed
-      }
-
       // Configure request parameters for gpt-5.2 Responses API
       // Format matches Teams bot: instructions separate from input, no tool_choice
       final requestIntent = isDeepResearchMode ? 'research' : 'primary_chat';
       final requestPayload = {
         'model': modelToUse,
-        'metadata': {'howai_intent': requestIntent},
+        'metadata': {
+          'howai_intent': requestIntent,
+          'howai_response_profile': responseProfile.name,
+          'howai_web_search': forceWebSearch ? 'force' : 'auto',
+          'howai_reasoning_effort': reasoningEffortOverride ?? 'auto',
+        },
         'instructions':
             systemPrompt, // System prompt as separate field (not in input)
         'input':
             inputMessages, // Only conversation history + current user message
-        'max_output_tokens': maxTokens,
+        'max_output_tokens': responseProfile.maxOutputTokens,
         'reasoning': {
-          'effort': reasoningEffort,
+          'effort': responseProfile.reasoningEffort,
         },
+        'text': {'verbosity': responseProfile.verbosity},
         // Note: temperature is NOT supported with reasoning.effort != 'none'
       };
 
       // Only add tools if we have any (no explicit tool_choice needed)
       if (tools.isNotEmpty) {
         requestPayload['tools'] = tools;
+      }
+      if (forceWebSearch && allowWebSearch) {
+        requestPayload['tool_choice'] = 'required';
       }
 
       //// _log('[OpenAIService] Sending request to $_baseUrl with model: $modelToUse');
@@ -646,7 +677,6 @@ Note: Could not extract text content from this file. Please describe what you'd 
         List<String> imageUrls = [];
         List<String> filePaths = [];
         List<dynamic>? toolCalls;
-
         // Debug: Print raw response structure
         _log('[OpenAIService] 📥 Raw response keys: ${data.keys.toList()}');
         _log('[OpenAIService] 📥 Response status: ${data['status']}');
@@ -762,6 +792,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
         // token limit before producing message text, automatically continue using
         // previous_response_id until we get content (bounded retries).
         if ((textContent == null || textContent.trim().isEmpty) &&
+            responseProfile.profile == _HowAiResponseProfile.research &&
             data['status'] == 'incomplete' &&
             data['incomplete_details'] is Map &&
             data['incomplete_details']['reason'] == 'max_output_tokens' &&
@@ -786,7 +817,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
               ],
               'max_output_tokens': 2000,
               'reasoning': {
-                'effort': isDeepResearchMode ? 'high' : 'low',
+                'effort': responseProfile.reasoningEffort,
               },
             };
 
@@ -1029,7 +1060,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
                   data['id'], // Reference the previous response
               'max_output_tokens': 2000,
               'reasoning': {
-                'effort': isDeepResearchMode ? 'high' : 'low',
+                'effort': responseProfile.reasoningEffort,
               },
             };
 
@@ -1296,7 +1327,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
                         followupData['id'], // Reference the follow-up response
                     'max_output_tokens': 2000,
                     'reasoning': {
-                      'effort': isDeepResearchMode ? 'high' : 'low',
+                      'effort': responseProfile.reasoningEffort,
                     },
                   };
 
@@ -1398,7 +1429,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
                     'tools': tools,
                     'max_output_tokens': 2000,
                     'reasoning': {
-                      'effort': isDeepResearchMode ? 'high' : 'low',
+                      'effort': responseProfile.reasoningEffort,
                     },
                   };
 
@@ -1564,8 +1595,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
     bool generateTitle = false,
     bool isPremiumUser = false,
     bool allowWebSearch = true,
+    bool forceWebSearch = false,
     bool allowImageGeneration = true,
     bool isDeepResearch = false,
+    String? reasoningEffortOverride,
     SubscriptionService? subscriptionService,
     dynamic aiPersonality,
   }) async* {
@@ -1600,6 +1633,16 @@ Note: Could not extract text content from this file. Please describe what you'd 
     }
 
     bool userWantsPresentations = _looksLikePresentationRequest(message);
+    final responseProfile = _resolveResponseProfile(
+      message: message,
+      model: modelToUse,
+      isDeepResearch: isDeepResearchMode,
+      forceWebSearch: forceWebSearch,
+      hasAttachments: (attachments?.isNotEmpty ?? false) ||
+          (fileAttachments?.isNotEmpty ?? false),
+      requestsPresentation: userWantsPresentations,
+      reasoningEffortOverride: reasoningEffortOverride,
+    );
 
     // Generate system prompt
     String systemPrompt = _getCachedSystemPrompt(
@@ -1609,7 +1652,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
       isPremiumUser: allowWebSearch,
       aiPersonality: aiPersonality,
       userWantsPresentations: userWantsPresentations,
-      isSimpleQuery: _isSimpleQuery(message),
+      isSimpleQuery: responseProfile.profile == _HowAiResponseProfile.quick,
     );
 
     if (isDeepResearchMode) {
@@ -1688,26 +1731,37 @@ Note: Could not extract text content from this file. Please describe what you'd 
     // (stream ends before image generation completes)
     List<Map<String, dynamic>> tools = [];
     // Skip image_generation for streaming - use non-streaming generateChatResponse for images
-    if (allowWebSearch) {
-      tools.add({'type': 'web_search_preview'});
+    if (allowWebSearch &&
+        responseProfile.profile != _HowAiResponseProfile.quick) {
+      tools.add({
+        'type': 'web_search',
+        'search_context_size': 'low',
+      });
     }
 
     // Build request payload with stream: true
     final requestIntent = isDeepResearchMode ? 'research' : 'primary_chat';
     Map<String, dynamic> requestPayload = {
       'model': modelToUse,
-      'metadata': {'howai_intent': requestIntent},
+      'metadata': {
+        'howai_intent': requestIntent,
+        'howai_response_profile': responseProfile.name,
+        'howai_web_search': forceWebSearch ? 'force' : 'auto',
+        'howai_reasoning_effort': reasoningEffortOverride ?? 'auto',
+      },
       'instructions': systemPrompt,
       'input': inputMessages,
+      'max_output_tokens': responseProfile.maxOutputTokens,
+      'reasoning': {'effort': responseProfile.reasoningEffort},
+      'text': {'verbosity': responseProfile.verbosity},
       'stream': true, // Enable streaming
     };
 
     if (tools.isNotEmpty) {
       requestPayload['tools'] = tools;
     }
-
-    if (isDeepResearchMode) {
-      requestPayload['reasoning'] = {'effort': 'high'};
+    if (forceWebSearch && allowWebSearch) {
+      requestPayload['tool_choice'] = 'required';
     }
 
     try {
@@ -1730,7 +1784,6 @@ Note: Could not extract text content from this file. Please describe what you'd 
       List<String> images = [];
       List<String> files = [];
       bool sawFirstDelta = false;
-
       // Process SSE stream. Keep a buffer because chunks may split lines/JSON.
       String sseBuffer = '';
       await for (final chunk
@@ -2392,16 +2445,66 @@ Answer ONLY with "YES" or "NO" - nothing else.
     }
   }
 
-  /// Detects if a query is simple/small talk that deserves a quick, short response.
-  /// Returns true for greetings, short questions, simple requests, etc.
+  static _ResponseProfileConfig _resolveResponseProfile({
+    required String message,
+    required String model,
+    required bool isDeepResearch,
+    required bool forceWebSearch,
+    required bool hasAttachments,
+    required bool requestsPresentation,
+    required String? reasoningEffortOverride,
+  }) {
+    if (isDeepResearch) {
+      return const _ResponseProfileConfig(
+        profile: _HowAiResponseProfile.research,
+        maxOutputTokens: 3000,
+        reasoningEffort: 'high',
+        verbosity: 'high',
+      );
+    }
+
+    if (reasoningEffortOverride != null) {
+      return _ResponseProfileConfig(
+        profile: _HowAiResponseProfile.standard,
+        maxOutputTokens: 1200,
+        reasoningEffort: reasoningEffortOverride,
+        verbosity: 'medium',
+      );
+    }
+
+    final isQuick = !forceWebSearch &&
+        !hasAttachments &&
+        !requestsPresentation &&
+        _isSimpleQuery(message);
+    if (!isQuick) {
+      return const _ResponseProfileConfig(
+        profile: _HowAiResponseProfile.standard,
+        maxOutputTokens: 1200,
+        reasoningEffort: 'low',
+        verbosity: 'medium',
+      );
+    }
+
+    final normalizedModel = model.toLowerCase();
+    final reasoningEffort =
+        normalizedModel.contains('nano') || normalizedModel.contains('mini')
+            ? 'minimal'
+            : normalizedModel.contains('gpt-5.6')
+                ? 'none'
+                : 'low';
+    return _ResponseProfileConfig(
+      profile: _HowAiResponseProfile.quick,
+      maxOutputTokens: 400,
+      reasoningEffort: reasoningEffort,
+      verbosity: 'low',
+    );
+  }
+
+  /// Detects small talk that deserves the lowest-latency response profile.
+  /// This is a local heuristic, not another API/classifier request.
   static bool _isSimpleQuery(String message) {
     final lowerMessage = message.toLowerCase().trim();
-    final wordCount = lowerMessage.split(RegExp(r'\s+')).length;
-
-    // Very short messages (1-5 words) are likely simple
-    if (wordCount <= 5) {
-      return true;
-    }
+    if (lowerMessage.isEmpty || _mayNeedCurrentInfo(lowerMessage)) return false;
 
     // Common greetings and small talk
     final greetings = [
@@ -2460,6 +2563,8 @@ Answer ONLY with "YES" or "NO" - nothing else.
       RegExp(r"^do you .{1,30}\?*$"), // "do you X?"
       RegExp(r"^define .{1,20}$"), // "define X"
       RegExp(r"^translate .{1,50}$"), // short translation
+      RegExp(r"^(tell|give) me (a |one )?(joke|fact)\?*$"),
+      RegExp(r"^(what is|what's) [0-9+\-*/(). ]+\?*$"),
     ];
 
     for (final pattern in simplePatterns) {
@@ -2468,9 +2573,13 @@ Answer ONLY with "YES" or "NO" - nothing else.
       }
     }
 
-    // Medium-length messages (6-15 words) without complex indicators are considered moderate
-    // Only return true for simple if very short or matches patterns above
     return false;
+  }
+
+  static bool _mayNeedCurrentInfo(String lowerMessage) {
+    return RegExp(
+      r'\b(latest|current|currently|today|tonight|tomorrow|yesterday|now|recent|recently|news|weather|forecast|price|stock|score|standings|schedule|president|prime minister|ceo|this week|this month|this year)\b',
+    ).hasMatch(lowerMessage);
   }
 
   /// Cleans up AI response by removing thinking/planning text that shouldn't be shown to users.

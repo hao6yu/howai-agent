@@ -805,7 +805,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceInputTipsGotIt => '知道了';
 
   @override
-  String get chatInputHint => '问我任何问题，开始我们的对话...';
+  String get chatInputHint => '询问 HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,16 +2980,37 @@ class AppLocalizationsZh extends AppLocalizations {
   String get speakButtonTooltip => '开始语音通话';
 
   @override
-  String get back => 'Back';
+  String get back => '返回';
 
   @override
-  String get menu => 'Menu';
+  String get menu => '菜单';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => '此设备上没有可用的语音';
 
   @override
-  String get memory => 'Memory';
+  String get memory => '记忆';
+
+  @override
+  String get research => '研究';
+
+  @override
+  String get thinkingLevel => '思考级别';
+
+  @override
+  String get thinkingAuto => '自动';
+
+  @override
+  String get thinkingFast => '快速';
+
+  @override
+  String get thinkingBalanced => '均衡';
+
+  @override
+  String get thinkingDeep => '深度';
+
+  @override
+  String get thinkingLevelNote => '级别越高，耗时越长，并会使用更多推理令牌。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3793,7 +3814,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get voiceInputTipsGotIt => '知道了';
 
   @override
-  String get chatInputHint => '問我任何問題，開始我們的對話...';
+  String get chatInputHint => '詢問 HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -5966,4 +5987,37 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get speakButtonTooltip => '開始語音通話';
+
+  @override
+  String get back => '返回';
+
+  @override
+  String get menu => '選單';
+
+  @override
+  String get voiceNoVoicesAvailable => '此裝置上沒有可用的語音';
+
+  @override
+  String get memory => '記憶';
+
+  @override
+  String get research => '研究';
+
+  @override
+  String get thinkingLevel => '思考級別';
+
+  @override
+  String get thinkingAuto => '自動';
+
+  @override
+  String get thinkingFast => '快速';
+
+  @override
+  String get thinkingBalanced => '均衡';
+
+  @override
+  String get thinkingDeep => '深度';
+
+  @override
+  String get thinkingLevelNote => '級別越高，耗時越長，並會使用更多推理權杖。';
 }

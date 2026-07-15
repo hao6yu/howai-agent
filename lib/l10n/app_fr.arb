@@ -259,7 +259,7 @@
   "voiceInputTipsSwitchInputDesc": "Touchez l'icône à gauche pour basculer entre voix et clavier",
   "voiceInputTipsDontShowAgain": "Ne plus afficher",
   "voiceInputTipsGotIt": "Compris",
-  "chatInputHint": "Demandez-moi n'importe quoi pour commencer...",
+  "chatInputHint": "Demandez à HowAI",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "Discutez autant que vous voulez avec HowAI.",
   "playTooltip": "Écouter la voix de Hao",
@@ -1091,5 +1091,16 @@
   "voiceCallTimeRemaining": "Time remaining: {time}",
   "voiceCallTranscriptSaveFailed": "Impossible d'enregistrer la transcription. Veuillez réessayer.",
   "voiceCallUnmute": "Réactiver le micro",
-  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time",
+  "back": "Retour",
+  "menu": "Menu",
+  "voiceNoVoicesAvailable": "Aucune voix n’est disponible sur cet appareil",
+  "memory": "Mémoire",
+  "research": "Recherche",
+  "thinkingLevel": "Niveau de réflexion",
+  "thinkingAuto": "Automatique",
+  "thinkingFast": "Rapide",
+  "thinkingBalanced": "Équilibré",
+  "thinkingDeep": "Approfondi",
+  "thinkingLevelNote": "Les niveaux supérieurs prennent plus de temps et utilisent plus de jetons de raisonnement."
 }

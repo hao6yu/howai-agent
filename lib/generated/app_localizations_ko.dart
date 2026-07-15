@@ -805,7 +805,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get voiceInputTipsGotIt => '알겠습니다';
 
   @override
-  String get chatInputHint => '무엇이든 물어보고 대화를 시작하세요...';
+  String get chatInputHint => 'HowAI에게 물어보기';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2980,14 +2980,35 @@ class AppLocalizationsKo extends AppLocalizations {
   String get speakButtonTooltip => '음성 통화 시작';
 
   @override
-  String get back => 'Back';
+  String get back => '뒤로';
 
   @override
-  String get menu => 'Menu';
+  String get menu => '메뉴';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => '이 기기에서 사용할 수 있는 음성이 없습니다';
 
   @override
-  String get memory => 'Memory';
+  String get memory => '메모리';
+
+  @override
+  String get research => '리서치';
+
+  @override
+  String get thinkingLevel => '사고 수준';
+
+  @override
+  String get thinkingAuto => '자동';
+
+  @override
+  String get thinkingFast => '빠르게';
+
+  @override
+  String get thinkingBalanced => '균형';
+
+  @override
+  String get thinkingDeep => '깊게';
+
+  @override
+  String get thinkingLevelNote => '높은 수준일수록 더 오래 걸리고 더 많은 추론 토큰을 사용합니다.';
 }

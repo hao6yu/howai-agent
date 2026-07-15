@@ -1,5 +1,9 @@
 export type UserCohort = "anonymous" | "free" | "paid";
-export type RequestIntent = "primary_chat" | "lightweight" | "title" | "research";
+export type RequestIntent =
+  | "primary_chat"
+  | "lightweight"
+  | "title"
+  | "research";
 export type ModelRole = "nano" | "luna" | "sol" | "research";
 
 export type RuntimeModels = Readonly<{
@@ -73,7 +77,10 @@ export function applyModelPolicyControls(
   const requestedMaxOutput = typeof payload.max_output_tokens === "number"
     ? payload.max_output_tokens
     : decision.maxOutputTokens;
-  payload.max_output_tokens = Math.min(requestedMaxOutput, decision.maxOutputTokens);
+  payload.max_output_tokens = Math.min(
+    requestedMaxOutput,
+    decision.maxOutputTokens,
+  );
 }
 
 export function legacyModelAllowlist(
@@ -212,7 +219,8 @@ export function estimateModelCostMicrousd(
     inputTokens - cachedInputTokens,
     nonNegativeInteger(usage.cacheWriteInputTokens ?? 0),
   );
-  const uncachedInputTokens = inputTokens - cachedInputTokens - cacheWriteInputTokens;
+  const uncachedInputTokens = inputTokens - cachedInputTokens -
+    cacheWriteInputTokens;
   const outputTokens = nonNegativeInteger(usage.outputTokens);
   const isLongContext = isGpt56Model(model) &&
     inputTokens > GPT_5_6_LONG_CONTEXT_THRESHOLD;
@@ -222,12 +230,13 @@ export function estimateModelCostMicrousd(
   // A $1.00 / 1M-token price is exactly one micro-USD per token.
   return Math.ceil(
     inputMultiplier * (
-      uncachedInputTokens * prices.input +
-      cachedInputTokens * prices.cachedInput +
-      cacheWriteInputTokens * ("cacheWriteInput" in prices
-        ? prices.cacheWriteInput
-        : prices.input)
-    ) +
+          uncachedInputTokens * prices.input +
+          cachedInputTokens * prices.cachedInput +
+          cacheWriteInputTokens *
+            ("cacheWriteInput" in prices
+              ? prices.cacheWriteInput
+              : prices.input)
+        ) +
       outputMultiplier * outputTokens * prices.output,
   );
 }
@@ -242,9 +251,15 @@ function priceForModel(model: string) {
     model as keyof typeof MODEL_PRICE_USD_PER_MILLION
   ];
   if (exact) return exact;
-  if (model.startsWith("gpt-5.6-luna-")) return MODEL_PRICE_USD_PER_MILLION["gpt-5.6-luna"];
-  if (model.startsWith("gpt-5.6-sol-")) return MODEL_PRICE_USD_PER_MILLION["gpt-5.6-sol"];
-  if (model.startsWith("gpt-5-nano-")) return MODEL_PRICE_USD_PER_MILLION["gpt-5-nano"];
+  if (model.startsWith("gpt-5.6-luna-")) {
+    return MODEL_PRICE_USD_PER_MILLION["gpt-5.6-luna"];
+  }
+  if (model.startsWith("gpt-5.6-sol-")) {
+    return MODEL_PRICE_USD_PER_MILLION["gpt-5.6-sol"];
+  }
+  if (model.startsWith("gpt-5-nano-")) {
+    return MODEL_PRICE_USD_PER_MILLION["gpt-5-nano"];
+  }
   return null;
 }
 

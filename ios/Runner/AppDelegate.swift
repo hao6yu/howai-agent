@@ -4,7 +4,7 @@ import AVFoundation
 import GoogleMaps
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterPluginRegistrant {
   var audioEngine: AVAudioEngine?
   var eventSink: FlutterEventSink?
 
@@ -40,33 +40,45 @@ import GoogleMaps
       print("❌ Map functionality will not work")
     }
     
-    GeneratedPluginRegistrant.register(with: self)
-
-    let controller : FlutterViewController = window?.rootViewController as! FlutterViewController
-
-    let eventChannel = FlutterEventChannel(name: "native_audio_stream_events", binaryMessenger: controller.binaryMessenger)
-    eventChannel.setStreamHandler(self)
-
-    let methodChannel = FlutterMethodChannel(name: "native_audio_stream", binaryMessenger: controller.binaryMessenger)
-    methodChannel.setMethodCallHandler { [weak self] (call, result) in
-        if call.method == "start" {
-            let args = call.arguments as? [String: Any]
-            let sampleRate = args?["sampleRate"] as? Double ?? 16000
-            self?.startAudioStream(sampleRate: sampleRate)
-            result(nil)
-        } else if call.method == "stop" {
-            self?.stopAudioStream()
-            result(nil)
-        } else {
-            result(FlutterMethodNotImplemented)
-        }
-    }
+    pluginRegistrant = self
 
     AVAudioSession.sharedInstance().requestRecordPermission { granted in
         print("Native mic permission granted: \(granted)")
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  func register(with registry: FlutterPluginRegistry) {
+    GeneratedPluginRegistrant.register(with: registry)
+
+    guard let registrar = registry.registrar(forPlugin: "NativeAudioStream") else {
+      return
+    }
+
+    let eventChannel = FlutterEventChannel(
+      name: "native_audio_stream_events",
+      binaryMessenger: registrar.messenger()
+    )
+    eventChannel.setStreamHandler(self)
+
+    let methodChannel = FlutterMethodChannel(
+      name: "native_audio_stream",
+      binaryMessenger: registrar.messenger()
+    )
+    methodChannel.setMethodCallHandler { [weak self] (call, result) in
+      if call.method == "start" {
+        let args = call.arguments as? [String: Any]
+        let sampleRate = args?["sampleRate"] as? Double ?? 16000
+        self?.startAudioStream(sampleRate: sampleRate)
+        result(nil)
+      } else if call.method == "stop" {
+        self?.stopAudioStream()
+        result(nil)
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
   }
 
   private static func dartDefineValue(for key: String) -> String? {

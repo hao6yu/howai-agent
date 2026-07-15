@@ -24,13 +24,17 @@ test("collects usage when an SSE event is split across byte chunks", () => {
     outputTokens: 30,
     totalTokens: 150,
     hasFinalOutput: true,
+    webSearchCalls: 0,
+    hasWebSearchCitations: false,
     terminalEvent: "response.completed",
   });
 });
 
 test("ignores delta events and malformed telemetry without throwing", () => {
   const collector = new ResponsesSseUsageCollector();
-  collector.push(encoder.encode('data: {"type":"response.output_text.delta"}\n\n'));
+  collector.push(
+    encoder.encode('data: {"type":"response.output_text.delta"}\n\n'),
+  );
   collector.push(encoder.encode("data: {bad json}\n\n"));
 
   assert.equal(collector.finish(), null);
@@ -68,6 +72,8 @@ test("parses a final event even when no blank-line terminator arrives", () => {
     outputTokens: 3,
     totalTokens: 5,
     hasFinalOutput: false,
+    webSearchCalls: 0,
+    hasWebSearchCitations: false,
     terminalEvent: "response.completed",
   });
 });
@@ -86,6 +92,8 @@ test("captures billed usage from a failed terminal response", () => {
     outputTokens: 1,
     totalTokens: 8,
     hasFinalOutput: false,
+    webSearchCalls: 0,
+    hasWebSearchCitations: false,
     terminalEvent: "response.failed",
   });
 });
@@ -97,4 +105,25 @@ test("does not count a tool-only completion as a final answer", () => {
   ));
 
   assert.equal(collector.finish()?.hasFinalOutput, false);
+});
+
+test("counts completed web searches and detects URL citations", () => {
+  const collector = new ResponsesSseUsageCollector();
+  collector.push(encoder.encode(
+    'data: {"type":"response.completed","response":{"id":"resp_5","output":[{"type":"web_search_call","status":"completed"},{"type":"web_search_call","status":"in_progress"},{"type":"message","content":[{"type":"output_text","text":"Current answer","annotations":[{"type":"url_citation","url":"https://example.test"}]}]}],"usage":{"input_tokens":9,"output_tokens":4}}}\n\n',
+  ));
+
+  const usage = collector.finish();
+  assert.equal(usage?.webSearchCalls, 1);
+  assert.equal(usage?.hasWebSearchCitations, true);
+  assert.equal(usage?.hasFinalOutput, true);
+});
+
+test("does not treat incomplete web-search calls as billable completions", () => {
+  const collector = new ResponsesSseUsageCollector();
+  collector.push(encoder.encode(
+    'data: {"type":"response.failed","response":{"id":"resp_6","output":[{"type":"web_search_call","status":"in_progress"}],"usage":{"input_tokens":2,"output_tokens":0}}}\n\n',
+  ));
+
+  assert.equal(collector.finish()?.webSearchCalls, 0);
 });

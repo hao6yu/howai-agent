@@ -259,7 +259,7 @@
   "voiceInputTipsSwitchInputDesc": "انقر على الأيقونة على اليسار للتبديل بين الصوت ولوحة المفاتيح",
   "voiceInputTipsDontShowAgain": "عدم الإظهار مرة أخرى",
   "voiceInputTipsGotIt": "فهمت",
-  "chatInputHint": "اسأل أي شيء لبدء محادثتنا...",
+  "chatInputHint": "اسأل HowAI",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "دردش بقدر ما تريد مع HowAI.",
   "playTooltip": "تشغيل صوت هاو",
@@ -1092,5 +1092,16 @@
   "voiceCallTimeRemaining": "Time remaining: {time}",
   "voiceCallTranscriptSaveFailed": "تعذّر حفظ النص. يرجى المحاولة مرة أخرى.",
   "voiceCallUnmute": "إلغاء الكتم",
-  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time",
+  "back": "رجوع",
+  "menu": "القائمة",
+  "voiceNoVoicesAvailable": "لا توجد أصوات متاحة على هذا الجهاز",
+  "memory": "الذاكرة",
+  "research": "بحث",
+  "thinkingLevel": "مستوى التفكير",
+  "thinkingAuto": "تلقائي",
+  "thinkingFast": "سريع",
+  "thinkingBalanced": "متوازن",
+  "thinkingDeep": "عميق",
+  "thinkingLevelNote": "تستغرق المستويات الأعلى وقتًا أطول وتستخدم رموز استدلال أكثر."
 }

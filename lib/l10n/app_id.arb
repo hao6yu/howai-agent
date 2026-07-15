@@ -259,7 +259,7 @@
   "voiceInputTipsSwitchInputDesc": "Ketuk ikon di sebelah kiri untuk beralih antara suara dan keyboard",
   "voiceInputTipsDontShowAgain": "Jangan tampilkan lagi",
   "voiceInputTipsGotIt": "Mengerti",
-  "chatInputHint": "Tanyakan apa saja untuk memulai...",
+  "chatInputHint": "Tanya HowAI",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "Mengobrol sebanyak yang Anda inginkan dengan HowAI.",
   "playTooltip": "Putar Suara Hao",
@@ -1092,5 +1092,16 @@
   "voiceCallTimeRemaining": "Time remaining: {time}",
   "voiceCallTranscriptSaveFailed": "Gagal menyimpan transkrip. Silakan coba lagi.",
   "voiceCallUnmute": "Nyalakan mikrofon",
-  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time",
+  "back": "Kembali",
+  "menu": "Menu",
+  "voiceNoVoicesAvailable": "Tidak ada suara yang tersedia di perangkat ini",
+  "memory": "Memori",
+  "research": "Riset",
+  "thinkingLevel": "Tingkat pemikiran",
+  "thinkingAuto": "Otomatis",
+  "thinkingFast": "Cepat",
+  "thinkingBalanced": "Seimbang",
+  "thinkingDeep": "Mendalam",
+  "thinkingLevelNote": "Tingkat yang lebih tinggi memerlukan waktu dan token penalaran lebih banyak."
 }

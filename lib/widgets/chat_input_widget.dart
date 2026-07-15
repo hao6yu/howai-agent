@@ -7,6 +7,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:haogpt/generated/app_localizations.dart';
+import '../models/thinking_level.dart';
 import '../providers/settings_provider.dart';
 import '../services/file_service.dart';
 import '../services/subscription_service.dart';
@@ -56,12 +57,11 @@ class ChatInputWidget extends StatefulWidget {
   // Add callback for ElevenLabs voice call
   final VoidCallback? onSpeakCall;
 
-  // Deep research/thinking mode toggle parameters
-  final bool forceDeepResearch;
-  final Function(bool) onDeepResearchToggle;
+  // Paid GPT-5.6 reasoning control.
+  final ThinkingLevel thinkingLevel;
+  final ValueChanged<ThinkingLevel> onThinkingLevelChanged;
 
   // Showcase keys for feature highlighting
-  final GlobalKey? deepResearchKey;
   final GlobalKey? quickActionsKey;
   final GlobalKey? speakKey;
 
@@ -106,9 +106,8 @@ class ChatInputWidget extends StatefulWidget {
     this.onShowImageGenerationDialog,
     this.onShowTranslationDialog,
     this.onSpeakCall,
-    required this.forceDeepResearch,
-    required this.onDeepResearchToggle,
-    this.deepResearchKey,
+    required this.thinkingLevel,
+    required this.onThinkingLevelChanged,
     this.quickActionsKey,
     this.speakKey,
   });
@@ -118,7 +117,6 @@ class ChatInputWidget extends StatefulWidget {
 }
 
 class _ChatInputWidgetState extends State<ChatInputWidget> {
-  static const bool _useAdaptiveActionDensity = true;
   bool _isMenuExpanded = false;
 
   @override
@@ -177,11 +175,6 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     widget.onSendMessage(text, imagesToSend, filesToSend);
   }
 
-  // Helper method to close/hide keyboard
-  void _closeKeyboard() {
-    FocusScope.of(context).unfocus();
-  }
-
   @override
   Widget build(BuildContext context) {
     final orientation = MediaQuery.of(context).orientation;
@@ -193,8 +186,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     final isTablet = shortestSide >= 600;
     final isPhoneLandscape = !isTablet && isLandscape;
 
-    // Use smaller padding for phone landscape to save space
-    final verticalPadding = isPhoneLandscape ? 6.0 : 12.0;
+    // Keep the composer compact; the parent SafeArea already provides the
+    // required iPhone home-indicator clearance.
+    final verticalPadding = isPhoneLandscape ? 4.0 : 8.0;
     final horizontalPadding = isPhoneLandscape ? 12.0 : 16.0;
 
     return Container(
@@ -223,29 +217,12 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
           // File attachments area
           if (widget.pendingFiles.isNotEmpty) _buildFileAttachmentsArea(),
 
-          // Text input area - Now at the top like ChatGPT
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade600
-                    : Colors.grey.shade300,
-              ),
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade800
-                  : Colors.white,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: widget.isVoiceInputMode
-                ? _buildVoiceInputButton()
-                : _buildTextInputField(),
-          ),
+          if (widget.thinkingLevel != ThinkingLevel.auto)
+            _buildThinkingLevelChip(),
 
-          SizedBox(height: isPhoneLandscape ? 4 : 8),
-
-          // Action buttons row - Below text input like ChatGPT
-          _buildActionButtonsRow(isPhoneLandscape),
+          // One adaptive composer surface: tools on the left, text or
+          // push-to-talk in the middle, and voice/send on the right.
+          _buildAdaptiveComposer(isPhoneLandscape),
         ],
       ),
     );
@@ -453,11 +430,13 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     );
   }
 
-  Widget _buildVoiceInputButton() {
+  Widget _buildVoiceInputButton({bool compact = false}) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
         // Calculate scaled dimensions - minimum 60, scaled based on font size
-        final scaledHeight = math.max(60.0, settings.getScaledFontSize(60));
+        final scaledHeight = compact
+            ? math.max(44.0, settings.getScaledFontSize(44))
+            : math.max(60.0, settings.getScaledFontSize(60));
         final scaledIconSize = settings.getScaledFontSize(20);
         final scaledSpacing = settings.getScaledFontSize(8);
         final scaledPadding = settings.getScaledFontSize(12);
@@ -482,35 +461,37 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
             child: Container(
               height: scaledHeight,
               width: double.infinity,
-              decoration: BoxDecoration(
-                color: widget.isRecording
-                    ? Colors.red.shade50
-                    : Colors.grey.shade100,
-                gradient: widget.isRecording
-                    ? null
-                    : LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white,
-                          Colors.grey.shade100,
-                        ],
+              decoration: compact
+                  ? null
+                  : BoxDecoration(
+                      color: widget.isRecording
+                          ? Colors.red.shade50
+                          : Colors.grey.shade100,
+                      gradient: widget.isRecording
+                          ? null
+                          : LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.white,
+                                Colors.grey.shade100,
+                              ],
+                            ),
+                      borderRadius: BorderRadius.circular(scaledBorderRadius),
+                      border: Border.all(
+                        color: widget.isRecording
+                            ? Colors.red
+                            : const Color(0xFF0078D4).withOpacity(0.3),
+                        width: widget.isRecording ? 1.5 : 1,
                       ),
-                borderRadius: BorderRadius.circular(scaledBorderRadius),
-                border: Border.all(
-                  color: widget.isRecording
-                      ? Colors.red
-                      : const Color(0xFF0078D4).withOpacity(0.3),
-                  width: widget.isRecording ? 1.5 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 2,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
               child: Ink(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(scaledBorderRadius),
@@ -540,7 +521,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       ),
 
                     // Cancel indicator
-                    if (widget.isShowingCancelHint)
+                    if (widget.isShowingCancelHint && !compact)
                       Positioned(
                         top: 0,
                         child: Container(
@@ -607,7 +588,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                               ),
                             ],
                           ),
-                          if (!widget.isRecording)
+                          if (!widget.isRecording && !compact)
                             Text(
                               AppLocalizations.of(context)!.pressAndHoldToSpeak,
                               style: TextStyle(
@@ -707,7 +688,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
               ),
               border: InputBorder.none,
               isDense: true,
-              contentPadding: EdgeInsets.zero,
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
             ),
             textCapitalization: TextCapitalization.sentences,
             keyboardType: TextInputType.multiline,
@@ -724,374 +705,246 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     );
   }
 
-  Widget _buildActionButtonsRow(bool isPhoneLandscape) {
+  Widget _buildAdaptiveComposer(bool isPhoneLandscape) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            // Check if we're in a narrow layout (keyboard is showing or small screen)
-            final isNarrow = constraints.maxWidth < 280;
-            final buttonSpacing = settings.getScaledFontSize(
-                isNarrow ? 4.0 : (isPhoneLandscape ? 8 : 12));
+        final buttonSize = settings
+            .getScaledFontSize(isPhoneLandscape ? 38 : 42)
+            .clamp(38.0, 52.0)
+            .toDouble();
+        final hasDraft = widget.textController.text.trim().isNotEmpty ||
+            widget.pendingImages.isNotEmpty ||
+            widget.pendingFiles.isNotEmpty;
+        final canSend = hasDraft && !widget.isSending;
 
-            // Adjust button size based on available width and font scale
-            final buttonSize = settings.getScaledFontSize(
-                isNarrow ? 32.0 : (isPhoneLandscape ? 32.0 : 40.0));
-            final sendButtonSize = settings.getScaledFontSize(
-                isNarrow ? 32.0 : (isPhoneLandscape ? 32.0 : 40.0));
-            final sendIconSize = settings.getScaledFontSize(
-                isNarrow ? 14.0 : (isPhoneLandscape ? 16.0 : 20.0));
-            final hasDraft = widget.textController.text.trim().isNotEmpty ||
-                widget.pendingImages.isNotEmpty ||
-                widget.pendingFiles.isNotEmpty;
-            final isComposingText =
-                !widget.isVoiceInputMode && widget.textInputFocusNode.hasFocus;
-            // Keep the deep research entry point stable. Hiding it on focus
-            // makes the control appear/disappear unpredictably, especially for
-            // free users who can never keep it "enabled".
-            const showDeepResearchButton = true;
-            final showInputModeToggle = !_useAdaptiveActionDensity
-                ? true
-                : (!isComposingText || !hasDraft);
-            final showSpeakButton = widget.onSpeakCall != null &&
-                (!_useAdaptiveActionDensity || !isComposingText || !hasDraft);
-            final showKeyboardHideButton =
-                !widget.isVoiceInputMode && widget.textInputFocusNode.hasFocus;
-            final showSendButton = hasDraft;
-
-            final trailingActions = <Widget>[];
-            if (showInputModeToggle) {
-              trailingActions.add(
-                _buildActionButton(
-                  icon: widget.isVoiceInputMode
-                      ? Icons.keyboard_alt_outlined
-                      : Icons.settings_voice,
-                  onTap: widget.onToggleInputMode,
-                  tooltip: widget.isVoiceInputMode
-                      ? AppLocalizations.of(context)!.switchToKeyboard
-                      : AppLocalizations.of(context)!.switchToVoiceInput,
-                  isPhoneLandscape: isPhoneLandscape,
-                  size: buttonSize,
-                ),
-              );
-            }
-            if (showSpeakButton) {
-              final speakButton = _buildSpeakButton(
-                onTap: widget.onSpeakCall!,
-                isPhoneLandscape: isPhoneLandscape,
-                buttonSize: buttonSize,
-              );
-              trailingActions.add(
-                widget.speakKey == null
-                    ? speakButton
-                    : Showcase(
-                        key: widget.speakKey!,
-                        title: AppLocalizations.of(context)!.speakButtonLabel,
-                        description:
-                            AppLocalizations.of(context)!.voiceCallFeatureDesc,
-                        targetBorderRadius:
-                            BorderRadius.circular(buttonSize / 2),
-                        tooltipBackgroundColor: const Color(0xFF0078D4),
-                        textColor: Colors.white,
-                        descTextStyle: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.white,
-                          height: 1.4,
-                        ),
-                        titleTextStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        child: speakButton,
-                      ),
-              );
-            }
-            if (showKeyboardHideButton) {
-              trailingActions.add(
-                SizedBox(
-                  width: sendButtonSize,
-                  height: sendButtonSize,
-                  child: _buildActionButton(
-                    icon: Icons.keyboard_hide,
-                    onTap: _closeKeyboard,
-                    tooltip: AppLocalizations.of(context)!.hideKeyboard,
-                    isPhoneLandscape: isPhoneLandscape,
-                    size: buttonSize,
-                  ),
-                ),
-              );
-            }
-            if (showSendButton) {
-              trailingActions.add(
-                AnimatedBuilder(
-                  animation: widget.sendButtonController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: 1.0 + (widget.sendButtonController.value * 0.1),
-                      child: Container(
-                        width: sendButtonSize,
-                        height: sendButtonSize,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF0078D4),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: Icon(Icons.send_rounded, size: sendIconSize),
-                          color: Colors.white,
-                          padding: EdgeInsets.zero,
-                          onPressed: _sendMessage,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            }
-
-            return SizedBox(
-              height: isNarrow ? 36 : (isPhoneLandscape ? 36 : 48),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Left side buttons - More actions and deep research toggle
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Plus button for features menu
-                      () {
-                        final button = _buildActionButton(
-                          icon: _isMenuExpanded ? Icons.close : Icons.add,
-                          onTap: () {
-                            setState(() {
-                              _isMenuExpanded = !_isMenuExpanded;
-                            });
-                            if (_isMenuExpanded) {
-                              _showFeaturesMenu();
-                            }
-                          },
-                          tooltip: AppLocalizations.of(context)!.quickActions,
-                          isPhoneLandscape: isPhoneLandscape,
-                          size: buttonSize,
-                        );
-
-                        // Wrap with Showcase if key is provided
-                        if (widget.quickActionsKey != null) {
-                          return Showcase(
-                            key: widget.quickActionsKey!,
-                            title: AppLocalizations.of(context)!
-                                .featureShowcaseQuickActionsTitle,
-                            description: AppLocalizations.of(context)!
-                                .featureShowcaseQuickActionsDesc,
-                            targetBorderRadius: BorderRadius.circular(8),
-                            tooltipBackgroundColor: const Color(0xFFEF4444),
-                            textColor: Colors.white,
-                            descTextStyle: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.white,
-                              height: 1.4,
-                            ),
-                            titleTextStyle: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                            child: button,
-                          );
-                        }
-                        return button;
-                      }(),
-
-                      if (showDeepResearchButton) ...[
-                        SizedBox(width: buttonSpacing.toDouble()),
-                        Consumer<SubscriptionService>(
-                          builder: (context, subscriptionService, child) {
-                            final canUseDeepResearch =
-                                subscriptionService.isPremium; // Premium only
-                            final isEnabled =
-                                widget.forceDeepResearch && canUseDeepResearch;
-
-                            final button = _buildDeepResearchButton(
-                              isEnabled: isEnabled,
-                              canUseDeepResearch: canUseDeepResearch,
-                              onTap: () {
-                                if (canUseDeepResearch) {
-                                  widget.onDeepResearchToggle(
-                                      !widget.forceDeepResearch);
-                                } else {
-                                  _showDeepResearchUpgradeDialog();
-                                }
-                              },
-                              isPhoneLandscape: isPhoneLandscape,
-                              size: buttonSize,
-                            );
-
-                            // Wrap with Showcase if key is provided
-                            if (widget.deepResearchKey != null) {
-                              return Showcase(
-                                key: widget.deepResearchKey!,
-                                title: AppLocalizations.of(context)!
-                                    .featureShowcaseDeepResearchTitle,
-                                description: AppLocalizations.of(context)!
-                                    .featureShowcaseDeepResearchDesc,
-                                targetBorderRadius: BorderRadius.circular(8),
-                                tooltipBackgroundColor: const Color(0xFF8E6CFF),
-                                textColor: Colors.white,
-                                descTextStyle: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white,
-                                  height: 1.4,
-                                ),
-                                titleTextStyle: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                                child: button,
-                              );
-                            }
-                            return button;
-                          },
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  // Right side - adaptive core actions
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children:
-                        _withSpacing(trailingActions, buttonSpacing.toDouble()),
-                  ),
-                ],
-              ),
-            );
+        Widget toolsButton = _buildComposerControl(
+          icon: _isMenuExpanded ? Icons.close : Icons.add,
+          onTap: () {
+            setState(() => _isMenuExpanded = true);
+            _showFeaturesMenu();
           },
+          tooltip: AppLocalizations.of(context)!.quickActions,
+          size: buttonSize,
+        );
+        if (widget.quickActionsKey != null) {
+          toolsButton = Showcase(
+            key: widget.quickActionsKey!,
+            title:
+                AppLocalizations.of(context)!.featureShowcaseQuickActionsTitle,
+            description:
+                AppLocalizations.of(context)!.featureShowcaseQuickActionsDesc,
+            child: toolsButton,
+          );
+        }
+
+        Widget trailingControl;
+        if (widget.isVoiceInputMode) {
+          trailingControl = _buildComposerControl(
+            icon: Icons.keyboard_alt_outlined,
+            onTap: widget.onToggleInputMode,
+            tooltip: AppLocalizations.of(context)!.switchToKeyboard,
+            size: buttonSize,
+          );
+        } else if (hasDraft) {
+          trailingControl = AnimatedBuilder(
+            animation: widget.sendButtonController,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: 1.0 + (widget.sendButtonController.value * 0.1),
+                child: _buildComposerControl(
+                  icon: Icons.arrow_upward_rounded,
+                  onTap: canSend ? _sendMessage : null,
+                  tooltip: AppLocalizations.of(context)!.send,
+                  size: buttonSize,
+                  isPrimary: canSend,
+                ),
+              );
+            },
+          );
+        } else {
+          final dictationControl = _buildComposerControl(
+            icon: Icons.mic_none_rounded,
+            onTap: widget.onToggleInputMode,
+            tooltip: AppLocalizations.of(context)!.voiceInput,
+            size: buttonSize,
+          );
+          Widget voiceAgentControl = _buildComposerControl(
+            icon: Icons.graphic_eq_rounded,
+            onTap: widget.onSpeakCall ?? widget.onToggleInputMode,
+            tooltip: AppLocalizations.of(context)!.speakButtonTooltip,
+            size: buttonSize,
+          );
+          if (widget.speakKey != null) {
+            voiceAgentControl = Showcase(
+              key: widget.speakKey!,
+              title: AppLocalizations.of(context)!.speakButtonLabel,
+              description: AppLocalizations.of(context)!.voiceCallFeatureDesc,
+              child: voiceAgentControl,
+            );
+          }
+          trailingControl = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              dictationControl,
+              const SizedBox(width: 2),
+              voiceAgentControl,
+            ],
+          );
+        }
+
+        final colorScheme = Theme.of(context).colorScheme;
+        final composer = Container(
+          key: const ValueKey<String>('adaptive_composer'),
+          constraints: BoxConstraints(minHeight: buttonSize + 8),
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withValues(
+              alpha:
+                  Theme.of(context).brightness == Brightness.dark ? 0.62 : 0.52,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.55),
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              toolsButton,
+              const SizedBox(width: 4),
+              Expanded(
+                child: widget.isVoiceInputMode
+                    ? _buildVoiceInputButton(compact: true)
+                    : _buildTextInputField(),
+              ),
+              const SizedBox(width: 4),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 160),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                child: KeyedSubtree(
+                  key: ValueKey<String>(
+                    widget.isVoiceInputMode
+                        ? 'keyboard'
+                        : hasDraft
+                            ? 'send'
+                            : 'voice-actions',
+                  ),
+                  child: trailingControl,
+                ),
+              ),
+            ],
+          ),
+        );
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.textInputFocusNode.hasFocus ? 0 : 12,
+          ),
+          child: composer,
         );
       },
     );
   }
 
-  List<Widget> _withSpacing(List<Widget> items, double spacing) {
-    if (items.isEmpty) return const [];
-    final children = <Widget>[];
-    for (int i = 0; i < items.length; i++) {
-      children.add(items[i]);
-      if (i < items.length - 1) {
-        children.add(SizedBox(width: spacing));
-      }
-    }
-    return children;
+  Widget _buildThinkingLevelChip() {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: InputChip(
+          visualDensity: const VisualDensity(horizontal: -3, vertical: -4),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          labelPadding: const EdgeInsets.only(left: 2),
+          avatar: Icon(
+            Icons.psychology_outlined,
+            size: 15,
+            color: colorScheme.primary,
+          ),
+          label: Text(
+            _thinkingLevelLabel(widget.thinkingLevel),
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+          onDeleted: () => widget.onThinkingLevelChanged(ThinkingLevel.auto),
+          deleteIcon: const Icon(Icons.close, size: 15),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+          ),
+          backgroundColor:
+              colorScheme.secondaryContainer.withValues(alpha: 0.45),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(9),
+          ),
+        ),
+      ),
+    );
   }
 
-  // Helper method to build action buttons with consistent style
-  Widget _buildActionButton({
+  Widget _buildComposerControl({
     required IconData icon,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
     required String tooltip,
-    Color? iconColor,
-    bool isPhoneLandscape = false,
-    double? size,
+    required double size,
+    bool isPrimary = false,
   }) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
-        final scaledButtonSize =
-            size ?? settings.getScaledFontSize(isPhoneLandscape ? 32.0 : 40.0);
-        final scaledIconSize =
-            settings.getScaledFontSize(isPhoneLandscape ? 18.0 : 22.0);
-        final scaledBorderRadius = settings.getScaledFontSize(4);
+    final colorScheme = Theme.of(context).colorScheme;
+    final enabled = onTap != null;
 
-        return Container(
-          width: scaledButtonSize,
-          height: scaledButtonSize,
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade700
-                : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(scaledBorderRadius),
-          ),
-          child: Tooltip(
-            message: tooltip,
+    if (!isPrimary) {
+      return Semantics(
+        button: true,
+        enabled: enabled,
+        label: tooltip,
+        child: Tooltip(
+          message: tooltip,
+          child: SizedBox(
+            width: size,
+            height: size,
             child: Material(
-              color: Colors.transparent,
+              type: MaterialType.transparency,
               child: InkWell(
-                borderRadius: BorderRadius.circular(scaledBorderRadius),
                 onTap: onTap,
+                borderRadius: BorderRadius.circular(8),
                 child: Center(
                   child: Icon(
                     icon,
-                    color: iconColor ??
-                        (Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white70
-                            : const Color(0xFF0078D4)),
-                    size: scaledIconSize,
+                    size: size * 0.52,
+                    color: enabled
+                        ? colorScheme.onSurface
+                        : colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    }
 
-  /// Build the "Speak" button for ElevenLabs voice calls.
-  /// Styled to match the rest of action controls (same corner profile).
-  Widget _buildSpeakButton({
-    required VoidCallback onTap,
-    required bool isPhoneLandscape,
-    required double buttonSize,
-  }) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
-        final scaledIconSize =
-            settings.getScaledFontSize(isPhoneLandscape ? 16.0 : 18.0);
-        final scaledFontSize =
-            settings.getScaledFontSize(isPhoneLandscape ? 12.0 : 14.0);
-        final scaledPadding =
-            settings.getScaledFontSize(isPhoneLandscape ? 8.0 : 12.0);
-        final scaledBorderRadius = settings.getScaledFontSize(4);
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-
-        return Tooltip(
-          message: AppLocalizations.of(context)!.speakButtonTooltip,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(scaledBorderRadius),
-              onTap: onTap,
-              child: Container(
-                height: buttonSize,
-                padding: EdgeInsets.symmetric(horizontal: scaledPadding),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(scaledBorderRadius),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.graphic_eq_rounded,
-                      size: scaledIconSize,
-                      color: isDark ? Colors.white70 : const Color(0xFF0078D4),
-                    ),
-                    SizedBox(width: settings.getScaledFontSize(4)),
-                    Text(
-                      AppLocalizations.of(context)!.speakButtonLabel,
-                      style: TextStyle(
-                        fontSize: scaledFontSize,
-                        fontWeight: FontWeight.w600,
-                        color:
-                            isDark ? Colors.white70 : const Color(0xFF0078D4),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: tooltip,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: IconButton(
+          onPressed: onTap,
+          tooltip: tooltip,
+          style: IconButton.styleFrom(
+            backgroundColor: colorScheme.primary,
+            foregroundColor: colorScheme.onPrimary,
+            disabledBackgroundColor:
+                colorScheme.surface.withValues(alpha: 0.45),
+            shape: const CircleBorder(),
+            padding: EdgeInsets.zero,
           ),
-        );
-      },
+          icon: Icon(icon, size: size * 0.52),
+        ),
+      ),
     );
   }
 
@@ -1378,36 +1231,46 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                         padding: EdgeInsets.symmetric(horizontal: 16),
                         child: Column(
                           children: [
-                            // Deep Research Mode
+                            // GPT-5.6 thinking level
                             Consumer<SubscriptionService>(
                               builder: (context, subscriptionService, child) {
-                                final canUseDeepResearch =
+                                final canChooseThinking =
                                     subscriptionService.isPremium;
-                                final isEnabled = widget.forceDeepResearch &&
-                                    canUseDeepResearch;
 
                                 return _buildChatGPTStyleOption(
                                   icon: Icons.psychology,
                                   title: AppLocalizations.of(context)!
-                                      .deepResearchUpgradeTitle,
-                                  subtitle: isEnabled
-                                      ? AppLocalizations.of(context)!.active
-                                      : null,
+                                      .thinkingLevel,
+                                  subtitle:
+                                      _thinkingLevelLabel(widget.thinkingLevel),
                                   isPremium: true,
-                                  canUse: canUseDeepResearch,
+                                  canUse: canChooseThinking,
                                   onTap: () {
                                     Navigator.pop(context);
                                     setState(() {
                                       _isMenuExpanded = false;
                                     });
-                                    if (canUseDeepResearch) {
-                                      widget.onDeepResearchToggle(
-                                          !widget.forceDeepResearch);
+                                    if (canChooseThinking) {
+                                      _showThinkingLevelMenu();
                                     } else {
-                                      _showDeepResearchUpgradeDialog();
+                                      _showUpgradeDialog(context);
                                     }
                                   },
                                 );
+                              },
+                            ),
+
+                            _buildChatGPTStyleOption(
+                              icon: Icons.mic_none_rounded,
+                              title: AppLocalizations.of(context)!.voiceInput,
+                              subtitle:
+                                  AppLocalizations.of(context)!.voiceInputDesc,
+                              onTap: () {
+                                Navigator.pop(context);
+                                setState(() => _isMenuExpanded = false);
+                                if (!widget.isVoiceInputMode) {
+                                  widget.onToggleInputMode();
+                                }
                               },
                             ),
 
@@ -1636,7 +1499,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: canUse ? onTap : null,
+              onTap: onTap,
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
@@ -1991,133 +1854,79 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     );
   }
 
-  Widget _buildDeepResearchButton({
-    required bool isEnabled,
-    required bool canUseDeepResearch,
-    required VoidCallback onTap,
-    required bool isPhoneLandscape,
-    required double size,
-  }) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
-        final scaledButtonSize = size;
-        final scaledIconSize =
-            settings.getScaledFontSize(isPhoneLandscape ? 18.0 : 22.0);
-        final scaledBorderRadius = settings.getScaledFontSize(4);
-
-        return Container(
-          width: scaledButtonSize,
-          height: scaledButtonSize,
-          decoration: BoxDecoration(
-            color: isEnabled
-                ? const Color(0xFF0078D4).withOpacity(0.1)
-                : Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade700
-                    : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(scaledBorderRadius),
-            border: isEnabled
-                ? Border.all(color: const Color(0xFF0078D4), width: 1)
-                : null,
-          ),
-          child: Tooltip(
-            message: canUseDeepResearch
-                ? (isEnabled
-                    ? 'Disable deep research mode'
-                    : 'Enable deep research mode (gpt-5.2 reasoning)')
-                : 'Deep research (Premium only)',
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(scaledBorderRadius),
-                onTap: onTap,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(
-                      Icons.psychology,
-                      color: isEnabled
-                          ? const Color(0xFF0078D4)
-                          : Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white70
-                              : const Color(0xFF0078D4),
-                      size: scaledIconSize,
-                    ),
-                    // Premium indicator for free users
-                    if (!canUseDeepResearch)
-                      Positioned(
-                        right: 2,
-                        top: 2,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+  String _thinkingLevelLabel(ThinkingLevel level) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (level) {
+      ThinkingLevel.auto => l10n.thinkingAuto,
+      ThinkingLevel.fast => l10n.thinkingFast,
+      ThinkingLevel.balanced => l10n.thinkingBalanced,
+      ThinkingLevel.deep => l10n.thinkingDeep,
+    };
   }
 
-  void _showDeepResearchUpgradeDialog() {
-    showDialog(
+  void _showThinkingLevelMenu() {
+    showModalBottomSheet<void>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            AppLocalizations.of(context)!.deepResearchUpgradeTitle,
-            style: TextStyle(
-              fontSize: Theme.of(context).textTheme.titleLarge?.fontSize,
-              fontWeight: FontWeight.bold,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final l10n = AppLocalizations.of(sheetContext)!;
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.thinkingLevel,
+                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.thinkingLevelNote,
+                  style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                        color:
+                            Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                for (final level in ThinkingLevel.values)
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: Icon(_thinkingLevelIcon(level)),
+                    title: Text(_thinkingLevelLabel(level)),
+                    subtitle: level == ThinkingLevel.auto
+                        ? Text(l10n.recommended)
+                        : null,
+                    trailing: widget.thinkingLevel == level
+                        ? Icon(
+                            Icons.check_rounded,
+                            color: Theme.of(sheetContext).colorScheme.primary,
+                          )
+                        : null,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    onTap: () {
+                      widget.onThinkingLevelChanged(level);
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+              ],
             ),
           ),
-          content: Text(
-            AppLocalizations.of(context)!.deepResearchUpgradeDesc,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          actions: [
-            TextButton(
-              child: Text(
-                AppLocalizations.of(context)!.maybeLater,
-                style: TextStyle(
-                  fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0078D4),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                AppLocalizations.of(context)!.upgradeNow,
-                style: TextStyle(
-                  fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.pushNamed(context, '/subscription');
-              },
-            ),
-          ],
         );
       },
     );
   }
+
+  IconData _thinkingLevelIcon(ThinkingLevel level) => switch (level) {
+        ThinkingLevel.auto => Icons.auto_awesome_outlined,
+        ThinkingLevel.fast => Icons.bolt_outlined,
+        ThinkingLevel.balanced => Icons.tune_rounded,
+        ThinkingLevel.deep => Icons.psychology_outlined,
+      };
 }

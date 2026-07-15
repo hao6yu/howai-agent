@@ -259,7 +259,7 @@
   "voiceInputTipsSwitchInputDesc": "음성과 키보드 간 전환을 위해 왼쪽 아이콘을 탭하세요",
   "voiceInputTipsDontShowAgain": "다시 표시하지 않기",
   "voiceInputTipsGotIt": "알겠습니다",
-  "chatInputHint": "무엇이든 물어보고 대화를 시작하세요...",
+  "chatInputHint": "HowAI에게 물어보기",
   "appBarTitleHao": "HowAI",
   "chatUnlimitedDesc": "HowAI와 원하는 만큼 채팅하세요.",
   "playTooltip": "AI의 목소리 재생",
@@ -1092,5 +1092,16 @@
   "voiceCallTimeRemaining": "Time remaining: {time}",
   "voiceCallTranscriptSaveFailed": "대화 기록을 저장하지 못했습니다. 다시 시도해 주세요.",
   "voiceCallUnmute": "음소거 해제",
-  "voiceCallUpgradePrompt": "Upgrade for more voice call time"
+  "voiceCallUpgradePrompt": "Upgrade for more voice call time",
+  "back": "뒤로",
+  "menu": "메뉴",
+  "voiceNoVoicesAvailable": "이 기기에서 사용할 수 있는 음성이 없습니다",
+  "memory": "메모리",
+  "research": "리서치",
+  "thinkingLevel": "사고 수준",
+  "thinkingAuto": "자동",
+  "thinkingFast": "빠르게",
+  "thinkingBalanced": "균형",
+  "thinkingDeep": "깊게",
+  "thinkingLevelNote": "높은 수준일수록 더 오래 걸리고 더 많은 추론 토큰을 사용합니다."
 }

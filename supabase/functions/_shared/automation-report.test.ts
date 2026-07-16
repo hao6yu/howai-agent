@@ -6,7 +6,7 @@ import { buildVerifiedAutomationReport } from "./automation-report.ts";
 const SOURCE_ONE = "https://example.com/news/one";
 const SOURCE_TWO = "https://primary.test/report/two";
 
-test("builds a verified conversation message with visible sources", async () => {
+test("builds a verified message while keeping sources out of the body", async () => {
   const payloads: Record<string, unknown>[] = [];
   const reconciled: Array<{ succeeded: boolean; requestId: string }> = [];
   let call = 0;
@@ -28,9 +28,8 @@ test("builds a verified conversation message with visible sources", async () => 
   });
 
   assert.equal(result.status, "succeeded");
-  assert.match(result.messageContent, /Sources: \[1\]\(https:\/\/example\.com/);
-  assert.match(result.messageContent, / · \[2\]\(https:\/\/primary\.test/);
-  assert.doesNotMatch(result.messageContent, /### Sources/);
+  assert.doesNotMatch(result.messageContent, /Sources:/);
+  assert.doesNotMatch(result.messageContent, /https:\/\//);
   assert.doesNotMatch(result.messageContent, /Primary report/);
   assert.match(result.messageContent, /Verified technology briefing/);
   assert.doesNotMatch(result.messageContent, /significant and independently reported/);

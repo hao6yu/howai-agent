@@ -17,6 +17,7 @@ void main() {
   Future<void> pumpMessage(
     WidgetTester tester, {
     required bool isUserMessage,
+    bool includeMemoryActions = false,
   }) async {
     final message = ChatMessage(
       message: isUserMessage ? 'Hello HowAI' : 'Hello! How can I help?',
@@ -50,6 +51,9 @@ void main() {
               isPlayingAudio: false,
               onPlayAudio: (_) {},
               onSpeakWithHighlight: (_) {},
+              onQuickSaveToKnowledgeHub:
+                  includeMemoryActions ? (_) {} : null,
+              onSaveToKnowledgeHub: includeMemoryActions ? (_) {} : null,
             ),
           ),
         ),
@@ -66,6 +70,7 @@ void main() {
     expect(find.byIcon(Icons.play_circle_outline), findsOneWidget);
     expect(find.byIcon(Icons.flag_outlined), findsOneWidget);
     expect(find.byIcon(Icons.more_horiz), findsOneWidget);
+    expect(find.byType(SelectionArea), findsOneWidget);
     expect(find.byType(CircleAvatar), findsNothing);
   });
 
@@ -76,5 +81,27 @@ void main() {
     expect(find.text('Hello HowAI'), findsOneWidget);
     expect(find.byType(CircleAvatar), findsNothing);
     expect(find.byIcon(Icons.flag_outlined), findsNothing);
+  });
+
+  testWidgets('user message actions use a compact anchored menu',
+      (tester) async {
+    await pumpMessage(
+      tester,
+      isUserMessage: true,
+      includeMemoryActions: true,
+    );
+
+    await tester.longPress(find.text('Hello HowAI'));
+    await tester.pumpAndSettle();
+
+    final menu = find.byKey(const ValueKey('user-message-actions'));
+    expect(menu, findsOneWidget);
+    expect(tester.getSize(menu).width, lessThanOrEqualTo(342));
+    expect(tester.getSize(menu).height, lessThanOrEqualTo(74));
+    expect(find.byIcon(Icons.copy_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.translate_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.bookmark_add_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.edit_note_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.delete_outline), findsOneWidget);
   });
 }

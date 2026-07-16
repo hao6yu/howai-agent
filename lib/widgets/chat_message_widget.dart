@@ -517,7 +517,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                   height: 1.4,
                                 ),
                               )
-                            : MarkdownBody(
+                            : SelectionArea(
+                                child: MarkdownBody(
                                 data: widget.message.message,
                                 imageBuilder: (uri, title, alt) {
                                   // Custom image builder that handles missing local files safely and makes images clickable
@@ -809,6 +810,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                     }
                                   }
                                 },
+                              ),
                               ),
 
                       // Location results are now handled separately in the chat screen
@@ -1314,115 +1316,132 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     );
   }
 
-  void _showMessageActions(BuildContext context, ChatMessage message) async {
+  void _showMessageActions(BuildContext context, ChatMessage message) {
     if (_lastTapPosition == null) return;
-    final RenderBox? overlay =
-        Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
-    final double maxPanelWidth = overlay.size.width - 24;
-    final double panelHeight = 92;
-    final double top = (_lastTapPosition!.dy - panelHeight - 12)
-        .clamp(24.0, overlay.size.height - panelHeight - 24.0);
+
+    final l10n = AppLocalizations.of(context)!;
+    final actions = <_MessageActionItem>[
+      _MessageActionItem(
+        icon: Icons.copy_outlined,
+        label: l10n.copy,
+        onTap: (dialogContext) {
+          Navigator.of(dialogContext).pop();
+          Clipboard.setData(ClipboardData(text: message.message));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.copied),
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        },
+      ),
+      _MessageActionItem(
+        icon: Icons.translate_outlined,
+        label: l10n.translate,
+        onTap: (dialogContext) {
+          Navigator.of(dialogContext).pop();
+          widget.onTranslate(message);
+        },
+      ),
+      if (widget.onQuickSaveToKnowledgeHub != null ||
+          widget.onSaveToKnowledgeHub != null)
+        _MessageActionItem(
+          icon: Icons.bookmark_add_outlined,
+          label: l10n.memory,
+          onTap: (dialogContext) {
+            Navigator.of(dialogContext).pop();
+            if (widget.onQuickSaveToKnowledgeHub != null) {
+              widget.onQuickSaveToKnowledgeHub!(message);
+            } else {
+              widget.onSaveToKnowledgeHub!(message);
+            }
+          },
+        ),
+      if (widget.onSaveToKnowledgeHub != null)
+        _MessageActionItem(
+          icon: Icons.edit_note_outlined,
+          label: l10n.save,
+          onTap: (dialogContext) {
+            Navigator.of(dialogContext).pop();
+            widget.onSaveToKnowledgeHub!(message);
+          },
+        ),
+      _MessageActionItem(
+        icon: Icons.delete_outline,
+        label: l10n.delete,
+        destructive: true,
+        onTap: (dialogContext) {
+          Navigator.of(dialogContext).pop();
+          widget.onDelete(message);
+        },
+      ),
+    ];
+
+    final maxPanelWidth = overlay.size.width - 32;
+    final idealPanelWidth = actions.length <= 3
+        ? 230.0
+        : actions.length == 4
+            ? 286.0
+            : 342.0;
+    final panelWidth = idealPanelWidth < maxPanelWidth
+        ? idealPanelWidth
+        : maxPanelWidth;
+    const panelHeight = 70.0;
+    final top = (_lastTapPosition!.dy - panelHeight - 10)
+        .clamp(16.0, overlay.size.height - panelHeight - 16.0)
+        .toDouble();
+    // All actions stay in one lightweight strip. The visible labels can
+    // truncate on compact devices while their semantic labels remain intact.
+    final itemWidth =
+        (panelWidth - 16 - ((actions.length - 1) * 4)) / actions.length;
+
     showDialog(
       context: context,
       barrierColor: Colors.transparent,
       barrierDismissible: true,
-      builder: (context) {
+      builder: (dialogContext) {
+        final colors = dialogContext.howaiColors;
         return Stack(
           children: [
             GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              child: Container(
-                color: Colors.transparent,
+              onTap: () => Navigator.of(dialogContext).pop(),
+              child: SizedBox(
                 width: overlay.size.width,
                 height: overlay.size.height,
               ),
             ),
-            Positioned(
-              left: 12,
-              right: 12,
+            PositionedDirectional(
+              end: 16,
               top: top,
+              width: panelWidth,
               child: Material(
                 color: Colors.transparent,
-                child: Center(
-                  child: Container(
-                    constraints: BoxConstraints(maxWidth: maxPanelWidth),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.grey.shade800
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(18),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.10),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _ActionButton(
-                          icon: Icons.copy,
-                          label: AppLocalizations.of(context)!.copy,
-                          onTap: () {
-                            Clipboard.setData(
-                                ClipboardData(text: message.message));
-                            Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                  content: Text(
-                                      AppLocalizations.of(context)!.copied),
-                                  duration: Duration(seconds: 2)),
-                            );
-                          },
-                        ),
-                        _ActionButton(
-                          icon: Icons.delete_outline,
-                          label: AppLocalizations.of(context)!.delete,
-                          iconColor: Colors.red,
-                          textColor: Colors.red,
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            widget.onDelete(message);
-                          },
-                        ),
-                        _ActionButton(
-                          icon: Icons.translate,
-                          label: AppLocalizations.of(context)!.translate,
-                          onTap: () {
-                            Navigator.of(context).pop();
-                            widget.onTranslate(message);
-                          },
-                        ),
-                        if (widget.onQuickSaveToKnowledgeHub != null ||
-                            widget.onSaveToKnowledgeHub != null)
-                          _ActionButton(
-                            icon: Icons.bookmark_add_outlined,
-                            label: AppLocalizations.of(context)!.memory,
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              if (widget.onQuickSaveToKnowledgeHub != null) {
-                                widget.onQuickSaveToKnowledgeHub!(message);
-                              } else if (widget.onSaveToKnowledgeHub != null) {
-                                widget.onSaveToKnowledgeHub!(message);
-                              }
-                            },
-                          ),
-                        if (widget.onSaveToKnowledgeHub != null)
-                          _ActionButton(
-                            icon: Icons.edit_note_outlined,
-                            label: AppLocalizations.of(context)!.save,
-                            onTap: () {
-                              Navigator.of(context).pop();
-                              widget.onSaveToKnowledgeHub!(message);
-                            },
-                          ),
-                      ],
-                    ),
+                child: Container(
+                  key: const ValueKey('user-message-actions'),
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: colors.canvas,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: colors.divider),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.14),
+                        blurRadius: 18,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Wrap(
+                    spacing: 4,
+                    runSpacing: 4,
+                    children: actions
+                        .map((action) => _CompactMessageActionButton(
+                              action: action,
+                              width: itemWidth,
+                            ))
+                        .toList(),
                   ),
                 ),
               ),
@@ -1933,52 +1952,70 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final Color? iconColor;
-  final Color? textColor;
-  const _ActionButton({
+class _MessageActionItem {
+  const _MessageActionItem({
     required this.icon,
     required this.label,
     required this.onTap,
-    this.iconColor,
-    this.textColor,
-    Key? key,
-  }) : super(key: key);
+    this.destructive = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final ValueChanged<BuildContext> onTap;
+  final bool destructive;
+}
+
+class _CompactMessageActionButton extends StatelessWidget {
+  const _CompactMessageActionButton({
+    required this.action,
+    required this.width,
+  });
+
+  final _MessageActionItem action;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.howaiColors;
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        return GestureDetector(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  color: iconColor ?? const Color(0xFF0078D4),
-                  size: settings.getScaledFontSize(24),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: textColor ??
-                        (Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.black87),
-                    fontSize: settings.getScaledFontSize(11),
-                    fontWeight: FontWeight.w500,
+        final foreground =
+            action.destructive ? colors.danger : colors.textPrimary;
+        return Semantics(
+          button: true,
+          label: action.label,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => action.onTap(context),
+              borderRadius: BorderRadius.circular(11),
+              child: SizedBox(
+                width: width,
+                height: 58,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 3, vertical: 7),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(action.icon, color: foreground, size: 20),
+                      const SizedBox(height: 4),
+                      Text(
+                        action.label,
+                        style: TextStyle(
+                          color: foreground,
+                          fontSize: settings.getScaledFontSize(11),
+                          height: 1.05,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
+              ),
             ),
           ),
         );

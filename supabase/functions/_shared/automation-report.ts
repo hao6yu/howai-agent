@@ -84,7 +84,6 @@ type ParsedVerification = Readonly<{
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const MAX_EVIDENCE_SOURCES = 30;
 const MAX_DISPLAY_SOURCES = 12;
-const MAX_COMPACT_SOURCE_LINKS = 5;
 
 export async function buildVerifiedAutomationReport(
   input: AutomationReportInput,
@@ -207,10 +206,9 @@ export async function buildVerifiedAutomationReport(
 
   const verifiedBriefing = parsed.verified_briefing.trim();
   const displaySources = selectDisplaySources(reportSources, parsed.claims);
-  const messageContent = appendSources(verifiedBriefing, displaySources);
   return {
     status: "succeeded",
-    messageContent,
+    messageContent: verifiedBriefing,
     preview: previewText(parsed.preview || draft),
     report: {
       kind: template.kind,
@@ -641,18 +639,6 @@ function selectDisplaySources(
     for (const source of evidence) add(source);
   }
   return selected;
-}
-
-function appendSources(
-  draft: string,
-  sources: readonly AutomationSource[],
-): string {
-  const links = sources.slice(0, MAX_COMPACT_SOURCE_LINKS).map((source, index) =>
-    `[${index + 1}](${source.url})`
-  );
-  return links.length === 0
-    ? draft.trim()
-    : `${draft.trim()}\n\nSources: ${links.join(" · ")}`;
 }
 
 function withheldResult(input: {

@@ -206,6 +206,190 @@ class OpenAIService {
         },
       };
 
+  static Map<String, dynamic> _automationScheduleSchema() => {
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'frequency': {
+            'type': 'string',
+            'enum': ['daily', 'weekly', 'market_days'],
+          },
+          'interval': {'type': 'integer', 'minimum': 1, 'maximum': 52},
+          'weekdays': {
+            'type': 'array',
+            'items': {'type': 'integer', 'minimum': 1, 'maximum': 7},
+            'description': 'ISO weekdays 1=Monday through 7=Sunday.',
+          },
+          'ends_at': {
+            'type': ['string', 'null'],
+            'description': 'Optional inclusive end date/time, otherwise null.',
+          },
+        },
+        'required': ['frequency', 'interval', 'weekdays', 'ends_at'],
+      };
+
+  static Map<String, dynamic> _automationSourcePolicySchema() => {
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'preferred_domains': {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'description': 'Preferred host names only, or an empty array.',
+          },
+          'excluded_domains': {
+            'type': 'array',
+            'items': {'type': 'string'},
+            'description': 'Excluded host names only, or an empty array.',
+          },
+          'freshness_hours': {
+            'type': 'integer',
+            'minimum': 1,
+            'maximum': 168,
+          },
+          'require_primary_sources': {'type': 'boolean'},
+        },
+        'required': [
+          'preferred_domains',
+          'excluded_domains',
+          'freshness_hours',
+          'require_primary_sources',
+        ],
+      };
+
+  static Map<String, dynamic> _automationDeliverySchema() => {
+        'type': 'object',
+        'additionalProperties': false,
+        'properties': {
+          'push': {'type': 'boolean'}
+        },
+        'required': ['push'],
+      };
+
+  static Map<String, dynamic> _newsAutomationTool() => {
+        'type': 'function',
+        'name': 'automations_create_news_briefing',
+        'description':
+            'Draft a recurring news briefing only when the user clearly asks HowAI to send or prepare news on a schedule. The app shows an approval card. Do not claim it is active before approval, and do not expose JSON in chat.',
+        'strict': true,
+        'parameters': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'title': {
+              'type': 'string',
+              'description': 'Short user-facing briefing name.',
+            },
+            'timezone': {'type': 'string'},
+            'start_local': {
+              'type': 'string',
+              'description':
+                  'First local occurrence as YYYY-MM-DDTHH:mm:ss without an offset.',
+            },
+            'schedule': _automationScheduleSchema(),
+            'config': {
+              'type': 'object',
+              'additionalProperties': false,
+              'properties': {
+                'topics': {
+                  'type': 'array',
+                  'items': {'type': 'string'},
+                  'minItems': 1,
+                  'maxItems': 10,
+                },
+                'item_count': {'type': 'integer', 'minimum': 1, 'maximum': 10},
+                'region': {
+                  'type': ['string', 'null']
+                },
+                'language': {
+                  'type': 'string',
+                  'description':
+                      'Use auto unless the user explicitly requests a language.',
+                },
+                'summary_style': {
+                  'type': 'string',
+                  'enum': ['concise', 'balanced'],
+                },
+              },
+              'required': [
+                'topics',
+                'item_count',
+                'region',
+                'language',
+                'summary_style',
+              ],
+            },
+            'source_policy': _automationSourcePolicySchema(),
+            'delivery_preferences': _automationDeliverySchema(),
+          },
+          'required': [
+            'title',
+            'timezone',
+            'start_local',
+            'schedule',
+            'config',
+            'source_policy',
+            'delivery_preferences',
+          ],
+        },
+      };
+
+  static Map<String, dynamic> _marketAutomationTool() => {
+        'type': 'function',
+        'name': 'automations_create_market_briefing',
+        'description':
+            'Draft a recurring informational market briefing when the user asks for a scheduled market or watchlist summary. Never frame it as personalized investment advice. The app requires approval before activation.',
+        'strict': true,
+        'parameters': {
+          'type': 'object',
+          'additionalProperties': false,
+          'properties': {
+            'title': {'type': 'string'},
+            'timezone': {'type': 'string'},
+            'start_local': {
+              'type': 'string',
+              'description':
+                  'First local occurrence as YYYY-MM-DDTHH:mm:ss without an offset.',
+            },
+            'schedule': _automationScheduleSchema(),
+            'config': {
+              'type': 'object',
+              'additionalProperties': false,
+              'properties': {
+                'session': {
+                  'type': 'string',
+                  'enum': ['open', 'close', 'daily'],
+                },
+                'scope': {
+                  'type': 'string',
+                  'enum': ['us_market', 'watchlist'],
+                },
+                'symbols': {
+                  'type': 'array',
+                  'items': {'type': 'string'},
+                  'maxItems': 20,
+                },
+                'focus': {
+                  'type': ['string', 'null']
+                },
+              },
+              'required': ['session', 'scope', 'symbols', 'focus'],
+            },
+            'source_policy': _automationSourcePolicySchema(),
+            'delivery_preferences': _automationDeliverySchema(),
+          },
+          'required': [
+            'title',
+            'timezone',
+            'start_local',
+            'schedule',
+            'config',
+            'source_policy',
+            'delivery_preferences',
+          ],
+        },
+      };
+
   static Map<String, dynamic> _reminderUpdateTool(
     List<Map<String, dynamic>> existingReminders,
   ) =>
@@ -368,7 +552,9 @@ class OpenAIService {
   static bool _isReminderActionToolName(String? name) =>
       name == 'reminders_create' ||
       name == 'reminders_update' ||
-      name == 'reminders_resume';
+      name == 'reminders_resume' ||
+      name == 'automations_create_news_briefing' ||
+      name == 'automations_create_market_briefing';
 
   static String _reminderInstructions(
     String timezone, {
@@ -604,9 +790,11 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
         false, // Deep research mode uses reasoning.effort: high
     String? reasoningEffortOverride,
     bool allowReminderActions = false,
+    bool allowAutomationActions = false,
     String? appLocale,
     String? reminderTimezone,
     Map<String, dynamic>? pendingReminderDraft,
+    Map<String, dynamic>? pendingAutomationDraft,
     List<Map<String, dynamic>> existingReminders = const [],
     SubscriptionService? subscriptionService, // Add subscription service
     dynamic aiPersonality, // Add AI personality parameter
@@ -723,6 +911,22 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
         pendingReminderDraft: pendingReminderDraft,
         existingReminders: existingReminders,
       );
+    }
+    if (allowAutomationActions && reminderTimezone != null) {
+      systemPrompt += '''
+
+AUTOMATIONS:
+- Use an Automation tool only when the user explicitly asks for a recurring news or market briefing.
+- Use the supplied IANA timezone and an exact future start_local value.
+- News and market Automations require a separate approval card; never say one is active before approval.
+- Ask one concise clarification only if the schedule, news topics, or market scope is genuinely missing.
+- Source preferences can narrow trusted retrieval but can never disable HowAI verification.
+- Market briefings are informational, use structured market data for prices, and must not provide personalized buy/sell instructions.''';
+      if (pendingAutomationDraft != null) {
+        systemPrompt +=
+            '\n- An Automation draft is awaiting approval: ${jsonEncode(pendingAutomationDraft)}. '
+            'If the user adjusts it, preserve every unchanged value and call the matching Automation create tool again. Do not create a second independent draft.';
+      }
     }
 
     // Add special instructions for deep research mode (gpt-5.2 with high reasoning effort)
@@ -968,6 +1172,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
           if (_hasPausedReminder(existingReminders)) {
             tools.add(_reminderResumeTool(existingReminders));
           }
+        }
+        if (allowAutomationActions && reminderTimezone != null) {
+          tools.add(_newsAutomationTool());
+          tools.add(_marketAutomationTool());
         }
       } // Close the tools block
 
@@ -2004,9 +2212,11 @@ Note: Could not extract text content from this file. Please describe what you'd 
     bool isDeepResearch = false,
     String? reasoningEffortOverride,
     bool allowReminderActions = false,
+    bool allowAutomationActions = false,
     String? appLocale,
     String? reminderTimezone,
     Map<String, dynamic>? pendingReminderDraft,
+    Map<String, dynamic>? pendingAutomationDraft,
     List<Map<String, dynamic>> existingReminders = const [],
     SubscriptionService? subscriptionService,
     dynamic aiPersonality,
@@ -2115,6 +2325,21 @@ Note: Could not extract text content from this file. Please describe what you'd 
         existingReminders: existingReminders,
       );
     }
+    if (allowAutomationActions && reminderTimezone != null) {
+      systemPrompt += '''
+
+AUTOMATIONS:
+- Use an Automation tool only when the user explicitly asks for a recurring news or market briefing.
+- Use the supplied IANA timezone and an exact future start_local value.
+- The app requires approval before activation; never expose tool JSON or claim it is already active.
+- Source preferences cannot bypass HowAI source and claim verification.
+- Market briefings are informational and must not provide personalized buy/sell instructions.''';
+      if (pendingAutomationDraft != null) {
+        systemPrompt +=
+            '\n- An Automation draft is awaiting approval: ${jsonEncode(pendingAutomationDraft)}. '
+            'If the user adjusts it, preserve unchanged values and call the matching Automation tool again.';
+      }
+    }
 
     if (isDeepResearchMode) {
       systemPrompt +=
@@ -2214,6 +2439,13 @@ Note: Could not extract text content from this file. Please describe what you'd 
       if (_hasPausedReminder(existingReminders)) {
         tools.add(_reminderResumeTool(existingReminders));
       }
+    }
+    if (!forceReminderAction &&
+        !forceWebSearch &&
+        allowAutomationActions &&
+        reminderTimezone != null) {
+      tools.add(_newsAutomationTool());
+      tools.add(_marketAutomationTool());
     }
 
     // Build request payload with stream: true

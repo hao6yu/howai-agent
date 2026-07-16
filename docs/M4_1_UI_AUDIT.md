@@ -57,7 +57,7 @@ use the shared semantic system. Functional behavior is intentionally preserved.
 | Remaining confirmation dialogs | Consolidate on semantic dialog and bottom-sheet patterns |
 | Image generation/gallery/editing | Source/edit/file sheets use semantic colors and one consistent drag handle |
 | Translation | Source/language/message action sheets use semantic colors and one consistent drag handle |
-| Places and map results | Duplicate sheet handles removed; split the oversized widget before deeper visual cleanup |
+| Places and map results | Duplicate sheet handles removed; structural and visual follow-up is tracked in [M4.6 Places and Maps refactor](M4_6_PLACES_MAPS_REFACTOR.md) |
 | PDF/file/document results | Normalize metadata, progress, result actions, and errors |
 | Voice call | Align connection states and controls with the compact composer language |
 | Snackbars/toasts | Reserve for transient system errors; successful agent actions stay conversational |

@@ -1,8 +1,8 @@
 # M4.1 UI refinement and M4.5 Automations
 
-Status: Approved product direction; M4.1 foundation in progress  
-Date: 2026-07-15  
-Depends on: M3 reminder actions and M4 push delivery  
+Status: M4.1 complete; M4.5 foundation in progress
+Date: 2026-07-16
+Depends on: M3 reminder actions and M4 push delivery
 Rollout: internal accounts, then all eligible users
 
 ## Product decision
@@ -18,6 +18,36 @@ split deliberately:
 `Cron job` and `scheduled job` are backend terms. The app says
 **Automations**, with understandable types such as Reminder, News briefing, and
 Market briefing.
+
+M4.5 foundation slice started on 2026-07-16:
+
+- added rollout-off feature flags for generated Automations, retrieval,
+  validation, market data, and notification delivery;
+- added service-owned `automations` and `automation_runs` tables with explicit
+  authenticated read grants, owner-scoped RLS, and no direct client writes;
+- retained strict allowlisted News briefing and Market briefing types rather
+  than accepting arbitrary scheduled prompts;
+- added durable template snapshots, claims, sources, verification results,
+  bounded previews/errors, usage-ledger links, and duplicate-occurrence guards;
+- expanded the shared action audit allowlist for future create/update/state and
+  run-now approvals;
+- intentionally did not activate Cron, queues, workers, retrieval, model calls,
+  or push delivery in this slice.
+
+M4.5 proposal and approval slice deployed rollout-off on 2026-07-16:
+
+- added strict server-normalized News briefing and Market briefing contracts;
+- added a JWT-protected `automation-actions` capability, proposal, replacement,
+  rejection, and approval endpoint;
+- added a service-only atomic approval RPC with paid-entitlement enforcement,
+  an initial two-active-Automation cap, per-user concurrency locking, and
+  idempotent execution;
+- exposed the two allowlisted tools to eligible Chat requests and kept
+  arbitrary scheduled prompts and code execution unsupported;
+- added a compact review card for type, topics/scope, schedule, timezone, and
+  delivery, plus conversational approve/reject confirmation messages;
+- kept all rollout flags off and left scheduling, generation, validation, and
+  delivery inactive.
 
 ## M4.1 — Clean UI refinement
 

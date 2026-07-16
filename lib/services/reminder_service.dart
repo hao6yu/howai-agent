@@ -161,8 +161,11 @@ class ReminderService {
   }) async {
     _requireSignedInUser();
     try {
+      final functionName = proposal.actionType.startsWith('automations_')
+          ? 'automation-actions'
+          : 'reminder-actions';
       final response = await _client.functions.invoke(
-        'reminder-actions',
+        functionName,
         body: {
           'operation': 'decide',
           'proposal_id': proposal.proposalId,

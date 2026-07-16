@@ -6,8 +6,8 @@ select plan(38);
 
 select is(
   (select count(*) from public.feature_flags),
-  6::bigint,
-  'all six HowAI 2.0 feature flags exist'
+  11::bigint,
+  'all HowAI 2.0 feature flags, including M4.5 kill switches, exist'
 );
 
 select is(

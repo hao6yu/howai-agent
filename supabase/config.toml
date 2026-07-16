@@ -383,6 +383,9 @@ verify_jwt = true
 [functions.reminder-actions]
 verify_jwt = true
 
+[functions.automation-actions]
+verify_jwt = true
+
 [functions.push-devices]
 verify_jwt = true
 

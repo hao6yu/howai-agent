@@ -27,11 +27,11 @@ type LocalParts = Readonly<{
 }>;
 
 export class ReminderValidationError extends Error {
-  constructor(
-    message: string,
-    readonly code = "invalid_reminder",
-  ) {
+  readonly code: string;
+
+  constructor(message: string, code = "invalid_reminder") {
     super(message);
+    this.code = code;
     this.name = "ReminderValidationError";
   }
 }

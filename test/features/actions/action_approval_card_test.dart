@@ -101,4 +101,49 @@ void main() {
 
     expect(tester.getSize(find.byType(Card)).height, lessThan(420));
   });
+
+  testWidgets('shows compact Automation scope and delivery details',
+      (tester) async {
+    final automation = ActionProposal(
+      proposalId: 'automation-1',
+      actionType: 'automations_create',
+      arguments: const {
+        'kind': 'news_briefing',
+        'title': 'Morning AI briefing',
+        'timezone': 'America/Chicago',
+        'schedule_rule': {
+          'frequency': 'daily',
+          'interval': 1,
+          'weekdays': <int>[],
+          'ends_at': null,
+        },
+        'config': {
+          'topics': ['AI', 'robotics'],
+          'item_count': 5,
+        },
+        'delivery_preferences': {'push': true},
+      },
+      summary: 'News briefing: Morning AI briefing',
+      warnings: const ['Unverified runs are withheld.'],
+      origin: AgentActionOrigin.text,
+      createdAt: DateTime.utc(2026, 7, 16),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ActionApprovalCard(
+            proposal: automation,
+            onApprove: () {},
+            onReject: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('News briefing'), findsOneWidget);
+    expect(find.text('AI, robotics'), findsOneWidget);
+    expect(find.text('Daily'), findsOneWidget);
+    expect(find.text('Push notification + history'), findsOneWidget);
+  });
 }

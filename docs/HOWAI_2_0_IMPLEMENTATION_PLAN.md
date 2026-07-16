@@ -8,7 +8,7 @@ Proposed release version: `2.0.0`
 Repository scope: Flutter clients and the shared Supabase backend. The web
 client is maintained and released from its own repository.
 
-Implementation status (2026-07-15): M0 and the M1 GPT-5.6
+Implementation status (2026-07-16): M0 and the M1 GPT-5.6
 evaluation/canary foundation are deployed. Production migration history, RLS,
 privileges, advisors, and the current Edge Functions have been verified. The
 private internal canary is enabled for internal test accounts and a
@@ -16,9 +16,12 @@ signed iPhone build has verified that its primary chat route resolves to
 `gpt-5.6-sol`; the general user rollout remains disabled. M2 UX beta work is in
 progress on `codex/howai-2-ux-beta`. M3 reminder actions and M4 Firebase push
 delivery are implemented and have passed the internal physical-device flow.
-M4.1 now owns the final clean, lightweight product-UI refinement. M4.5 adds
-user-approved Automations, beginning with scheduled news and market briefings,
-before the M5 Realtime voice work begins.
+M4.1 clean-interface refinement is complete. The M4.5 rollout-off foundation
+and proposal/approval backend are deployed: durable run history, strict News
+and Market briefing contracts, and an atomic paid-user approval path.
+Scheduling, workers, retrieval, validation, and delivery remain disabled. M4.6
+isolates the Places and Maps decomposition and visual refinement before the M5
+Realtime voice work begins.
 
 M0 delivered:
 
@@ -155,6 +158,8 @@ M4 Notification beta delivered for internal testing:
 
 M4.1 and M4.5 design is captured in
 [M4.1 UI refinement and M4.5 Automations](M4_1_UI_AND_M4_5_AUTOMATIONS.md).
+The deferred Places and Maps work is captured separately in
+[M4.6 Places and Maps refactor](M4_6_PLACES_MAPS_REFACTOR.md).
 
 ## 1. Executive decision
 
@@ -1155,6 +1160,7 @@ Do not log prompt contents, reminder notes, transcripts, research reports, API k
 | M4 — Notification beta | Firebase setup, device registration, queue/dispatcher, FCM, deep links, notification actions | Physical-device delivery and duplicate tests pass |
 | M4.1 — Clean UI refinement | Content-first navigation, lighter chat surface, adaptive composer, compact approvals, UI component extraction | Product UX, keyboard, accessibility, and chat regressions pass |
 | M4.5 — Automations beta | Automations UI, schedules/runs/queue, verified news briefings, market briefing foundation, push deep links | Internal then full rollout passes; unsupported claims are withheld and citations remain durable |
+| M4.6 — Places and Maps refactor | Decompose the Places result monolith; unify cards, list, map, details, reviews, Street View, navigation, and transient states | Existing Places behavior passes regression; light/dark, large-text, accessibility, permission, and error states pass; the main widget becomes a thin orchestrator |
 | M5 — Realtime voice beta | Ephemeral session endpoint, WebRTC client, transcript, interruption, reminder tools, ElevenLabs fallback | Voice quality, safety, usage, and fallback gates pass |
 | M6 — Research beta | Persistent projects/runs/sources, background Responses, webhook, completion push | Leave/resume/completion flow passes and sources remain durable |
 | M7 — Release candidate | Localization, accessibility, performance, security review, store assets/privacy, internal-to-full rollout controls | All release gates pass and rollback is tested |
@@ -1162,8 +1168,10 @@ Do not log prompt contents, reminder notes, transcripts, research reports, API k
 M4.1 follows the completed M4 internal notification flow. It establishes the
 final navigation and Automations surface before M4.5 adds generated content.
 M4.5 reuses reminder approval, scheduling, usage-ledger, and push infrastructure
-without renaming the existing reminder schema. M5 Realtime and M6 Research then
-reuse the refined UI and durable run patterns.
+without renaming the existing reminder schema. M4.6 then reduces the Places and
+Maps regression surface and brings those screens onto the shared semantic UI
+system. M5 Realtime and M6 Research reuse the refined UI and durable run
+patterns.
 
 ## 19. Estimated delivery range
 

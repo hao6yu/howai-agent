@@ -42,8 +42,10 @@ import '../core/agent/agent_action_contracts.dart';
 import '../core/agent/chat_response_policy.dart';
 import '../core/agent/reminder_action_intent.dart';
 import '../core/agent/reminder_action_messages.dart';
+import '../core/agent/automation_action_messages.dart';
 import '../services/database_service.dart';
 import '../services/openai_service.dart';
+import '../services/automation_service.dart';
 import '../services/elevenlabs_service.dart';
 import '../services/speech_recognition_service.dart';
 import '../services/audio_recorder_service.dart';
@@ -98,6 +100,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   final ScrollController _scrollController = ScrollController();
   final DatabaseService _databaseService = DatabaseService();
   final OpenAIService _openAIService = OpenAIService();
+  final AutomationService _automationService = AutomationService();
   final ElevenLabsService _elevenLabsService = ElevenLabsService();
   final SpeechRecognitionService _speechRecognitionService =
       SpeechRecognitionService();
@@ -695,8 +698,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     required String appLocale,
     String? reasoningEffortOverride,
     bool allowReminderActions = false,
+    bool allowAutomationActions = false,
     String? reminderTimezone,
     Map<String, dynamic>? pendingReminderDraft,
+    Map<String, dynamic>? pendingAutomationDraft,
     List<Map<String, dynamic>> existingReminders = const [],
   }) async {
     final timestamp = DateTime.now().toIso8601String();
@@ -759,9 +764,11 @@ class _AiChatScreenState extends State<AiChatScreen>
         aiPersonality: aiPersonality,
         reasoningEffortOverride: reasoningEffortOverride,
         allowReminderActions: allowReminderActions,
+        allowAutomationActions: allowAutomationActions,
         appLocale: appLocale,
         reminderTimezone: reminderTimezone,
         pendingReminderDraft: pendingReminderDraft,
+        pendingAutomationDraft: pendingAutomationDraft,
         existingReminders: existingReminders,
       );
 
@@ -1324,10 +1331,20 @@ class _AiChatScreenState extends State<AiChatScreen>
           isExistingReminderResumeRequest(text);
       await reminderProvider.ensureInitialized(force: wantsFreshReminderState);
       final allowReminderActions = reminderProvider.isAvailable;
-      final reminderTimezone = allowReminderActions
+      final allowAutomationActions = subscriptionService.isPremium &&
+          await _automationService.checkAvailability();
+      final reminderTimezone = allowReminderActions || allowAutomationActions
           ? await DeviceTimezoneService.currentIdentifier()
           : null;
-      final pendingReminderProposal = _pendingActionProposal;
+      final pendingActionProposal = _pendingActionProposal;
+      final pendingReminderProposal =
+          pendingActionProposal?.actionType == 'reminders_create'
+              ? pendingActionProposal
+              : null;
+      final pendingAutomationProposal =
+          pendingActionProposal?.actionType == 'automations_create'
+              ? pendingActionProposal
+              : null;
       final existingReminders = allowReminderActions
           ? reminderProvider.reminders
               .where(
@@ -1377,8 +1394,10 @@ class _AiChatScreenState extends State<AiChatScreen>
           appLocale: appLocale,
           reasoningEffortOverride: reasoningEffortOverride,
           allowReminderActions: allowReminderActions,
+          allowAutomationActions: allowAutomationActions,
           reminderTimezone: reminderTimezone,
           pendingReminderDraft: pendingReminderProposal?.arguments,
+          pendingAutomationDraft: pendingAutomationProposal?.arguments,
           existingReminders: existingReminders,
         );
       } else {
@@ -1400,9 +1419,11 @@ class _AiChatScreenState extends State<AiChatScreen>
           fileAttachments: files,
           aiPersonality: aiPersonality,
           allowReminderActions: allowReminderActions,
+          allowAutomationActions: allowAutomationActions,
           appLocale: appLocale,
           reminderTimezone: reminderTimezone,
           pendingReminderDraft: pendingReminderProposal?.arguments,
+          pendingAutomationDraft: pendingAutomationProposal?.arguments,
           existingReminders: existingReminders,
         );
       }
@@ -1541,20 +1562,34 @@ class _AiChatScreenState extends State<AiChatScreen>
             final conversationUuid = conversationId == null
                 ? null
                 : IDMappingService().getConversationUUID(conversationId);
-            final proposal = await reminderProvider.proposeToolCall(
-              actionToolCall,
-              origin: _isVoiceInputMode
-                  ? AgentActionOrigin.voice
-                  : AgentActionOrigin.text,
-              conversationId: conversationUuid,
-              replacesProposal: actionName == 'reminders_create'
-                  ? pendingReminderProposal
-                  : null,
-            );
+            final actionOrigin = _isVoiceInputMode
+                ? AgentActionOrigin.voice
+                : AgentActionOrigin.text;
+            final isAutomation =
+                actionName?.startsWith('automations_create_') == true;
+            final proposal = isAutomation
+                ? await _automationService.proposeToolCall(
+                    actionToolCall,
+                    origin: actionOrigin,
+                    conversationId: conversationUuid,
+                    replacesProposal: pendingAutomationProposal,
+                  )
+                : await reminderProvider.proposeToolCall(
+                    actionToolCall,
+                    origin: actionOrigin,
+                    conversationId: conversationUuid,
+                    replacesProposal: actionName == 'reminders_create'
+                        ? pendingReminderProposal
+                        : null,
+                  );
             if (mounted) {
               setState(() => _pendingActionProposal = proposal);
             }
-            if (actionName == 'reminders_update') {
+            if (isAutomation) {
+              aiText = pendingAutomationProposal == null
+                  ? 'I drafted this Automation. Review it below before I activate it.'
+                  : 'I updated this Automation draft. Review the changes below.';
+            } else if (actionName == 'reminders_update') {
               aiText =
                   'I prepared the reminder update. Review the changes below before I save it.';
             } else if (actionName == 'reminders_resume') {
@@ -1569,10 +1604,14 @@ class _AiChatScreenState extends State<AiChatScreen>
             }
           } catch (error) {
             if (aiText.trim().isEmpty) {
-              aiText =
-                  'I could not prepare that reminder. Please check the time and try again.';
+              aiText = actionToolCall['name']
+                          ?.toString()
+                          .startsWith('automations_create_') ==
+                      true
+                  ? 'I could not prepare that Automation. Please check the schedule and try again.'
+                  : 'I could not prepare that reminder. Please check the time and try again.';
             }
-            debugPrint('[ChatScreen] Reminder proposal failed: $error');
+            debugPrint('[ChatScreen] Action proposal failed: $error');
           }
         }
 
@@ -2379,13 +2418,20 @@ class _AiChatScreenState extends State<AiChatScreen>
     if (proposal == null || _pendingActionBusy) return;
     setState(() => _pendingActionBusy = true);
     try {
-      final result = await context.read<ReminderProvider>().decide(
-            proposal,
-            decision,
-            channel: _isVoiceInputMode
-                ? AgentActionOrigin.voice
-                : AgentActionOrigin.text,
-          );
+      final channel =
+          _isVoiceInputMode ? AgentActionOrigin.voice : AgentActionOrigin.text;
+      final isAutomation = proposal.actionType.startsWith('automations_');
+      final result = isAutomation
+          ? await _automationService.decide(
+              proposal: proposal,
+              decision: decision,
+              channel: channel,
+            )
+          : await context.read<ReminderProvider>().decide(
+                proposal,
+                decision,
+                channel: channel,
+              );
       if (!mounted) return;
       if (decision == AgentActionDecision.approved &&
           proposal.actionType == 'reminders_create' &&
@@ -2398,18 +2444,26 @@ class _AiChatScreenState extends State<AiChatScreen>
         _pendingActionBusy = false;
       });
       await _appendAssistantActionMessage(
-        reminderActionDecisionMessage(
-          proposal: proposal,
-          decision: decision,
-          result: result,
-        ),
+        isAutomation
+            ? automationActionDecisionMessage(
+                proposal: proposal,
+                decision: decision,
+                result: result,
+              )
+            : reminderActionDecisionMessage(
+                proposal: proposal,
+                decision: decision,
+                result: result,
+              ),
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _pendingActionBusy = false);
-      debugPrint('[ChatScreen] Reminder decision failed: $error');
+      debugPrint('[ChatScreen] Action decision failed: $error');
       await _appendAssistantActionMessage(
-        'I couldn’t finish that reminder action. Please try again.',
+        proposal.actionType.startsWith('automations_')
+            ? 'I couldn’t finish that Automation action. Please try again.'
+            : 'I couldn’t finish that reminder action. Please try again.',
       );
     }
   }

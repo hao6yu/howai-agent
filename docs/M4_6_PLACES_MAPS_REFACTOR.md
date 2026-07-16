@@ -1,12 +1,14 @@
 # M4.6 Places and Maps refactor
 
-Status: In progress after M4.5
+Status: Deferred after the characterization foundation
 Date: 2026-07-16
 
 ## Decision
 
-Places and Maps remain part of HowAI 2.0, but their structural and visual
-redesign is scheduled as M4.6 rather than being folded into M4.1 or M4.5.
+Places and Maps remain part of HowAI, but their full structural and visual
+redesign is deferred so the release can move directly from M4.5 to M5 Realtime
+voice. The completed characterization foundation and shared presentation
+mapping remain in place to reduce risk when this work resumes.
 
 The current `lib/widgets/place_result_widget.dart` is more than 7,000 lines and
 combines result presentation, carousel and list layouts, map state, directions,
@@ -111,7 +113,7 @@ related-type, and unknown-type behavior.
 
 ## Ordering
 
-M4.5 Automations is implemented first. M4.6 begins after its foundational data,
-worker, approval, run-history, and notification paths are stable. M5 Realtime
-voice follows M4.6 unless a later product decision explicitly allows the two
-workstreams to proceed independently.
+The initial characterization and shared presentation seam were completed after
+M4.5. The remaining M4.6 decomposition and visual work is deferred by product
+decision. M5 Realtime voice now follows M4.5 directly; Places and Maps can
+resume in a later 2.x milestone without blocking this release.

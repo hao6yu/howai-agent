@@ -25,8 +25,9 @@ claims, metered live retrieval, deterministic source checks, independent AI
 verification, an idempotent assistant message, and a Firebase deep link into
 the stable Automation conversation. Market execution remains gated until a
 structured market-data source exists. Physical-device validation remains
-before full rollout. M4.6 isolates the Places and Maps
-decomposition and visual refinement before the M5 Realtime voice work begins.
+before full rollout. The M4.6 Places and Maps characterization foundation is
+complete, while its full decomposition and visual redesign are deferred. M5
+Realtime voice is the next active milestone.
 
 M0 delivered:
 
@@ -1178,7 +1179,7 @@ Do not log prompt contents, reminder notes, transcripts, research reports, API k
 | M4 — Notification beta | Firebase setup, device registration, queue/dispatcher, FCM, deep links, notification actions | Physical-device delivery and duplicate tests pass |
 | M4.1 — Clean UI refinement | Content-first navigation, lighter chat surface, adaptive composer, compact approvals, UI component extraction | Product UX, keyboard, accessibility, and chat regressions pass |
 | M4.5 — Automations beta | Automations UI, schedules/runs/queue, verified news briefings, market briefing foundation, push deep links | Internal then full rollout passes; unsupported claims are withheld and citations remain durable |
-| M4.6 — Places and Maps refactor | Decompose the Places result monolith; unify cards, list, map, details, reviews, Street View, navigation, and transient states | Existing Places behavior passes regression; light/dark, large-text, accessibility, permission, and error states pass; the main widget becomes a thin orchestrator |
+| M4.6 — Places and Maps refactor (deferred) | Characterization foundation is complete; defer the full cards, list, map, details, reviews, Street View, navigation, and transient-state refactor | Resume in a later 2.x milestone without blocking HowAI 2.0 |
 | M5 — Realtime voice beta | Ephemeral session endpoint, WebRTC client, transcript, interruption, reminder tools, ElevenLabs fallback | Voice quality, safety, usage, and fallback gates pass |
 | M6 — Research beta | Persistent projects/runs/sources, background Responses, webhook, completion push | Leave/resume/completion flow passes and sources remain durable |
 | M7 — Release candidate | Localization, accessibility, performance, security review, store assets/privacy, internal-to-full rollout controls | All release gates pass and rollback is tested |
@@ -1186,10 +1187,10 @@ Do not log prompt contents, reminder notes, transcripts, research reports, API k
 M4.1 follows the completed M4 internal notification flow. It establishes the
 final navigation and Automations surface before M4.5 adds generated content.
 M4.5 reuses reminder approval, scheduling, usage-ledger, and push infrastructure
-without renaming the existing reminder schema. M4.6 then reduces the Places and
-Maps regression surface and brings those screens onto the shared semantic UI
-system. M5 Realtime and M6 Research reuse the refined UI and durable run
-patterns.
+without renaming the existing reminder schema. The initial M4.6
+characterization work remains as a safe future refactor seam, but the full
+Places and Maps redesign is deferred. M5 Realtime and M6 Research reuse the
+refined UI and durable run patterns.
 
 ## 19. Estimated delivery range
 

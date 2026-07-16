@@ -8,8 +8,11 @@ class ReminderRecurrence {
     required this.interval,
     required this.weekdays,
     this.dayOfMonth,
+    this.monthWeek,
+    this.monthWeekday,
     this.endsAt,
-  });
+    this.endsOnDate,
+  }) : assert(endsAt == null || endsOnDate == null);
 
   factory ReminderRecurrence.fromJson(Map<String, dynamic> json) {
     return ReminderRecurrence(
@@ -19,6 +22,8 @@ class ReminderRecurrence {
           .map((value) => (value as num).toInt())
           .toList(growable: false),
       dayOfMonth: (json['day_of_month'] as num?)?.toInt(),
+      monthWeek: (json['month_week'] as num?)?.toInt(),
+      monthWeekday: (json['month_weekday'] as num?)?.toInt(),
       endsAt: json['ends_at'] == null
           ? null
           : DateTime.parse(json['ends_at'] as String).toUtc(),
@@ -29,14 +34,19 @@ class ReminderRecurrence {
   final int interval;
   final List<int> weekdays;
   final int? dayOfMonth;
+  final int? monthWeek;
+  final int? monthWeekday;
   final DateTime? endsAt;
+  final String? endsOnDate;
 
   Map<String, dynamic> toJson() => {
         'frequency': frequency.name,
         'interval': interval,
         'weekdays': weekdays,
         'day_of_month': dayOfMonth,
-        'ends_at': endsAt?.toUtc().toIso8601String(),
+        'month_week': monthWeek,
+        'month_weekday': monthWeekday,
+        'ends_at': endsOnDate ?? endsAt?.toUtc().toIso8601String(),
       };
 
   String get compactLabel {
@@ -44,10 +54,39 @@ class ReminderRecurrence {
       case ReminderFrequency.daily:
         return interval == 1 ? 'Daily' : 'Every $interval days';
       case ReminderFrequency.weekly:
-        return interval == 1 ? 'Weekly' : 'Every $interval weeks';
+        final days = weekdays.map(reminderWeekdayName).join(', ');
+        return interval == 1
+            ? 'Weekly · $days'
+            : 'Every $interval weeks · $days';
       case ReminderFrequency.monthly:
-        return interval == 1 ? 'Monthly' : 'Every $interval months';
+        final pattern = dayOfMonth != null
+            ? 'day $dayOfMonth'
+            : '${reminderOrdinalName(monthWeek)} '
+                '${reminderWeekdayName(monthWeekday ?? 1)}';
+        return interval == 1
+            ? 'Monthly · $pattern'
+            : 'Every $interval months · $pattern';
     }
+  }
+}
+
+String reminderWeekdayName(int day) =>
+    const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][day - 1];
+
+String reminderOrdinalName(int? week) {
+  switch (week) {
+    case 1:
+      return 'First';
+    case 2:
+      return 'Second';
+    case 3:
+      return 'Third';
+    case 4:
+      return 'Fourth';
+    case -1:
+      return 'Last';
+    default:
+      return 'First';
   }
 }
 

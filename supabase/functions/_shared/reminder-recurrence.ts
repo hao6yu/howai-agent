@@ -5,6 +5,8 @@ export type ReminderRecurrence = Readonly<{
   interval: number;
   weekdays: readonly number[];
   day_of_month: number | null;
+  month_week: number | null;
+  month_weekday: number | null;
   ends_at: string | null;
 }>;
 
@@ -43,6 +45,8 @@ const ALLOWED_RECURRENCE_KEYS = new Set([
   "interval",
   "weekdays",
   "day_of_month",
+  "month_week",
+  "month_weekday",
   "ends_at",
 ]);
 
@@ -161,15 +165,47 @@ export function normalizeRecurrence(
   const dayOfMonth = value.day_of_month == null
     ? null
     : integer(value.day_of_month, "recurrence.day_of_month");
+  const monthWeek = value.month_week == null
+    ? null
+    : integer(value.month_week, "recurrence.month_week");
+  const monthWeekday = value.month_weekday == null
+    ? null
+    : integer(value.month_weekday, "recurrence.month_weekday");
   if (frequency === "monthly") {
-    if (dayOfMonth == null || dayOfMonth < 1 || dayOfMonth > 31) {
+    const hasDayOfMonth = dayOfMonth != null;
+    const hasOrdinalWeekday = monthWeek != null || monthWeekday != null;
+    if (hasDayOfMonth === hasOrdinalWeekday) {
       throw new ReminderValidationError(
-        "Monthly reminders require a day_of_month from 1 to 31.",
+        "Monthly reminders require either day_of_month or a complete ordinal weekday pattern.",
       );
     }
-  } else if (dayOfMonth != null) {
+    if (dayOfMonth != null && (dayOfMonth < 1 || dayOfMonth > 31)) {
+      throw new ReminderValidationError(
+        "recurrence.day_of_month must be between 1 and 31.",
+      );
+    }
+    if (hasOrdinalWeekday) {
+      if (monthWeek == null || monthWeekday == null) {
+        throw new ReminderValidationError(
+          "Ordinal monthly reminders require both month_week and month_weekday.",
+        );
+      }
+      if (![1, 2, 3, 4, -1].includes(monthWeek)) {
+        throw new ReminderValidationError(
+          "recurrence.month_week must be first, second, third, fourth, or last.",
+        );
+      }
+      if (monthWeekday < 1 || monthWeekday > 7) {
+        throw new ReminderValidationError(
+          "recurrence.month_weekday must be an ISO weekday from 1 to 7.",
+        );
+      }
+    }
+  } else if (
+    dayOfMonth != null || monthWeek != null || monthWeekday != null
+  ) {
     throw new ReminderValidationError(
-      "Only monthly reminders may include day_of_month.",
+      "Only monthly reminders may include monthly pattern fields.",
     );
   }
 
@@ -182,6 +218,8 @@ export function normalizeRecurrence(
     interval,
     weekdays,
     day_of_month: dayOfMonth,
+    month_week: monthWeek,
+    month_weekday: monthWeekday,
     ends_at: endsAt,
   };
 }
@@ -253,7 +291,12 @@ export function nextOccurrence(input: {
       const monthIndex = start.month - 1 + monthOffset;
       const year = start.year + Math.floor(monthIndex / 12);
       const month = ((monthIndex % 12) + 12) % 12 + 1;
-      const day = recurrence.day_of_month!;
+      const day = recurrence.day_of_month ?? ordinalWeekdayDay(
+        year,
+        month,
+        recurrence.month_week!,
+        recurrence.month_weekday!,
+      );
       if (day > daysInMonth(year, month)) continue;
       const instant = localDateTimeToUtc(
         { ...start, year, month, day },
@@ -304,9 +347,18 @@ export function describeReminderSchedule(
       ? `every ${names}`
       : `every ${recurrence.interval} weeks on ${names}`;
   } else {
-    cadence = recurrence.interval === 1
-      ? `monthly on day ${recurrence.day_of_month}`
-      : `every ${recurrence.interval} months on day ${recurrence.day_of_month}`;
+    if (recurrence.day_of_month != null) {
+      cadence = recurrence.interval === 1
+        ? `monthly on day ${recurrence.day_of_month}`
+        : `every ${recurrence.interval} months on day ${recurrence.day_of_month}`;
+    } else {
+      const monthlyPattern = `${ordinalName(recurrence.month_week!)} ${
+        weekdayName(recurrence.month_weekday!)
+      }`;
+      cadence = recurrence.interval === 1
+        ? `monthly on the ${monthlyPattern}`
+        : `every ${recurrence.interval} months on the ${monthlyPattern}`;
+    }
   }
   const endLabel = recurrence.ends_at
     ? ` until ${
@@ -496,7 +548,15 @@ function startMatchesRecurrence(
   if (recurrence.frequency === "weekly") {
     return recurrence.weekdays.includes(isoWeekday(start));
   }
-  return recurrence.day_of_month === start.day;
+  if (recurrence.day_of_month != null) {
+    return recurrence.day_of_month === start.day;
+  }
+  return start.day === ordinalWeekdayDay(
+    start.year,
+    start.month,
+    recurrence.month_week!,
+    recurrence.month_weekday!,
+  );
 }
 
 function normalizeInstant(value: unknown, field: string): string {
@@ -610,4 +670,25 @@ function sameLocalParts(left: LocalParts, right: LocalParts): boolean {
 
 function weekdayName(day: number): string {
   return ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][day - 1];
+}
+
+function ordinalName(week: number): string {
+  return week === -1
+    ? "last"
+    : ["", "first", "second", "third", "fourth"][week];
+}
+
+function ordinalWeekdayDay(
+  year: number,
+  month: number,
+  week: number,
+  weekday: number,
+): number {
+  if (week === -1) {
+    const lastDay = daysInMonth(year, month);
+    const lastWeekday = isoWeekday({ year, month, day: lastDay });
+    return lastDay - ((lastWeekday - weekday + 7) % 7);
+  }
+  const firstWeekday = isoWeekday({ year, month, day: 1 });
+  return 1 + ((weekday - firstWeekday + 7) % 7) + (week - 1) * 7;
 }

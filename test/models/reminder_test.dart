@@ -17,6 +17,8 @@ void main() {
         'interval': 1,
         'weekdays': [1, 4],
         'day_of_month': null,
+        'month_week': null,
+        'month_weekday': null,
         'ends_at': null,
       },
       'status': 'active',
@@ -39,6 +41,8 @@ void main() {
         'interval': 1,
         'weekdays': [1, 4],
         'day_of_month': null,
+        'month_week': null,
+        'month_weekday': null,
         'ends_at': null,
       },
     });
@@ -55,6 +59,8 @@ void main() {
         'interval': 1,
         'weekdays': [1, 4],
         'day_of_month': null,
+        'month_week': null,
+        'month_weekday': null,
         'ends_at': null,
       },
     });
@@ -80,5 +86,37 @@ void main() {
     expect(reminder.status, ReminderStatus.completed);
     expect(reminder.recurrence, isNull);
     expect(reminder.conversationId, 'conversation-1');
+  });
+
+  test('describes and serializes an ordinal monthly recurrence', () {
+    const recurrence = ReminderRecurrence(
+      frequency: ReminderFrequency.monthly,
+      interval: 2,
+      weekdays: [],
+      monthWeek: 1,
+      monthWeekday: 1,
+    );
+
+    expect(recurrence.compactLabel, 'Every 2 months · First Mon');
+    expect(recurrence.toJson(), {
+      'frequency': 'monthly',
+      'interval': 2,
+      'weekdays': <int>[],
+      'day_of_month': null,
+      'month_week': 1,
+      'month_weekday': 1,
+      'ends_at': null,
+    });
+  });
+
+  test('sends a picked end date for interpretation in reminder timezone', () {
+    const recurrence = ReminderRecurrence(
+      frequency: ReminderFrequency.daily,
+      interval: 1,
+      weekdays: [],
+      endsOnDate: '2026-08-31',
+    );
+
+    expect(recurrence.toJson()['ends_at'], '2026-08-31');
   });
 }

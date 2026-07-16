@@ -47,6 +47,27 @@ test("rejects arbitrary scheduled prompts and unknown fields", () => {
   assert.throws(() => normalizeAutomationCreate({ kind: "prompt", extra: "run code" }));
 });
 
+test("rejects minute and hourly generated schedules", () => {
+  for (const frequency of ["minute", "hourly"]) {
+    assert.throws(() => normalizeAutomationCreate({
+      kind: "news_briefing",
+      title: "Over-frequent briefing",
+      timezone: "America/Chicago",
+      start_local: "2026-07-17T07:00:00",
+      schedule: { frequency, interval: 1, weekdays: [], ends_at: null },
+      config: {
+        topics: ["AI"], item_count: 5, region: "US",
+        language: "auto", summary_style: "concise",
+      },
+      source_policy: {
+        preferred_domains: [], excluded_domains: [], freshness_hours: 24,
+        require_primary_sources: true,
+      },
+      delivery_preferences: { push: true },
+    }, new Date("2026-07-16T12:00:00Z")), /no more than once per day/);
+  }
+});
+
 test("requires a watchlist symbol", () => {
   assert.throws(() => normalizeAutomationCreate({
     kind: "market_briefing",

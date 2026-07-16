@@ -19,7 +19,10 @@ delivery are implemented and have passed the internal physical-device flow.
 M4.1 clean-interface refinement is complete. The M4.5 rollout-off foundation
 and proposal/approval backend are deployed: durable run history, strict News
 and Market briefing contracts, and an atomic paid-user approval path.
-Scheduling, workers, retrieval, validation, and delivery remain disabled. M4.6
+Static Reminder fallback is now prohibited for generated briefing requests,
+and the next worker slice will append each run as an assistant message in one
+stable Automation conversation before sending a push deep link. Scheduling,
+workers, retrieval, validation, and generated delivery remain disabled. M4.6
 isolates the Places and Maps decomposition and visual refinement before the M5
 Realtime voice work begins.
 
@@ -124,9 +127,10 @@ M3 Actions beta delivered:
   and optimistic reminder versions.
 - Added a JWT-protected `reminder-actions` endpoint. Model output can only create
   a proposal; an explicit user approval invokes the service-only atomic RPC.
-- Added DST-safe one-time, daily, selected-weekday/weekly, and monthly-date
-  recurrence using IANA timezones plus local wall-clock intent. Ordinal monthly,
-  yearly, and occurrence-count rules remain later recurrence extensions.
+- Added DST-safe one-time, every-N-day, selected-weekday/every-N-week,
+  monthly-date, and ordinal-monthly recurrence using IANA timezones plus local
+  wall-clock intent. Yearly and occurrence-count rules remain later recurrence
+  extensions.
 - Added the internal-beta strict `reminders_create` model tool for paid and free
   signed-in testers, an inline chat approval card, and an Actions workspace for
   review/edit/snooze/pause/resume/skip/complete/delete.
@@ -716,7 +720,8 @@ The Thinking level is also available from this sheet:
 - Monthly on a date.
 - Monthly on an ordinal weekday, such as the second Friday.
 - Yearly.
-- Optional end date or occurrence count.
+- Optional end date. Ending after a number of occurrences remains a later
+  extension.
 
 Store a validated structured recurrence object rather than accepting arbitrary cron expressions. Persist the user’s IANA timezone and local wall-clock intent, then compute `next_fire_at` in UTC. Recalculate from the local recurrence after every occurrence so daylight-saving changes do not move an 8 AM reminder to 7 AM or 9 AM.
 
@@ -730,7 +735,12 @@ The Automations destination contains:
 - Completed.
 - Paused.
 
-Each reminder supports detail, edit, complete, snooze, pause/resume, skip next, delete, notification history, and a link back to the originating conversation.
+Each reminder supports detail, edit, complete, snooze, pause/resume, skip next,
+delete, notification history, and a link back to the originating conversation.
+Editing exposes a structured Outlook-style recurrence control: one-time,
+daily/weekly/monthly frequency, every-N interval, selected weekdays,
+day-of-month or first/second/third/fourth/last weekday, and an optional end
+date. The UI never stores arbitrary cron text.
 
 ### B3. Text flow
 
@@ -1008,9 +1018,11 @@ The exact SQL should be generated only after the linked remote schema is pulled 
 `automations` stores the approved template, schedule, timezone, delivery
 preferences, status, version, and next run. `automation_runs` stores one unique
 scheduled occurrence, generation/verification state, report, source metadata,
-usage, and bounded failure details. Keep the existing `reminders` table and
-contracts intact for installed-client compatibility; reminders appear under
-the Automations UI without a destructive schema rename.
+usage, bound-conversation message identifier, and bounded failure details. A
+push is only a preview and deep link to that durable assistant message; one new
+conversation must not be created per occurrence. Keep the existing `reminders`
+table and contracts intact for installed-client compatibility; reminders
+appear under the Automations UI without a destructive schema rename.
 
 Every user-owned table must enable RLS and enforce `(select auth.uid()) = user_id` for reads and writes. Update policies require both `USING` and `WITH CHECK`. New public tables also need explicit Data API grants because current Supabase projects may not expose them automatically.
 
@@ -1041,6 +1053,10 @@ Expected scheduled/backend components:
 - Webhook deduplication and research-result persistence.
 - One global due-Automation scheduler plus a durable queue; do not create one
   database cron row per user.
+- Generated Automations have a hard once-per-day minimum cadence, a two-active
+  cap per paid user, bounded claim batches/retries, and atomic per-user plus
+  project-wide cost reservations. Minute-level and hourly schedules are
+  rejected rather than approximated with Reminders.
 - A direct OpenAI worker path using shared policy and usage-ledger code. Avoid
   chaining the scheduled worker through another Edge Function because hosted
   Supabase now rate-limits nested/recursive Edge Function calls.

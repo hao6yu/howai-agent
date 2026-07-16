@@ -272,26 +272,36 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
       }
     }
 
-    return groups.entries
+    final visibleGroups = groups.entries
         .where((entry) => entry.value.isNotEmpty)
-        .expand(
-          (entry) => <Widget>[
-            _sectionHeader(entry.key),
-            ...entry.value.map(
+        .toList(growable: false);
+    return [
+      for (var index = 0; index < visibleGroups.length; index++) ...[
+        _sectionHeader(
+          visibleGroups[index].key,
+          separatedFromPrevious: index > 0,
+        ),
+        ...visibleGroups[index].value.map(
               (conversation) =>
                   _conversationTile(context, provider, conversation),
             ),
-          ],
-        )
-        .toList();
+      ],
+    ];
   }
 
-  Widget _sectionHeader(String title) {
+  Widget _sectionHeader(
+    String title, {
+    bool separatedFromPrevious = false,
+  }) {
     final colors = context.howaiColors;
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.only(left: 16.0, bottom: 8.0),
+        padding: EdgeInsets.only(
+          left: 16,
+          top: separatedFromPrevious ? 18 : 0,
+          bottom: 8,
+        ),
         child: Text(
           title,
           style: TextStyle(

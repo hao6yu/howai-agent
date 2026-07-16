@@ -8,6 +8,7 @@ import '../../../models/reminder.dart';
 import '../../../providers/reminder_provider.dart';
 import '../../../providers/push_notification_provider.dart';
 import 'action_approval_card.dart';
+import 'automation_edit_dialog.dart';
 
 enum _ReminderMenuAction {
   edit,
@@ -224,7 +225,7 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
               ),
             ),
             PopupMenuButton<_ReminderMenuAction>(
-              tooltip: 'Reminder actions',
+              tooltip: 'Automation options',
               onSelected: (action) =>
                   _handleMenuAction(provider, reminder, action),
               itemBuilder: (_) => _menuItems(reminder),
@@ -335,86 +336,17 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
   }
 
   Future<Map<String, dynamic>?> _showEditDialog(Reminder reminder) async {
-    final title = TextEditingController(text: reminder.title);
-    final notes = TextEditingController(text: reminder.notes ?? '');
-    DateTime start = reminder.startLocal;
-    final result = await showDialog<Map<String, dynamic>>(
+    final result = await showAutomationEditDialog(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Edit reminder'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: title,
-                  autofocus: true,
-                  decoration: const InputDecoration(labelText: 'Title'),
-                ),
-                TextField(
-                  controller: notes,
-                  decoration:
-                      const InputDecoration(labelText: 'Notes (optional)'),
-                ),
-                const SizedBox(height: 12),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.schedule_rounded),
-                  title: Text(DateFormat.yMMMd().add_jm().format(start)),
-                  subtitle: Text(reminder.timezone),
-                  onTap: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: start,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime.now().add(const Duration(days: 3650)),
-                    );
-                    if (date == null || !context.mounted) return;
-                    final time = await showTimePicker(
-                      context: context,
-                      initialTime: TimeOfDay.fromDateTime(start),
-                    );
-                    if (time == null) return;
-                    setDialogState(() {
-                      start = DateTime(
-                        date.year,
-                        date.month,
-                        date.day,
-                        time.hour,
-                        time.minute,
-                      );
-                    });
-                  },
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final value = title.text.trim();
-                if (value.isEmpty) return;
-                final schedule = reminder.scheduleArguments();
-                schedule['title'] = value;
-                schedule['notes'] =
-                    notes.text.trim().isEmpty ? null : notes.text.trim();
-                schedule['start_local'] = _localTimestamp(start);
-                Navigator.pop(context, schedule);
-              },
-              child: const Text('Review'),
-            ),
-          ],
-        ),
-      ),
+      reminder: reminder,
     );
-    title.dispose();
-    notes.dispose();
-    return result;
+    if (result == null) return null;
+    final schedule = reminder.scheduleArguments();
+    schedule['title'] = result.title;
+    schedule['notes'] = result.notes;
+    schedule['start_local'] = _localTimestamp(result.start);
+    schedule['recurrence'] = result.recurrence?.toJson();
+    return schedule;
   }
 
   Future<void> _showApprovalDialog(
@@ -569,14 +501,14 @@ class _EmptyActions extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           Text(
-            'No reminders yet',
+            'No automations yet',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Ask HowAI naturally, then review the schedule before anything is saved.',
+            'Ask HowAI for a reminder or briefing, then review it before anything is activated.',
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -614,7 +546,7 @@ class _UnavailableState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Sign in with an enabled test account to create and manage reminders.',
+              'Sign in with an enabled test account to create and manage automations.',
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 20),
@@ -682,7 +614,7 @@ class _PushNotificationBanner extends StatelessWidget {
                 Text(
                   provider.isDenied
                       ? 'Notifications are off'
-                      : 'Get reminders on this device',
+                      : 'Get automation alerts on this device',
                   style: theme.textTheme.titleSmall?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -690,7 +622,7 @@ class _PushNotificationBanner extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(
                   provider.errorMessage ??
-                      'Allow HowAI to notify you when a reminder is due.',
+                      'Allow HowAI to notify you when an automation is ready.',
                   style: theme.textTheme.bodySmall,
                 ),
               ],

@@ -92,6 +92,15 @@ function normalizeSchedule(value: unknown, timezone: string): Record<string, unk
   if (!isRecord(value)) throw invalid("schedule must be an object.");
   rejectUnknown(value, new Set(["frequency", "interval", "weekdays", "ends_at"]));
   const frequency = value.frequency;
+  if (
+    typeof frequency === "string" &&
+    ["second", "secondly", "minute", "minutely", "hour", "hourly"].includes(frequency.toLowerCase())
+  ) {
+    throw invalid(
+      "Generated Automations can run no more than once per day.",
+      "automation_cadence_too_frequent",
+    );
+  }
   if (frequency !== "daily" && frequency !== "weekly" && frequency !== "market_days") {
     throw invalid("schedule.frequency must be daily, weekly, or market_days.");
   }

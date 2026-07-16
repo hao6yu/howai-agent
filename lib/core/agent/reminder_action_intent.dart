@@ -15,12 +15,57 @@ bool shouldForceReminderCreateTool({
     return false;
   }
 
+  // A Reminder only delivers its saved title/notes. Scheduled content that
+  // must be generated later belongs to the separate Automations contract.
+  // Keeping this deterministic prevents a briefing from silently degrading
+  // into a static notification when generated Automations are unavailable.
+  if (isGeneratedBriefingAutomationRequest(normalized)) {
+    return false;
+  }
+
   if (_explicitReminderRequest.hasMatch(normalized)) {
     return true;
   }
 
   return _isReminderAdjustment(normalized) &&
       (hasPendingReminderDraft || _hasRecentReminderContext(history));
+}
+
+/// Returns whether the request is for generated news/market content on a
+/// schedule rather than a static reminder to do something.
+bool isGeneratedBriefingAutomationRequest(String message) {
+  final normalized = message.trim().toLowerCase();
+  if (normalized.isEmpty) return false;
+
+  final hasSchedule = isHighFrequencyAutomationRequest(normalized) ||
+      RegExp(
+        r'\b(?:daily|weekly|weekday|weekdays|every\s+(?:day|morning|evening|night|week|weekday|monday|tuesday|wednesday|thursday|friday|saturday|sunday)|each\s+(?:day|morning|evening|week)|at\s+\d{1,2}(?::\d{2})?\s*(?:a\.?m\.?|p\.?m\.?)?)\b',
+        caseSensitive: false,
+      ).hasMatch(normalized);
+  if (!hasSchedule) return false;
+
+  final asksForGeneratedBriefing = RegExp(
+    r'\b(?:briefing|brief|digest|recap|summar(?:y|ize|ise)|market\s+update|news\s+update|top\s+\d+\s+(?:[a-z0-9-]+\s+){0,3}(?:news|stories|headlines|stocks)|what\s+happened\s+in\s+(?:the\s+)?(?:stock\s+)?market)\b',
+    caseSensitive: false,
+  ).hasMatch(normalized);
+  if (!asksForGeneratedBriefing) return false;
+
+  return RegExp(
+    r'\b(?:news|headline|story|stories|market|stock|stocks|watchlist|briefing|digest)\b',
+    caseSensitive: false,
+  ).hasMatch(normalized);
+}
+
+/// Detects generated-work schedules that are deliberately below HowAI's
+/// once-per-day minimum. The server remains authoritative; this local guard is
+/// for correct routing and a useful response before any proposal is created.
+bool isHighFrequencyAutomationRequest(String message) {
+  final normalized = message.trim().toLowerCase();
+  if (normalized.isEmpty) return false;
+  return RegExp(
+    r'\b(?:hourly|every\s+(?:(?:\d+|one|two|half)\s+)?(?:seconds?|secs?|minutes?|mins?|hours?|hrs?)|each\s+(?:minute|hour))\b',
+    caseSensitive: false,
+  ).hasMatch(normalized);
 }
 
 /// Returns whether this message explicitly asks to modify a saved reminder.

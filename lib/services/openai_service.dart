@@ -133,7 +133,7 @@ class OpenAIService {
         'type': 'function',
         'name': 'reminders_create',
         'description':
-            'Draft a one-time or recurring reminder when the user clearly asks to be reminded. The app will show a separate approval card, so do not write a manual draft or expose structured arguments in chat. Never claim it is saved before approval. Ask one concise clarification only when the time or intent is genuinely ambiguous.',
+            'Draft a one-time or recurring static reminder when the user clearly asks to be reminded. A reminder only delivers its saved title and notes; never use it for a scheduled news briefing, market report, digest, summary, web search, or other content that must be generated at run time. The app will show a separate approval card, so do not write a manual draft or expose structured arguments in chat. Never claim it is saved before approval. Ask one concise clarification only when the time or intent is genuinely ambiguous.',
         'strict': true,
         'parameters': {
           'type': 'object',
@@ -181,6 +181,19 @@ class OpenAIService {
                   'minimum': 1,
                   'maximum': 31,
                 },
+                'month_week': {
+                  'type': ['integer', 'null'],
+                  'enum': [1, 2, 3, 4, -1, null],
+                  'description':
+                      'For ordinal monthly patterns: 1=first through 4=fourth, -1=last. Null when day_of_month is used.',
+                },
+                'month_weekday': {
+                  'type': ['integer', 'null'],
+                  'minimum': 1,
+                  'maximum': 7,
+                  'description':
+                      'ISO weekday for an ordinal monthly pattern, or null.',
+                },
                 'ends_at': {
                   'type': ['string', 'null'],
                   'description':
@@ -192,6 +205,8 @@ class OpenAIService {
                 'interval',
                 'weekdays',
                 'day_of_month',
+                'month_week',
+                'month_weekday',
                 'ends_at',
               ],
             },
@@ -208,6 +223,8 @@ class OpenAIService {
 
   static Map<String, dynamic> _automationScheduleSchema() => {
         'type': 'object',
+        'description':
+            'A generated Automation schedule. The maximum frequency is once per day; minute-level and hourly schedules are unsupported.',
         'additionalProperties': false,
         'properties': {
           'frequency': {
@@ -270,7 +287,7 @@ class OpenAIService {
         'type': 'function',
         'name': 'automations_create_news_briefing',
         'description':
-            'Draft a recurring news briefing only when the user clearly asks HowAI to send or prepare news on a schedule. The app shows an approval card. Do not claim it is active before approval, and do not expose JSON in chat.',
+            'Draft a recurring news briefing only when the user clearly asks HowAI to send or prepare news on a schedule no more frequent than once per day. Reject minute-level and hourly schedules and offer daily instead. The app shows an approval card. Do not claim it is active before approval, and do not expose JSON in chat.',
         'strict': true,
         'parameters': {
           'type': 'object',
@@ -338,7 +355,7 @@ class OpenAIService {
         'type': 'function',
         'name': 'automations_create_market_briefing',
         'description':
-            'Draft a recurring informational market briefing when the user asks for a scheduled market or watchlist summary. Never frame it as personalized investment advice. The app requires approval before activation.',
+            'Draft a recurring informational market briefing no more frequent than once per day when the user asks for a scheduled market or watchlist summary. Reject minute-level and hourly schedules and offer daily instead. Never frame it as personalized investment advice. The app requires approval before activation.',
         'strict': true,
         'parameters': {
           'type': 'object',
@@ -456,6 +473,19 @@ class OpenAIService {
                   'minimum': 1,
                   'maximum': 31,
                 },
+                'month_week': {
+                  'type': ['integer', 'null'],
+                  'enum': [1, 2, 3, 4, -1, null],
+                  'description':
+                      'For ordinal monthly patterns: 1=first through 4=fourth, -1=last. Null when day_of_month is used.',
+                },
+                'month_weekday': {
+                  'type': ['integer', 'null'],
+                  'minimum': 1,
+                  'maximum': 7,
+                  'description':
+                      'ISO weekday for an ordinal monthly pattern, or null.',
+                },
                 'ends_at': {
                   'type': ['string', 'null'],
                   'description':
@@ -467,6 +497,8 @@ class OpenAIService {
                 'interval',
                 'weekdays',
                 'day_of_month',
+                'month_week',
+                'month_weekday',
                 'ends_at',
               ],
             },
@@ -609,8 +641,17 @@ class OpenAIService {
         'local date/time is ${now.toIso8601String().split('.').first}. For a '
         'sufficiently specified reminder request or a schedule adjustment to the '
         'current reminder draft, call reminders_create with timezone $timezone. '
+        'A Reminder sends only its saved title and notes. Never use a Reminder '
+        'for a scheduled news briefing, market report, digest, summary, web '
+        'search, or any task that requires HowAI to generate fresh content at '
+        'run time. Those requests require an Automation tool; when that tool is '
+        'not available, explain that generated Automations are not enabled '
+        'instead of creating a static Reminder. '
         'Do not print reminder fields, JSON, recurrence objects, or a manual draft '
         'in the chat response; the app renders the proposal in a review card. Use '
+        'structured recurrence for changes such as every two weeks, a specific '
+        'set of weekdays, or the first/second/third/fourth/last weekday of each '
+        'month; preserve every recurrence field the user did not change. Use '
         'a concise natural action title such as "Rest" or "Pick up Madeline", '
         'never a title ending in "reminder" or "draft". A tool call only drafts '
         'a proposal, so never say the reminder was saved or scheduled yet.'
@@ -912,11 +953,21 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
         existingReminders: existingReminders,
       );
     }
+    if (isGeneratedBriefingAutomationRequest(message) &&
+        isHighFrequencyAutomationRequest(message)) {
+      systemPrompt += '''
+
+AUTOMATION CADENCE LIMIT:
+- Generated news and market Automations can run no more than once per day.
+- Do not call a Reminder or Automation tool for a minute-level or hourly request.
+- Briefly explain the once-per-day limit and offer to create a daily Automation instead.''';
+    }
     if (allowAutomationActions && reminderTimezone != null) {
       systemPrompt += '''
 
 AUTOMATIONS:
 - Use an Automation tool only when the user explicitly asks for a recurring news or market briefing.
+- Generated Automations run no more than once per day; reject hourly, minute-level, and more frequent schedules and offer daily instead.
 - Use the supplied IANA timezone and an exact future start_local value.
 - News and market Automations require a separate approval card; never say one is active before approval.
 - Ask one concise clarification only if the schedule, news topics, or market scope is genuinely missing.
@@ -2325,11 +2376,21 @@ Note: Could not extract text content from this file. Please describe what you'd 
         existingReminders: existingReminders,
       );
     }
+    if (isGeneratedBriefingAutomationRequest(message) &&
+        isHighFrequencyAutomationRequest(message)) {
+      systemPrompt += '''
+
+AUTOMATION CADENCE LIMIT:
+- Generated news and market Automations can run no more than once per day.
+- Do not call a Reminder or Automation tool for a minute-level or hourly request.
+- Briefly explain the once-per-day limit and offer to create a daily Automation instead.''';
+    }
     if (allowAutomationActions && reminderTimezone != null) {
       systemPrompt += '''
 
 AUTOMATIONS:
 - Use an Automation tool only when the user explicitly asks for a recurring news or market briefing.
+- Generated Automations run no more than once per day; reject hourly, minute-level, and more frequent schedules and offer daily instead.
 - Use the supplied IANA timezone and an exact future start_local value.
 - The app requires approval before activation; never expose tool JSON or claim it is already active.
 - Source preferences cannot bypass HowAI source and claim verification.

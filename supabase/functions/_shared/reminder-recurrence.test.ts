@@ -48,6 +48,8 @@ test("describes recurring reminders without exposing recurrence JSON", () => {
       interval: 1,
       weekdays: [2],
       day_of_month: null,
+      month_week: null,
+      month_weekday: null,
       ends_at: "2026-09-21T23:59:59-05:00",
     },
   }, new Date("2026-07-15T12:00:00Z"));
@@ -69,6 +71,8 @@ test("interprets a model-provided local recurrence end in its timezone", () => {
       interval: 1,
       weekdays: [2],
       day_of_month: null,
+      month_week: null,
+      month_weekday: null,
       ends_at: "2026-09-21",
     },
   }, new Date("2026-07-15T18:00:00Z"));
@@ -82,6 +86,8 @@ test("interprets a model-provided local recurrence end in its timezone", () => {
       interval: 1,
       weekdays: [2],
       day_of_month: null,
+      month_week: null,
+      month_weekday: null,
       ends_at: "2026-09-21T15:30:00",
     },
   }, new Date("2026-07-15T18:00:00Z"));
@@ -102,6 +108,8 @@ test("daily recurrence preserves local wall-clock time across DST", () => {
       interval: 1,
       weekdays: [],
       day_of_month: null,
+      month_week: null,
+      month_weekday: null,
       ends_at: null,
     },
     after: new Date("2026-03-07T15:00:00Z"),
@@ -119,6 +127,8 @@ test("weekly recurrence honors ISO weekdays and its week interval", () => {
       interval: 2,
       weekdays: [1, 3],
       day_of_month: null,
+      month_week: null,
+      month_weekday: null,
       ends_at: null,
     },
     after: new Date("2026-07-13T09:00:00Z"),
@@ -136,12 +146,101 @@ test("monthly recurrence skips months that do not contain the requested day", ()
       interval: 1,
       weekdays: [],
       day_of_month: 31,
+      month_week: null,
+      month_weekday: null,
       ends_at: null,
     },
     after: new Date("2026-01-31T09:00:00Z"),
   });
 
   assert.equal(next?.toISOString(), "2026-03-31T08:00:00.000Z");
+});
+
+test("monthly recurrence supports the first Monday every two months", () => {
+  const next = nextOccurrence({
+    startLocal: "2026-01-05T08:00:00",
+    timezone: "UTC",
+    recurrence: {
+      frequency: "monthly",
+      interval: 2,
+      weekdays: [],
+      day_of_month: null,
+      month_week: 1,
+      month_weekday: 1,
+      ends_at: null,
+    },
+    after: new Date("2026-01-05T09:00:00Z"),
+  });
+
+  assert.equal(next?.toISOString(), "2026-03-02T08:00:00.000Z");
+});
+
+test("monthly recurrence supports the last Friday", () => {
+  const schedule = normalizeReminderSchedule({
+    title: "Month-end review",
+    notes: null,
+    timezone: "America/Chicago",
+    start_local: "2026-01-30T16:00:00",
+    recurrence: {
+      frequency: "monthly",
+      interval: 1,
+      weekdays: [],
+      day_of_month: null,
+      month_week: -1,
+      month_weekday: 5,
+      ends_at: null,
+    },
+  }, new Date("2026-01-01T12:00:00Z"));
+
+  assert.match(
+    describeReminderSchedule(schedule),
+    /monthly on the last Fri at 4:00 PM/,
+  );
+  const next = nextOccurrence({
+    startLocal: schedule.start_local,
+    timezone: schedule.timezone,
+    recurrence: schedule.recurrence,
+    after: new Date(schedule.next_fire_at),
+    includeStart: false,
+  });
+  assert.equal(next?.toISOString(), "2026-02-27T22:00:00.000Z");
+});
+
+test("rejects incomplete and unsupported ordinal monthly patterns", () => {
+  for (
+    const recurrence of [
+      {
+        frequency: "monthly",
+        interval: 1,
+        weekdays: [],
+        day_of_month: null,
+        month_week: 1,
+        month_weekday: null,
+        ends_at: null,
+      },
+      {
+        frequency: "monthly",
+        interval: 1,
+        weekdays: [],
+        day_of_month: null,
+        month_week: 5,
+        month_weekday: 1,
+        ends_at: null,
+      },
+    ]
+  ) {
+    assert.throws(
+      () =>
+        normalizeReminderSchedule({
+          title: "Review",
+          notes: null,
+          timezone: "UTC",
+          start_local: "2026-01-05T08:00:00",
+          recurrence,
+        }, new Date("2026-01-01T12:00:00Z")),
+      ReminderValidationError,
+    );
+  }
 });
 
 test("rejects a local time skipped by a daylight-saving transition", () => {
@@ -187,6 +286,8 @@ test("rejects unknown fields and invalid recurrence shapes", () => {
           interval: 1,
           weekdays: [],
           day_of_month: null,
+          month_week: null,
+          month_weekday: null,
           ends_at: null,
         },
       }, new Date("2026-07-15T12:00:00Z")),
@@ -205,6 +306,8 @@ test("rejects unknown fields and invalid recurrence shapes", () => {
           interval: 1,
           weekdays: [1],
           day_of_month: null,
+          month_week: null,
+          month_weekday: null,
           ends_at: null,
         },
       }, new Date("2026-07-15T12:00:00Z")),

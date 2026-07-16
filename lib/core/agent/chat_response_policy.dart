@@ -17,8 +17,8 @@ const Map<String, String> _languageNames = {
   'zh': 'Chinese',
 };
 
-/// Keeps an isolated typo or foreign word from unexpectedly changing the
-/// assistant's language while still allowing genuinely multilingual chats.
+/// Uses the app locale only as a fallback while preserving natural multilingual
+/// and code-switched conversations.
 String chatResponseLanguageInstructions(String appLocale) {
   final normalized = appLocale.trim().replaceAll('_', '-');
   final languageCode = normalized.split('-').first.toLowerCase();
@@ -26,12 +26,14 @@ String chatResponseLanguageInstructions(String appLocale) {
       ? 'Traditional Chinese'
       : _languageNames[languageCode] ?? 'English';
 
-  return '\n\nRESPONSE LANGUAGE: The app interface language is $languageName. '
-      'Reply in $languageName unless the user explicitly requests another '
-      'language or their latest message is clearly and predominantly written '
-      'in another language. A typo, misspelled first word, proper name, or one '
-      'isolated foreign word is not a request to switch languages. When the '
-      'message language is ambiguous, use $languageName.';
+  return '\n\nRESPONSE LANGUAGE: The app interface language is $languageName, '
+      'but it is only a fallback and must not force a single-language reply. '
+      'Follow the language or intentional mix of languages the user is using. '
+      'When the user code-switches, respond naturally in the same language mix '
+      'when that is helpful, and honor any explicit language request. Do not '
+      'treat a typo, proper name, or isolated foreign word as a request to '
+      'switch the entire reply. If the user\'s intent is genuinely ambiguous, '
+      'use $languageName.';
 }
 
 /// Defense in depth for reminder identifiers. The model needs these values for

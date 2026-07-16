@@ -12,7 +12,6 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.0.5
-  google_fonts: ^6.1.0
   cupertino_icons: ^1.0.2
   sqflite: ^2.3.0  # For SQLite database
   path: ^1.8.3     # For database path handling

@@ -11,6 +11,7 @@ import '../models/thinking_level.dart';
 import '../providers/settings_provider.dart';
 import '../services/file_service.dart';
 import '../services/subscription_service.dart';
+import '../core/theme/howai_theme.dart';
 
 class ChatInputWidget extends StatefulWidget {
   final TextEditingController textController;
@@ -177,6 +178,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.howaiColors;
     final orientation = MediaQuery.of(context).orientation;
     final isLandscape = orientation == Orientation.landscape;
     final screenWidth = MediaQuery.of(context).size.width;
@@ -193,14 +195,8 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 1,
-            blurRadius: 10,
-          ),
-        ],
+        color: colors.canvas,
+        border: Border(top: BorderSide(color: colors.divider)),
       ),
       padding: EdgeInsets.fromLTRB(horizontalPadding, verticalPadding,
           horizontalPadding, verticalPadding),
@@ -656,6 +652,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   Widget _buildTextInputField() {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
+        final colors = context.howaiColors;
         return Focus(
           onKeyEvent: (FocusNode node, KeyEvent event) {
             if (event is KeyDownEvent &&
@@ -679,14 +676,21 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
             maxLines: 5,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(16),
+              color: colors.textPrimary,
             ),
             decoration: InputDecoration(
               hintText: AppLocalizations.of(context)!.chatInputHint,
               hintStyle: TextStyle(
                 fontSize: settings.getScaledFontSize(14),
-                color: Colors.grey.shade600,
+                color: colors.textTertiary,
               ),
+              filled: false,
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(vertical: 10),
             ),
@@ -792,20 +796,15 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
           );
         }
 
-        final colorScheme = Theme.of(context).colorScheme;
+        final colors = context.howaiColors;
         final composer = Container(
           key: const ValueKey<String>('adaptive_composer'),
           constraints: BoxConstraints(minHeight: buttonSize + 8),
           padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withValues(
-              alpha:
-                  Theme.of(context).brightness == Brightness.dark ? 0.62 : 0.52,
-            ),
+            color: colors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.55),
-            ),
+            border: Border.all(color: colors.divider),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -890,7 +889,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     required double size,
     bool isPrimary = false,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
+    final colors = context.howaiColors;
     final enabled = onTap != null;
 
     if (!isPrimary) {
@@ -912,9 +911,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                   child: Icon(
                     icon,
                     size: size * 0.52,
-                    color: enabled
-                        ? colorScheme.onSurface
-                        : colorScheme.onSurfaceVariant,
+                    color: enabled ? colors.textPrimary : colors.textTertiary,
                   ),
                 ),
               ),
@@ -935,10 +932,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
           onPressed: onTap,
           tooltip: tooltip,
           style: IconButton.styleFrom(
-            backgroundColor: colorScheme.primary,
-            foregroundColor: colorScheme.onPrimary,
-            disabledBackgroundColor:
-                colorScheme.surface.withValues(alpha: 0.45),
+            backgroundColor: colors.textPrimary,
+            foregroundColor: colors.canvas,
+            disabledBackgroundColor: colors.surfaceStrong,
+            disabledForegroundColor: colors.textTertiary,
             shape: const CircleBorder(),
             padding: EdgeInsets.zero,
           ),
@@ -1116,248 +1113,275 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
 
   // Show features menu as a bottom sheet with ChatGPT-like styling
   void _showFeaturesMenu() {
+    final hostContext = context;
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: context.howaiColors.canvas,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
       builder: (BuildContext context) {
         return Consumer<SettingsProvider>(
           builder: (context, settings, child) {
+            final colors = context.howaiColors;
             return Container(
+              key: const ValueKey<String>('quick_actions_sheet'),
               decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
+                color: colors.canvas,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(22),
+                  topRight: Radius.circular(22),
                 ),
               ),
               child: SafeArea(
+                top: false,
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(0, 8, 0, 8),
+                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Handle bar
-                      Center(
-                        child: Container(
-                          width: 36,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade600
-                                    : Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(2),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          AppLocalizations.of(context)!.quickActions,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: settings.getScaledFontSize(18),
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
                           ),
                         ),
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
                       // Primary attachment options - ChatGPT style
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Consumer<SubscriptionService>(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Container(
+                          key: const ValueKey<String>(
+                              'attachment_actions_group'),
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            color: colors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: colors.divider),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Consumer<SubscriptionService>(
+                                  builder:
+                                      (context, subscriptionService, child) {
+                                    final isPremium =
+                                        subscriptionService.isPremium;
+                                    final canUse = isPremium ||
+                                        subscriptionService.canUseImageAnalysis;
+
+                                    return _buildPrimaryAttachmentOption(
+                                      icon: Icons.photo_camera,
+                                      label: AppLocalizations.of(context)!
+                                          .quickActionAskFromPhoto,
+                                      isPremium: !isPremium,
+                                      canUse: canUse,
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        setState(() {
+                                          _isMenuExpanded = false;
+                                        });
+                                        if (canUse) {
+                                          widget.onShowAttachmentOptions(false);
+                                        } else {
+                                          _showUpgradeDialog(hostContext);
+                                        }
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                              _buildActionDivider(vertical: true),
+                              Expanded(
+                                child: _buildPrimaryAttachmentOption(
+                                  icon: Icons.folder,
+                                  label: AppLocalizations.of(context)!
+                                      .quickActionAskFromFile,
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    setState(() {
+                                      _isMenuExpanded = false;
+                                    });
+                                    widget.onShowFileUploadOptions();
+                                  },
+                                ),
+                              ),
+                              _buildActionDivider(vertical: true),
+                              Expanded(
+                                child: _buildPrimaryAttachmentOption(
+                                  icon: Icons.picture_as_pdf,
+                                  label: AppLocalizations.of(context)!
+                                      .quickActionScanToPdf,
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    setState(() {
+                                      _isMenuExpanded = false;
+                                    });
+                                    widget.onShowAttachmentOptions(true);
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Feature options - Single column ChatGPT style
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Container(
+                          key: const ValueKey<String>('feature_actions_group'),
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            color: colors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: colors.divider),
+                          ),
+                          child: Column(
+                            children: [
+                              // GPT-5.6 thinking level
+                              Consumer<SubscriptionService>(
                                 builder: (context, subscriptionService, child) {
-                                  final remaining = subscriptionService
-                                      .remainingImageAnalysis;
+                                  final canChooseThinking =
+                                      subscriptionService.isPremium;
+
+                                  return _buildChatGPTStyleOption(
+                                    icon: Icons.psychology,
+                                    title: AppLocalizations.of(context)!
+                                        .thinkingLevel,
+                                    subtitle: _thinkingLevelLabel(
+                                        widget.thinkingLevel),
+                                    isPremium: !subscriptionService.isPremium,
+                                    canUse: canChooseThinking,
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      setState(() {
+                                        _isMenuExpanded = false;
+                                      });
+                                      if (canChooseThinking) {
+                                        _showThinkingLevelMenu();
+                                      } else {
+                                        _showUpgradeDialog(hostContext);
+                                      }
+                                    },
+                                  );
+                                },
+                              ),
+                              _buildActionDivider(),
+
+                              _buildChatGPTStyleOption(
+                                icon: Icons.mic_none_rounded,
+                                title: AppLocalizations.of(context)!.voiceInput,
+                                subtitle: AppLocalizations.of(context)!
+                                    .voiceInputDesc,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  setState(() => _isMenuExpanded = false);
+                                  if (!widget.isVoiceInputMode) {
+                                    widget.onToggleInputMode();
+                                  }
+                                },
+                              ),
+                              _buildActionDivider(),
+
+                              // Image Generation
+                              Consumer<SubscriptionService>(
+                                builder: (context, subscriptionService, child) {
                                   final isPremium =
                                       subscriptionService.isPremium;
                                   final canUse = isPremium ||
-                                      subscriptionService.canUseImageAnalysis;
+                                      subscriptionService.canUseImageGeneration;
 
-                                  return _buildPrimaryAttachmentOption(
-                                    icon: Icons.photo_camera,
-                                    label: AppLocalizations.of(context)!
-                                        .quickActionAskFromPhoto,
-                                    isPremium: true,
+                                  return _buildChatGPTStyleOption(
+                                    icon: Icons.brush,
+                                    title: AppLocalizations.of(context)!
+                                        .quickActionGenerateImage,
+                                    subtitle: null,
+                                    isPremium: !isPremium,
                                     canUse: canUse,
                                     onTap: () {
                                       Navigator.pop(context);
                                       setState(() {
                                         _isMenuExpanded = false;
                                       });
-                                      if (canUse) {
-                                        widget.onShowAttachmentOptions(false);
-                                      } else {
-                                        _showUpgradeDialog(context);
+                                      if (canUse &&
+                                          widget.onShowImageGenerationDialog !=
+                                              null) {
+                                        widget.onShowImageGenerationDialog!();
+                                      } else if (!canUse) {
+                                        _showUpgradeDialog(hostContext);
                                       }
                                     },
                                   );
                                 },
                               ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: _buildPrimaryAttachmentOption(
-                                icon: Icons.folder,
-                                label: AppLocalizations.of(context)!
-                                    .quickActionAskFromFile,
+                              _buildActionDivider(),
+
+                              // Translation
+                              _buildChatGPTStyleOption(
+                                icon: Icons.translate,
+                                title: AppLocalizations.of(context)!.translate,
+                                subtitle: AppLocalizations.of(context)!
+                                    .quickActionTranslateSubtitle,
                                 onTap: () {
                                   Navigator.pop(context);
                                   setState(() {
                                     _isMenuExpanded = false;
                                   });
-                                  widget.onShowFileUploadOptions();
+                                  if (widget.onShowTranslationDialog != null) {
+                                    widget.onShowTranslationDialog!();
+                                  }
                                 },
                               ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: _buildPrimaryAttachmentOption(
-                                icon: Icons.picture_as_pdf,
-                                label: AppLocalizations.of(context)!
-                                    .quickActionScanToPdf,
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _isMenuExpanded = false;
-                                  });
-                                  widget.onShowAttachmentOptions(true);
+                              _buildActionDivider(),
+
+                              // Places Explorer
+                              Consumer<SubscriptionService>(
+                                builder: (context, subscriptionService, child) {
+                                  final isPremium =
+                                      subscriptionService.isPremium;
+                                  final canUse = isPremium ||
+                                      subscriptionService.canUsePlacesExplorer;
+
+                                  return _buildChatGPTStyleOption(
+                                    icon: Icons.explore,
+                                    title: AppLocalizations.of(context)!
+                                        .quickActionFindPlaces,
+                                    subtitle: null,
+                                    isPremium: !isPremium,
+                                    canUse: canUse,
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      setState(() {
+                                        _isMenuExpanded = false;
+                                      });
+                                      if (canUse &&
+                                          widget.onLocationDiscovery != null) {
+                                        widget.onLocationDiscovery!();
+                                      } else if (!canUse) {
+                                        _showUpgradeDialog(hostContext);
+                                      }
+                                    },
+                                  );
                                 },
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
 
-                      SizedBox(height: 12),
-
-                      // Feature options - Single column ChatGPT style
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          children: [
-                            // GPT-5.6 thinking level
-                            Consumer<SubscriptionService>(
-                              builder: (context, subscriptionService, child) {
-                                final canChooseThinking =
-                                    subscriptionService.isPremium;
-
-                                return _buildChatGPTStyleOption(
-                                  icon: Icons.psychology,
-                                  title: AppLocalizations.of(context)!
-                                      .thinkingLevel,
-                                  subtitle:
-                                      _thinkingLevelLabel(widget.thinkingLevel),
-                                  isPremium: true,
-                                  canUse: canChooseThinking,
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    setState(() {
-                                      _isMenuExpanded = false;
-                                    });
-                                    if (canChooseThinking) {
-                                      _showThinkingLevelMenu();
-                                    } else {
-                                      _showUpgradeDialog(context);
-                                    }
-                                  },
-                                );
-                              },
-                            ),
-
-                            _buildChatGPTStyleOption(
-                              icon: Icons.mic_none_rounded,
-                              title: AppLocalizations.of(context)!.voiceInput,
-                              subtitle:
-                                  AppLocalizations.of(context)!.voiceInputDesc,
-                              onTap: () {
-                                Navigator.pop(context);
-                                setState(() => _isMenuExpanded = false);
-                                if (!widget.isVoiceInputMode) {
-                                  widget.onToggleInputMode();
-                                }
-                              },
-                            ),
-
-                            // Image Generation
-                            Consumer<SubscriptionService>(
-                              builder: (context, subscriptionService, child) {
-                                final remaining = subscriptionService
-                                    .remainingImageGenerations;
-                                final isPremium = subscriptionService.isPremium;
-                                final canUse = isPremium ||
-                                    subscriptionService.canUseImageGeneration;
-
-                                return _buildChatGPTStyleOption(
-                                  icon: Icons.brush,
-                                  title: AppLocalizations.of(context)!
-                                      .quickActionGenerateImage,
-                                  subtitle: null,
-                                  isPremium: true,
-                                  canUse: canUse,
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    setState(() {
-                                      _isMenuExpanded = false;
-                                    });
-                                    if (canUse &&
-                                        widget.onShowImageGenerationDialog !=
-                                            null) {
-                                      widget.onShowImageGenerationDialog!();
-                                    } else if (!canUse) {
-                                      _showUpgradeDialog(context);
-                                    }
-                                  },
-                                );
-                              },
-                            ),
-
-                            // Translation
-                            _buildChatGPTStyleOption(
-                              icon: Icons.translate,
-                              title: AppLocalizations.of(context)!.translate,
-                              subtitle: AppLocalizations.of(context)!
-                                  .quickActionTranslateSubtitle,
-                              onTap: () {
-                                Navigator.pop(context);
-                                setState(() {
-                                  _isMenuExpanded = false;
-                                });
-                                if (widget.onShowTranslationDialog != null) {
-                                  widget.onShowTranslationDialog!();
-                                }
-                              },
-                            ),
-
-                            // Places Explorer
-                            Consumer<SubscriptionService>(
-                              builder: (context, subscriptionService, child) {
-                                final remaining =
-                                    subscriptionService.remainingPlacesExplorer;
-                                final isPremium = subscriptionService.isPremium;
-                                final canUse = isPremium ||
-                                    subscriptionService.canUsePlacesExplorer;
-
-                                return _buildChatGPTStyleOption(
-                                  icon: Icons.explore,
-                                  title: AppLocalizations.of(context)!
-                                      .quickActionFindPlaces,
-                                  subtitle: null,
-                                  isPremium: true,
-                                  canUse: canUse,
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    setState(() {
-                                      _isMenuExpanded = false;
-                                    });
-                                    if (canUse &&
-                                        widget.onLocationDiscovery != null) {
-                                      widget.onLocationDiscovery!();
-                                    } else if (!canUse) {
-                                      _showUpgradeDialog(context);
-                                    }
-                                  },
-                                );
-                              },
-                            ),
-
-                            // Presentation Maker removed - feature deprecated
-                          ],
+                              // Presentation Maker removed - feature deprecated
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -1387,94 +1411,58 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        final isCompactWidth = screenWidth < 390;
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: canUse ? onTap : null,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              height: 62,
-              padding: EdgeInsets.symmetric(vertical: 4, horizontal: 6),
-              decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? (canUse ? Colors.grey.shade800 : Colors.grey.shade700)
-                    : (canUse ? Colors.grey.shade50 : Colors.grey.shade100),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? (canUse ? Colors.grey.shade600 : Colors.grey.shade500)
-                      : (canUse ? Colors.grey.shade200 : Colors.grey.shade300),
-                ),
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Main content
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? (canUse
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade600)
-                              : (canUse ? Colors.white : Colors.grey.shade200),
-                          borderRadius: BorderRadius.circular(7),
-                          boxShadow: canUse
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 2,
-                                    offset: Offset(0, 1),
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Icon(
-                          icon,
-                          size: 14,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? (canUse ? Colors.white70 : Colors.grey.shade400)
-                              : (canUse
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade500),
+        final colors = context.howaiColors;
+        return Semantics(
+          button: true,
+          label: label,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              child: SizedBox(
+                height: 82,
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              icon,
+                              size: 22,
+                              color: canUse
+                                  ? colors.textPrimary
+                                  : colors.textTertiary,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              subtitle != null ? '$label · $subtitle' : label,
+                              style: TextStyle(
+                                fontSize: settings.getScaledFontSize(11.5),
+                                fontWeight: FontWeight.w500,
+                                color: canUse
+                                    ? colors.textSecondary
+                                    : colors.textTertiary,
+                                height: 1.15,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: 4),
-                      // Combined title and subtitle in one line
-                      Text(
-                        subtitle != null ? '$label - $subtitle' : label,
-                        style: TextStyle(
-                          fontSize: settings
-                              .getScaledFontSize(isCompactWidth ? 9 : 10),
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? (canUse ? Colors.white70 : Colors.grey.shade400)
-                              : (canUse
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade500),
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-
-                  // PRO badge positioned at top right corner of the card
-                  if (isPremium)
-                    Positioned(
-                      top: 3,
-                      right: 3,
-                      child: _buildPremiumBadge(fontSize: 7),
                     ),
-                ],
+                    if (isPremium)
+                      PositionedDirectional(
+                        top: 7,
+                        end: 7,
+                        child: _buildPremiumBadge(fontSize: 7.5),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1494,118 +1482,84 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: 2),
+        final colors = context.howaiColors;
+        return Semantics(
+          button: true,
+          label: title,
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? (canUse ? Colors.grey.shade800 : Colors.grey.shade700)
-                      : (canUse ? Colors.white : Colors.grey.shade50),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey.shade700
-                        : Colors.grey.shade200,
-                    width: 0.8,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    // Icon container
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? (canUse
-                                ? Colors.grey.shade700
-                                : Colors.grey.shade600)
-                            : (canUse
-                                ? Colors.grey.shade100
-                                : Colors.grey.shade200),
-                        borderRadius: BorderRadius.circular(6),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 58),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 28,
+                        child: Icon(
+                          icon,
+                          size: 21,
+                          color: canUse
+                              ? colors.textSecondary
+                              : colors.textTertiary,
+                        ),
                       ),
-                      child: Icon(
-                        icon,
-                        size: 16,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? (canUse ? Colors.white70 : Colors.grey.shade400)
-                            : (canUse
-                                ? Colors.grey.shade700
-                                : Colors.grey.shade500),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-
-                    // Text content
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                title,
-                                style: TextStyle(
-                                  fontSize: settings.getScaledFontSize(14),
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? (canUse
-                                          ? Colors.white
-                                          : Colors.grey.shade400)
-                                      : (canUse
-                                          ? Colors.black87
-                                          : Colors.grey.shade600),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    title,
+                                    style: TextStyle(
+                                      fontSize: settings.getScaledFontSize(15),
+                                      fontWeight: FontWeight.w600,
+                                      color: canUse
+                                          ? colors.textPrimary
+                                          : colors.textSecondary,
+                                      height: 1.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                maxLines: 1,
+                                if (isPremium) ...[
+                                  const SizedBox(width: 7),
+                                  _buildPremiumBadge(fontSize: 8),
+                                ],
+                              ],
+                            ),
+                            if (subtitle != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                subtitle,
+                                style: TextStyle(
+                                  fontSize: settings.getScaledFontSize(12.5),
+                                  color: colors.textSecondary,
+                                  height: 1.25,
+                                ),
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              if (isPremium) ...[
-                                SizedBox(width: 8),
-                                _buildPremiumBadge(fontSize: 8),
-                              ],
                             ],
-                          ),
-                          if (subtitle != null) ...[
-                            SizedBox(height: 2),
-                            Text(
-                              subtitle,
-                              style: TextStyle(
-                                fontSize: settings.getScaledFontSize(12),
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? (canUse
-                                        ? Colors.grey.shade400
-                                        : Colors.grey.shade500)
-                                    : (canUse
-                                        ? Colors.grey.shade600
-                                        : Colors.grey.shade500),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-
-                    // Arrow indicator
-                    if (canUse)
+                      const SizedBox(width: 8),
                       Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey.shade500
-                            : Colors.grey.shade400,
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: colors.textTertiary,
                       ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1615,87 +1569,15 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     );
   }
 
-  Widget _buildFeatureOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-    bool isPremium = false,
-    bool isDisabled = false,
-  }) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: isDisabled ? null : onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade200),
-                borderRadius: BorderRadius.circular(12),
-                color: isDisabled ? Colors.grey.shade50 : Colors.white,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isDisabled
-                          ? Colors.grey.shade300
-                          : color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Icon(
-                          icon,
-                          size: 20,
-                          color: isDisabled ? Colors.grey.shade500 : color,
-                        ),
-                        if (isPremium)
-                          Positioned(
-                            top: 1,
-                            right: 1,
-                            child: _buildPremiumBadge(fontSize: 7),
-                          ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: settings.getScaledFontSize(13),
-                      fontWeight: FontWeight.w600,
-                      color: isDisabled ? Colors.grey.shade600 : Colors.black87,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: settings.getScaledFontSize(11),
-                      color: isDisabled
-                          ? Colors.grey.shade500
-                          : Colors.grey.shade600,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+  Widget _buildActionDivider({bool vertical = false}) {
+    final colors = context.howaiColors;
+    if (vertical) {
+      return Container(width: 1, height: 52, color: colors.divider);
+    }
+    return Container(
+      height: 1,
+      margin: const EdgeInsetsDirectional.only(start: 54),
+      color: colors.divider,
     );
   }
 
@@ -1829,24 +1711,26 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     bool compact = true,
   }) {
     final text = AppLocalizations.of(context)!.premiumBadge;
+    final colors = context.howaiColors;
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 4 : 6,
         vertical: compact ? 1 : 2,
       ),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+        color: colors.accentSoft,
+        borderRadius: BorderRadius.circular(compact ? 5 : 7),
+        border: Border.all(
+          color: colors.accent.withValues(alpha: 0.28),
         ),
-        borderRadius: BorderRadius.circular(compact ? 4 : 6),
       ),
       child: Text(
         text,
         style: TextStyle(
           fontSize: fontSize,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          letterSpacing: compact ? 0.3 : 0.6,
+          fontWeight: FontWeight.w700,
+          color: colors.accent,
+          letterSpacing: compact ? 0.2 : 0.4,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,

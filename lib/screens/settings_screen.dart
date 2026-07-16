@@ -22,6 +22,7 @@ import 'ai_personality_screen.dart';
 import '../widgets/custom_back_button.dart';
 import 'about_page.dart';
 import '../services/feature_showcase_service.dart';
+import '../core/theme/howai_theme.dart';
 
 import 'package:haogpt/generated/app_localizations.dart';
 
@@ -63,17 +64,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         onBack: widget.onBack ?? () => Navigator.of(context).pop(),
       ),
       body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         children: [
           _buildAccountSection(context),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           _buildSettingsSection(context),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           _buildMoreSection(context),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           _buildAboutSection(context),
           if (kDebugMode) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
             _buildDebugSection(context),
           ],
           const SizedBox(height: 40),
@@ -154,7 +155,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           icon: Icons.delete_outline_rounded,
           title: AppLocalizations.of(context)!.clearChatHistory,
           onTap: _showClearChatDialog,
-          iconColor: Colors.red.shade400,
+          iconColor: context.howaiColors.danger,
         ),
         _buildDivider(),
         _buildNavItem(
@@ -343,11 +344,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildThemeSegmentedControl(SettingsProvider settings) {
+    final colors = context.howaiColors;
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey.shade800
-            : Colors.grey.shade100,
+        color: colors.surfaceStrong,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -382,6 +382,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required VoidCallback onTap,
     required String tooltip,
   }) {
+    final colors = context.howaiColors;
     return Tooltip(
       message: tooltip,
       child: GestureDetector(
@@ -389,13 +390,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF0078D4) : Colors.transparent,
+            color: isSelected ? colors.textPrimary : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
           ),
           child: Icon(
             icon,
             size: 20,
-            color: isSelected ? Colors.white : Colors.grey.shade600,
+            color: isSelected ? colors.canvas : colors.textSecondary,
           ),
         ),
       ),
@@ -429,6 +430,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildLanguageDropdown(SettingsProvider settings) {
+    final colors = context.howaiColors;
     final languages = {
       null: AppLocalizations.of(context)!.systemDefault,
       'en': 'English',
@@ -453,9 +455,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey.shade800
-            : Colors.grey.shade100,
+        color: colors.surfaceStrong,
         borderRadius: BorderRadius.circular(8),
       ),
       child: DropdownButtonHideUnderline(
@@ -485,6 +485,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required List<Widget> children,
     Color? titleColor,
   }) {
+    final colors = context.howaiColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -492,26 +493,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Consumer<SettingsProvider>(
             builder: (context, settings, _) => Text(
-              title.toUpperCase(),
+              title,
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(13),
                 fontWeight: FontWeight.w600,
-                color: titleColor ?? Colors.grey.shade500,
-                letterSpacing: 0.5,
+                color: titleColor ?? colors.textSecondary,
               ),
             ),
           ),
         ),
         Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade800
-                  : Colors.grey.shade200,
-              width: 1,
-            ),
+            border: Border.all(color: colors.divider),
           ),
           child: Column(children: children),
         ),
@@ -529,13 +524,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, _) {
+        final colors = context.howaiColors;
         return Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
             borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
                   _buildIcon(icon, color: iconColor),
@@ -549,6 +545,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           style: TextStyle(
                             fontSize: settings.getScaledFontSize(16),
                             fontWeight: FontWeight.w500,
+                            color: colors.textPrimary,
                           ),
                         ),
                         if (subtitle != null) ...[
@@ -557,7 +554,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             subtitle,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(13),
-                              color: Colors.grey.shade500,
+                              color: colors.textSecondary,
                             ),
                           ),
                         ],
@@ -566,7 +563,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   trailing ??
                       Icon(Icons.chevron_right_rounded,
-                          color: Colors.grey.shade400),
+                          color: colors.textTertiary),
                 ],
               ),
             ),
@@ -584,6 +581,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, _) {
+        final colors = context.howaiColors;
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
@@ -596,13 +594,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(16),
                     fontWeight: FontWeight.w500,
+                    color: colors.textPrimary,
                   ),
                 ),
               ),
               Switch.adaptive(
                 value: value,
                 onChanged: onChanged,
-                activeColor: const Color(0xFF0078D4),
+                activeTrackColor: colors.accent,
               ),
             ],
           ),
@@ -612,30 +611,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildIcon(IconData icon, {Color? color}) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: (color ?? const Color(0xFF0078D4)).withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(icon, color: color ?? const Color(0xFF0078D4), size: 20),
+    final colors = context.howaiColors;
+    return SizedBox(
+      width: 28,
+      child: Icon(icon, color: color ?? colors.textSecondary, size: 20),
     );
   }
 
   Widget _buildDivider() {
+    final colors = context.howaiColors;
     return Container(
-      margin: const EdgeInsets.only(left: 60),
+      margin: const EdgeInsetsDirectional.only(start: 52),
       height: 1,
-      color: Theme.of(context).brightness == Brightness.dark
-          ? Colors.grey.shade800
-          : Colors.grey.shade100,
+      color: colors.divider,
     );
   }
 
   Widget _buildTextSizePreview() {
     return Consumer<SettingsProvider>(
       builder: (context, settings, _) {
+        final colors = context.howaiColors;
         final scale = settings.fontSizeScale;
         return Row(
           mainAxisSize: MainAxisSize.min,
@@ -643,9 +638,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text('A',
                 style: TextStyle(
                   fontSize: 12,
-                  color: scale <= 0.9
-                      ? const Color(0xFF0078D4)
-                      : Colors.grey.shade400,
+                  color: scale <= 0.9 ? colors.accent : colors.textTertiary,
                   fontWeight:
                       scale <= 0.9 ? FontWeight.w600 : FontWeight.normal,
                 )),
@@ -654,8 +647,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(
                   fontSize: 16,
                   color: scale > 0.9 && scale <= 1.1
-                      ? const Color(0xFF0078D4)
-                      : Colors.grey.shade400,
+                      ? colors.accent
+                      : colors.textTertiary,
                   fontWeight: scale > 0.9 && scale <= 1.1
                       ? FontWeight.w600
                       : FontWeight.normal,
@@ -664,14 +657,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Text('A',
                 style: TextStyle(
                   fontSize: 20,
-                  color: scale > 1.1
-                      ? const Color(0xFF0078D4)
-                      : Colors.grey.shade400,
+                  color: scale > 1.1 ? colors.accent : colors.textTertiary,
                   fontWeight: scale > 1.1 ? FontWeight.w600 : FontWeight.normal,
                 )),
             const SizedBox(width: 8),
             Icon(Icons.chevron_right_rounded,
-                color: Colors.grey.shade400, size: 20),
+                color: colors.textTertiary, size: 20),
           ],
         );
       },
@@ -681,6 +672,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildSubscriptionBadge() {
     return Consumer<SubscriptionService>(
       builder: (context, sub, _) {
+        final colors = context.howaiColors;
         if (sub.isPremium) {
           return Row(
             mainAxisSize: MainAxisSize.min,
@@ -689,21 +681,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                      colors: [Color(0xFF0078D4), Color(0xFF106ebe)]),
-                  borderRadius: BorderRadius.circular(12),
+                  color: colors.accentSoft,
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   AppLocalizations.of(context)!.premium,
-                  style: const TextStyle(
-                      color: Colors.white,
+                  style: TextStyle(
+                      color: colors.accent,
                       fontSize: 11,
-                      fontWeight: FontWeight.bold),
+                      fontWeight: FontWeight.w600),
                 ),
               ),
               const SizedBox(width: 8),
               Icon(Icons.chevron_right_rounded,
-                  color: Colors.grey.shade400, size: 20),
+                  color: colors.textTertiary, size: 20),
             ],
           );
         }
@@ -713,20 +704,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: Colors.orange.shade100,
-                borderRadius: BorderRadius.circular(12),
+                color: colors.surfaceStrong,
+                borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
                 AppLocalizations.of(context)!.free,
                 style: TextStyle(
-                    color: Colors.orange.shade700,
+                    color: colors.textSecondary,
                     fontSize: 11,
-                    fontWeight: FontWeight.bold),
+                    fontWeight: FontWeight.w600),
               ),
             ),
             const SizedBox(width: 8),
             Icon(Icons.chevron_right_rounded,
-                color: Colors.grey.shade400, size: 20),
+                color: colors.textTertiary, size: 20),
           ],
         );
       },
@@ -734,27 +725,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildBadge(String text) {
+    final colors = context.howaiColors;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF0078D4).withOpacity(0.1),
+            color: colors.accentSoft,
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             text,
-            style: const TextStyle(
-              color: Color(0xFF0078D4),
+            style: TextStyle(
+              color: colors.accent,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),
           ),
         ),
         const SizedBox(width: 8),
-        Icon(Icons.chevron_right_rounded,
-            color: Colors.grey.shade400, size: 20),
+        Icon(Icons.chevron_right_rounded, color: colors.textTertiary, size: 20),
       ],
     );
   }

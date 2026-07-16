@@ -14,11 +14,11 @@ privileges, advisors, and the current Edge Functions have been verified. The
 private internal canary is enabled for internal test accounts and a
 signed iPhone build has verified that its primary chat route resolves to
 `gpt-5.6-sol`; the general user rollout remains disabled. M2 UX beta work is in
-progress on `codex/howai-2-ux-beta`. M3 Actions beta implementation is now in
-progress behind the existing `reminders` kill switch. M4 notification delivery
-is implemented behind its own disabled `push_notifications` flag. Its Firebase
-sender and Supabase scheduler credentials are installed; production enablement
-waits for the APNs key and a physical-device acceptance pass.
+progress on `codex/howai-2-ux-beta`. M3 reminder actions and M4 Firebase push
+delivery are implemented and have passed the internal physical-device flow.
+M4.1 now owns the final clean, lightweight product-UI refinement. M4.5 adds
+user-approved Automations, beginning with scheduled news and market briefings,
+before the M5 Realtime voice work begins.
 
 M0 delivered:
 
@@ -130,7 +130,7 @@ M3 Actions beta delivered:
 - M3 shipped durable scheduling and management without device wake-up; M4 now
   owns notification delivery independently of the reminder-write flag.
 
-M4 Notification beta implementation in progress:
+M4 Notification beta delivered for internal testing:
 
 - Registered the existing Android and iOS application identifiers in the
   personal, push-only Firebase project `howai-fcm-sender` and generated the
@@ -148,22 +148,28 @@ M4 Notification beta implementation in progress:
 - Installed the least-privilege Firebase sender JSON and a random dispatcher
   secret in Supabase Edge Function secrets, stored the matching scheduler
   values in Vault, and verified the Cron-authenticated path returns HTTP 200.
-- Database, Edge, Flutter, Android, and iOS device-target builds pass. The Xcode
-  27 beta simulator currently trips a Flutter 3.35 packaging architecture check
-  after successful compilation; physical-device notification testing remains
-  the release gate because the iOS Simulator cannot validate APNs delivery.
+- The APNs key is installed in Firebase for sandbox and production. Database,
+  Edge, Flutter, Android, iOS device-target builds, physical-device delivery,
+  notification registration, and reminder action flows have passed internal
+  testing.
+
+M4.1 and M4.5 design is captured in
+[M4.1 UI refinement and M4.5 Automations](M4_1_UI_AND_M4_5_AUTOMATIONS.md).
 
 ## 1. Executive decision
 
 This should be treated as a major release. It changes HowAI from a chat-first app with separate utility features into an assistant workspace with persistent projects, realtime conversation, and user-approved actions.
 
-The release has five product pillars:
+The release has seven product pillars:
 
-1. A coherent UI/UX foundation for Chat, Research, Actions, and Voice.
+1. A coherent UI/UX foundation for Chat, Research, Automations, and Voice.
 2. An entitlement-aware model upgrade: GPT-5.6 Sol for paid primary chat, with a tightly metered GPT-5.6 Luna experience and a low-cost fallback for free users.
 3. Reminders and recurring reminders as the first agent actions.
 4. Firebase-backed push notifications orchestrated by Supabase.
 5. OpenAI Realtime voice and a persistent Research workspace.
+6. A final content-first, lightweight UI pass with simpler navigation and less
+   persistent chrome.
+7. User-approved Automations for scheduled, source-validated briefings.
 
 The release should be developed behind feature flags, validated with internal
 accounts, and then enabled for all eligible users once its release gates pass.
@@ -195,6 +201,8 @@ At release, a user should be able to:
 - Start a low-latency speech-to-speech session, interrupt the assistant naturally, and see a live transcript.
 - Create the same reminder from text or voice through one shared action system.
 - Start long-running research, leave the app, receive completion notification, and reopen a saved report with sources.
+- Schedule a daily or weekly briefing, receive a concise notification preview,
+  and open the full, source-validated report with clickable citations.
 - Understand what HowAI is doing, what it will change, and whether an action succeeded.
 
 ## 3. Scope boundaries
@@ -204,7 +212,7 @@ At release, a user should be able to:
 - UI theme and accessibility cleanup.
 - Simplified chat composer and tool/mode selection.
 - Improved onboarding, conversation management, and paywall behavior.
-- Primary navigation for Chat, Research, and Actions.
+- Content-first navigation for Chat, Research, and Automations.
 - Reminder and recurring-reminder tools.
 - Reminder management workspace.
 - Firebase Cloud Messaging for Android and iOS/APNs.
@@ -212,6 +220,8 @@ At release, a user should be able to:
 - OpenAI Realtime speech-to-speech voice over WebRTC.
 - Persistent voice transcripts and shared text/voice tools.
 - Persistent background Research projects, runs, sources, and reports.
+- Automations for reminders, recurring reminders, news briefings, and market
+  briefings, with per-run validation and durable history.
 - Feature flags, kill switches, structured telemetry, tests, CI, and an
   internal-to-full rollout.
 - Entitlement-aware text-model routing, with GPT-5.6 Sol for paid primary chat, metered GPT-5.6 Luna access for free accounts, evals, a canary, and instant rollback.
@@ -223,6 +233,10 @@ At release, a user should be able to:
 - Shared reminders or family/team task lists.
 - Location-triggered reminders.
 - Autonomous purchases, reservations, or itinerary booking.
+- Arbitrary user-supplied cron expressions or unrestricted scheduled agent
+  prompts.
+- Trading execution, individualized investment recommendations, or web-search-
+  only stock prices and rankings.
 - Removing the ElevenLabs implementation before Realtime has proven stable.
 - Automatic adoption of GPT-5.6 Pro mode, Programmatic Tool Calling, multi-agent mode, explicit caching, or persisted reasoning without a separate measured need.
 
@@ -255,7 +269,7 @@ Itinerary building can follow in a 2.x release using the existing Places/Maps fo
 ```mermaid
 flowchart LR
     subgraph Client["Flutter client"]
-        UI["Chat, Research, Actions, Voice UI"]
+        UI["Chat, Research, Automations, Voice UI"]
         Agent["Agent coordinator and tool registry"]
         Approval["Action approval controller"]
         Voice["Realtime voice session"]
@@ -303,6 +317,9 @@ flowchart LR
 - OpenAI and Firebase long-lived credentials remain server-side.
 - All new user-owned tables have explicit grants, owner-scoped RLS, indexes, and deletion behavior.
 - Each action and delivery is idempotent and auditable.
+- Scheduled generated content is never delivered directly from raw search
+  output. It passes deterministic source checks and a separate model review;
+  unverifiable claims are removed or the run fails closed.
 
 ## 6. Shared agent-action foundation
 
@@ -601,13 +618,11 @@ Extract the chat shell, composer, mode picker, empty state, action card, subscri
 
 ### A2. Navigation
 
-Use three primary destinations on compact mobile layouts:
-
-- Chat
-- Research
-- Actions
-
-Voice remains a primary action from Chat rather than a fourth persistent destination. Settings, account, subscriptions, and conversation management remain secondary navigation.
+Keep Chat as the content-first home and avoid a persistent mobile tab bar.
+Conversation history, Research, and Automations live in the navigation sheet;
+new chat remains a single top-bar action. Voice remains a primary action inside
+the Chat composer. Notifications and inline action results deep-link directly
+to the relevant Automation or Research run.
 
 ### A3. Composer
 
@@ -635,7 +650,7 @@ The Thinking level is also available from this sheet:
 
 - Fix theme-aware text and the invisible dark-mode landing headline.
 - Replace the forced feature tour with a short, skippable introduction.
-- Use contextual tips when the user first opens Voice, Research, or Actions.
+- Use contextual tips when the user first opens Voice, Research, or Automations.
 - Provide one clear first-message and first-voice-call path.
 - Request notification permission only after the first reminder is approved.
 
@@ -666,6 +681,24 @@ The Thinking level is also available from this sheet:
 - Support dynamic text without clipping at the largest supported sizes.
 - Add semantic labels, focus order, reduced-motion behavior, and minimum touch targets.
 - Add all new source strings to the localization system and prevent missing-key regressions.
+- Treat the app locale as a fallback, not a single-language response lock.
+  Preserve natural multilingual and code-switched conversations.
+
+### A9. M4.1 clean-interface refinement
+
+- Reduce top and bottom chrome and keep the message area visually dominant.
+- Use a calm neutral surface, subtle dividers, restrained accent color, and
+  fewer card-within-card treatments.
+- Render assistant content as readable page content and use a light bubble only
+  for user messages. Keep compact Copy, Listen, Report, and More controls
+  visible below completed assistant messages so reporting stays discoverable.
+- Keep the composer compact at rest, expand it on focus, and hide dictation and
+  live-voice controls as soon as typed content makes Send the primary action.
+- Show tool or thinking state only while it is active. Secondary capabilities
+  belong in the `+` sheet, not as permanent controls.
+- Split the remaining chat and composer monoliths along tested feature seams so
+  future UI changes do not repeatedly regress keyboard, OAuth, or notification
+  behavior.
 
 ## 9. Workstream B — reminders and recurring reminders
 
@@ -684,7 +717,7 @@ Store a validated structured recurrence object rather than accepting arbitrary c
 
 ### B2. Reminder UI
 
-The Actions destination contains:
+The Automations destination contains:
 
 - Today.
 - Upcoming.
@@ -718,6 +751,35 @@ Each reminder supports detail, edit, complete, snooze, pause/resume, skip next, 
 - Offline create/edit operations enter the existing local sync queue with visible pending state.
 - The app must not claim a reminder is active until the server acknowledges it or a local-only fallback has been scheduled.
 - Conflicts use explicit versioning for reminders; silent last-write-wins is not sufficient for schedule edits.
+
+## 9.5 Workstream B.5 — generated Automations
+
+The user-facing umbrella is **Automations**. `cron`, queues, and scheduled jobs
+remain backend implementation terms. The first generated Automation templates
+are daily/weekly news briefings and market-open/market-close briefings.
+
+Every generated run follows this delivery contract:
+
+1. Claim the due occurrence idempotently.
+2. Retrieve current sources with live web access and retain the complete source
+   list.
+3. Reject inaccessible, stale, mismatched, low-quality, or disallowed sources.
+4. Build a claim-to-source map and run a separate AI verification pass that
+   checks support, dates, contradictions, and whether the summary overstates
+   the source.
+5. Remove unsupported claims or fail the run; never invent filler to meet an
+   item count.
+6. Save the report, source metadata, verification result, and usage ledger.
+7. Send only a privacy-safe preview through Firebase and deep-link to the full
+   report with visible, clickable citations.
+
+For prices, movers, volume, rankings, and market-calendar facts, use a licensed
+structured market-data source. Web search may explain market context but is not
+the authoritative numeric feed. The first release does not execute trades or
+provide personalized investment advice.
+
+See [M4.1 UI refinement and M4.5 Automations](M4_1_UI_AND_M4_5_AUTOMATIONS.md)
+for product behavior, data model, cost policy, validation gates, and rollout.
 
 ## 10. Workstream C — push notification delivery
 
@@ -936,6 +998,15 @@ The exact SQL should be generated only after the linked remote schema is pulled 
 - `research_artifacts`
 - `openai_webhook_events`
 
+### Automations
+
+`automations` stores the approved template, schedule, timezone, delivery
+preferences, status, version, and next run. `automation_runs` stores one unique
+scheduled occurrence, generation/verification state, report, source metadata,
+usage, and bounded failure details. Keep the existing `reminders` table and
+contracts intact for installed-client compatibility; reminders appear under
+the Automations UI without a destructive schema rename.
+
 Every user-owned table must enable RLS and enforce `(select auth.uid()) = user_id` for reads and writes. Update policies require both `USING` and `WITH CHECK`. New public tables also need explicit Data API grants because current Supabase projects may not expose them automatically.
 
 ## 14. Supabase migration and function plan
@@ -955,6 +1026,7 @@ Expected new Edge Functions:
 - `reminder-dispatch`
 - `research-start`
 - `openai-webhook`
+- `automation-worker`
 
 Expected scheduled/backend components:
 
@@ -962,6 +1034,11 @@ Expected scheduled/backend components:
 - Recurrence calculator with deterministic tests.
 - Queue consumer for FCM delivery.
 - Webhook deduplication and research-result persistence.
+- One global due-Automation scheduler plus a durable queue; do not create one
+  database cron row per user.
+- A direct OpenAI worker path using shared policy and usage-ledger code. Avoid
+  chaining the scheduled worker through another Edge Function because hosted
+  Supabase now rate-limits nested/recursive Edge Function calls.
 - Server-managed feature flags and kill switches.
 
 Supabase references:
@@ -969,6 +1046,7 @@ Supabase references:
 - [Scheduling Edge Functions](https://supabase.com/docs/guides/functions/schedule-functions)
 - [Supabase Queues](https://supabase.com/docs/guides/queues)
 - [Sending Push Notifications](https://supabase.com/docs/guides/functions/examples/push-notifications)
+- [Nested Edge Function rate limits](https://supabase.com/changelog/43644-edge-functions-rate-limits-on-recursive-nested-edge-functions-calls)
 
 ## 15. Security and privacy requirements
 
@@ -982,6 +1060,10 @@ Supabase references:
 - Account deletion cascades or explicitly removes reminders, devices, research data, and action history according to the retention policy.
 - Notification privacy defaults should avoid exposing sensitive reminder notes on the lock screen.
 - Webhook signatures are verified using raw bodies and duplicate event IDs are ignored.
+- Generated briefings store the minimum source metadata required for citations
+  and audit, not full copied articles.
+- Financial briefings clearly distinguish sourced facts from AI synthesis and
+  include an informational, not investment-advice, notice.
 - Any privileged database function has public execute revoked and the narrowest possible grant.
 - RLS is tested with two-user isolation, anonymous users, and service processes.
 
@@ -1015,6 +1097,10 @@ Supabase references:
 - Notification permission accepted, denied, and later-enabled flows.
 - Voice connecting/listening/speaking/error states with fake transport events.
 - Research project creation, background status, completion, and resume.
+- Automation create/edit/pause/resume/delete/run-now flows, compact approval,
+  verified briefing history, citation opening, and notification deep links.
+- A generated report with stale, inaccessible, contradictory, or unsupported
+  sources is withheld rather than delivered.
 - Subscription and paywall behavior without losing work.
 
 ### Physical-device matrix
@@ -1052,6 +1138,9 @@ Track the minimum telemetry needed to operate the release:
 - Requested and resolved text model, GPT-5.6 rollout cohort, reasoning effort, cache usage, and eval version.
 - Free web search offered/called/denied counts, citation presence, allowance
   consumption, reservation/reconciliation result, latency, and estimated cost.
+- Automation due/claim/queue lag, generation and verification outcomes,
+  withheld-claim reasons, source freshness, notification delivery, and per-run
+  estimated cost.
 
 Do not log prompt contents, reminder notes, transcripts, research reports, API keys, or device tokens in operational logs by default.
 
@@ -1064,11 +1153,17 @@ Do not log prompt contents, reminder notes, transcripts, research reports, API k
 | M2 — UX beta | Navigation, composer, onboarding, conversation management, paywall cleanup, shared approval cards | Existing chat functions pass regression tests; UX review approved |
 | M3 — Actions beta | Reminder schema, tools, action endpoint, Actions UI, recurrence engine, offline states | Text-created reminders work end-to-end without push |
 | M4 — Notification beta | Firebase setup, device registration, queue/dispatcher, FCM, deep links, notification actions | Physical-device delivery and duplicate tests pass |
+| M4.1 — Clean UI refinement | Content-first navigation, lighter chat surface, adaptive composer, compact approvals, UI component extraction | Product UX, keyboard, accessibility, and chat regressions pass |
+| M4.5 — Automations beta | Automations UI, schedules/runs/queue, verified news briefings, market briefing foundation, push deep links | Internal then full rollout passes; unsupported claims are withheld and citations remain durable |
 | M5 — Realtime voice beta | Ephemeral session endpoint, WebRTC client, transcript, interruption, reminder tools, ElevenLabs fallback | Voice quality, safety, usage, and fallback gates pass |
 | M6 — Research beta | Persistent projects/runs/sources, background Responses, webhook, completion push | Leave/resume/completion flow passes and sources remain durable |
 | M7 — Release candidate | Localization, accessibility, performance, security review, store assets/privacy, internal-to-full rollout controls | All release gates pass and rollback is tested |
 
-M0 and external Firebase/APNs setup can begin together. M1 must stabilize the text model and tool behavior before reminder tools are accepted as production-ready. After the shared action contracts are stable, reminder backend/client work and Realtime transport work can proceed in parallel. Research depends on the notification service but not on reminder UI.
+M4.1 follows the completed M4 internal notification flow. It establishes the
+final navigation and Automations surface before M4.5 adds generated content.
+M4.5 reuses reminder approval, scheduling, usage-ledger, and push infrastructure
+without renaming the existing reminder schema. M5 Realtime and M6 Research then
+reuse the refined UI and durable run patterns.
 
 ## 19. Estimated delivery range
 
@@ -1087,6 +1182,10 @@ These defaults let implementation begin without blocking the architecture:
 - Working release name: **HowAI 2.0 — Assistant Workspace**.
 - Server-backed reminders require a signed-in user; anonymous users are prompted to sign in before confirmation.
 - Basic reminders and recurring reminders are available to all signed-in users, with abuse limits rather than an immediate paywall.
+- Generated news and market briefings start as a Pro capability with a small
+  internal test allowlist, no more than two active briefing Automations per
+  user, and at most one automatic run per briefing per day. Reminders remain
+  available independently.
 - Realtime voice keeps the existing free/premium usage concept, with limits moved to server configuration.
 - Persistent Research is premium or quota-limited because it can create long-running provider cost.
 - Notification lock-screen text defaults to the reminder title without private notes.

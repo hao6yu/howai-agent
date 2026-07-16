@@ -3,12 +3,17 @@ import 'package:haogpt/core/agent/chat_response_policy.dart';
 
 void main() {
   group('chatResponseLanguageInstructions', () {
-    test('uses the app language and rejects typo-driven switching', () {
+    test('uses the app language only as a multilingual fallback', () {
       final instructions = chatResponseLanguageInstructions('en-US');
 
       expect(instructions, contains('app interface language is English'));
-      expect(instructions, contains('misspelled first word'));
-      expect(instructions, contains('ambiguous, use English'));
+      expect(instructions, contains('must not force a single-language reply'));
+      expect(instructions, contains('intentional mix of languages'));
+      expect(
+          instructions, contains('respond naturally in the same language mix'));
+      expect(instructions, isNot(contains('Reply in English unless')));
+      expect(instructions, contains('isolated foreign word'));
+      expect(instructions, contains('genuinely ambiguous'));
     });
 
     test('preserves regional language variants', () {

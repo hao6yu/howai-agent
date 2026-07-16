@@ -12,6 +12,7 @@ import '../widgets/custom_back_button.dart';
 import '../widgets/upgrade_dialog.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import 'package:path_provider/path_provider.dart';
+import '../core/theme/howai_theme.dart';
 
 class ProfileScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -40,7 +41,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+      final profileProvider =
+          Provider.of<ProfileProvider>(context, listen: false);
       final currentProfileId = profileProvider.selectedProfileId;
 
       if (currentProfileId != null) {
@@ -66,7 +68,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+      final profileProvider =
+          Provider.of<ProfileProvider>(context, listen: false);
       final currentProfileId = profileProvider.selectedProfileId;
 
       if (currentProfileId != null) {
@@ -83,7 +86,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           // Only update avatar path if a new image was selected
           if (_avatarImage != null) {
-            updatedProfile = updatedProfile.copyWith(avatarPath: _avatarImage!.path);
+            updatedProfile =
+                updatedProfile.copyWith(avatarPath: _avatarImage!.path);
           }
 
           await _databaseService.updateProfile(updatedProfile);
@@ -175,7 +179,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _saveProfileWithNewAvatar(String avatarPath) async {
     try {
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+      final profileProvider =
+          Provider.of<ProfileProvider>(context, listen: false);
       final currentProfileId = profileProvider.selectedProfileId;
 
       if (currentProfileId != null) {
@@ -234,18 +239,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: AppLocalizations.of(context)!.editProfile,
         onBack: widget.onBack ?? () => Navigator.of(context).pop(),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            child: ElevatedButton(
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton(
               onPressed: _isLoading ? null : _updateProfile,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0078D4),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                elevation: 0,
+              style: TextButton.styleFrom(
+                foregroundColor: context.howaiColors.accent,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
               child: _isLoading
                   ? const SizedBox(
@@ -270,17 +270,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                   // Avatar Section
                   _buildAvatarSection(selectedProfile),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 24),
 
                   // Name Section
                   _buildNameSection(),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
 
                   // AI Insights Section
                   _buildAIInsightsSection(),
@@ -291,6 +291,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildAvatarSection(Profile selectedProfile) {
+    final colors = context.howaiColors;
+
     return Column(
       children: [
         GestureDetector(
@@ -298,33 +300,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Stack(
             children: [
               Container(
-                width: 120,
-                height: 120,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF0078D4).withOpacity(0.1),
-                      const Color(0xFF0078D4).withOpacity(0.05),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  color: colors.surface,
                   border: Border.all(
-                    color: const Color(0xFF0078D4).withOpacity(0.2),
-                    width: 3,
+                    color: colors.divider,
+                    width: 1,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF0078D4).withOpacity(0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
                 ),
                 child: _avatarImage != null
                     ? CircleAvatar(
-                        radius: 60,
+                        radius: 44,
                         backgroundImage: FileImage(File(_avatarImage!.path)),
                       )
                     : FutureBuilder<String?>(
@@ -332,19 +320,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         builder: (context, snapshot) {
                           if (snapshot.hasData && snapshot.data != null) {
                             return CircleAvatar(
-                              radius: 60,
+                              radius: 44,
                               backgroundImage: FileImage(File(snapshot.data!)),
                             );
                           }
                           return CircleAvatar(
-                            radius: 60,
+                            radius: 44,
                             backgroundColor: Colors.transparent,
                             child: Text(
-                              selectedProfile.name.isNotEmpty ? selectedProfile.name.substring(0, 1).toUpperCase() : 'U',
+                              selectedProfile.name.isNotEmpty
+                                  ? selectedProfile.name
+                                      .substring(0, 1)
+                                      .toUpperCase()
+                                  : 'U',
                               style: TextStyle(
-                                fontSize: 36,
+                                fontSize: 28,
                                 fontWeight: FontWeight.w600,
-                                color: const Color(0xFF0078D4),
+                                color: colors.accent,
                               ),
                             ),
                           );
@@ -353,39 +345,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               Positioned(
                 right: 0,
-                bottom: 8,
+                bottom: 0,
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0078D4),
+                    color: colors.textPrimary,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: Theme.of(context).scaffoldBackgroundColor,
-                      width: 3,
+                      width: 2,
                     ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.camera_alt_rounded,
-                    color: Colors.white,
-                    size: 20,
+                    color: colors.canvas,
+                    size: 16,
                   ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 10),
         Text(
           AppLocalizations.of(context)!.tapToChangePhoto,
           style: TextStyle(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+            color: colors.textSecondary,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -395,6 +380,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildNameSection() {
+    final colors = context.howaiColors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -403,7 +390,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w600,
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+            color: colors.textPrimary,
           ),
         ),
         const SizedBox(height: 12),
@@ -412,29 +399,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           decoration: InputDecoration(
             hintText: AppLocalizations.of(context)!.enterYourName,
             hintStyle: TextStyle(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey.shade400,
+              color: colors.textTertiary,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200,
-              ),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200,
-              ),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: colors.divider),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFF0078D4),
-                width: 2,
-              ),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: colors.accent, width: 1.4),
             ),
             filled: true,
-            fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.white,
+            fillColor: colors.surface,
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 20,
               vertical: 16,
@@ -443,7 +420,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+            color: colors.textPrimary,
           ),
         ),
       ],
@@ -453,40 +430,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildAIInsightsSection() {
     return Consumer2<SettingsProvider, SubscriptionService>(
       builder: (context, settings, subscriptionService, child) {
+        final colors = context.howaiColors;
         return Container(
-          padding: const EdgeInsets.all(20),
+          key: const Key('profile_ai_insights_group'),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF0078D4).withOpacity(0.1),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0078D4).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  SizedBox(
+                    width: 28,
                     child: Icon(
-                      Icons.psychology_rounded,
-                      color: const Color(0xFF0078D4),
-                      size: settings.getScaledFontSize(24),
+                      Icons.psychology_outlined,
+                      color: colors.textSecondary,
+                      size: settings.getScaledFontSize(21),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -498,23 +463,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               style: TextStyle(
                                 fontSize: settings.getScaledFontSize(18),
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                                color: colors.textPrimary,
                               ),
                             ),
                             if (!subscriptionService.isPremium) ...[
                               const SizedBox(width: 8),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF0078D4), Color(0xFF106ebe)],
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
+                                  color: colors.surfaceStrong,
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  'PREMIUM',
+                                  'PRO',
                                   style: TextStyle(
-                                    color: Colors.white,
+                                    color: colors.textSecondary,
                                     fontSize: settings.getScaledFontSize(10),
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -524,10 +488,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ],
                         ),
                         Text(
-                          subscriptionService.isPremium ? 'How AI understands you' : 'Unlock personalized AI analysis',
+                          subscriptionService.isPremium
+                              ? 'How AI understands you'
+                              : 'Unlock personalized AI analysis',
                           style: TextStyle(
                             fontSize: settings.getScaledFontSize(14),
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            color: colors.textSecondary,
                           ),
                         ),
                       ],
@@ -535,10 +501,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               // Show content based on subscription status
-              if (subscriptionService.isPremium) _buildAIInsightsContent(settings) else _buildAIInsightsPaywall(settings, subscriptionService),
+              if (subscriptionService.isPremium)
+                _buildAIInsightsContent(settings)
+              else
+                _buildAIInsightsPaywall(settings, subscriptionService),
             ],
           ),
         );
@@ -549,7 +518,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // Premium users see the actual AI insights content
   Widget _buildAIInsightsContent(SettingsProvider settings) {
     return FutureBuilder<Profile?>(
-      future: _databaseService.getProfile(Provider.of<ProfileProvider>(context, listen: false).selectedProfileId ?? 0),
+      future: _databaseService.getProfile(
+          Provider.of<ProfileProvider>(context, listen: false)
+                  .selectedProfileId ??
+              0),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -562,7 +534,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade800
+                  : Colors.grey.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -570,7 +544,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Icon(
                   Icons.auto_awesome_outlined,
                   size: settings.getScaledFontSize(48),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey.shade400,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade500
+                      : Colors.grey.shade400,
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -578,7 +554,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(16),
                     fontWeight: FontWeight.w500,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade600,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -586,7 +564,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   'Chat more to help AI understand your preferences',
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(14),
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade500,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade400
+                        : Colors.grey.shade500,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -605,7 +585,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // Free users see a premium paywall with preview
-  Widget _buildAIInsightsPaywall(SettingsProvider settings, SubscriptionService subscriptionService) {
+  Widget _buildAIInsightsPaywall(
+      SettingsProvider settings, SubscriptionService subscriptionService) {
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -629,13 +610,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               children: [
                 // Preview insight items (blurred/obscured)
-                _buildPreviewInsightItem('Communication Style', 'Friendly, direct, analytical...', settings),
+                _buildPreviewInsightItem('Communication Style',
+                    'Friendly, direct, analytical...', settings),
                 const SizedBox(height: 8),
-                _buildPreviewInsightItem('Interests', 'Technology, productivity, AI...', settings),
+                _buildPreviewInsightItem(
+                    'Interests', 'Technology, productivity, AI...', settings),
                 const SizedBox(height: 8),
-                _buildPreviewInsightItem('Personality', 'Curious, detail-oriented...', settings),
+                _buildPreviewInsightItem(
+                    'Personality', 'Curious, detail-oriented...', settings),
                 const SizedBox(height: 8),
-                _buildPreviewInsightItem('Expertise', 'Intermediate to advanced...', settings),
+                _buildPreviewInsightItem(
+                    'Expertise', 'Intermediate to advanced...', settings),
               ],
             ),
           ),
@@ -644,7 +629,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900.withOpacity(0.9) : Colors.white.withOpacity(0.9),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade900.withOpacity(0.9)
+                    : Colors.white.withOpacity(0.9),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Padding(
@@ -663,7 +650,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(18),
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : const Color(0xFF1A1A1A),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -672,7 +661,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Get personalized AI analysis of your communication style, interests, and preferences based on your conversations.',
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(14),
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade300
+                            : Colors.grey.shade600,
                         height: 1.4,
                       ),
                       textAlign: TextAlign.center,
@@ -725,18 +716,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   // Preview insight item for paywall (dimmed/blurred effect)
-  Widget _buildPreviewInsightItem(String title, String preview, SettingsProvider settings) {
+  Widget _buildPreviewInsightItem(
+      String title, String preview, SettingsProvider settings) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
           Icon(
             Icons.info_outline,
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey.shade400,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade500
+                : Colors.grey.shade400,
             size: settings.getScaledFontSize(20),
           ),
           const SizedBox(width: 12),
@@ -749,7 +745,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(14),
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade400,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade400
+                        : Colors.grey.shade400,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -757,7 +755,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   preview,
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(13),
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey.shade400,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade500
+                        : Colors.grey.shade400,
                   ),
                 ),
               ],
@@ -768,7 +768,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInsightItem(String key, dynamic value, SettingsProvider settings) {
+  Widget _buildInsightItem(
+      String key, dynamic value, SettingsProvider settings) {
+    final colors = context.howaiColors;
     final icons = {
       'communication_style': Icons.chat_bubble_outline,
       'topics_of_interest': Icons.interests_outlined,
@@ -787,18 +789,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final valueText = value is List ? value.join(', ') : value.toString();
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
         children: [
           Icon(
             icons[key] ?? Icons.info_outline,
-            color: const Color(0xFF0078D4),
+            color: colors.textSecondary,
             size: settings.getScaledFontSize(20),
           ),
           const SizedBox(width: 12),
@@ -811,7 +808,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(14),
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -819,7 +816,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   valueText,
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(13),
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],

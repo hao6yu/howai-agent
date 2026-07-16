@@ -13,6 +13,7 @@ import '../services/file_service.dart';
 import '../services/knowledge_hub_service.dart';
 import '../services/knowledge_source_service.dart';
 import '../services/subscription_service.dart';
+import '../core/theme/howai_theme.dart';
 
 class KnowledgeHubScreen extends StatefulWidget {
   const KnowledgeHubScreen({super.key});
@@ -1036,20 +1037,25 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   }
 
   Widget _buildPremiumBlockedView(SettingsProvider settings) {
+    final colors = context.howaiColors;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 28),
-          const Icon(Icons.auto_stories_outlined,
-              size: 62, color: Color(0xFF0078D4)),
+          Icon(
+            Icons.auto_stories_outlined,
+            size: 48,
+            color: colors.textSecondary,
+          ),
           const SizedBox(height: 14),
           Text(
             AppLocalizations.of(context)!.knowledgeHubPremiumBlockedTitle,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(20),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
+              color: colors.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -1059,6 +1065,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
             style: TextStyle(
               fontSize: settings.getScaledFontSize(14),
               height: 1.4,
+              color: colors.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -1090,9 +1097,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                 AppLocalizations.of(context)!.knowledgeHubFeatureControlDesc,
           ),
           const SizedBox(height: 20),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pushNamed(context, '/subscription'),
-            style: ElevatedButton.styleFrom(
+            style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             child: Text(
@@ -1109,23 +1116,18 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     required String title,
     required String description,
   }) {
+    final colors = context.howaiColors;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey.shade900
-            : Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey.shade700
-              : Colors.grey.shade300,
-        ),
+        border: Border.all(color: colors.divider),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xFF0078D4), size: 22),
+          Icon(icon, color: colors.textSecondary, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -1135,7 +1137,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   title,
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(15),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1144,6 +1147,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(13),
                     height: 1.35,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
@@ -1155,126 +1159,83 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   }
 
   Widget _buildPremiumEmptyState(SettingsProvider settings) {
+    final colors = context.howaiColors;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 110),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade900
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade700
-                  : Colors.grey.shade300,
-            ),
+        Icon(
+          Icons.auto_stories_outlined,
+          color: colors.textSecondary,
+          size: 28,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          AppLocalizations.of(context)!.knowledgeHubWhatIsTitle,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: settings.getScaledFontSize(20),
+            fontWeight: FontWeight.w600,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.auto_stories_outlined,
-                  color: Color(0xFF0078D4), size: 24),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.knowledgeHubWhatIsTitle,
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(16),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      AppLocalizations.of(context)!.knowledgeHubWhatIsDesc,
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(13),
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          AppLocalizations.of(context)!.knowledgeHubWhatIsDesc,
+          style: TextStyle(
+            color: colors.textSecondary,
+            fontSize: settings.getScaledFontSize(14),
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 28),
+        Text(
+          AppLocalizations.of(context)!.knowledgeHubHowToStartTitle,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: settings.getScaledFontSize(16),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildStep(
+          settings,
+          number: '1',
+          text: AppLocalizations.of(context)!.knowledgeHubStep1,
+        ),
+        _buildStep(
+          settings,
+          number: '2',
+          text: AppLocalizations.of(context)!.knowledgeHubStep2,
+        ),
+        _buildStep(
+          settings,
+          number: '3',
+          text: AppLocalizations.of(context)!.knowledgeHubStep3,
+        ),
+        _buildStep(
+          settings,
+          number: '4',
+          text: AppLocalizations.of(context)!.knowledgeHubStep4,
+        ),
+        const SizedBox(height: 20),
+        Text(
+          AppLocalizations.of(context)!.knowledgeHubExampleTitle,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: settings.getScaledFontSize(16),
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(16),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade900
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade700
-                  : Colors.grey.shade300,
-            ),
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colors.divider),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                AppLocalizations.of(context)!.knowledgeHubHowToStartTitle,
-                style: TextStyle(
-                  fontSize: settings.getScaledFontSize(16),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildStep(
-                settings,
-                number: '1',
-                text: AppLocalizations.of(context)!.knowledgeHubStep1,
-              ),
-              _buildStep(
-                settings,
-                number: '2',
-                text: AppLocalizations.of(context)!.knowledgeHubStep2,
-              ),
-              _buildStep(
-                settings,
-                number: '3',
-                text: AppLocalizations.of(context)!.knowledgeHubStep3,
-              ),
-              _buildStep(
-                settings,
-                number: '4',
-                text: AppLocalizations.of(context)!.knowledgeHubStep4,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade900
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade700
-                  : Colors.grey.shade300,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppLocalizations.of(context)!.knowledgeHubExampleTitle,
-                style: TextStyle(
-                  fontSize: settings.getScaledFontSize(16),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 10),
               _buildExampleMemory(
                 settings,
                 title: AppLocalizations.of(context)!
@@ -1282,14 +1243,14 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                 content: AppLocalizations.of(context)!
                     .knowledgeHubExamplePreferenceContent,
               ),
-              const SizedBox(height: 8),
+              Divider(height: 1, indent: 12, color: colors.divider),
               _buildExampleMemory(
                 settings,
                 title: AppLocalizations.of(context)!.knowledgeHubMemoryTypeGoal,
                 content: AppLocalizations.of(context)!
                     .knowledgeHubExampleGoalContent,
               ),
-              const SizedBox(height: 8),
+              Divider(height: 1, indent: 12, color: colors.divider),
               _buildExampleMemory(
                 settings,
                 title: AppLocalizations.of(context)!
@@ -1309,23 +1270,24 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     required String number,
     required String text,
   }) {
+    final colors = context.howaiColors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 20,
-            height: 20,
+            width: 22,
+            height: 22,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: const Color(0xFF0078D4),
+              color: colors.surfaceStrong,
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               number,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: colors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
@@ -1336,6 +1298,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
             child: Text(
               text,
               style: TextStyle(
+                color: colors.textSecondary,
                 fontSize: settings.getScaledFontSize(13),
                 height: 1.3,
               ),
@@ -1351,35 +1314,33 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     required String title,
     required String content,
   }) {
-    return Container(
+    final colors = context.howaiColors;
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey.shade800
-            : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: settings.getScaledFontSize(12),
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF0078D4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: settings.getScaledFontSize(12),
+                fontWeight: FontWeight.w600,
+                color: colors.accent,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            content,
-            style: TextStyle(
-              fontSize: settings.getScaledFontSize(13),
-              height: 1.3,
+            const SizedBox(height: 4),
+            Text(
+              content,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: settings.getScaledFontSize(13),
+                height: 1.3,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

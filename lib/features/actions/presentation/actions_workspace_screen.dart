@@ -37,7 +37,7 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // A reminder can complete while this screen is closed. Always reconcile
-      // with the server when the user opens Actions instead of showing cache.
+      // with the server when the user opens Automations instead of showing cache.
       context.read<ReminderProvider>().ensureInitialized(force: true);
       context.read<PushNotificationProvider>().ensureInitialized();
     });
@@ -47,7 +47,7 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Actions'),
+        title: const Text('Automations'),
         actions: [
           IconButton(
             tooltip: 'Refresh',
@@ -603,7 +603,7 @@ class _UnavailableState extends StatelessWidget {
             const Icon(Icons.lock_clock_outlined, size: 48),
             const SizedBox(height: 16),
             Text(
-              'Actions are in internal beta',
+              'Automations are in internal beta',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),

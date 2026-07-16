@@ -2,15 +2,28 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:haogpt/core/theme/howai_theme.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import 'package:haogpt/models/thinking_level.dart';
 import 'package:haogpt/providers/settings_provider.dart';
+import 'package:haogpt/services/subscription_service.dart';
 import 'package:haogpt/widgets/chat_input_widget.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUpAll(() async {
+    SharedPreferences.setMockInitialValues({});
+    await Supabase.initialize(
+      url: 'https://howai-widget-test.supabase.co',
+      anonKey: 'howai-widget-test-publishable-key',
+    );
+  });
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
   });
@@ -18,11 +31,20 @@ void main() {
   Future<void> pumpComposer(
     WidgetTester tester, {
     ThinkingLevel thinkingLevel = ThinkingLevel.auto,
+    ThemeMode themeMode = ThemeMode.light,
   }) async {
     await tester.pumpWidget(
-      ChangeNotifierProvider(
-        create: (_) => SettingsProvider(),
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => SettingsProvider()),
+          ChangeNotifierProvider<SubscriptionService>.value(
+            value: SubscriptionService(),
+          ),
+        ],
         child: MaterialApp(
+          theme: HowAITheme.light(),
+          darkTheme: HowAITheme.dark(),
+          themeMode: themeMode,
           localizationsDelegates: const [
             AppLocalizations.delegate,
             GlobalMaterialLocalizations.delegate,
@@ -131,6 +153,63 @@ void main() {
 
     expect(find.text('Balanced'), findsNothing);
   });
+
+  for (final testCase in <({
+    String name,
+    ThemeMode mode,
+    HowAIColors colors,
+  })>[
+    (
+      name: 'light',
+      mode: ThemeMode.light,
+      colors: HowAIColors.light,
+    ),
+    (
+      name: 'dark',
+      mode: ThemeMode.dark,
+      colors: HowAIColors.dark,
+    ),
+  ]) {
+    testWidgets(
+      'quick actions use readable grouped styling in ${testCase.name} mode',
+      (tester) async {
+        await pumpComposer(tester, themeMode: testCase.mode);
+
+        await tester.tap(find.byIcon(Icons.add));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey<String>('quick_actions_sheet')),
+          findsOneWidget,
+        );
+        expect(find.text('Quick Actions'), findsOneWidget);
+        expect(find.text('Ask from photo'), findsOneWidget);
+        expect(find.text('Voice Input'), findsOneWidget);
+
+        for (final key in const <String>[
+          'attachment_actions_group',
+          'feature_actions_group',
+        ]) {
+          final group = tester.widget<Container>(
+            find.byKey(ValueKey<String>(key)),
+          );
+          final decoration = group.decoration! as BoxDecoration;
+          expect(decoration.color, testCase.colors.surface);
+          expect(decoration.borderRadius, BorderRadius.circular(14));
+        }
+
+        final title = tester.widget<Text>(find.text('Voice Input'));
+        expect(title.style?.fontSize, 15);
+        expect(title.style?.fontWeight, FontWeight.w600);
+
+        final description = tester.widget<Text>(find.text(
+          'Speak naturally - your voice will be transcribed and understood',
+        ));
+        expect(description.maxLines, 2);
+        expect(description.style?.color, testCase.colors.textSecondary);
+      },
+    );
+  }
 }
 
 class _ComposerHarness extends StatefulWidget {

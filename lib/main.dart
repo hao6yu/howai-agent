@@ -2,7 +2,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -29,6 +28,7 @@ import 'screens/knowledge_hub_screen.dart';
 import 'features/actions/presentation/actions_workspace_screen.dart';
 import 'firebase_options.dart';
 import 'services/push_notification_service.dart';
+import 'core/theme/howai_theme.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -134,133 +134,8 @@ class HowAIMainApp extends StatelessWidget {
           title: 'HowAI',
           debugShowCheckedModeBanner: false,
           themeMode: settings.themeMode,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF0078D4),
-              brightness: Brightness.light,
-            ),
-            scaffoldBackgroundColor: const Color(0xFFF7F7F7),
-            appBarTheme: AppBarTheme(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black87,
-              elevation: 0,
-              iconTheme: const IconThemeData(color: Color(0xFF0078D4)),
-              titleTextStyle: TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.bold,
-                fontSize: settings.getScaledFontSize(20),
-                fontFamily: 'Roboto',
-              ),
-            ),
-            textTheme: GoogleFonts.robotoTextTheme().copyWith(
-              bodyLarge:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(16)),
-              bodyMedium:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
-              bodySmall:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(12)),
-              headlineLarge:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(32)),
-              headlineMedium:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(28)),
-              headlineSmall:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(24)),
-              titleLarge:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(22)),
-              titleMedium:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(16)),
-              titleSmall:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
-              labelLarge:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
-              labelMedium:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(12)),
-              labelSmall:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(11)),
-            ),
-            useMaterial3: true,
-          ),
-          darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF0078D4),
-              brightness: Brightness.dark,
-            ),
-            scaffoldBackgroundColor: const Color(0xFF1C1C1E),
-            appBarTheme: AppBarTheme(
-              backgroundColor: const Color(0xFF2C2C2E),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              iconTheme: const IconThemeData(color: Color(0xFF0078D4)),
-              titleTextStyle: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: settings.getScaledFontSize(20),
-                fontFamily: 'Roboto',
-              ),
-            ),
-            cardTheme: const CardThemeData(
-              color: Color(0xFF2C2C2E),
-              elevation: 0,
-            ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: Color(0xFF2C2C2E),
-            ),
-            bottomSheetTheme: const BottomSheetThemeData(
-              backgroundColor: Color(0xFF2C2C2E),
-            ),
-            textTheme: GoogleFonts.robotoTextTheme(ThemeData.dark().textTheme)
-                .copyWith(
-              bodyLarge: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(16),
-                color: Colors.white,
-              ),
-              bodyMedium: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(14),
-                color: Colors.white,
-              ),
-              bodySmall: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(12),
-                color: Colors.white70,
-              ),
-              headlineLarge: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(32),
-                color: Colors.white,
-              ),
-              headlineMedium: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(28),
-                color: Colors.white,
-              ),
-              headlineSmall: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(24),
-                color: Colors.white,
-              ),
-              titleLarge: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(22),
-                color: Colors.white,
-              ),
-              titleMedium: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(16),
-                color: Colors.white,
-              ),
-              titleSmall: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(14),
-                color: Colors.white,
-              ),
-              labelLarge: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(14),
-                color: Colors.white,
-              ),
-              labelMedium: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(12),
-                color: Colors.white70,
-              ),
-              labelSmall: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(11),
-                color: Colors.white70,
-              ),
-            ),
-            useMaterial3: true,
-          ),
+          theme: HowAITheme.light(fontScale: settings.fontSizeScale),
+          darkTheme: HowAITheme.dark(fontScale: settings.fontSizeScale),
           locale: locale,
           localizationsDelegates: const [
             AppLocalizations.delegate,

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import '../widgets/custom_back_button.dart';
+import '../core/theme/howai_theme.dart';
 
 class SubscriptionScreen extends StatefulWidget {
   final VoidCallback? onSubscribed;
@@ -366,21 +367,27 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     return GestureDetector(
       onTap: () async {
-        debugPrint('[SubscriptionScreen] Plan card tapped: ${product.id}, _isLoading=$_isLoading');
+        debugPrint(
+            '[SubscriptionScreen] Plan card tapped: ${product.id}, _isLoading=$_isLoading');
         if (_isLoading) {
-          debugPrint('[SubscriptionScreen] TAP IGNORED — _isLoading is true (stuck state)');
+          debugPrint(
+              '[SubscriptionScreen] TAP IGNORED — _isLoading is true (stuck state)');
           return;
         }
         setState(() => _isLoading = true);
         final subscriptionService =
             Provider.of<SubscriptionService>(context, listen: false);
         try {
-          debugPrint('[SubscriptionScreen] Calling subscribe for: ${product.id}');
-          await subscriptionService.subscribe(product.id)
+          debugPrint(
+              '[SubscriptionScreen] Calling subscribe for: ${product.id}');
+          await subscriptionService
+              .subscribe(product.id)
               .timeout(const Duration(seconds: 15), onTimeout: () {
-            debugPrint('[SubscriptionScreen] subscribe() TIMED OUT for ${product.id}');
+            debugPrint(
+                '[SubscriptionScreen] subscribe() TIMED OUT for ${product.id}');
           });
-          debugPrint('[SubscriptionScreen] subscribe() returned. errorMessage=${subscriptionService.errorMessage}');
+          debugPrint(
+              '[SubscriptionScreen] subscribe() returned. errorMessage=${subscriptionService.errorMessage}');
           if (mounted && subscriptionService.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -943,7 +950,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               : () async {
                   setState(() => _isLoading = true);
                   try {
-                    final subscriptionService = Provider.of<SubscriptionService>(context, listen: false);
+                    final subscriptionService =
+                        Provider.of<SubscriptionService>(context,
+                            listen: false);
                     await subscriptionService.restorePurchases();
                   } catch (e) {
                     // Silent
@@ -1049,12 +1058,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   // Premium user management screen
   Widget _buildPremiumUserScreen(SubscriptionService subscriptionService) {
     final isTablet = MediaQuery.of(context).size.width > 600;
-    final horizontalPadding = isTablet ? 40.0 : 20.0;
+    final horizontalPadding = isTablet ? 32.0 : 16.0;
 
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(
         horizontal: horizontalPadding,
-        vertical: 20,
+        vertical: 12,
       ),
       child: Center(
         child: ConstrainedBox(
@@ -1065,19 +1074,19 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             children: [
               // Premium Status Header
               _buildPremiumStatusHeader(subscriptionService),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Subscription Details Card
               _buildSubscriptionDetailsCard(subscriptionService),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Premium Features Showcase
               _buildPremiumFeaturesShowcase(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
 
               // Manage Subscription
               _buildManageSubscriptionCard(),
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
             ],
           ),
         ),
@@ -1110,8 +1119,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   ),
                 ),
                 TextButton(
-                  onPressed: () => _launchUrl('https://apps.apple.com/account/subscriptions'),
-                  child: const Text('Open', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  onPressed: () => _launchUrl(
+                      'https://apps.apple.com/account/subscriptions'),
+                  child: const Text('Open',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ],
             ),
@@ -1168,41 +1180,54 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Widget _buildPremiumStatusHeader(SubscriptionService subscriptionService) {
+    final colors = Theme.of(context).extension<HowAIColors>()!;
+
     return Container(
+      key: const Key('subscription_premium_status'),
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1B5E20), Color(0xFF2E7D32)],
-        ),
-        borderRadius: BorderRadius.circular(16),
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Icon(
-            Icons.verified,
-            color: Colors.white,
-            size: 48,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            AppLocalizations.of(context)!.premiumActive,
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: colors.success.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_rounded,
+              color: colors.success,
+              size: 22,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            AppLocalizations.of(context)!.fullAccessToFeatures,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.white.withOpacity(0.9),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  AppLocalizations.of(context)!.premiumActive,
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  AppLocalizations.of(context)!.fullAccessToFeatures,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: colors.textSecondary,
+                  ),
+                ),
+              ],
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -1211,19 +1236,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Widget _buildSubscriptionDetailsCard(
       SubscriptionService subscriptionService) {
+    final colors = Theme.of(context).extension<HowAIColors>()!;
+
     return Container(
+      key: const Key('subscription_details_group'),
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1231,20 +1252,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           Text(
             AppLocalizations.of(context)!.subscriptionDetails,
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.grey.shade800,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: colors.textPrimary,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           _buildDetailRow(AppLocalizations.of(context)!.status,
               AppLocalizations.of(context)!.active),
-          const SizedBox(height: 12),
+          Divider(color: colors.divider),
           _buildDetailRow(AppLocalizations.of(context)!.billing,
               AppLocalizations.of(context)!.managedThroughAppStore),
-          const SizedBox(height: 12),
+          Divider(color: colors.divider),
           _buildDetailRow(AppLocalizations.of(context)!.features,
               AppLocalizations.of(context)!.unlimitedAccess),
         ],
@@ -1253,46 +1272,49 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Widget _buildDetailRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 16,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade400
-                : Colors.grey.shade600,
+    final colors = Theme.of(context).extension<HowAIColors>()!;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: colors.textSecondary,
+              ),
+            ),
           ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Colors.grey.shade800,
+          const SizedBox(width: 16),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: colors.textPrimary,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildPremiumFeaturesShowcase() {
+    final colors = Theme.of(context).extension<HowAIColors>()!;
+
     return Container(
+      key: const Key('subscription_features_group'),
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1300,14 +1322,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           Text(
             AppLocalizations.of(context)!.yourPremiumFeatures,
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.grey.shade800,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: colors.textPrimary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
           _buildFeatureShowcaseItem(
               Icons.image,
               AppLocalizations.of(context)!.unlimitedAiImageGeneration,
@@ -1333,9 +1353,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               AppLocalizations.of(context)!.realtimeWebSearch,
               AppLocalizations.of(context)!.getLatestInformation),
           _buildFeatureShowcaseItem(
-              Icons.psychology,
-              AppLocalizations.of(context)!.featureShowcaseDeepResearchTitle,
-              AppLocalizations.of(context)!.featureShowcaseDeepResearchDesc),
+              Icons.tune_rounded,
+              AppLocalizations.of(context)!.thinkingLevel,
+              AppLocalizations.of(context)!.thinkingLevelNote),
           _buildFeatureShowcaseItem(
               Icons.explore,
               AppLocalizations.of(context)!.placesExplorerTitle,
@@ -1351,25 +1371,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Widget _buildFeatureShowcaseItem(
       IconData icon, String title, String description) {
+    final colors = Theme.of(context).extension<HowAIColors>()!;
+
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.green.withOpacity(0.1)
-                  : Colors.green.shade50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              icon,
-              color: Colors.green.shade700,
-              size: 20,
-            ),
+          SizedBox(
+            width: 28,
+            child: Icon(icon, color: colors.textSecondary, size: 19),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1377,20 +1390,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.grey.shade800,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: colors.textPrimary,
                   ),
                 ),
+                const SizedBox(height: 1),
                 Text(
                   description,
                   style: TextStyle(
-                    fontSize: 14,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey.shade400
-                        : Colors.grey.shade600,
+                    fontSize: 13,
+                    height: 1.3,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
@@ -1402,19 +1413,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Widget _buildManageSubscriptionCard() {
+    final colors = Theme.of(context).extension<HowAIColors>()!;
+
     return Container(
+      key: const Key('subscription_manage_group'),
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1422,38 +1429,34 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           Text(
             AppLocalizations.of(context)!.manageSubscription,
             style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : Colors.grey.shade800,
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: colors.textPrimary,
             ),
           ),
           const SizedBox(height: 16),
           Text(
             AppLocalizations.of(context)!.subscriptionManagedMessage,
             style: TextStyle(
-              fontSize: 15,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade400
-                  : Colors.grey.shade600,
+              fontSize: 14,
+              color: colors.textSecondary,
               height: 1.4,
             ),
           ),
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton.icon(
+            child: OutlinedButton.icon(
               onPressed: () => _launchUrl(
                   Theme.of(context).platform == TargetPlatform.iOS
                       ? 'https://apps.apple.com/account/subscriptions'
                       : 'https://play.google.com/store/account/subscriptions'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0078D4),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: colors.textPrimary,
+                side: BorderSide(color: colors.divider),
+                padding: const EdgeInsets.symmetric(vertical: 13),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(10),
                 ),
               ),
               icon: const Icon(Icons.settings),

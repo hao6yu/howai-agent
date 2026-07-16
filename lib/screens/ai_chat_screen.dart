@@ -54,6 +54,7 @@ import '../providers/reminder_provider.dart';
 import '../providers/push_notification_provider.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import '../widgets/conversation_drawer.dart';
+import '../widgets/new_conversation_button.dart';
 import '../providers/conversation_provider.dart';
 import '../providers/ai_personality_provider.dart';
 import '../services/subscription_service.dart';
@@ -77,6 +78,7 @@ import '../widgets/language_selection_popup.dart';
 import '../widgets/full_language_selection_dialog.dart';
 import '../widgets/location_search_dialog.dart';
 import '../features/actions/presentation/action_approval_card.dart';
+import '../core/theme/howai_theme.dart';
 
 class AiChatScreen extends StatefulWidget {
   final VoidCallback? onNavigateToGuide;
@@ -2541,14 +2543,13 @@ class _AiChatScreenState extends State<AiChatScreen>
             return Scaffold(
               drawer: ConversationDrawer(profileId: _currentProfileId),
               appBar: AppBar(
-                toolbarHeight: 48,
-                title: BrandedAppTitle(
-                  onTap: () {
-                    // Optional: Navigate to subscription screen when tapped
-                    Navigator.pushNamed(context, '/subscription');
-                  },
-                ),
+                toolbarHeight: 50,
+                title: const BrandedAppTitle(),
                 centerTitle: true,
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(1),
+                  child: Divider(color: context.howaiColors.divider),
+                ),
                 leading: Builder(
                   builder: (context) => Consumer<SettingsProvider>(
                     builder: (context, settings, child) {
@@ -2596,21 +2597,15 @@ class _AiChatScreenState extends State<AiChatScreen>
                       displayMessages.isEmpty))
                     Consumer<SettingsProvider>(
                       builder: (context, settings, child) {
-                        return IconButton(
-                          icon: Icon(
-                            Icons.post_add,
-                            size: settings.getScaledFontSize(24),
-                          ),
+                        return NewConversationButton(
+                          iconSize: settings.getScaledFontSize(22),
                           onPressed: () {
-                            // Clear current conversation selection and unfocus any text fields
                             FocusScope.of(context).unfocus();
                             final conversationProvider =
                                 Provider.of<ConversationProvider>(context,
                                     listen: false);
                             conversationProvider.clearSelection();
                           },
-                          tooltip:
-                              AppLocalizations.of(context)!.newConversation,
                         );
                       },
                     ),
@@ -2632,10 +2627,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                         Expanded(
                           child: _isLoading
                               ? const Center(
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Color(0xFF8E6CFF)),
-                                  ),
+                                  child: CircularProgressIndicator(),
                                 )
                               : Stack(
                                   children: [
@@ -5555,6 +5547,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           builder: (context, settings, child) {
             final screenWidth = MediaQuery.of(context).size.width;
             final isCompactPhone = screenWidth < 390;
+            final colors = context.howaiColors;
 
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -5565,7 +5558,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(24),
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color: colors.textPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -5574,7 +5567,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   AppLocalizations.of(context)!.chatLandingSubtitle,
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(16),
-                    color: Colors.grey.shade600,
+                    color: colors.textSecondary,
                     height: 1.4,
                   ),
                   textAlign: TextAlign.center,
@@ -5591,7 +5584,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                             : AppLocalizations.of(context)!.chatLandingTipFull,
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(13),
-                          color: Colors.grey.shade600,
+                          color: colors.textTertiary,
                           height: 1.35,
                         ),
                         textAlign: TextAlign.center,

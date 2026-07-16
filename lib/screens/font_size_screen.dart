@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../widgets/custom_back_button.dart';
 import 'package:haogpt/generated/app_localizations.dart';
+import '../core/theme/howai_theme.dart';
 
 class FontSizeScreen extends StatefulWidget {
   const FontSizeScreen({Key? key}) : super(key: key);
@@ -18,7 +19,8 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
   @override
   void initState() {
     super.initState();
-    _currentScale = Provider.of<SettingsProvider>(context, listen: false).fontSizeScale;
+    _currentScale =
+        Provider.of<SettingsProvider>(context, listen: false).fontSizeScale;
     _initialScale = _currentScale;
   }
 
@@ -27,7 +29,8 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
       _currentScale = scale;
     });
     // Update in real-time for preview
-    Provider.of<SettingsProvider>(context, listen: false).setFontSizeScale(scale);
+    Provider.of<SettingsProvider>(context, listen: false)
+        .setFontSizeScale(scale);
   }
 
   void _resetToDefault() {
@@ -36,7 +39,8 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
 
   void _onCancel() {
     // Restore original font size
-    Provider.of<SettingsProvider>(context, listen: false).setFontSizeScale(_initialScale);
+    Provider.of<SettingsProvider>(context, listen: false)
+        .setFontSizeScale(_initialScale);
     Navigator.of(context).pop();
   }
 
@@ -62,23 +66,19 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
         title: AppLocalizations.of(context)!.textSize,
         onBack: _onCancel,
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            child: ElevatedButton(
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton(
               onPressed: _onDone,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0078D4),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                elevation: 0,
+              style: TextButton.styleFrom(
+                foregroundColor: context.howaiColors.accent,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
               child: Text(
                 AppLocalizations.of(context)!.done,
                 style: TextStyle(
-                  fontSize: Provider.of<SettingsProvider>(context).getScaledFontSize(16),
+                  fontSize: Provider.of<SettingsProvider>(context)
+                      .getScaledFontSize(16),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -94,47 +94,29 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1C1C1E) : Colors.white,
-                  padding: const EdgeInsets.all(24),
+                  color: context.howaiColors.canvas,
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Preview header
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              const Color(0xFF0078D4),
-                              const Color(0xFF106ebe),
-                            ],
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.format_size_rounded,
+                            color: context.howaiColors.textSecondary,
+                            size: settings.getScaledFontSize(22),
                           ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            CircleAvatar(
-                              radius: 20,
-                              backgroundColor: Colors.white.withOpacity(0.2),
-                              child: Icon(
-                                Icons.account_circle,
-                                color: Colors.white,
-                                size: settings.getScaledFontSize(24),
-                              ),
+                          const SizedBox(width: 10),
+                          Text(
+                            AppLocalizations.of(context)!.previewTextSize,
+                            style: TextStyle(
+                              color: context.howaiColors.textPrimary,
+                              fontSize: settings.getScaledFontSize(18),
+                              fontWeight: FontWeight.w600,
                             ),
-                            const SizedBox(width: 12),
-                            Text(
-                              AppLocalizations.of(context)!.previewTextSize,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: settings.getScaledFontSize(18),
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
 
                       const SizedBox(height: 24),
@@ -142,7 +124,8 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
                       // Sample conversation
                       _buildMessageBubble(
                         isUser: true,
-                        message: AppLocalizations.of(context)!.adjustSliderTextSize,
+                        message:
+                            AppLocalizations.of(context)!.adjustSliderTextSize,
                         settings: settings,
                       ),
 
@@ -150,7 +133,8 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
 
                       _buildMessageBubble(
                         isUser: false,
-                        message: AppLocalizations.of(context)!.textSizeChangeNote,
+                        message:
+                            AppLocalizations.of(context)!.textSizeChangeNote,
                         settings: settings,
                       ),
 
@@ -158,22 +142,12 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
 
                       // Current size indicator
                       Center(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF0078D4).withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: const Color(0xFF0078D4).withOpacity(0.3),
-                            ),
-                          ),
-                          child: Text(
-                            '${_getFontSizeLabel()} (${(_currentScale * 100).round()}%)',
-                            style: TextStyle(
-                              color: const Color(0xFF0078D4),
-                              fontSize: settings.getScaledFontSize(14),
-                              fontWeight: FontWeight.w600,
-                            ),
+                        child: Text(
+                          '${_getFontSizeLabel()} · ${(_currentScale * 100).round()}%',
+                          style: TextStyle(
+                            color: context.howaiColors.textSecondary,
+                            fontSize: settings.getScaledFontSize(14),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),
@@ -187,13 +161,14 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
                             onPressed: _resetToDefault,
                             icon: Icon(
                               Icons.refresh,
-                              color: const Color(0xFF0078D4),
+                              color: context.howaiColors.accent,
                               size: settings.getScaledFontSize(18),
                             ),
                             label: Text(
-                              AppLocalizations.of(context)!.resetToDefaultButton,
+                              AppLocalizations.of(context)!
+                                  .resetToDefaultButton,
                               style: TextStyle(
-                                color: const Color(0xFF0078D4),
+                                color: context.howaiColors.accent,
                                 fontSize: settings.getScaledFontSize(16),
                                 fontWeight: FontWeight.w500,
                               ),
@@ -207,7 +182,7 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
 
               // Font size control area
               Container(
-                color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1C1C1E) : Colors.white,
+                color: context.howaiColors.canvas,
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 40),
                 child: Column(
                   children: [
@@ -220,14 +195,14 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            color: context.howaiColors.textSecondary,
                           ),
                         ),
                         Text(
                           AppLocalizations.of(context)!.defaultSize,
                           style: TextStyle(
                             fontSize: settings.getScaledFontSize(14),
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            color: context.howaiColors.textSecondary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -236,7 +211,7 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w500,
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            color: context.howaiColors.textSecondary,
                           ),
                         ),
                       ],
@@ -247,10 +222,11 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
                     // Slider
                     SliderTheme(
                       data: SliderTheme.of(context).copyWith(
-                        activeTrackColor: const Color(0xFF0078D4),
-                        inactiveTrackColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
-                        thumbColor: const Color(0xFF0078D4),
-                        overlayColor: const Color(0xFF0078D4).withOpacity(0.2),
+                        activeTrackColor: context.howaiColors.accent,
+                        inactiveTrackColor: context.howaiColors.surfaceStrong,
+                        thumbColor: context.howaiColors.accent,
+                        overlayColor:
+                            context.howaiColors.accent.withValues(alpha: 0.12),
                         thumbShape: const RoundSliderThumbShape(
                           enabledThumbRadius: 12,
                         ),
@@ -279,6 +255,7 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
     required String message,
     required SettingsProvider settings,
   }) {
+    final colors = context.howaiColors;
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -288,16 +265,13 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isUser ? const Color(0xFF0078D4) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade100),
-          borderRadius: BorderRadius.circular(18).copyWith(
-            bottomRight: isUser ? const Radius.circular(4) : null,
-            bottomLeft: !isUser ? const Radius.circular(4) : null,
-          ),
+          color: isUser ? colors.surfaceStrong : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
           message,
           style: TextStyle(
-            color: isUser ? Colors.white : (Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black87),
+            color: colors.textPrimary,
             fontSize: settings.getScaledFontSize(16),
             height: 1.4,
           ),

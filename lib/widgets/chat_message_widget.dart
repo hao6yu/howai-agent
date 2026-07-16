@@ -6,12 +6,9 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:open_file/open_file.dart';
-import 'package:path_provider/path_provider.dart';
 
 import '../models/chat_message.dart';
 import '../providers/settings_provider.dart';
-import '../providers/profile_provider.dart';
-import '../providers/ai_personality_provider.dart';
 import '../services/file_service.dart';
 import '../services/review_service.dart';
 import 'image_gallery_dialog.dart';
@@ -21,6 +18,7 @@ import '../services/content_report_service.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import '../services/profile_translation_service.dart';
 import '../utils/language_utils.dart';
+import '../core/theme/howai_theme.dart';
 
 class ChatMessageWidget extends StatefulWidget {
   final ChatMessage message;
@@ -103,6 +101,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   Widget build(BuildContext context) {
     final isUserMessage = widget.message.isUserMessage;
     final isSelected = widget.selectedMessages.contains(widget.messageKey);
+    final colors = context.howaiColors;
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
@@ -135,20 +134,11 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: isSelected
-                              ? (Theme.of(context).brightness == Brightness.dark
-                                  ? const Color(0xFF1E3A5F)
-                                  : const Color(0xFF0078D4))
-                              : Colors.grey.shade400,
+                          color:
+                              isSelected ? colors.accent : colors.textTertiary,
                           width: 2,
                         ),
-                        color: isSelected
-                            ? (Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF1E3A5F)
-                                : const Color(0xFF0078D4))
-                            : (Theme.of(context).brightness == Brightness.dark
-                                ? Colors.grey.shade700
-                                : Colors.white),
+                        color: isSelected ? colors.accent : colors.canvas,
                       ),
                       child: isSelected
                           ? const Icon(Icons.check,
@@ -192,34 +182,17 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
         }
       },
       behavior: HitTestBehavior.opaque,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Flexible(
-            child: _buildMessageContent(true),
-          ),
-          const SizedBox(width: 8),
-          _buildUserAvatar(),
-        ],
+      child: Align(
+        alignment: AlignmentDirectional.centerEnd,
+        child: _buildMessageContent(true),
       ),
     );
   }
 
   Widget _buildAIMessage() {
     if (widget.isStreaming) {
-      return Row(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildAIAvatar(),
-          const SizedBox(width: 8),
-          Flexible(
-            child: RepaintBoundary(
-              child: _buildMessageContent(false),
-            ),
-          ),
-        ],
+      return RepaintBoundary(
+        child: _buildMessageContent(false),
       );
     }
 
@@ -231,54 +204,38 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
         final isReported = reportData['isReported'] as bool;
         final shouldHide = reportData['shouldHide'] as bool;
 
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        final colors = context.howaiColors;
+        return Stack(
           children: [
-            _buildAIAvatar(),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Stack(
-                children: [
-                  // Message content with conditional border
-                  Container(
-                    decoration: BoxDecoration(
-                      // Add subtle background if reported
-                      color:
-                          isReported ? Colors.orange.withOpacity(0.05) : null,
-                      borderRadius: BorderRadius.circular(12),
-                      border: isReported
-                          ? Border.all(
-                              color: Colors.orange.withOpacity(0.3), width: 1)
-                          : null,
-                    ),
-                    child: shouldHide
-                        ? _buildHiddenContentWarning()
-                        : _buildMessageContent(false),
-                  ),
-
-                  // Reported indicator badge
-                  if (isReported)
-                    Positioned(
-                      top: 4,
-                      right: 4,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: Colors.orange,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          Icons.flag,
-                          size: 12,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                ],
+            Container(
+              decoration: BoxDecoration(
+                color:
+                    isReported ? colors.warning.withValues(alpha: 0.06) : null,
+                borderRadius: BorderRadius.circular(12),
+                border: isReported
+                    ? Border.all(
+                        color: colors.warning.withValues(alpha: 0.35),
+                      )
+                    : null,
               ),
+              child: shouldHide
+                  ? _buildHiddenContentWarning()
+                  : _buildMessageContent(false),
             ),
+            if (isReported)
+              PositionedDirectional(
+                top: 4,
+                end: 4,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: colors.warning,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.flag, size: 12, color: Colors.white),
+                ),
+              ),
           ],
         );
       },
@@ -287,6 +244,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
   Widget _buildMessageContent(bool isUserMessage) {
     final settings = Provider.of<SettingsProvider>(context);
+    final colors = context.howaiColors;
     final isWelcomeMessage = widget.message.isWelcomeMessage ?? false;
     final hasLocationResults = !isUserMessage &&
         widget.message.locationResults != null &&
@@ -297,7 +255,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     return LayoutBuilder(
       builder: (context, constraints) {
         // Reduce AI message width to prevent overlap, keep user messages same.
-        var maxWidth = isUserMessage ? screenWidth * 0.60 : screenWidth * 0.72;
+        var maxWidth = isUserMessage ? screenWidth * 0.72 : screenWidth;
         if (constraints.maxWidth.isFinite && maxWidth > constraints.maxWidth) {
           maxWidth = constraints.maxWidth;
         }
@@ -323,15 +281,10 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                   decoration: isUserMessage
                       ? BoxDecoration(
                           // User messages: subtle gray bubble (ChatGPT style)
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.grey.shade800
-                              : Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(18),
+                          color: colors.surface,
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade700
-                                    : Colors.grey.shade300,
+                            color: colors.divider,
                             width: 0.5,
                           ),
                         )
@@ -941,7 +894,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(top: 8.0, left: 4.0),
+      padding: const EdgeInsets.only(top: 6.0, left: 2.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
@@ -1276,6 +1229,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
+        final colors = context.howaiColors;
         return Material(
           color: Colors.transparent,
           child: InkWell(
@@ -1293,9 +1247,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               child: Icon(
                 icon,
                 size: settings.getScaledFontSize(16),
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade300
-                    : Colors.grey.shade600,
+                color: colors.textSecondary,
               ),
             ),
           ),
@@ -1312,6 +1264,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
         return Consumer<SettingsProvider>(
           builder: (context, settings, child) {
+            final colors = context.howaiColors;
             return Material(
               color: Colors.transparent,
               child: InkWell(
@@ -1331,11 +1284,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                   child: Icon(
                     isReported ? Icons.flag : Icons.flag_outlined,
                     size: settings.getScaledFontSize(16),
-                    color: isReported
-                        ? Colors.orange[700]
-                        : (Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey.shade300
-                            : Colors.grey.shade600),
+                    color: isReported ? colors.warning : colors.textSecondary,
                   ),
                 ),
               ),
@@ -1668,202 +1617,6 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
         );
       },
     );
-  }
-
-  // Removed _extractSearchQueryFromMessage - now handled in chat screen
-
-  // Avatar building methods
-  Widget _buildUserAvatar() {
-    return Consumer<ProfileProvider>(
-      builder: (context, profileProvider, child) {
-        final selectedProfile = profileProvider.profiles
-                .where(
-                  (p) => p.id == profileProvider.selectedProfileId,
-                )
-                .isNotEmpty
-            ? profileProvider.profiles
-                .firstWhere((p) => p.id == profileProvider.selectedProfileId)
-            : null;
-
-        return Container(
-          width: 32,
-          height: 32,
-          margin: const EdgeInsets.only(
-              top: 2), // Added top margin for text alignment
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: Theme.of(context).brightness == Brightness.dark
-                  ? [
-                      const Color(0xFF1E3A5F).withOpacity(
-                          0.8), // More visible dark blue for dark mode
-                      const Color(0xFF2C5282).withOpacity(
-                          0.6), // More visible dark blue for dark mode
-                    ]
-                  : [
-                      const Color(0xFF0078D4)
-                          .withOpacity(0.1), // Original for light mode
-                      const Color(0xFF0078D4)
-                          .withOpacity(0.05), // Original for light mode
-                    ],
-            ),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? const Color(0xFF2C5282)
-                      .withOpacity(0.8) // More visible border for dark mode
-                  : const Color(0xFF0078D4)
-                      .withOpacity(0.2), // Original for light mode
-              width: 1,
-            ),
-          ),
-          child: selectedProfile?.avatarPath != null
-              ? FutureBuilder<String?>(
-                  future: _resolveUserAvatarPath(selectedProfile!.avatarPath),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data != null) {
-                      return CircleAvatar(
-                        radius: 16,
-                        backgroundImage: FileImage(File(snapshot.data!)),
-                      );
-                    }
-                    return CircleAvatar(
-                      radius: 16,
-                      backgroundColor:
-                          Colors.transparent, // Transparent like in settings
-                      child: Text(
-                        selectedProfile?.name.isNotEmpty == true
-                            ? selectedProfile!.name
-                                .substring(0, 1)
-                                .toUpperCase()
-                            : 'U',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600, // w600 like in settings
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white // White text for dark mode
-                              : const Color(
-                                  0xFF0078D4), // Blue text for light mode
-                        ),
-                      ),
-                    );
-                  },
-                )
-              : CircleAvatar(
-                  radius: 16,
-                  backgroundColor:
-                      Colors.transparent, // Transparent like in settings
-                  child: Text(
-                    selectedProfile?.name.isNotEmpty == true
-                        ? selectedProfile!.name.substring(0, 1).toUpperCase()
-                        : 'U',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600, // w600 like in settings
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white // White text for dark mode
-                          : const Color(0xFF0078D4), // Blue text for light mode
-                    ),
-                  ),
-                ),
-        );
-      },
-    );
-  }
-
-  Widget _buildAIAvatar() {
-    return Consumer2<ProfileProvider, AIPersonalityProvider>(
-      builder: (context, profileProvider, aiPersonalityProvider, child) {
-        final currentProfileId = profileProvider.selectedProfileId;
-        final aiPersonality = currentProfileId != null
-            ? aiPersonalityProvider.getPersonalityForProfile(currentProfileId)
-            : null;
-
-        return Container(
-          width: 32,
-          height: 32,
-          margin: const EdgeInsets.only(
-              top: 2), // Added top margin for text alignment
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: LinearGradient(
-              colors: [
-                const Color(0xFF0078D4)
-                    .withOpacity(0.1), // Restored blue gradient
-                const Color(0xFF0078D4)
-                    .withOpacity(0.05), // Restored blue gradient
-              ],
-            ),
-            border: Border.all(
-              color: const Color(0xFF0078D4)
-                  .withOpacity(0.2), // Restored blue border
-              width: 1,
-            ),
-          ),
-          child: aiPersonality?.avatarPath != null
-              ? FutureBuilder<String?>(
-                  future: _resolveAIAvatarPath(aiPersonality!.avatarPath),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasData && snapshot.data != null) {
-                      return CircleAvatar(
-                        radius: 16,
-                        backgroundImage: FileImage(File(snapshot.data!)),
-                      );
-                    }
-                    return CircleAvatar(
-                      radius: 16,
-                      backgroundColor: Colors.transparent,
-                      backgroundImage: AssetImage('assets/icon/hao_avatar.png'),
-                    );
-                  },
-                )
-              : CircleAvatar(
-                  radius: 16,
-                  backgroundColor: Colors.transparent,
-                  backgroundImage: AssetImage('assets/icon/hao_avatar.png'),
-                ),
-        );
-      },
-    );
-  }
-
-  Future<String?> _resolveUserAvatarPath(String? avatarPath) async {
-    if (avatarPath == null || avatarPath.isEmpty) return null;
-
-    // If it's already an absolute path and exists, use it
-    if (avatarPath.startsWith('/') && File(avatarPath).existsSync()) {
-      return avatarPath;
-    }
-
-    // If it's a relative path, resolve it relative to app documents directory
-    if (avatarPath.startsWith('profiles/')) {
-      final appDir = await getApplicationDocumentsDirectory();
-      final fullPath = '${appDir.path}/$avatarPath';
-      if (File(fullPath).existsSync()) {
-        return fullPath;
-      }
-    }
-
-    return null;
-  }
-
-  Future<String?> _resolveAIAvatarPath(String? avatarPath) async {
-    if (avatarPath == null || avatarPath.isEmpty) return null;
-
-    // If it's already an absolute path and exists, use it
-    if (avatarPath.startsWith('/') && File(avatarPath).existsSync()) {
-      return avatarPath;
-    }
-
-    // If it's a relative path, resolve it relative to app documents directory
-    if (avatarPath.startsWith('ai_avatars/')) {
-      final appDir = await getApplicationDocumentsDirectory();
-      final fullPath = '${appDir.path}/$avatarPath';
-      if (File(fullPath).existsSync()) {
-        return fullPath;
-      }
-    }
-
-    return null;
   }
 
   /// Show the content report dialog for AI messages

@@ -699,6 +699,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     String? reasoningEffortOverride,
     bool allowReminderActions = false,
     bool allowAutomationActions = false,
+    bool allowMarketAutomationActions = false,
     String? reminderTimezone,
     Map<String, dynamic>? pendingReminderDraft,
     Map<String, dynamic>? pendingAutomationDraft,
@@ -765,6 +766,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         reasoningEffortOverride: reasoningEffortOverride,
         allowReminderActions: allowReminderActions,
         allowAutomationActions: allowAutomationActions,
+        allowMarketAutomationActions: allowMarketAutomationActions,
         appLocale: appLocale,
         reminderTimezone: reminderTimezone,
         pendingReminderDraft: pendingReminderDraft,
@@ -1333,6 +1335,8 @@ class _AiChatScreenState extends State<AiChatScreen>
       final allowReminderActions = reminderProvider.isAvailable;
       final allowAutomationActions = subscriptionService.isPremium &&
           await _automationService.checkAvailability();
+      final allowMarketAutomationActions =
+          allowAutomationActions && _automationService.marketBriefingsAvailable;
       final reminderTimezone = allowReminderActions || allowAutomationActions
           ? await DeviceTimezoneService.currentIdentifier()
           : null;
@@ -1395,6 +1399,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           reasoningEffortOverride: reasoningEffortOverride,
           allowReminderActions: allowReminderActions,
           allowAutomationActions: allowAutomationActions,
+          allowMarketAutomationActions: allowMarketAutomationActions,
           reminderTimezone: reminderTimezone,
           pendingReminderDraft: pendingReminderProposal?.arguments,
           pendingAutomationDraft: pendingAutomationProposal?.arguments,
@@ -1420,6 +1425,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           aiPersonality: aiPersonality,
           allowReminderActions: allowReminderActions,
           allowAutomationActions: allowAutomationActions,
+          allowMarketAutomationActions: allowMarketAutomationActions,
           appLocale: appLocale,
           reminderTimezone: reminderTimezone,
           pendingReminderDraft: pendingReminderProposal?.arguments,

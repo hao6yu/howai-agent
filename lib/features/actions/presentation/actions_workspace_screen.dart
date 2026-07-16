@@ -4,11 +4,13 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 import '../../../core/agent/agent_action_contracts.dart';
+import '../../../models/generated_automation.dart';
 import '../../../models/reminder.dart';
 import '../../../providers/reminder_provider.dart';
 import '../../../providers/push_notification_provider.dart';
 import 'action_approval_card.dart';
 import 'automation_edit_dialog.dart';
+import 'generated_automation_edit_dialog.dart';
 
 enum _ReminderMenuAction {
   edit,
@@ -17,6 +19,14 @@ enum _ReminderMenuAction {
   pause,
   resume,
   skipNext,
+  delete,
+}
+
+enum _GeneratedAutomationMenuAction {
+  edit,
+  runNow,
+  pause,
+  resume,
   delete,
 }
 
@@ -63,7 +73,9 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
       ),
       body: Consumer2<ReminderProvider, PushNotificationProvider>(
         builder: (context, provider, pushProvider, _) {
-          if (provider.isLoading && provider.reminders.isEmpty) {
+          if (provider.isLoading &&
+              provider.reminders.isEmpty &&
+              provider.automations.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
           if (!provider.isAvailable) {
@@ -79,6 +91,34 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
           final completed = provider.reminders
               .where((item) => item.status == ReminderStatus.completed)
               .toList(growable: false);
+          final activeAutomations = provider.automations
+              .where(
+                (item) => item.status == GeneratedAutomationStatus.active,
+              )
+              .toList(growable: false);
+          final pausedAutomations = provider.automations
+              .where(
+                (item) => item.status == GeneratedAutomationStatus.paused,
+              )
+              .toList(growable: false);
+          final completedAutomations = provider.automations
+              .where(
+                (item) => item.status == GeneratedAutomationStatus.completed,
+              )
+              .toList(growable: false);
+
+          final upcomingEntries = <_WorkspaceEntry>[
+            ...active.map(_WorkspaceEntry.reminder),
+            ...activeAutomations.map(_WorkspaceEntry.automation),
+          ]..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+          final pausedEntries = <_WorkspaceEntry>[
+            ...paused.map(_WorkspaceEntry.reminder),
+            ...pausedAutomations.map(_WorkspaceEntry.automation),
+          ]..sort((a, b) => a.scheduledAt.compareTo(b.scheduledAt));
+          final completedEntries = <_WorkspaceEntry>[
+            ...completed.map(_WorkspaceEntry.reminder),
+            ...completedAutomations.map(_WorkspaceEntry.automation),
+          ]..sort((a, b) => b.scheduledAt.compareTo(a.scheduledAt));
 
           return RefreshIndicator(
             onRefresh: provider.refresh,
@@ -117,25 +157,40 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                if (active.isEmpty &&
-                    paused.isEmpty &&
-                    completed.isEmpty &&
+                if (upcomingEntries.isEmpty &&
+                    pausedEntries.isEmpty &&
+                    completedEntries.isEmpty &&
                     provider.pendingProposals.isEmpty)
                   _EmptyActions(onCreateInChat: widget.onCreateInChat)
                 else ...[
-                  if (active.isNotEmpty) ...[
-                    _SectionTitle(title: 'Upcoming', count: active.length),
-                    ...active.map((item) => _reminderCard(provider, item)),
+                  if (upcomingEntries.isNotEmpty) ...[
+                    _SectionTitle(
+                      title: 'Upcoming',
+                      count: upcomingEntries.length,
+                    ),
+                    ...upcomingEntries.map(
+                      (item) => _workspaceCard(provider, item),
+                    ),
                   ],
-                  if (paused.isNotEmpty) ...[
+                  if (pausedEntries.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    _SectionTitle(title: 'Paused', count: paused.length),
-                    ...paused.map((item) => _reminderCard(provider, item)),
+                    _SectionTitle(
+                      title: 'Paused',
+                      count: pausedEntries.length,
+                    ),
+                    ...pausedEntries.map(
+                      (item) => _workspaceCard(provider, item),
+                    ),
                   ],
-                  if (completed.isNotEmpty) ...[
+                  if (completedEntries.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    _SectionTitle(title: 'Completed', count: completed.length),
-                    ...completed.map((item) => _reminderCard(provider, item)),
+                    _SectionTitle(
+                      title: 'Completed',
+                      count: completedEntries.length,
+                    ),
+                    ...completedEntries.map(
+                      (item) => _workspaceCard(provider, item),
+                    ),
                   ],
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
@@ -150,6 +205,202 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
         },
       ),
     );
+  }
+
+  Widget _workspaceCard(ReminderProvider provider, _WorkspaceEntry entry) {
+    final reminder = entry.reminder;
+    return reminder != null
+        ? _reminderCard(provider, reminder)
+        : _automationCard(provider, entry.automation!);
+  }
+
+  Widget _automationCard(
+    ReminderProvider provider,
+    GeneratedAutomation automation,
+  ) {
+    final theme = Theme.of(context);
+    final isCompleted =
+        automation.status == GeneratedAutomationStatus.completed;
+    final date = DateFormat.yMMMd().add_jm().format(
+          automation.nextRunAt.toLocal(),
+        );
+    final scope = automation.scopeLabel;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              isCompleted
+                  ? Icons.check_circle_rounded
+                  : automation.status == GeneratedAutomationStatus.paused
+                      ? Icons.pause_circle_outline_rounded
+                      : automation.kind == GeneratedAutomationKind.newsBriefing
+                          ? Icons.newspaper_rounded
+                          : Icons.show_chart_rounded,
+              color: isCompleted
+                  ? theme.colorScheme.outline
+                  : theme.colorScheme.primary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    automation.title,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      decoration:
+                          isCompleted ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${isCompleted ? 'Last scheduled' : 'Next'} $date',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${automation.schedule.compactLabel} · ${automation.timezone}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    scope.isEmpty
+                        ? automation.kindLabel
+                        : '${automation.kindLabel} · $scope',
+                  ),
+                ],
+              ),
+            ),
+            PopupMenuButton<_GeneratedAutomationMenuAction>(
+              tooltip: 'Automation options',
+              onSelected: (action) =>
+                  _handleAutomationMenuAction(provider, automation, action),
+              itemBuilder: (_) => _automationMenuItems(automation),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<PopupMenuEntry<_GeneratedAutomationMenuAction>> _automationMenuItems(
+    GeneratedAutomation automation,
+  ) {
+    return [
+      if (automation.status != GeneratedAutomationStatus.completed)
+        const PopupMenuItem(
+          value: _GeneratedAutomationMenuAction.edit,
+          child: Text('Edit'),
+        ),
+      if (automation.status != GeneratedAutomationStatus.completed)
+        const PopupMenuItem(
+          value: _GeneratedAutomationMenuAction.runNow,
+          child: Text('Run now'),
+        ),
+      if (automation.status == GeneratedAutomationStatus.active)
+        const PopupMenuItem(
+          value: _GeneratedAutomationMenuAction.pause,
+          child: Text('Pause'),
+        ),
+      if (automation.status == GeneratedAutomationStatus.paused)
+        const PopupMenuItem(
+          value: _GeneratedAutomationMenuAction.resume,
+          child: Text('Resume'),
+        ),
+      const PopupMenuDivider(),
+      const PopupMenuItem(
+        value: _GeneratedAutomationMenuAction.delete,
+        child: Text('Delete'),
+      ),
+    ];
+  }
+
+  Future<void> _handleAutomationMenuAction(
+    ReminderProvider provider,
+    GeneratedAutomation automation,
+    _GeneratedAutomationMenuAction action,
+  ) async {
+    final base = {
+      'automation_id': automation.id,
+      'expected_version': automation.version,
+    };
+    late final String actionType;
+    late final Map<String, dynamic> arguments;
+
+    switch (action) {
+      case _GeneratedAutomationMenuAction.edit:
+        final edit = await showGeneratedAutomationEditDialog(
+          context: context,
+          automation: automation,
+        );
+        if (edit == null) return;
+        actionType = 'automations_update';
+        arguments = {
+          ...base,
+          'title': edit.title,
+          'timezone': automation.timezone,
+          'start_local': _localTimestamp(edit.start),
+          'schedule': {
+            'frequency': _frequencyName(edit.frequency),
+            'interval': edit.interval,
+            'weekdays': edit.weekdays,
+            'ends_at': edit.frequency == GeneratedAutomationFrequency.once
+                ? null
+                : automation.schedule.endsAt?.toIso8601String(),
+          },
+          'config': edit.config,
+          'source_policy': automation.sourcePolicy,
+          'delivery_preferences': automation.deliveryPreferences,
+        };
+        break;
+      case _GeneratedAutomationMenuAction.runNow:
+        actionType = 'automations_run_now';
+        arguments = base;
+        break;
+      case _GeneratedAutomationMenuAction.pause:
+        actionType = 'automations_pause';
+        arguments = base;
+        break;
+      case _GeneratedAutomationMenuAction.resume:
+        actionType = 'automations_resume';
+        arguments = base;
+        break;
+      case _GeneratedAutomationMenuAction.delete:
+        actionType = 'automations_delete';
+        arguments = base;
+        break;
+    }
+
+    try {
+      final proposal = await provider.proposeAutomation(
+        actionType: actionType,
+        arguments: arguments,
+      );
+      if (!mounted) return;
+      await _showApprovalDialog(provider, proposal);
+    } catch (error) {
+      _showError(error.toString());
+    }
+  }
+
+  String _frequencyName(GeneratedAutomationFrequency frequency) {
+    return switch (frequency) {
+      GeneratedAutomationFrequency.once => 'once',
+      GeneratedAutomationFrequency.daily => 'daily',
+      GeneratedAutomationFrequency.weekly => 'weekly',
+      GeneratedAutomationFrequency.marketDays => 'market_days',
+    };
   }
 
   Widget _reminderCard(ReminderProvider provider, Reminder reminder) {
@@ -646,4 +897,19 @@ class _PushNotificationBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+class _WorkspaceEntry {
+  const _WorkspaceEntry.reminder(Reminder value)
+      : reminder = value,
+        automation = null;
+
+  const _WorkspaceEntry.automation(GeneratedAutomation value)
+      : reminder = null,
+        automation = value;
+
+  final Reminder? reminder;
+  final GeneratedAutomation? automation;
+
+  DateTime get scheduledAt => reminder?.nextFireAt ?? automation!.nextRunAt;
 }

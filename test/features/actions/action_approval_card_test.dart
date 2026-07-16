@@ -146,4 +146,47 @@ void main() {
     expect(find.text('Daily'), findsOneWidget);
     expect(find.text('Push notification + history'), findsOneWidget);
   });
+
+  testWidgets('labels a one-time Automation without implying recurrence',
+      (tester) async {
+    final automation = ActionProposal(
+      proposalId: 'automation-once',
+      actionType: 'automations_create',
+      arguments: const {
+        'kind': 'news_briefing',
+        'title': 'Today’s market news',
+        'timezone': 'America/Chicago',
+        'schedule_rule': {
+          'frequency': 'once',
+          'interval': 1,
+          'weekdays': <int>[],
+          'ends_at': null,
+        },
+        'config': {
+          'topics': ['financial markets'],
+          'item_count': 5,
+        },
+        'delivery_preferences': {'push': true},
+      },
+      summary: 'News briefing: Today’s market news',
+      warnings: const [],
+      origin: AgentActionOrigin.text,
+      createdAt: DateTime.utc(2026, 7, 16),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: ActionApprovalCard(
+            proposal: automation,
+            onApprove: () {},
+            onReject: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('One time'), findsOneWidget);
+    expect(find.text('Daily'), findsNothing);
+  });
 }

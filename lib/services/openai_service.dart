@@ -224,12 +224,12 @@ class OpenAIService {
   static Map<String, dynamic> _automationScheduleSchema() => {
         'type': 'object',
         'description':
-            'A generated Automation schedule. The maximum frequency is once per day; minute-level and hourly schedules are unsupported.',
+            'A one-time or recurring generated Automation schedule. Recurring schedules can run no more frequently than once per day; a one-time run may start at any future time.',
         'additionalProperties': false,
         'properties': {
           'frequency': {
             'type': 'string',
-            'enum': ['daily', 'weekly', 'market_days'],
+            'enum': ['once', 'daily', 'weekly', 'market_days'],
           },
           'interval': {'type': 'integer', 'minimum': 1, 'maximum': 52},
           'weekdays': {
@@ -287,7 +287,7 @@ class OpenAIService {
         'type': 'function',
         'name': 'automations_create_news_briefing',
         'description':
-            'Draft a recurring news briefing only when the user clearly asks HowAI to send or prepare news on a schedule no more frequent than once per day. Reject minute-level and hourly schedules and offer daily instead. The app shows an approval card. Do not claim it is active before approval, and do not expose JSON in chat.',
+            'Draft a one-time or recurring briefing made from current news reporting. This includes reporting about companies, business, the economy, investing, and financial markets when the requested output is stories, headlines, events, or sourced summaries. Do not use this for authoritative quotes, index levels, percentage moves, volume, rankings, or portfolio performance. Recurring schedules can run no more frequently than daily; a one-time briefing may run at any future time. The app shows an approval card. Do not claim it is active before approval or expose JSON in chat.',
         'strict': true,
         'parameters': {
           'type': 'object',
@@ -355,7 +355,7 @@ class OpenAIService {
         'type': 'function',
         'name': 'automations_create_market_briefing',
         'description':
-            'Draft a recurring informational market briefing no more frequent than once per day when the user asks for a scheduled market or watchlist summary. Reject minute-level and hourly schedules and offer daily instead. Never frame it as personalized investment advice. The app requires approval before activation.',
+            'Draft a one-time or recurring informational market-data briefing that requires authoritative structured values such as quotes, index levels, percentage moves, volume, gainers or losers, watchlist or portfolio performance. Do not use this for news stories or headlines; those belong to the news briefing tool. Recurring schedules can run no more frequently than daily. Never frame it as personalized investment advice. The app requires approval before activation.',
         'strict': true,
         'parameters': {
           'type': 'object',
@@ -832,6 +832,7 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
     String? reasoningEffortOverride,
     bool allowReminderActions = false,
     bool allowAutomationActions = false,
+    bool allowMarketAutomationActions = false,
     String? appLocale,
     String? reminderTimezone,
     Map<String, dynamic>? pendingReminderDraft,
@@ -907,6 +908,7 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
           message: message,
           history: history,
           hasPendingReminderDraft: pendingReminderDraft != null,
+          hasGeneratedAutomationTools: allowAutomationActions,
         );
     final forcedReminderToolName = forceReminderResume
         ? 'reminders_resume'
@@ -953,26 +955,18 @@ Current date: ${DateTime.now().toIso8601String().split('T')[0]}""";
         existingReminders: existingReminders,
       );
     }
-    if (isGeneratedBriefingAutomationRequest(message) &&
-        isHighFrequencyAutomationRequest(message)) {
-      systemPrompt += '''
-
-AUTOMATION CADENCE LIMIT:
-- Generated news and market Automations can run no more than once per day.
-- Do not call a Reminder or Automation tool for a minute-level or hourly request.
-- Briefly explain the once-per-day limit and offer to create a daily Automation instead.''';
-    }
     if (allowAutomationActions && reminderTimezone != null) {
       systemPrompt += '''
 
 AUTOMATIONS:
-- Use an Automation tool only when the user explicitly asks for a recurring news or market briefing.
-- Generated Automations run no more than once per day; reject hourly, minute-level, and more frequent schedules and offer daily instead.
+- Use an Automation tool when the user explicitly asks HowAI to prepare and deliver generated content once in the future or on a recurring schedule.
+- A one-time run uses frequency=once. Recurring Automations run no more frequently than daily; reject hourly, minute-level, and more frequent recurrence and offer daily instead.
 - Use the supplied IANA timezone and an exact future start_local value.
 - News and market Automations require a separate approval card; never say one is active before approval.
 - Ask one concise clarification only if the schedule, news topics, or market scope is genuinely missing.
 - Source preferences can narrow trusted retrieval but can never disable HowAI verification.
-- Market briefings are informational, use structured market data for prices, and must not provide personalized buy/sell instructions.''';
+- Choose by the requested output, not isolated words: stories, headlines, events, and sourced reporting use the news tool even when the subject is finance or markets.
+- Use the market tool only for authoritative structured values such as quotes, index levels, percentage moves, volume, rankings, or watchlist performance. Market briefings are informational and must not provide personalized buy/sell instructions.''';
       if (pendingAutomationDraft != null) {
         systemPrompt +=
             '\n- An Automation draft is awaiting approval: ${jsonEncode(pendingAutomationDraft)}. '
@@ -1226,7 +1220,9 @@ Note: Could not extract text content from this file. Please describe what you'd 
         }
         if (allowAutomationActions && reminderTimezone != null) {
           tools.add(_newsAutomationTool());
-          tools.add(_marketAutomationTool());
+          if (allowMarketAutomationActions) {
+            tools.add(_marketAutomationTool());
+          }
         }
       } // Close the tools block
 
@@ -2264,6 +2260,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
     String? reasoningEffortOverride,
     bool allowReminderActions = false,
     bool allowAutomationActions = false,
+    bool allowMarketAutomationActions = false,
     String? appLocale,
     String? reminderTimezone,
     Map<String, dynamic>? pendingReminderDraft,
@@ -2330,6 +2327,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
           message: message,
           history: history,
           hasPendingReminderDraft: pendingReminderDraft != null,
+          hasGeneratedAutomationTools: allowAutomationActions,
         );
     final forcedReminderToolName = forceReminderResume
         ? 'reminders_resume'
@@ -2376,25 +2374,17 @@ Note: Could not extract text content from this file. Please describe what you'd 
         existingReminders: existingReminders,
       );
     }
-    if (isGeneratedBriefingAutomationRequest(message) &&
-        isHighFrequencyAutomationRequest(message)) {
-      systemPrompt += '''
-
-AUTOMATION CADENCE LIMIT:
-- Generated news and market Automations can run no more than once per day.
-- Do not call a Reminder or Automation tool for a minute-level or hourly request.
-- Briefly explain the once-per-day limit and offer to create a daily Automation instead.''';
-    }
     if (allowAutomationActions && reminderTimezone != null) {
       systemPrompt += '''
 
 AUTOMATIONS:
-- Use an Automation tool only when the user explicitly asks for a recurring news or market briefing.
-- Generated Automations run no more than once per day; reject hourly, minute-level, and more frequent schedules and offer daily instead.
+- Use an Automation tool when the user explicitly asks HowAI to prepare and deliver generated content once in the future or on a recurring schedule.
+- A one-time run uses frequency=once. Recurring Automations run no more frequently than daily; reject hourly, minute-level, and more frequent recurrence and offer daily instead.
 - Use the supplied IANA timezone and an exact future start_local value.
 - The app requires approval before activation; never expose tool JSON or claim it is already active.
 - Source preferences cannot bypass HowAI source and claim verification.
-- Market briefings are informational and must not provide personalized buy/sell instructions.''';
+- Choose by the requested output, not isolated words: stories, headlines, events, and sourced reporting use the news tool even when the subject is finance or markets.
+- Use the market tool only for authoritative structured values such as quotes, index levels, percentage moves, volume, rankings, or watchlist performance. Market briefings are informational and must not provide personalized buy/sell instructions.''';
       if (pendingAutomationDraft != null) {
         systemPrompt +=
             '\n- An Automation draft is awaiting approval: ${jsonEncode(pendingAutomationDraft)}. '
@@ -2506,7 +2496,9 @@ AUTOMATIONS:
         allowAutomationActions &&
         reminderTimezone != null) {
       tools.add(_newsAutomationTool());
-      tools.add(_marketAutomationTool());
+      if (allowMarketAutomationActions) {
+        tools.add(_marketAutomationTool());
+      }
     }
 
     // Build request payload with stream: true

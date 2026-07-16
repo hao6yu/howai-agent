@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../core/agent/agent_action_contracts.dart';
+import '../models/generated_automation.dart';
 
 class AutomationServiceException implements Exception {
   const AutomationServiceException(this.message);
@@ -16,6 +17,34 @@ class AutomationService {
   final SupabaseClient _client;
   String? _capabilityUserId;
   bool _cachedAvailable = false;
+  bool _cachedMarketAvailable = false;
+
+  bool get marketBriefingsAvailable => _cachedMarketAvailable;
+
+  Future<List<GeneratedAutomation>> fetchAutomations() async {
+    final user = _client.auth.currentUser;
+    if (user == null || user.isAnonymous) {
+      throw const AutomationServiceException(
+        'Sign in to create and manage Automations.',
+      );
+    }
+    try {
+      final rows = await _client
+          .from('automations')
+          .select()
+          .eq('user_id', user.id)
+          .order('next_run_at');
+      return rows
+          .map(
+            (row) => GeneratedAutomation.fromJson(
+              Map<String, dynamic>.from(row),
+            ),
+          )
+          .toList(growable: false);
+    } catch (error) {
+      throw AutomationServiceException(_friendlyError(error));
+    }
+  }
 
   Future<bool> checkAvailability({bool force = false}) async {
     final user = _client.auth.currentUser;
@@ -29,10 +58,15 @@ class AutomationService {
       final data = _map(response.data);
       _capabilityUserId = user.id;
       _cachedAvailable = data['automations'] == true;
+      _cachedMarketAvailable = data['market_automations'] == true;
       return _cachedAvailable;
     } catch (_) {
-      _capabilityUserId = user.id;
+      // A temporary network or function failure must not disable Automations
+      // for the rest of this signed-in session. Leave the result uncached so
+      // the next message can retry the capability check.
+      _capabilityUserId = null;
       _cachedAvailable = false;
+      _cachedMarketAvailable = false;
       return false;
     }
   }
@@ -70,6 +104,45 @@ class AutomationService {
               replacesProposal?.actionType == 'automations_create'
                   ? replacesProposal?.proposalId
                   : null,
+        },
+      ).timeout(const Duration(seconds: 15));
+      return ActionProposal.fromJson(_map(_map(response.data)['proposal']));
+    } catch (error) {
+      throw AutomationServiceException(_friendlyError(error));
+    }
+  }
+
+  Future<ActionProposal> propose({
+    required String actionType,
+    required Map<String, dynamic> arguments,
+    AgentActionOrigin origin = AgentActionOrigin.text,
+    String? conversationId,
+    String? idempotencyKey,
+  }) async {
+    _requireSignedInUser();
+    const supported = {
+      'automations_update',
+      'automations_pause',
+      'automations_resume',
+      'automations_run_now',
+      'automations_delete',
+    };
+    if (!supported.contains(actionType)) {
+      throw const AutomationServiceException(
+        'Unsupported Automation action.',
+      );
+    }
+    try {
+      final response = await _client.functions.invoke(
+        'automation-actions',
+        body: {
+          'operation': 'propose',
+          'action_type': actionType,
+          'arguments': arguments,
+          'origin': origin.name,
+          'conversation_id': conversationId,
+          'idempotency_key': idempotencyKey ??
+              'app:$actionType:${DateTime.now().toUtc().microsecondsSinceEpoch}',
         },
       ).timeout(const Duration(seconds: 15));
       return ActionProposal.fromJson(_map(_map(response.data)['proposal']));

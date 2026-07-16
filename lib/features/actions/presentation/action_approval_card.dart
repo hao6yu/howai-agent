@@ -79,7 +79,8 @@ class ActionApprovalCard extends StatelessWidget {
                   height: 1.4,
                 ),
               ),
-              if (proposal.actionType == 'automations_create') ...[
+              if (proposal.actionType == 'automations_create' ||
+                  proposal.actionType == 'automations_update') ...[
                 const SizedBox(height: 12),
                 _AutomationProposalDetails(arguments: proposal.arguments),
               ],
@@ -114,7 +115,8 @@ class ActionApprovalCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   FilledButton.icon(
                     onPressed: isBusy ? null : onApprove,
-                    style: proposal.actionType == 'reminders_delete'
+                    style: proposal.actionType == 'reminders_delete' ||
+                            proposal.actionType == 'automations_delete'
                         ? FilledButton.styleFrom(
                             backgroundColor: colors.error,
                             foregroundColor: colors.onError,
@@ -151,11 +153,16 @@ class ActionApprovalCard extends StatelessWidget {
       case 'automations_create':
         return 'Create';
       case 'reminders_update':
+      case 'automations_update':
         return 'Save changes';
       case 'reminders_resume':
+      case 'automations_resume':
         return 'Resume';
       case 'reminders_pause':
+      case 'automations_pause':
         return 'Pause';
+      case 'automations_run_now':
+        return 'Run now';
       case 'reminders_snooze':
         return 'Snooze';
       case 'reminders_skip_next':
@@ -163,6 +170,7 @@ class ActionApprovalCard extends StatelessWidget {
       case 'reminders_complete':
         return 'Complete';
       case 'reminders_delete':
+      case 'automations_delete':
         return 'Delete';
       default:
         return 'Approve';
@@ -265,6 +273,8 @@ class _AutomationProposalDetails extends StatelessWidget {
 
   static String _schedule(Map<String, dynamic> schedule) {
     switch (schedule['frequency']) {
+      case 'once':
+        return 'One time';
       case 'market_days':
         return 'Market days';
       case 'weekly':

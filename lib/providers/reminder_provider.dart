@@ -1,26 +1,36 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/agent/agent_action_contracts.dart';
+import '../models/generated_automation.dart';
 import '../models/reminder.dart';
+import '../services/automation_service.dart';
 import '../services/reminder_service.dart';
 
 class ReminderProvider extends ChangeNotifier {
-  ReminderProvider({ReminderService? service})
-      : _service = service ?? ReminderService();
+  ReminderProvider({
+    ReminderService? service,
+    AutomationService? automationService,
+  })  : _service = service ?? ReminderService(),
+        _automationService = automationService ?? AutomationService();
 
   final ReminderService _service;
+  final AutomationService _automationService;
   bool _isAvailable = false;
+  bool _remindersAvailable = false;
+  bool _automationsAvailable = false;
   bool _isLoading = false;
   bool _rowsLoaded = false;
   String? _loadedUserId;
   String? _errorMessage;
   List<Reminder> _reminders = const [];
+  List<GeneratedAutomation> _automations = const [];
   List<ActionProposal> _pendingProposals = const [];
 
   bool get isAvailable => _isAvailable;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   List<Reminder> get reminders => List.unmodifiable(_reminders);
+  List<GeneratedAutomation> get automations => List.unmodifiable(_automations);
   List<ActionProposal> get pendingProposals =>
       List.unmodifiable(_pendingProposals);
 
@@ -38,12 +48,12 @@ class ReminderProvider extends ChangeNotifier {
         await _loadRows();
       } else {
         _reminders = const [];
+        _automations = const [];
         _pendingProposals = const [];
         _rowsLoaded = false;
       }
     } catch (error) {
       _errorMessage = error.toString();
-      _isAvailable = false;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -57,11 +67,18 @@ class ReminderProvider extends ChangeNotifier {
     }
     if (_loadedUserId != userId) {
       _reminders = const [];
+      _automations = const [];
       _pendingProposals = const [];
       _rowsLoaded = false;
     }
     _errorMessage = null;
-    _isAvailable = await _service.checkAvailability(force: force);
+    final capabilities = await Future.wait([
+      _service.checkAvailability(force: force),
+      _automationService.checkAvailability(force: force),
+    ]);
+    _remindersAvailable = capabilities[0];
+    _automationsAvailable = capabilities[1];
+    _isAvailable = _remindersAvailable || _automationsAvailable;
     _loadedUserId = userId;
     notifyListeners();
     return _isAvailable;
@@ -126,6 +143,28 @@ class ReminderProvider extends ChangeNotifier {
     return proposal;
   }
 
+  Future<ActionProposal> proposeAutomation({
+    required String actionType,
+    required Map<String, dynamic> arguments,
+    AgentActionOrigin origin = AgentActionOrigin.text,
+    String? conversationId,
+  }) async {
+    final proposal = await _automationService.propose(
+      actionType: actionType,
+      arguments: arguments,
+      origin: origin,
+      conversationId: conversationId,
+    );
+    _pendingProposals = [
+      proposal,
+      ..._pendingProposals.where(
+        (candidate) => candidate.proposalId != proposal.proposalId,
+      ),
+    ];
+    notifyListeners();
+    return proposal;
+  }
+
   Future<ActionResult?> decide(
     ActionProposal proposal,
     AgentActionDecision decision, {
@@ -145,7 +184,12 @@ class ReminderProvider extends ChangeNotifier {
   }
 
   Future<void> _loadRows() async {
-    _reminders = await _service.fetchReminders();
+    _reminders = _remindersAvailable
+        ? await _service.fetchReminders()
+        : const <Reminder>[];
+    _automations = _automationsAvailable
+        ? await _automationService.fetchAutomations()
+        : const <GeneratedAutomation>[];
     _pendingProposals = await _service.fetchPendingProposals();
     _rowsLoaded = true;
   }

@@ -32,6 +32,12 @@ import {
   nonJsonUpstreamErrorTelemetry,
 } from "../_shared/openai-telemetry.ts";
 import {
+  type AutomationToolAuthorization,
+  NO_AUTOMATION_TOOL_AUTHORIZATION,
+  requestsAutomationFunction,
+  sanitizeResponseTools,
+} from "../_shared/openai-tool-policy.ts";
+import {
   DEFAULT_FREE_WEB_SEARCH_RESERVATION_MICROUSD,
   type FreeWebSearchRollout,
   resolveFreeWebSearchRollout,
@@ -190,19 +196,6 @@ const ALLOWED_MODELS = legacyModelAllowlist(
   CHAT_MINI_MODEL,
   Deno.env.get("OPENAI_PROXY_ALLOWED_MODELS") ?? "",
 );
-const ALLOWED_TOOL_TYPES = new Set([
-  "web_search",
-  "web_search_preview",
-  "image_generation",
-  "function",
-]);
-const ALLOWED_FUNCTION_NAMES = new Set([
-  "generate_pptx",
-  "reminders_create",
-  "reminders_update",
-  "reminders_resume",
-]);
-
 type ProxyPath = "/v1/responses" | "/v1/audio/transcriptions";
 
 type AuthenticatedUser = {
@@ -489,36 +482,6 @@ function validateContentLength(
   return null;
 }
 
-function sanitizeTools(tools: unknown): unknown {
-  if (!Array.isArray(tools)) {
-    return tools;
-  }
-
-  return tools.filter((tool) => {
-    if (!tool || typeof tool !== "object") {
-      return false;
-    }
-
-    const candidate = tool as Record<string, unknown>;
-    const toolType = typeof candidate.type === "string" ? candidate.type : "";
-    if (!ALLOWED_TOOL_TYPES.has(toolType)) {
-      return false;
-    }
-
-    if (toolType === "function") {
-      const name = typeof candidate.name === "string"
-        ? candidate.name
-        : typeof (candidate.function as Record<string, unknown> | undefined)
-            ?.name === "string"
-        ? String((candidate.function as Record<string, unknown>).name)
-        : "";
-      return ALLOWED_FUNCTION_NAMES.has(name);
-    }
-
-    return true;
-  });
-}
-
 function removeWebSearchTools(payload: Record<string, unknown>): void {
   if (Array.isArray(payload.tools)) {
     payload.tools = payload.tools.filter((tool) => {
@@ -563,6 +526,11 @@ async function sanitizeResponsesBody(
   let policyContext: PolicyContext | null = null;
   const intent = requestIntent(json.metadata);
   const requiredFunctionName = requestedActionFunction(json.metadata);
+  const automationAuthorization = await getAutomationToolAuthorization(
+    user,
+    rollout.entitlement,
+    json.tools,
+  );
 
   if (rollout.active) {
     const entitlement = rollout.entitlement;
@@ -650,7 +618,10 @@ async function sanitizeResponsesBody(
     resolvedModel = decision.model;
     applyModelPolicyControls(json, decision);
     if (entitlement.cohort === "paid") {
-      const safeTools = sanitizeTools(json.tools);
+      const safeTools = sanitizeResponseTools(
+        json.tools,
+        automationAuthorization,
+      );
       json.tools = Array.isArray(safeTools)
         ? safeTools.filter((tool) => {
           const type = (tool as Record<string, unknown>).type;
@@ -667,7 +638,10 @@ async function sanitizeResponsesBody(
         delete json.tool_choice;
       }
     } else {
-      const safeTools = sanitizeTools(json.tools);
+      const safeTools = sanitizeResponseTools(
+        json.tools,
+        automationAuthorization,
+      );
       const safeFunctionTools = Array.isArray(safeTools)
         ? safeTools.filter((tool) =>
           (tool as Record<string, unknown>).type === "function"
@@ -730,7 +704,9 @@ async function sanitizeResponsesBody(
       json.max_output_tokens = MAX_OUTPUT_TOKENS;
     }
 
-    if (json.tools != null) json.tools = sanitizeTools(json.tools);
+    if (json.tools != null) {
+      json.tools = sanitizeResponseTools(json.tools, automationAuthorization);
+    }
   }
 
   if (!resolvedModel) {
@@ -904,6 +880,66 @@ async function getTrustedEntitlement(
       trusted: false,
       internalCanary: data?.model_policy_canary === true,
     };
+}
+
+async function getAutomationToolAuthorization(
+  user: AuthenticatedUser,
+  existingEntitlement: TrustedEntitlement | null,
+  requestedTools: unknown,
+): Promise<AutomationToolAuthorization> {
+  if (!requestsAutomationFunction(requestedTools) || user.isAnonymous) {
+    return NO_AUTOMATION_TOOL_AUTHORIZATION;
+  }
+  if (!supabaseAdmin) {
+    throw new ProxyPolicyError(
+      "Automation capabilities are temporarily unavailable.",
+      503,
+    );
+  }
+
+  const entitlement = existingEntitlement ?? await getTrustedEntitlement(user);
+  if (entitlement.cohort !== "paid" || !entitlement.trusted) {
+    return NO_AUTOMATION_TOOL_AUTHORIZATION;
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("feature_flags")
+    .select("key, enabled, payload")
+    .in("key", ["automations", "automation_market_data"]);
+  if (error) {
+    console.error("Automation tool feature-flag lookup failed", error);
+    throw new ProxyPolicyError(
+      "Automation capabilities are temporarily unavailable.",
+      503,
+    );
+  }
+
+  const automations = data?.find((row) => row.key === "automations");
+  const market = data?.find((row) => row.key === "automation_market_data");
+  const generatedAutomations = automationFlagEnabledForUser(
+    automations,
+    entitlement.internalCanary,
+  );
+  return {
+    generatedAutomations,
+    marketAutomations: generatedAutomations && automationFlagEnabledForUser(
+      market,
+      entitlement.internalCanary,
+    ),
+  };
+}
+
+function automationFlagEnabledForUser(
+  flag: { enabled?: boolean; payload?: unknown } | undefined,
+  internalCanary: boolean,
+): boolean {
+  const payload = flag?.payload && typeof flag.payload === "object"
+    ? flag.payload as Record<string, unknown>
+    : {};
+  return flag?.enabled === true && (
+    payload.mode === "full" ||
+    (payload.mode === "internal" && internalCanary)
+  );
 }
 
 function requestIntent(metadata: unknown): RequestIntent {

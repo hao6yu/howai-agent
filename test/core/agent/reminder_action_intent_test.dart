@@ -36,54 +36,28 @@ void main() {
     );
   });
 
-  test('does not degrade generated briefings into static reminders', () {
-    const generatedRequests = [
-      'Set up a daily news briefing at 7am',
-      'Remind me every morning with the top 5 AI stories',
-      'Every weekday at 3:30pm summarize what happened in the stock market',
-      'Send a weekly market digest every Friday evening',
-      'Send me a news briefing every 1 min',
-      'Give me an hourly stock market recap',
-    ];
-    for (final message in generatedRequests) {
-      expect(
-        isGeneratedBriefingAutomationRequest(message),
-        isTrue,
-        reason: message,
-      );
-      expect(
-        shouldForceReminderCreateTool(
-          message: message,
-          history: const [],
-        ),
-        isFalse,
-        reason: message,
-      );
-    }
-
-    const staticReminder = 'Remind me every day to read the news';
-    expect(isGeneratedBriefingAutomationRequest(staticReminder), isFalse);
+  test('uses typed model tools when generated Automations are available', () {
     expect(
       shouldForceReminderCreateTool(
-        message: staticReminder,
+        message: 'Remind me tomorrow at 8am',
         history: const [],
+        hasGeneratedAutomationTools: true,
       ),
-      isTrue,
+      isFalse,
+      reason: 'The model should choose the typed Reminder or Automation tool.',
     );
 
     expect(
-      isHighFrequencyAutomationRequest(
-        'Send me a news briefing every 1 minute',
+      shouldForceReminderCreateTool(
+        message: 'Change it to 9am',
+        history: const [
+          {'role': 'assistant', 'content': 'I drafted this reminder.'},
+        ],
+        hasPendingReminderDraft: true,
+        hasGeneratedAutomationTools: true,
       ),
       isTrue,
-    );
-    expect(
-      isHighFrequencyAutomationRequest('Give me an hourly market recap'),
-      isTrue,
-    );
-    expect(
-      isHighFrequencyAutomationRequest('Send a daily market recap'),
-      isFalse,
+      reason: 'Known Reminder draft state can still route deterministically.',
     );
   });
 

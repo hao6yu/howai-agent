@@ -108,11 +108,10 @@ class _AutomationEditDialogState extends State<AutomationEditDialog> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: colors.surfaceContainerLow,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                  Material(
+                    color: colors.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(16),
+                    clipBehavior: Clip.antiAlias,
                     child: Column(
                       children: [
                         ListTile(

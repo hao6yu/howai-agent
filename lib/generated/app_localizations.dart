@@ -4076,7 +4076,7 @@ abstract class AppLocalizations {
   /// No description provided for @textSizeChangeNote.
   ///
   /// In en, this message translates to:
-  /// **'If enabled, text size in chats and Moments will be changed. If you have any questions or feedback, please contact the WeChat Team.'**
+  /// **'Use the slider to preview text throughout HowAI.'**
   String get textSizeChangeNote;
 
   /// No description provided for @resetToDefaultButton.

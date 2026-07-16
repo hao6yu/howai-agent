@@ -2041,7 +2041,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get adjustSliderTextSize => 'Metin boyutunu değiştirmek için aşağıdaki kaydırıcıyı ayarlayın';
 
   @override
-  String get textSizeChangeNote => 'Etkinleştirildiğinde, sohbetlerdeki ve Anlık Görüntülerdeki metin boyutu değiştirilecektir. Sorularınız veya geri bildiriminiz varsa, lütfen WeChat Ekibiyle iletişime geçin.';
+  String get textSizeChangeNote => 'HowAI genelindeki metni önizlemek için kaydırıcıyı kullanın.';
 
   @override
   String get resetToDefaultButton => 'Varsayılana Sıfırla';

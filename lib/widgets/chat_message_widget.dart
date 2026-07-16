@@ -1011,11 +1011,12 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     final targetLanguageCode = primaryOption['targetLanguageCode'] ?? 'en';
     final targetLanguageFlag = primaryOption['targetLanguageFlag'] ?? '🌐';
     final recentOptions = options.skip(1).take(2).toList();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.howaiColors;
 
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: isDark ? const Color(0xFF1D1D1F) : Colors.white,
+      showDragHandle: false,
+      backgroundColor: colors.canvas,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -1035,9 +1036,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                       height: 4,
                       margin: const EdgeInsets.only(top: 10, bottom: 8),
                       decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.grey.shade700
-                            : Colors.grey.shade300,
+                        color: colors.textTertiary,
                         borderRadius: BorderRadius.circular(999),
                       ),
                     ),
@@ -1071,8 +1070,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                     Divider(
                       height: 8,
                       thickness: 0.6,
-                      color:
-                          isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                      color: colors.divider,
                     ),
                     ListTile(
                       leading: Text(
@@ -1104,9 +1102,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
-                              color: isDark
-                                  ? Colors.grey.shade400
-                                  : Colors.grey.shade600,
+                              color: colors.textSecondary,
                             ),
                           ),
                         ),
@@ -1137,8 +1133,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                     Divider(
                       height: 8,
                       thickness: 0.6,
-                      color:
-                          isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                      color: colors.divider,
                     ),
                     ListTile(
                       leading: const Icon(Icons.tune),

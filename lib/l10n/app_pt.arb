@@ -657,7 +657,7 @@
   "done": "Concluído",
   "previewTextSize": "Pré-visualizar tamanho do texto",
   "adjustSliderTextSize": "Ajuste o seletor abaixo para alterar o tamanho do texto",
-  "textSizeChangeNote": "Se ativado, o tamanho do texto nas conversas e Momentos será alterado. Se tiver alguma questão ou feedback, por favor contacte a Equipa WeChat.",
+  "textSizeChangeNote": "Use o controlo para pré-visualizar o texto no HowAI.",
   "resetToDefaultButton": "Repor para Predefinição",
   "defaultFontSize": "Predefinido",
   "editProfile": "Editar Perfil",

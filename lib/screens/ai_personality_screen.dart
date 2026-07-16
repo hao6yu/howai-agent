@@ -11,6 +11,7 @@ import 'package:haogpt/generated/app_localizations.dart';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
 import 'package:path_provider/path_provider.dart';
+import '../core/theme/howai_theme.dart';
 import '../services/image_editing_service.dart';
 
 class AIPersonalityScreen extends StatefulWidget {
@@ -59,13 +60,16 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
   }
 
   Future<void> _loadPersonality() async {
-    final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-    final personalityProvider = Provider.of<AIPersonalityProvider>(context, listen: false);
+    final profileProvider =
+        Provider.of<ProfileProvider>(context, listen: false);
+    final personalityProvider =
+        Provider.of<AIPersonalityProvider>(context, listen: false);
     final currentProfileId = profileProvider.selectedProfileId;
 
     if (currentProfileId != null) {
       await personalityProvider.loadPersonalityForProfile(currentProfileId);
-      final personality = personalityProvider.getPersonalityForProfile(currentProfileId);
+      final personality =
+          personalityProvider.getPersonalityForProfile(currentProfileId);
 
       if (personality != null) {
         setState(() {
@@ -91,12 +95,15 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-      final personalityProvider = Provider.of<AIPersonalityProvider>(context, listen: false);
+      final profileProvider =
+          Provider.of<ProfileProvider>(context, listen: false);
+      final personalityProvider =
+          Provider.of<AIPersonalityProvider>(context, listen: false);
       final currentProfileId = profileProvider.selectedProfileId;
 
       if (currentProfileId != null) {
-        final existingPersonality = personalityProvider.getPersonalityForProfile(currentProfileId);
+        final existingPersonality =
+            personalityProvider.getPersonalityForProfile(currentProfileId);
 
         // Handle avatar path
         String? finalAvatarPath = _currentAvatarPath;
@@ -107,7 +114,9 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
         final personality = AIPersonality(
           id: existingPersonality?.id,
           profileId: currentProfileId,
-          aiName: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'HowAI Agent',
+          aiName: _nameController.text.trim().isNotEmpty
+              ? _nameController.text.trim()
+              : 'HowAI Agent',
           gender: _selectedGender,
           age: _selectedAge,
           personality: _selectedPersonality,
@@ -121,13 +130,16 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
           createdAt: existingPersonality?.createdAt ?? DateTime.now(),
         );
 
-        final success = existingPersonality != null ? await personalityProvider.updatePersonality(personality) : await personalityProvider.createPersonality(personality);
+        final success = existingPersonality != null
+            ? await personalityProvider.updatePersonality(personality)
+            : await personalityProvider.createPersonality(personality);
 
         if (success && mounted) {
           setState(() => _hasChanges = false);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context)!.aiPersonalitySettingsSaved),
+              content: Text(
+                  AppLocalizations.of(context)!.aiPersonalitySettingsSaved),
               backgroundColor: Colors.green,
               behavior: SnackBarBehavior.floating,
             ),
@@ -147,7 +159,8 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.errorSavingAi(e.toString())),
+            content:
+                Text(AppLocalizations.of(context)!.errorSavingAi(e.toString())),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -173,7 +186,8 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(AppLocalizations.of(context)!.reset, style: TextStyle(color: Colors.red)),
+            child: Text(AppLocalizations.of(context)!.reset,
+                style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -183,19 +197,23 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
       setState(() => _isLoading = true);
 
       try {
-        final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-        final personalityProvider = Provider.of<AIPersonalityProvider>(context, listen: false);
+        final profileProvider =
+            Provider.of<ProfileProvider>(context, listen: false);
+        final personalityProvider =
+            Provider.of<AIPersonalityProvider>(context, listen: false);
         final currentProfileId = profileProvider.selectedProfileId;
 
         if (currentProfileId != null) {
-          final success = await personalityProvider.resetToDefault(currentProfileId);
+          final success =
+              await personalityProvider.resetToDefault(currentProfileId);
           if (success) {
             await _loadPersonality();
             setState(() => _hasChanges = false);
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text(AppLocalizations.of(context)!.resetToDefaultSettings),
+                  content: Text(
+                      AppLocalizations.of(context)!.resetToDefaultSettings),
                   backgroundColor: Colors.green,
                   behavior: SnackBarBehavior.floating,
                 ),
@@ -207,7 +225,8 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(AppLocalizations.of(context)!.resetFailedAi(e.toString())),
+              content: Text(
+                  AppLocalizations.of(context)!.resetFailedAi(e.toString())),
               backgroundColor: Colors.red,
               behavior: SnackBarBehavior.floating,
             ),
@@ -240,7 +259,8 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
           await profileDir.create(recursive: true);
         }
 
-        final fileName = 'ai_avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final fileName =
+            'ai_avatar_${DateTime.now().millisecondsSinceEpoch}.jpg';
         final permanentPath = '${profileDir.path}/$fileName';
 
         // Copy the edited image to permanent location
@@ -270,7 +290,8 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(AppLocalizations.of(context)!.failedUpdateAiAvatarMsg),
+            content:
+                Text(AppLocalizations.of(context)!.failedUpdateAiAvatarMsg),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -281,17 +302,22 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
 
   Future<void> _savePersonalityWithNewAvatar(String avatarPath) async {
     try {
-      final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
-      final personalityProvider = Provider.of<AIPersonalityProvider>(context, listen: false);
+      final profileProvider =
+          Provider.of<ProfileProvider>(context, listen: false);
+      final personalityProvider =
+          Provider.of<AIPersonalityProvider>(context, listen: false);
       final currentProfileId = profileProvider.selectedProfileId;
 
       if (currentProfileId != null) {
-        final existingPersonality = personalityProvider.getPersonalityForProfile(currentProfileId);
+        final existingPersonality =
+            personalityProvider.getPersonalityForProfile(currentProfileId);
 
         final personality = AIPersonality(
           id: existingPersonality?.id,
           profileId: currentProfileId,
-          aiName: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'HowAI Agent',
+          aiName: _nameController.text.trim().isNotEmpty
+              ? _nameController.text.trim()
+              : 'HowAI Agent',
           gender: _selectedGender,
           age: _selectedAge,
           personality: _selectedPersonality,
@@ -362,26 +388,23 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                   tooltip: 'Reset to Default',
                 ),
                 // Save button
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  child: ElevatedButton(
-                    onPressed: (_isLoading || !_hasChanges) ? null : _savePersonality,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0078D4),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      elevation: 0,
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: TextButton(
+                    onPressed:
+                        (_isLoading || !_hasChanges) ? null : _savePersonality,
+                    style: TextButton.styleFrom(
+                      foregroundColor: context.howaiColors.accent,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                     ),
                     child: _isLoading
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 16,
                             height: 16,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  context.howaiColors.accent),
                             ),
                           )
                         : const Text(
@@ -421,11 +444,25 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                         label: 'Personality',
                         value: _selectedPersonality,
                         items: [
-                          DropdownMenuItem(value: 'friendly', child: Text(AppLocalizations.of(context)!.friendly)),
-                          DropdownMenuItem(value: 'professional', child: Text(AppLocalizations.of(context)!.professional)),
-                          DropdownMenuItem(value: 'witty', child: Text(AppLocalizations.of(context)!.witty)),
-                          DropdownMenuItem(value: 'caring', child: Text(AppLocalizations.of(context)!.caring)),
-                          DropdownMenuItem(value: 'energetic', child: Text(AppLocalizations.of(context)!.energetic)),
+                          DropdownMenuItem(
+                              value: 'friendly',
+                              child:
+                                  Text(AppLocalizations.of(context)!.friendly)),
+                          DropdownMenuItem(
+                              value: 'professional',
+                              child: Text(
+                                  AppLocalizations.of(context)!.professional)),
+                          DropdownMenuItem(
+                              value: 'witty',
+                              child: Text(AppLocalizations.of(context)!.witty)),
+                          DropdownMenuItem(
+                              value: 'caring',
+                              child:
+                                  Text(AppLocalizations.of(context)!.caring)),
+                          DropdownMenuItem(
+                              value: 'energetic',
+                              child: Text(
+                                  AppLocalizations.of(context)!.energetic)),
                         ],
                         onChanged: (value) {
                           setState(() => _selectedPersonality = value!);
@@ -439,11 +476,23 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                         label: 'Humor Level',
                         value: _selectedHumorLevel,
                         items: [
-                          DropdownMenuItem(value: 'none', child: Text(AppLocalizations.of(context)!.serious)),
-                          DropdownMenuItem(value: 'light', child: Text(AppLocalizations.of(context)!.light)),
-                          DropdownMenuItem(value: 'dry', child: Text(AppLocalizations.of(context)!.dry)),
-                          DropdownMenuItem(value: 'moderate', child: Text(AppLocalizations.of(context)!.moderate)),
-                          DropdownMenuItem(value: 'heavy', child: Text(AppLocalizations.of(context)!.heavy)),
+                          DropdownMenuItem(
+                              value: 'none',
+                              child:
+                                  Text(AppLocalizations.of(context)!.serious)),
+                          DropdownMenuItem(
+                              value: 'light',
+                              child: Text(AppLocalizations.of(context)!.light)),
+                          DropdownMenuItem(
+                              value: 'dry',
+                              child: Text(AppLocalizations.of(context)!.dry)),
+                          DropdownMenuItem(
+                              value: 'moderate',
+                              child:
+                                  Text(AppLocalizations.of(context)!.moderate)),
+                          DropdownMenuItem(
+                              value: 'heavy',
+                              child: Text(AppLocalizations.of(context)!.heavy)),
                         ],
                         onChanged: (value) {
                           setState(() => _selectedHumorLevel = value!);
@@ -461,10 +510,22 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                         label: 'Communication',
                         value: _selectedCommunicationStyle,
                         items: [
-                          DropdownMenuItem(value: 'casual', child: Text(AppLocalizations.of(context)!.casual)),
-                          DropdownMenuItem(value: 'formal', child: Text(AppLocalizations.of(context)!.formal)),
-                          DropdownMenuItem(value: 'tech-savvy', child: Text(AppLocalizations.of(context)!.techSavvy)),
-                          DropdownMenuItem(value: 'supportive', child: Text(AppLocalizations.of(context)!.supportive)),
+                          DropdownMenuItem(
+                              value: 'casual',
+                              child:
+                                  Text(AppLocalizations.of(context)!.casual)),
+                          DropdownMenuItem(
+                              value: 'formal',
+                              child:
+                                  Text(AppLocalizations.of(context)!.formal)),
+                          DropdownMenuItem(
+                              value: 'tech-savvy',
+                              child: Text(
+                                  AppLocalizations.of(context)!.techSavvy)),
+                          DropdownMenuItem(
+                              value: 'supportive',
+                              child: Text(
+                                  AppLocalizations.of(context)!.supportive)),
                         ],
                         onChanged: (value) {
                           setState(() => _selectedCommunicationStyle = value!);
@@ -478,9 +539,18 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                         label: 'Response Length',
                         value: _selectedResponseLength,
                         items: [
-                          DropdownMenuItem(value: 'concise', child: Text(AppLocalizations.of(context)!.concise)),
-                          DropdownMenuItem(value: 'moderate', child: Text(AppLocalizations.of(context)!.moderate)),
-                          DropdownMenuItem(value: 'detailed', child: Text(AppLocalizations.of(context)!.detailed)),
+                          DropdownMenuItem(
+                              value: 'concise',
+                              child:
+                                  Text(AppLocalizations.of(context)!.concise)),
+                          DropdownMenuItem(
+                              value: 'moderate',
+                              child:
+                                  Text(AppLocalizations.of(context)!.moderate)),
+                          DropdownMenuItem(
+                              value: 'detailed',
+                              child:
+                                  Text(AppLocalizations.of(context)!.detailed)),
                         ],
                         onChanged: (value) {
                           setState(() => _selectedResponseLength = value!);
@@ -495,11 +565,22 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                   label: 'Expertise Area',
                   value: _selectedExpertise,
                   items: [
-                    DropdownMenuItem(value: 'general', child: Text(AppLocalizations.of(context)!.generalKnowledge)),
-                    DropdownMenuItem(value: 'technology', child: Text(AppLocalizations.of(context)!.technology)),
-                    DropdownMenuItem(value: 'business', child: Text(AppLocalizations.of(context)!.business)),
-                    DropdownMenuItem(value: 'creative', child: Text(AppLocalizations.of(context)!.creative)),
-                    DropdownMenuItem(value: 'academic', child: Text(AppLocalizations.of(context)!.academic)),
+                    DropdownMenuItem(
+                        value: 'general',
+                        child: Text(
+                            AppLocalizations.of(context)!.generalKnowledge)),
+                    DropdownMenuItem(
+                        value: 'technology',
+                        child: Text(AppLocalizations.of(context)!.technology)),
+                    DropdownMenuItem(
+                        value: 'business',
+                        child: Text(AppLocalizations.of(context)!.business)),
+                    DropdownMenuItem(
+                        value: 'creative',
+                        child: Text(AppLocalizations.of(context)!.creative)),
+                    DropdownMenuItem(
+                        value: 'academic',
+                        child: Text(AppLocalizations.of(context)!.academic)),
                   ],
                   onChanged: (value) {
                     setState(() => _selectedExpertise = value!);
@@ -510,7 +591,8 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                 _buildCompactTextField(
                   controller: _interestsController,
                   label: 'Interests & Hobbies',
-                  hint: 'e.g. Programming, Music, Photography, Travel, Reading, Gaming, Art, Sports, Cooking, etc.',
+                  hint:
+                      'e.g. Programming, Music, Photography, Travel, Reading, Gaming, Art, Sports, Cooking, etc.',
                   maxLines: 3,
                   onChanged: () => _markChanged(),
                 ),
@@ -518,7 +600,8 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                 _buildCompactTextField(
                   controller: _backgroundController,
                   label: 'Background Story (Optional)',
-                  hint: 'Describe your AI\'s background story, experience, expertise areas, or personality traits to make conversations more personal and engaging...',
+                  hint:
+                      'Describe your AI\'s background story, experience, expertise areas, or personality traits to make conversations more personal and engaging...',
                   maxLines: 4,
                   onChanged: () => _markChanged(),
                 ),
@@ -534,9 +617,13 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
   Widget _buildFreemiumContent() {
     return Consumer2<SettingsProvider, AIPersonalityProvider>(
       builder: (context, settings, personalityProvider, child) {
-        final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+        final profileProvider =
+            Provider.of<ProfileProvider>(context, listen: false);
         final currentProfileId = profileProvider.selectedProfileId;
-        final personality = currentProfileId != null ? personalityProvider.getPersonalityForProfile(currentProfileId) : null;
+        final personality = currentProfileId != null
+            ? personalityProvider.getPersonalityForProfile(currentProfileId)
+            : null;
+        final colors = context.howaiColors;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -547,17 +634,8 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF0078D4).withOpacity(0.08),
-                      const Color(0xFF106ebe).withOpacity(0.03),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF0078D4).withOpacity(0.2),
-                    width: 1,
-                  ),
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
                   children: [
@@ -570,7 +648,7 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(16),
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFF0078D4),
+                              color: colors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -578,20 +656,21 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                             'Upgrade to customize personality, communication style & more',
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade700,
+                              color: colors.textSecondary,
                             ),
                           ),
                         ],
                       ),
                     ),
                     const SizedBox(width: 12),
-                    ElevatedButton(
+                    OutlinedButton(
                       onPressed: () {
                         showDialog(
                           context: context,
                           builder: (context) => UpgradeDialog(
                             featureName: 'AI Personality Customization',
-                            limitMessage: 'Customize your AI assistant\'s personality, communication style, and expertise areas',
+                            limitMessage:
+                                'Customize your AI assistant\'s personality, communication style, and expertise areas',
                             premiumBenefits: [
                               'Custom AI names and personalities',
                               'Adjustable communication styles',
@@ -606,13 +685,14 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                           ),
                         );
                       },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0078D4),
-                        foregroundColor: Colors.white,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: colors.textPrimary,
+                        side: BorderSide(color: colors.divider),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                         elevation: 0,
                         minimumSize: Size(0, 36),
                       ),
@@ -645,14 +725,19 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                     const SizedBox(height: 12),
                     _buildReadOnlyTwoColumnRow(
                       'Communication',
-                      _getCommunicationStyleDisplayText(personality.communicationStyle),
+                      _getCommunicationStyleDisplayText(
+                          personality.communicationStyle),
                       'Response Length',
                       _getResponseLengthDisplayText(personality.responseLength),
                     ),
                     const SizedBox(height: 12),
-                    _buildReadOnlyItem('Expertise', _getExpertiseDisplayText(personality.expertise)),
-                    if (personality.interests.isNotEmpty) _buildReadOnlyItem('Interests', personality.interests),
-                    if (personality.backgroundStory.isNotEmpty) _buildReadOnlyItem('Background', personality.backgroundStory),
+                    _buildReadOnlyItem('Expertise',
+                        _getExpertiseDisplayText(personality.expertise)),
+                    if (personality.interests.isNotEmpty)
+                      _buildReadOnlyItem('Interests', personality.interests),
+                    if (personality.backgroundStory.isNotEmpty)
+                      _buildReadOnlyItem(
+                          'Background', personality.backgroundStory),
                   ],
                 ),
               ],
@@ -665,18 +750,12 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
   }
 
   Widget _buildCompactCard(List<Widget> children) {
+    final colors = context.howaiColors;
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -714,7 +793,9 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(18),
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : const Color(0xFF1A1A1A),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -730,14 +811,12 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
   Widget _buildReadOnlySection(String title, List<Widget> children) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
+        final colors = context.howaiColors;
         return Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200,
-            ),
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Padding(
             padding: const EdgeInsets.all(20),
@@ -749,7 +828,7 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(16),
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -779,7 +858,9 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(14),
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : const Color(0xFF1A1A1A),
               ),
             ),
             const SizedBox(height: 6),
@@ -789,24 +870,32 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
               onChanged: (_) => onChanged?.call(),
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(16),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : const Color(0xFF1A1A1A),
               ),
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: TextStyle(
                   fontSize: settings.getScaledFontSize(16),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey.shade500,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade500
+                      : Colors.grey.shade500,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade300,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade300,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
@@ -815,7 +904,9 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                 ),
                 contentPadding: const EdgeInsets.all(16),
                 filled: true,
-                fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+                fillColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade50,
               ),
             ),
           ],
@@ -833,6 +924,7 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
+        final colors = context.howaiColors;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -841,7 +933,7 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(14),
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                color: colors.textPrimary,
               ),
             ),
             const SizedBox(height: 6),
@@ -851,35 +943,36 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
               onChanged: (_) => onChanged?.call(),
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(14),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                color: colors.textPrimary,
                 height: 1.3,
               ),
               decoration: InputDecoration(
                 hintText: hint,
                 hintStyle: TextStyle(
                   fontSize: settings.getScaledFontSize(13),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey.shade500,
+                  color: colors.textTertiary,
                   height: 1.3,
                 ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                    color: colors.divider,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                    color: colors.divider,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF0078D4)),
+                  borderSide: BorderSide(color: colors.accent),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 filled: true,
-                fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+                fillColor: colors.surfaceStrong,
                 isDense: true,
               ),
             ),
@@ -897,6 +990,7 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
+        final colors = context.howaiColors;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -905,7 +999,7 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(14),
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                color: colors.textPrimary,
               ),
             ),
             const SizedBox(height: 6),
@@ -915,28 +1009,29 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
               onChanged: onChanged,
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(14),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                color: colors.textPrimary,
               ),
               decoration: InputDecoration(
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                    color: colors.divider,
                   ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                    color: colors.divider,
                   ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: const BorderSide(color: Color(0xFF0078D4)),
+                  borderSide: BorderSide(color: colors.accent),
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 filled: true,
-                fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+                fillColor: colors.surfaceStrong,
                 isDense: true,
               ),
             ),
@@ -968,7 +1063,9 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(14),
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : const Color(0xFF1A1A1A),
                   ),
                 ),
                 Text(
@@ -1015,7 +1112,9 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(13),
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade400
+                      : Colors.grey.shade600,
                 ),
               ),
               const SizedBox(height: 4),
@@ -1023,7 +1122,9 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                 value,
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(15),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade800,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade800,
                   height: 1.4,
                 ),
                 maxLines: null, // Allow unlimited lines for all readonly items
@@ -1089,7 +1190,9 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(13),
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade400
+                            : Colors.grey.shade600,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -1097,7 +1200,9 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                       personality.aiName,
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(15),
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade800,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade300
+                            : Colors.grey.shade800,
                       ),
                     ),
                   ],
@@ -1148,7 +1253,8 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                     child: _avatarImage != null
                         ? CircleAvatar(
                             radius: 30,
-                            backgroundImage: FileImage(File(_avatarImage!.path)),
+                            backgroundImage:
+                                FileImage(File(_avatarImage!.path)),
                           )
                         : FutureBuilder<String?>(
                             future: _resolveAvatarPath(_currentAvatarPath),
@@ -1156,13 +1262,15 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                               if (snapshot.hasData && snapshot.data != null) {
                                 return CircleAvatar(
                                   radius: 30,
-                                  backgroundImage: FileImage(File(snapshot.data!)),
+                                  backgroundImage:
+                                      FileImage(File(snapshot.data!)),
                                 );
                               }
                               return CircleAvatar(
                                 radius: 30,
                                 backgroundColor: Colors.transparent,
-                                backgroundImage: AssetImage('assets/icon/hao_avatar.png'),
+                                backgroundImage:
+                                    AssetImage('assets/icon/hao_avatar.png'),
                               );
                             },
                           ),
@@ -1208,7 +1316,9 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                     style: TextStyle(
                       fontSize: settings.getScaledFontSize(14),
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : const Color(0xFF1A1A1A),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -1217,33 +1327,44 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
                     onChanged: (_) => _markChanged(),
                     style: TextStyle(
                       fontSize: settings.getScaledFontSize(14),
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : const Color(0xFF1A1A1A),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : const Color(0xFF1A1A1A),
                     ),
                     decoration: InputDecoration(
                       hintText: 'e.g. Alex, Agent, Helper, etc.',
                       hintStyle: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey.shade400,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade500
+                            : Colors.grey.shade400,
                         fontSize: settings.getScaledFontSize(13),
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade600
+                              : Colors.grey.shade300,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade600
+                              : Colors.grey.shade300,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: const BorderSide(color: Color(0xFF0078D4)),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 12),
                       filled: true,
-                      fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+                      fillColor: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade800
+                          : Colors.grey.shade50,
                       isDense: true,
                     ),
                   ),
@@ -1347,7 +1468,8 @@ class _AIPersonalityScreenState extends State<AIPersonalityScreen> {
     }
   }
 
-  Widget _buildReadOnlyTwoColumnRow(String label1, String value1, String label2, String value2) {
+  Widget _buildReadOnlyTwoColumnRow(
+      String label1, String value1, String label2, String value2) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
         return Row(

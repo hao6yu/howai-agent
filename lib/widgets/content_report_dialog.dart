@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/content_report.dart';
 import '../services/content_report_service.dart';
 import '../models/chat_message.dart';
+import '../core/theme/howai_theme.dart';
 
 class ContentReportDialog extends StatefulWidget {
   final ChatMessage message;
@@ -48,7 +49,9 @@ class _ContentReportDialogState extends State<ContentReportDialog> {
     final report = ContentReport(
       messageId: widget.message.id!,
       reason: _selectedReason,
-      description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
+      description: _descriptionController.text.trim().isEmpty
+          ? null
+          : _descriptionController.text.trim(),
       createdAt: DateTime.now().toIso8601String(),
     );
 
@@ -62,7 +65,8 @@ class _ContentReportDialogState extends State<ContentReportDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Report submitted successfully. Thank you for your feedback.'),
+            content: Text(
+                'Report submitted successfully. Thank you for your feedback.'),
             backgroundColor: Colors.green,
             duration: Duration(seconds: 3),
           ),
@@ -84,14 +88,14 @@ class _ContentReportDialogState extends State<ContentReportDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final colors = context.howaiColors;
 
     return AlertDialog(
       title: Row(
         children: [
           Icon(
             Icons.flag_outlined,
-            color: Colors.orange,
+            color: colors.textSecondary,
             size: 24,
           ),
           const SizedBox(width: 8),
@@ -109,7 +113,7 @@ class _ContentReportDialogState extends State<ContentReportDialog> {
                 'Help us improve by reporting inappropriate AI-generated content.',
                 style: TextStyle(
                   fontSize: 14,
-                  color: isDarkMode ? Colors.grey[300] : Colors.grey[600],
+                  color: colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 16),
@@ -124,24 +128,25 @@ class _ContentReportDialogState extends State<ContentReportDialog> {
               ),
               const SizedBox(height: 8),
 
-              ...ReportReason.values.map((reason) => RadioListTile<ReportReason>(
-                    title: Text(ContentReport(
-                      messageId: 0,
-                      reason: reason,
-                      createdAt: '',
-                    ).getReasonDisplayName()),
-                    value: reason,
-                    groupValue: _selectedReason,
-                    onChanged: (ReportReason? value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedReason = value;
-                        });
-                      }
-                    },
-                    dense: true,
-                    contentPadding: EdgeInsets.zero,
-                  )),
+              ...ReportReason.values
+                  .map((reason) => RadioListTile<ReportReason>(
+                        title: Text(ContentReport(
+                          messageId: 0,
+                          reason: reason,
+                          createdAt: '',
+                        ).getReasonDisplayName()),
+                        value: reason,
+                        groupValue: _selectedReason,
+                        onChanged: (ReportReason? value) {
+                          if (value != null) {
+                            setState(() {
+                              _selectedReason = value;
+                            });
+                          }
+                        },
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                      )),
 
               const SizedBox(height: 16),
 
@@ -175,7 +180,7 @@ class _ContentReportDialogState extends State<ContentReportDialog> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                  color: colors.surface,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -183,7 +188,7 @@ class _ContentReportDialogState extends State<ContentReportDialog> {
                     Icon(
                       Icons.info_outline,
                       size: 16,
-                      color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                      color: colors.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -191,7 +196,7 @@ class _ContentReportDialogState extends State<ContentReportDialog> {
                         'Reports are stored locally and help improve our AI responses.',
                         style: TextStyle(
                           fontSize: 12,
-                          color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
+                          color: colors.textSecondary,
                         ),
                       ),
                     ),
@@ -207,19 +212,19 @@ class _ContentReportDialogState extends State<ContentReportDialog> {
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
           child: const Text('Cancel'),
         ),
-        ElevatedButton(
+        FilledButton(
           onPressed: _isSubmitting ? null : _submitReport,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange,
-            foregroundColor: Colors.white,
+          style: FilledButton.styleFrom(
+            backgroundColor: colors.textPrimary,
+            foregroundColor: colors.canvas,
           ),
           child: _isSubmitting
-              ? const SizedBox(
+              ? SizedBox(
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    valueColor: AlwaysStoppedAnimation<Color>(colors.canvas),
                   ),
                 )
               : const Text('Submit Report'),

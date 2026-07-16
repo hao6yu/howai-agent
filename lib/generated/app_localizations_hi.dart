@@ -2041,7 +2041,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get adjustSliderTextSize => 'टेक्स्ट साइज़ बदलने के लिए नीचे स्लाइडर को समायोजित करें';
 
   @override
-  String get textSizeChangeNote => 'सक्षम होने पर, चैट और Moments में टेक्स्ट साइज़ बदल जाएगा। यदि आपके कोई प्रश्न या प्रतिक्रिया है, तो कृपया WeChat टीम से संपर्क करें।';
+  String get textSizeChangeNote => 'HowAI में टेक्स्ट का पूर्वावलोकन करने के लिए स्लाइडर का उपयोग करें।';
 
   @override
   String get resetToDefaultButton => 'डिफ़ॉल्ट पर रीसेट करें';

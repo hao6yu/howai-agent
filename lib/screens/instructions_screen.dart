@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import '../widgets/custom_back_button.dart';
+import '../core/theme/howai_theme.dart';
 
 class InstructionsScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -18,8 +19,6 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
   Widget build(BuildContext context) {
     // Determine if we're on a phone or tablet based on width
     final isPhone = MediaQuery.of(context).size.width < 600;
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = Theme.of(context).colorScheme.primary;
 
     final List<_InstructionSection> _sections = [
       _InstructionSection(
@@ -116,67 +115,43 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
 
     return Scaffold(
       appBar: CustomAppBar(
-        title: _sections[_selectedIndex].title,
-        elevation: 0.5,
+        title: AppLocalizations.of(context)!.helpAndInstructions,
         onBack: widget.onBack ??
             () {
               Navigator.of(context).pop();
             },
-        actions: isPhone
-            ? [
-                PopupMenuButton<int>(
-                  icon: Icon(Icons.menu, color: primaryColor),
-                  tooltip: AppLocalizations.of(context)!.selectSectionTooltip,
-                  onSelected: (index) {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
-                  },
-                  itemBuilder: (context) {
-                    return List.generate(_sections.length, (index) {
-                      return PopupMenuItem(
-                        value: index,
-                        child: Row(
-                          children: [
-                            Icon(_sections[index].icon, color: _selectedIndex == index ? primaryColor : Theme.of(context).iconTheme.color, size: 20),
-                            const SizedBox(width: 12),
-                            Text(_sections[index].title),
-                          ],
-                        ),
-                      );
-                    });
-                  },
-                ),
-              ]
-            : null,
       ),
       // Use different layouts for phone vs tablet
-      body: isPhone ? _buildPhoneLayout(_sections, isDarkMode, primaryColor) : _buildTabletLayout(_sections, isDarkMode, primaryColor),
+      body: isPhone
+          ? _buildPhoneLayout(_sections)
+          : _buildTabletLayout(_sections),
     );
   }
 
   // Phone layout uses a vertical stack with section title and content
-  Widget _buildPhoneLayout(List<_InstructionSection> sections, bool isDarkMode, Color primaryColor) {
+  Widget _buildPhoneLayout(List<_InstructionSection> sections) {
+    final colors = context.howaiColors;
     return Column(
       children: [
         // Dropdown selector
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          color: isDarkMode ? const Color(0xFF2C2C2E) : const Color(0xFFF7F7F7),
+          color: colors.canvas,
           child: DropdownButtonFormField<int>(
             value: _selectedIndex,
             decoration: InputDecoration(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
                 borderSide: BorderSide.none,
               ),
               filled: true,
-              fillColor: Theme.of(context).cardColor,
+              fillColor: colors.surface,
               hintText: AppLocalizations.of(context)!.discover,
             ),
-            icon: Icon(Icons.arrow_drop_down, color: primaryColor),
-            elevation: 2,
+            icon: Icon(Icons.expand_more_rounded, color: colors.textSecondary),
+            elevation: 0,
             isExpanded: true,
             onChanged: (int? newValue) {
               if (newValue != null) {
@@ -190,13 +165,19 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                 value: index,
                 child: Row(
                   children: [
-                    Icon(sections[index].icon, color: index == _selectedIndex ? primaryColor : Theme.of(context).iconTheme.color),
+                    Icon(
+                      sections[index].icon,
+                      color: colors.textSecondary,
+                      size: 20,
+                    ),
                     const SizedBox(width: 12),
                     Text(
                       sections[index].title,
                       style: TextStyle(
-                        fontWeight: index == _selectedIndex ? FontWeight.bold : FontWeight.normal,
-                        color: Theme.of(context).textTheme.bodyLarge?.color,
+                        fontWeight: index == _selectedIndex
+                            ? FontWeight.w600
+                            : FontWeight.normal,
+                        color: colors.textPrimary,
                       ),
                     ),
                   ],
@@ -207,35 +188,39 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
         ),
         // Content area (scrollable)
         Expanded(
-          child: _buildContentArea(sections, isDarkMode, primaryColor),
+          child: _buildContentArea(sections),
         ),
       ],
     );
   }
 
   // Tablet layout uses side-by-side menu and content
-  Widget _buildTabletLayout(List<_InstructionSection> sections, bool isDarkMode, Color primaryColor) {
+  Widget _buildTabletLayout(List<_InstructionSection> sections) {
+    final colors = context.howaiColors;
     return Row(
       children: [
         // Left menu
         Container(
           width: 250,
-          color: isDarkMode ? const Color(0xFF2C2C2E) : const Color(0xFFF7F7F7),
+          color: colors.surface,
           child: ListView.builder(
             itemCount: sections.length,
             itemBuilder: (context, index) {
               final selected = index == _selectedIndex;
               return ListTile(
-                leading: Icon(sections[index].icon, color: selected ? primaryColor : Theme.of(context).iconTheme.color),
+                leading: Icon(
+                  sections[index].icon,
+                  color: colors.textSecondary,
+                ),
                 title: Text(
                   sections[index].title,
                   style: TextStyle(
-                    color: selected ? primaryColor : Theme.of(context).textTheme.bodyLarge?.color,
-                    fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                    color: colors.textPrimary,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
                 selected: selected,
-                selectedTileColor: Theme.of(context).cardColor,
+                selectedTileColor: colors.surfaceStrong,
                 onTap: () {
                   setState(() {
                     _selectedIndex = index;
@@ -247,14 +232,15 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
         ),
         // Right content
         Expanded(
-          child: _buildContentArea(sections, isDarkMode, primaryColor),
+          child: _buildContentArea(sections),
         ),
       ],
     );
   }
 
   // Common content area widget used by both layouts
-  Widget _buildContentArea(List<_InstructionSection> sections, bool isDarkMode, Color primaryColor) {
+  Widget _buildContentArea(List<_InstructionSection> sections) {
+    final colors = context.howaiColors;
     return Align(
       alignment: Alignment.topLeft,
       child: SingleChildScrollView(
@@ -266,15 +252,19 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(sections[_selectedIndex].icon, color: primaryColor, size: 28),
+                Icon(
+                  sections[_selectedIndex].icon,
+                  color: colors.textSecondary,
+                  size: 24,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     sections[_selectedIndex].title,
                     style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: primaryColor,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: colors.textPrimary,
                     ),
                   ),
                 ),
@@ -291,9 +281,9 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                   child: SelectableText(
                     line,
                     style: TextStyle(
-                      color: primaryColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                      color: colors.accent,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
                     ),
                   ),
                 );
@@ -304,7 +294,8 @@ class _InstructionsScreenState extends State<InstructionsScreen> {
                   line,
                   style: TextStyle(
                     fontSize: 16,
-                    color: Theme.of(context).textTheme.bodyLarge?.color,
+                    color: colors.textPrimary,
+                    height: 1.45,
                   ),
                 ),
               );
@@ -320,5 +311,6 @@ class _InstructionSection {
   final String title;
   final IconData icon;
   final List<String> content;
-  const _InstructionSection({required this.title, required this.icon, required this.content});
+  const _InstructionSection(
+      {required this.title, required this.icon, required this.content});
 }

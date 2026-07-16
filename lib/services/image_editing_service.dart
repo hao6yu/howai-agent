@@ -5,6 +5,7 @@ import 'package:image_cropper/image_cropper.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import '../core/theme/howai_theme.dart';
 
 /// Service for image editing operations like cropping, rotating, and resizing
 class ImageEditingService {
@@ -87,27 +88,20 @@ class ImageEditingService {
   static Future<File?> quickAvatarPicker(BuildContext context) async {
     final ImageSource? source = await showModalBottomSheet<ImageSource>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2C2C2E) : Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(16),
-            topRight: Radius.circular(16),
-          ),
-        ),
-        child: SafeArea(
+      showDragHandle: false,
+      builder: (context) {
+        final colors = context.howaiColors;
+        return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Handle bar
                 Container(
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                    color: colors.textTertiary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -116,8 +110,8 @@ class ImageEditingService {
                   'Choose Avatar Source',
                   style: TextStyle(
                     fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -127,25 +121,21 @@ class ImageEditingService {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0078D4).withOpacity(0.1),
+                      color: colors.accentSoft,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.camera_alt,
-                      color: Color(0xFF0078D4),
+                      color: colors.accent,
                     ),
                   ),
                   title: Text(
                     'Take Photo',
-                    style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
-                    ),
+                    style: TextStyle(color: colors.textPrimary),
                   ),
                   subtitle: Text(
                     'Use camera to take a new photo',
-                    style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
-                    ),
+                    style: TextStyle(color: colors.textSecondary),
                   ),
                   onTap: () => Navigator.pop(context, ImageSource.camera),
                 ),
@@ -155,25 +145,21 @@ class ImageEditingService {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0078D4).withOpacity(0.1),
+                      color: colors.accentSoft,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.photo_library,
-                      color: Color(0xFF0078D4),
+                      color: colors.accent,
                     ),
                   ),
                   title: Text(
                     'Choose from Gallery',
-                    style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
-                    ),
+                    style: TextStyle(color: colors.textPrimary),
                   ),
                   subtitle: Text(
                     'Select from your photo library',
-                    style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
-                    ),
+                    style: TextStyle(color: colors.textSecondary),
                   ),
                   onTap: () => Navigator.pop(context, ImageSource.gallery),
                 ),
@@ -185,16 +171,14 @@ class ImageEditingService {
                   onPressed: () => Navigator.pop(context),
                   child: Text(
                     'Cancel',
-                    style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : const Color(0xFF0078D4),
-                    ),
+                    style: TextStyle(color: colors.textSecondary),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
 
     if (source != null) {
@@ -247,6 +231,7 @@ class ImageEditingService {
     final result = await showModalBottomSheet<File?>(
       context: context,
       backgroundColor: Colors.transparent,
+      showDragHandle: false,
       isScrollControlled: true,
       builder: (context) => _ImageEditingBottomSheet(
         imageFile: imageFile,
@@ -307,9 +292,10 @@ class _ImageEditingBottomSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.howaiColors;
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF2C2C2E) : Colors.white,
+        color: colors.canvas,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(16),
           topRight: Radius.circular(16),
@@ -328,7 +314,7 @@ class _ImageEditingBottomSheet extends StatelessWidget {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                    color: colors.textTertiary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -341,7 +327,7 @@ class _ImageEditingBottomSheet extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                  color: colors.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -349,7 +335,7 @@ class _ImageEditingBottomSheet extends StatelessWidget {
                 'Choose how you\'d like to edit your image',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  color: colors.textSecondary,
                 ),
               ),
               const SizedBox(height: 20),
@@ -361,7 +347,6 @@ class _ImageEditingBottomSheet extends StatelessWidget {
                 title: isAvatarMode ? 'Crop for Avatar' : 'Crop Image',
                 subtitle: isAvatarMode ? 'Square crop for profile picture' : 'Crop to desired size and ratio',
                 onTap: () async {
-                  Navigator.pop(context); // Close bottom sheet first
                   final croppedFile = isAvatarMode ? await ImageEditingService.cropAvatar(imageFile) : await ImageEditingService.cropGeneral(imageFile);
                   if (context.mounted) {
                     Navigator.pop(context, croppedFile);
@@ -377,7 +362,6 @@ class _ImageEditingBottomSheet extends StatelessWidget {
                 title: 'Resize & Compress',
                 subtitle: 'Optimize file size while keeping quality',
                 onTap: () async {
-                  Navigator.pop(context); // Close bottom sheet first
                   final compressedFile = await ImageEditingService.resizeAndCompress(
                     imageFile: imageFile,
                   );
@@ -410,7 +394,7 @@ class _ImageEditingBottomSheet extends StatelessWidget {
                     'Cancel',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ),
@@ -429,6 +413,7 @@ class _ImageEditingBottomSheet extends StatelessWidget {
     required String subtitle,
     required VoidCallback onTap,
   }) {
+    final colors = context.howaiColors;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -438,7 +423,7 @@ class _ImageEditingBottomSheet extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200,
+              color: colors.divider,
             ),
             borderRadius: BorderRadius.circular(12),
           ),
@@ -448,12 +433,12 @@ class _ImageEditingBottomSheet extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0078D4).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(24),
+                  color: colors.accentSoft,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
-                  color: const Color(0xFF0078D4),
+                  color: colors.accent,
                   size: 24,
                 ),
               ),
@@ -467,7 +452,7 @@ class _ImageEditingBottomSheet extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                        color: colors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -475,7 +460,7 @@ class _ImageEditingBottomSheet extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                        color: colors.textSecondary,
                       ),
                     ),
                   ],
@@ -484,7 +469,7 @@ class _ImageEditingBottomSheet extends StatelessWidget {
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: Colors.grey.shade400,
+                color: colors.textTertiary,
               ),
             ],
           ),

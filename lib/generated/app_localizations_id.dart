@@ -2041,7 +2041,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get adjustSliderTextSize => 'Sesuaikan slider di bawah untuk mengubah ukuran teks';
 
   @override
-  String get textSizeChangeNote => 'Jika diaktifkan, ukuran teks dalam obrolan dan Momen akan diubah. Jika Anda memiliki pertanyaan atau umpan balik, silakan hubungi Tim WeChat.';
+  String get textSizeChangeNote => 'Gunakan penggeser untuk melihat pratinjau teks di HowAI.';
 
   @override
   String get resetToDefaultButton => 'Reset ke Default';

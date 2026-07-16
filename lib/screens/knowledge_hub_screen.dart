@@ -1589,7 +1589,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       appBar: AppBar(
         title: Text(AppLocalizations.of(context)!.knowledgeHubTitle),
         actions: [
-          if (subscriptionService.isPremium)
+          if (subscriptionService.isPremium && _items.isNotEmpty)
             IconButton(
               icon: Stack(
                 clipBehavior: Clip.none,

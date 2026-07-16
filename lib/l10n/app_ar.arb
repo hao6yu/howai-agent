@@ -657,7 +657,7 @@
   "done": "تم",
   "previewTextSize": "معاينة حجم النص",
   "adjustSliderTextSize": "اضبط شريط التمرير أدناه لتغيير حجم النص",
-  "textSizeChangeNote": "إذا تم التمكين، سيتم تغيير حجم النص في الدردشات واللحظات. إذا كانت لديك أسئلة أو ملاحظات، يرجى الاتصال بفريق WeChat.",
+  "textSizeChangeNote": "استخدم شريط التمرير لمعاينة النص في HowAI.",
   "resetToDefaultButton": "إعادة التعيين إلى الافتراضي",
   "defaultFontSize": "افتراضي",
   "editProfile": "تعديل الملف الشخصي",

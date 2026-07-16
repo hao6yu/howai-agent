@@ -657,7 +657,7 @@
   "done": "Tamam",
   "previewTextSize": "Metin boyutunu önizle",
   "adjustSliderTextSize": "Metin boyutunu değiştirmek için aşağıdaki kaydırıcıyı ayarlayın",
-  "textSizeChangeNote": "Etkinleştirildiğinde, sohbetlerdeki ve Anlık Görüntülerdeki metin boyutu değiştirilecektir. Sorularınız veya geri bildiriminiz varsa, lütfen WeChat Ekibiyle iletişime geçin.",
+  "textSizeChangeNote": "HowAI genelindeki metni önizlemek için kaydırıcıyı kullanın.",
   "resetToDefaultButton": "Varsayılana Sıfırla",
   "defaultFontSize": "Varsayılan",
   "editProfile": "Profili Düzenle",

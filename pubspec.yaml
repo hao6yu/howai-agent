@@ -63,7 +63,6 @@ dependencies:
   share_plus: ^11.0.0  # For sharing place information
   webview_flutter: ^4.4.2  # For in-app Street View
   flutter_pptx: ^0.1.3  # For PPTX file generation
-  liquid_glass_renderer: ^0.1.1-dev.7
   showcaseview: ^4.0.1  # For feature showcasing
   package_info_plus: ^8.0.2  # For version checking
   supabase_flutter: ^2.8.0  # For Supabase authentication and cloud sync

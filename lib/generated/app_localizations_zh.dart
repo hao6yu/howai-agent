@@ -2041,7 +2041,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get adjustSliderTextSize => '调整下面的滑块来改变文字大小';
 
   @override
-  String get textSizeChangeNote => '如果启用，聊天和动态中的文字大小将被更改。如果你有任何问题或反馈，请联系微信团队。';
+  String get textSizeChangeNote => '使用滑块预览 HowAI 中的文字大小。';
 
   @override
   String get resetToDefaultButton => '重置为默认';
@@ -5050,7 +5050,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get adjustSliderTextSize => '調整下面的滑塊來改變文字大小';
 
   @override
-  String get textSizeChangeNote => '如果啟用，聊天和動態中的文字大小將被更改。如果你有任何問題或反饋，請聯繫微信團隊。';
+  String get textSizeChangeNote => '使用滑桿預覽 HowAI 中的文字大小。';
 
   @override
   String get resetToDefaultButton => '重置為默認';

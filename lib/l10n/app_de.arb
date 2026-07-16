@@ -657,7 +657,7 @@
   "done": "Fertig",
   "previewTextSize": "Vorschau der Textgröße",
   "adjustSliderTextSize": "Passen Sie den Schieberegler unten an, um die Textgröße zu ändern",
-  "textSizeChangeNote": "Wenn aktiviert, wird die Textgröße in Chats und Momenten geändert. Bei Fragen oder Kommentaren wenden Sie sich bitte an das WeChat-Team.",
+  "textSizeChangeNote": "Verwende den Regler, um Text in HowAI vorab anzuzeigen.",
   "resetToDefaultButton": "Auf Standard Zurücksetzen",
   "defaultFontSize": "Standard",
   "editProfile": "Profil Bearbeiten",

@@ -657,7 +657,7 @@
   "done": "Gotowe",
   "previewTextSize": "Podgląd rozmiaru tekstu",
   "adjustSliderTextSize": "Dostosuj suwak poniżej, aby zmienić rozmiar tekstu",
-  "textSizeChangeNote": "Jeśli włączone, rozmiar tekstu w czatach i Momentach zostanie zmieniony. Jeśli masz pytania lub uwagi, skontaktuj się z zespołem WeChat.",
+  "textSizeChangeNote": "Użyj suwaka, aby zobaczyć podgląd tekstu w HowAI.",
   "resetToDefaultButton": "Resetuj do domyślnych",
   "defaultFontSize": "Domyślny",
   "editProfile": "Edytuj profil",

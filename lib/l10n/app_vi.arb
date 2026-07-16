@@ -657,7 +657,7 @@
   "done": "Xong",
   "previewTextSize": "Xem trước kích thước văn bản",
   "adjustSliderTextSize": "Điều chỉnh thanh trượt bên dưới để thay đổi kích thước văn bản",
-  "textSizeChangeNote": "Nếu bật, kích thước văn bản trong trò chuyện và Khoảnh khắc sẽ được thay đổi. Nếu bạn có câu hỏi hoặc phản hồi, vui lòng liên hệ Đội ngũ WeChat.",
+  "textSizeChangeNote": "Dùng thanh trượt để xem trước văn bản trong HowAI.",
   "resetToDefaultButton": "Đặt lại về Mặc định",
   "defaultFontSize": "Mặc định",
   "editProfile": "Chỉnh sửa Hồ sơ",

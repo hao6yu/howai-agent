@@ -117,12 +117,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: Text(AppLocalizations.of(context)!.premiumTitle),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
-        elevation: 0,
-        leading: const CustomBackButton(),
+      appBar: CustomAppBar(
+        title: AppLocalizations.of(context)!.premiumTitle,
       ),
       body: Consumer<SubscriptionService>(
         builder: (context, subscriptionService, child) {

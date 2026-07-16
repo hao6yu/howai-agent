@@ -92,9 +92,7 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
             children: [
               // Preview Area
               Expanded(
-                child: Container(
-                  width: double.infinity,
-                  color: context.howaiColors.canvas,
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -108,12 +106,14 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
                             size: settings.getScaledFontSize(22),
                           ),
                           const SizedBox(width: 10),
-                          Text(
-                            AppLocalizations.of(context)!.previewTextSize,
-                            style: TextStyle(
-                              color: context.howaiColors.textPrimary,
-                              fontSize: settings.getScaledFontSize(18),
-                              fontWeight: FontWeight.w600,
+                          Expanded(
+                            child: Text(
+                              AppLocalizations.of(context)!.previewTextSize,
+                              style: TextStyle(
+                                color: context.howaiColors.textPrimary,
+                                fontSize: settings.getScaledFontSize(18),
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ],
@@ -152,25 +152,26 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
                         ),
                       ),
 
-                      const Spacer(),
-
                       // Reset button
                       if (!settings.isDefaultFontSize)
-                        Center(
-                          child: TextButton.icon(
-                            onPressed: _resetToDefault,
-                            icon: Icon(
-                              Icons.refresh,
-                              color: context.howaiColors.accent,
-                              size: settings.getScaledFontSize(18),
-                            ),
-                            label: Text(
-                              AppLocalizations.of(context)!
-                                  .resetToDefaultButton,
-                              style: TextStyle(
+                        Padding(
+                          padding: const EdgeInsets.only(top: 28),
+                          child: Center(
+                            child: TextButton.icon(
+                              onPressed: _resetToDefault,
+                              icon: Icon(
+                                Icons.refresh,
                                 color: context.howaiColors.accent,
-                                fontSize: settings.getScaledFontSize(16),
-                                fontWeight: FontWeight.w500,
+                                size: settings.getScaledFontSize(18),
+                              ),
+                              label: Text(
+                                AppLocalizations.of(context)!
+                                    .resetToDefaultButton,
+                                style: TextStyle(
+                                  color: context.howaiColors.accent,
+                                  fontSize: settings.getScaledFontSize(16),
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ),
@@ -198,12 +199,19 @@ class _FontSizeScreenState extends State<FontSizeScreen> {
                             color: context.howaiColors.textSecondary,
                           ),
                         ),
-                        Text(
-                          AppLocalizations.of(context)!.defaultSize,
-                          style: TextStyle(
-                            fontSize: settings.getScaledFontSize(14),
-                            color: context.howaiColors.textSecondary,
-                            fontWeight: FontWeight.w500,
+                        Flexible(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              AppLocalizations.of(context)!.defaultSize,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: settings.getScaledFontSize(14),
+                                color: context.howaiColors.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ),
                         Text(

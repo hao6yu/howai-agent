@@ -49,10 +49,14 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
       appBar: AppBar(
         title: const Text('Automations'),
         actions: [
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: () => context.read<ReminderProvider>().refresh(),
-            icon: const Icon(Icons.refresh_rounded),
+          Consumer<ReminderProvider>(
+            builder: (context, provider, _) => provider.isAvailable
+                ? IconButton(
+                    tooltip: 'Refresh',
+                    onPressed: provider.refresh,
+                    icon: const Icon(Icons.refresh_rounded),
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
       ),

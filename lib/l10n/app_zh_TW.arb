@@ -657,7 +657,7 @@
   "done": "完成",
   "previewTextSize": "預覽文字大小",
   "adjustSliderTextSize": "調整下面的滑塊來改變文字大小",
-  "textSizeChangeNote": "如果啟用，聊天和動態中的文字大小將被更改。如果你有任何問題或反饋，請聯繫微信團隊。",
+  "textSizeChangeNote": "使用滑桿預覽 HowAI 中的文字大小。",
   "resetToDefaultButton": "重置為默認",
   "defaultFontSize": "默認",
   "editProfile": "編輯個人資料",

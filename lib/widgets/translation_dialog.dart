@@ -6,6 +6,7 @@ import 'dart:io';
 import '../providers/settings_provider.dart';
 import '../services/profile_translation_service.dart';
 import 'package:haogpt/generated/app_localizations.dart';
+import '../core/theme/howai_theme.dart';
 
 class TranslationDialog extends StatefulWidget {
   final Function(String, {List<XFile>? images}) onTranslate; // Updated to handle multiple images
@@ -258,12 +259,14 @@ class _TranslationDialogState extends State<TranslationDialog> with TickerProvid
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
+        final colors = context.howaiColors;
         return Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Theme.of(context).scaffoldBackgroundColor,
+            color: colors.canvas,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -273,7 +276,7 @@ class _TranslationDialogState extends State<TranslationDialog> with TickerProvid
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey[300],
+                  color: colors.textTertiary,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -283,7 +286,7 @@ class _TranslationDialogState extends State<TranslationDialog> with TickerProvid
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                  color: colors.textPrimary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -291,7 +294,7 @@ class _TranslationDialogState extends State<TranslationDialog> with TickerProvid
                 'From Gallery: Select multiple images\nFrom Camera: Take one photo',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey[600],
+                  color: colors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -351,20 +354,20 @@ class _TranslationDialogState extends State<TranslationDialog> with TickerProvid
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           border: Border.all(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey[300]!,
+            color: context.howaiColors.divider,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 32, color: const Color(0xFF007AFF)),
+            Icon(icon, size: 32, color: context.howaiColors.accent),
             const SizedBox(height: 8),
             Text(
               label,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                color: context.howaiColors.textPrimary,
               ),
             ),
           ],
@@ -377,11 +380,12 @@ class _TranslationDialogState extends State<TranslationDialog> with TickerProvid
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.6,
         decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
+          color: context.howaiColors.canvas,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
@@ -395,7 +399,7 @@ class _TranslationDialogState extends State<TranslationDialog> with TickerProvid
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey[300],
+                color: context.howaiColors.textTertiary,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -409,7 +413,7 @@ class _TranslationDialogState extends State<TranslationDialog> with TickerProvid
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                      color: context.howaiColors.textPrimary,
                     ),
                   ),
                   const Spacer(),
@@ -935,7 +939,8 @@ class _TranslationDialogState extends State<TranslationDialog> with TickerProvid
 
                       if (hasText && hasImages) {
                         // Both text and images
-                        translationPrompt = 'Please translate the following text to $_selectedLanguage, and also identify and translate any text in the attached images to $_selectedLanguage:\n\n${_textController.text.trim()}';
+                        translationPrompt =
+                            'Please translate the following text to $_selectedLanguage, and also identify and translate any text in the attached images to $_selectedLanguage:\n\n${_textController.text.trim()}';
                       } else if (hasText) {
                         // Text only
                         translationPrompt = 'Please translate the following text to $_selectedLanguage:\n\n${_textController.text.trim()}';

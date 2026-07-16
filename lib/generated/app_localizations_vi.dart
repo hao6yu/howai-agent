@@ -2041,7 +2041,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adjustSliderTextSize => 'Điều chỉnh thanh trượt bên dưới để thay đổi kích thước văn bản';
 
   @override
-  String get textSizeChangeNote => 'Nếu bật, kích thước văn bản trong trò chuyện và Khoảnh khắc sẽ được thay đổi. Nếu bạn có câu hỏi hoặc phản hồi, vui lòng liên hệ Đội ngũ WeChat.';
+  String get textSizeChangeNote => 'Dùng thanh trượt để xem trước văn bản trong HowAI.';
 
   @override
   String get resetToDefaultButton => 'Đặt lại về Mặc định';

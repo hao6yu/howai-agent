@@ -2041,7 +2041,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get adjustSliderTextSize => '아래 슬라이더를 조정하여 텍스트 크기를 변경하세요';
 
   @override
-  String get textSizeChangeNote => '활성화하면 채팅 및 모먼트의 텍스트 크기가 변경됩니다. 질문이나 피드백이 있으시면 WeChat 팀에 문의하세요.';
+  String get textSizeChangeNote => '슬라이더로 HowAI 전체의 텍스트를 미리 확인하세요.';
 
   @override
   String get resetToDefaultButton => '기본값으로 재설정';

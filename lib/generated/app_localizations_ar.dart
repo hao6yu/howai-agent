@@ -2041,7 +2041,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get adjustSliderTextSize => 'اضبط شريط التمرير أدناه لتغيير حجم النص';
 
   @override
-  String get textSizeChangeNote => 'إذا تم التمكين، سيتم تغيير حجم النص في الدردشات واللحظات. إذا كانت لديك أسئلة أو ملاحظات، يرجى الاتصال بفريق WeChat.';
+  String get textSizeChangeNote => 'استخدم شريط التمرير لمعاينة النص في HowAI.';
 
   @override
   String get resetToDefaultButton => 'إعادة التعيين إلى الافتراضي';

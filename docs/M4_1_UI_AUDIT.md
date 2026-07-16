@@ -40,23 +40,24 @@ use the shared semantic system. Functional behavior is intentionally preserved.
 | --- | --- | --- |
 | Settings | Compact grouped rows, neutral icons, semantic toggles and badges | Localized overflow test |
 | Profile | Smaller avatar, text Save action, semantic input, flat AI insights | Free-user lock state and editing golden |
-| Text Size | Neutral live chat preview and semantic slider | Max-scale clipping test |
+| Text Size | Scroll-safe live preview at 80–160%; obsolete WeChat/Moments copy removed in every locale | Add platform Dynamic Type integration later |
 | Voice Settings | Neutral grouped system/premium voice sections | Voice loading/error and long voice-name test |
 | Usage | Compact account status and flat quota rows | Free limit/progress and reset-state golden |
-| Subscription | Compact Pro status, grouped details/features, no promotional green hero | Redesign free purchase plan and store error states |
-| AI Personality | Functional, but still uses old nested-card styling | Next secondary-screen slice |
-| Instructions | Shared navigation; information hierarchy still needs review | Next secondary-screen slice |
-| About | Functional; decorative legacy treatment remains | Next secondary-screen slice |
-| Authentication | Functional and theme-aware; provider/loading/error states need visual consolidation | Next secondary-screen slice |
+| Subscription | Compact Pro status, grouped details/features, shared navigation header, no promotional green hero | Redesign free purchase plan and store error states |
+| AI Personality | Flat semantic editor/preview groups and quiet Save/upgrade actions | Localized overflow and avatar-picker golden |
+| Instructions | One help title, compact section picker, neutral readable content | Tablet split-view and long-copy golden |
+| About | Removed decorative glass/gradients; simple identity, copy, and support actions | Verify mail/external-link failure states |
+| Authentication | Semantic provider buttons and fields; local-only footer yields while the keyboard is open | OAuth return and validation-error screenshots |
 
 ## Tool, media, and transient surfaces
 
 | Surface | Audit decision |
 | --- | --- |
-| Upgrade/report/confirmation dialogs | Consolidate on semantic dialog and bottom-sheet patterns |
-| Image generation/gallery/editing | Remove legacy gradients and normalize selection/tool bars |
-| Translation | Use the same input/result spacing and citation/action treatment as chat |
-| Places and map results | Highest remaining complexity; split the oversized widget before visual cleanup |
+| Upgrade/report/language dialogs | Shared semantic dialogs now replace gradients, fixed light colors, and promotional animation |
+| Remaining confirmation dialogs | Consolidate on semantic dialog and bottom-sheet patterns |
+| Image generation/gallery/editing | Source/edit/file sheets use semantic colors and one consistent drag handle |
+| Translation | Source/language/message action sheets use semantic colors and one consistent drag handle |
+| Places and map results | Duplicate sheet handles removed; split the oversized widget before deeper visual cleanup |
 | PDF/file/document results | Normalize metadata, progress, result actions, and errors |
 | Voice call | Align connection states and controls with the compact composer language |
 | Snackbars/toasts | Reserve for transient system errors; successful agent actions stay conversational |

@@ -443,6 +443,7 @@ void showStreetViewModal(BuildContext context, PlaceResult place) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    showDragHandle: false,
     backgroundColor: Colors.transparent,
     enableDrag: true,
     isDismissible: true,

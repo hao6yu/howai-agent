@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:haogpt/generated/app_localizations.dart';
+import '../core/theme/howai_theme.dart';
 import '../providers/auth_provider.dart';
 
 class AuthScreen extends StatefulWidget {
@@ -122,8 +123,9 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final colors = context.howaiColors;
     final l10n = AppLocalizations.of(context)!;
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
@@ -137,12 +139,14 @@ class _AuthScreenState extends State<AuthScreen> {
         }
 
         return Scaffold(
-          backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+          backgroundColor: colors.canvas,
           body: SafeArea(
             child: Column(
               children: [
                 Expanded(
                   child: SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 32.0, vertical: 16.0),
                     child: Form(
@@ -184,13 +188,8 @@ class _AuthScreenState extends State<AuthScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              side: BorderSide(
-                                color: isDark
-                                    ? Colors.grey.shade700
-                                    : Colors.grey.shade300,
-                              ),
-                              foregroundColor:
-                                  isDark ? Colors.white : Colors.black87,
+                              side: BorderSide(color: colors.divider),
+                              foregroundColor: colors.textPrimary,
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -219,13 +218,8 @@ class _AuthScreenState extends State<AuthScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              side: BorderSide(
-                                color: isDark
-                                    ? Colors.grey.shade700
-                                    : Colors.grey.shade300,
-                              ),
-                              foregroundColor:
-                                  isDark ? Colors.white : Colors.black87,
+                              side: BorderSide(color: colors.divider),
+                              foregroundColor: colors.textPrimary,
                             ),
                           ),
 
@@ -241,7 +235,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 child: Text(
                                   l10n.orContinueWithEmail,
                                   style: TextStyle(
-                                    color: Colors.grey.shade600,
+                                    color: colors.textSecondary,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -258,23 +252,17 @@ class _AuthScreenState extends State<AuthScreen> {
                               labelText: l10n.emailAddress,
                               hintText: l10n.emailPlaceholder,
                               filled: true,
-                              fillColor: isDark
-                                  ? Colors.grey.shade900
-                                  : Colors.grey.shade50,
+                              fillColor: colors.surface,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: isDark
-                                      ? Colors.grey.shade700
-                                      : Colors.grey.shade300,
+                                  color: colors.divider,
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: isDark
-                                      ? Colors.grey.shade700
-                                      : Colors.grey.shade300,
+                                  color: colors.divider,
                                 ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -303,23 +291,17 @@ class _AuthScreenState extends State<AuthScreen> {
                               labelText: l10n.password,
                               hintText: '••••••••',
                               filled: true,
-                              fillColor: isDark
-                                  ? Colors.grey.shade900
-                                  : Colors.grey.shade50,
+                              fillColor: colors.surface,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: isDark
-                                      ? Colors.grey.shade700
-                                      : Colors.grey.shade300,
+                                  color: colors.divider,
                                 ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
                                 borderSide: BorderSide(
-                                  color: isDark
-                                      ? Colors.grey.shade700
-                                      : Colors.grey.shade300,
+                                  color: colors.divider,
                                 ),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
@@ -365,18 +347,18 @@ class _AuthScreenState extends State<AuthScreen> {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              backgroundColor: const Color(0xFF0078D4),
-                              foregroundColor: Colors.white,
+                              backgroundColor: colors.textPrimary,
+                              foregroundColor: colors.canvas,
                               elevation: 0,
                             ),
                             child: authProvider.isLoading
-                                ? const SizedBox(
+                                ? SizedBox(
                                     height: 20,
                                     width: 20,
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
+                                          colors.canvas),
                                     ),
                                   )
                                 : Text(
@@ -398,7 +380,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                 });
                               },
                               style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xFF0078D4),
+                                foregroundColor: colors.accent,
                                 visualDensity: VisualDensity.compact,
                               ),
                               child: Text(
@@ -414,37 +396,38 @@ class _AuthScreenState extends State<AuthScreen> {
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(32, 4, 32, 12),
-                  child: Column(
-                    children: [
-                      TextButton(
-                        onPressed: authProvider.isLoading
-                            ? null
-                            : _continueWithoutAccount,
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.grey.shade600,
-                          visualDensity: VisualDensity.compact,
-                        ),
-                        child: Text(
-                          l10n.continueWithoutAccount,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            decoration: TextDecoration.underline,
+                if (!keyboardVisible)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(32, 4, 32, 12),
+                    child: Column(
+                      children: [
+                        TextButton(
+                          onPressed: authProvider.isLoading
+                              ? null
+                              : _continueWithoutAccount,
+                          style: TextButton.styleFrom(
+                            foregroundColor: colors.textSecondary,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: Text(
+                            l10n.continueWithoutAccount,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              decoration: TextDecoration.underline,
+                            ),
                           ),
                         ),
-                      ),
-                      Text(
-                        l10n.yourDataWillOnlyBeStoredLocallyOnThisDevice,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade500,
-                          fontSize: 12,
+                        Text(
+                          l10n.yourDataWillOnlyBeStoredLocallyOnThisDevice,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.textTertiary,
+                            fontSize: 12,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),

@@ -657,7 +657,7 @@
   "done": "完了",
   "previewTextSize": "テキストサイズのプレビュー",
   "adjustSliderTextSize": "下のスライダーを調整してテキストサイズを変更",
-  "textSizeChangeNote": "有効にすると、チャットとモーメントのテキストサイズが変更されます。質問やコメントがある場合は、WeChatチームにお問い合わせください。",
+  "textSizeChangeNote": "スライダーでHowAI全体のテキストをプレビューできます。",
   "resetToDefaultButton": "デフォルトにリセット",
   "defaultFontSize": "デフォルト",
   "editProfile": "プロフィール編集",

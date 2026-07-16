@@ -8,6 +8,7 @@ import 'package:syncfusion_flutter_pdf/pdf.dart' as sf_pdf;
 import 'package:archive/archive.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'package:csv/csv.dart';
+import '../core/theme/howai_theme.dart';
 
 class FileService {
   // Supported file types that OpenAI can read
@@ -494,6 +495,7 @@ The file has been uploaded and the AI can provide insights based on its content.
     try {
       showModalBottomSheet(
         context: context,
+        showDragHandle: false,
         isDismissible: true,
         enableDrag: true,
         isScrollControlled: false,
@@ -502,10 +504,11 @@ The file has been uploaded and the AI can provide insights based on its content.
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         builder: (modalContext) {
+          final colors = modalContext.howaiColors;
           // print('[FileService] Modal bottom sheet builder called');
           return Container(
             decoration: BoxDecoration(
-              color: Theme.of(context).scaffoldBackgroundColor,
+              color: colors.canvas,
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
             padding: const EdgeInsets.all(20),
@@ -516,7 +519,7 @@ The file has been uploaded and the AI can provide insights based on its content.
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                    color: colors.textTertiary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -524,7 +527,7 @@ The file has been uploaded and the AI can provide insights based on its content.
                 Icon(
                   Icons.upload_file,
                   size: 48,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade300 : const Color(0xFF0078D4),
+                  color: colors.accent,
                 ),
                 const SizedBox(height: 16),
                 Text(
@@ -532,7 +535,7 @@ The file has been uploaded and the AI can provide insights based on its content.
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -540,7 +543,7 @@ The file has been uploaded and the AI can provide insights based on its content.
                   subtitle,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                    color: colors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -579,7 +582,7 @@ The file has been uploaded and the AI can provide insights based on its content.
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0078D4),
+                      backgroundColor: colors.accent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
@@ -599,7 +602,7 @@ The file has been uploaded and the AI can provide insights based on its content.
                   child: Text(
                     cancelText,
                     style: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      color: colors.textSecondary,
                     ),
                   ),
                 ),

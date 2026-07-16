@@ -2041,7 +2041,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get adjustSliderTextSize => '下のスライダーを調整してテキストサイズを変更';
 
   @override
-  String get textSizeChangeNote => '有効にすると、チャットとモーメントのテキストサイズが変更されます。質問やコメントがある場合は、WeChatチームにお問い合わせください。';
+  String get textSizeChangeNote => 'スライダーでHowAI全体のテキストをプレビューできます。';
 
   @override
   String get resetToDefaultButton => 'デフォルトにリセット';

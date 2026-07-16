@@ -1778,6 +1778,7 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (context) => NavigationOptionsSheet(place: place),
     );
@@ -1787,6 +1788,7 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (context) => PlaceDetailsSheet(place: place),
     );
@@ -1796,6 +1798,7 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (context) => StreetViewModal(place: place),
     );
@@ -2045,6 +2048,7 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (context) => _ReviewsBottomSheet(
         place: place,
@@ -2326,6 +2330,7 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
   Future<void> _showLocationOptions(LatLng position) async {
     showModalBottomSheet(
       context: context,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return Container(
@@ -2372,7 +2377,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         child: Icon(Icons.search, color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Color(0xFF5856D6)),
                       ),
                       title: Text(AppLocalizations.of(context)!.searchForBusinessHere, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)),
-                      subtitle: Text(AppLocalizations.of(context)!.findRestaurantsShopsAndServicesAtThisLocation, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600)),
+                      subtitle: Text(AppLocalizations.of(context)!.findRestaurantsShopsAndServicesAtThisLocation,
+                          style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600)),
                       onTap: () {
                         Navigator.pop(context);
                         _findPlaceAtLocation(position);
@@ -2392,7 +2398,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         child: Icon(Icons.map, color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green),
                       ),
                       title: Text(AppLocalizations.of(context)!.openInGoogleMaps, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)),
-                      subtitle: Text(AppLocalizations.of(context)!.viewThisLocationInTheNativeGoogleMapsApp, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600)),
+                      subtitle: Text(AppLocalizations.of(context)!.viewThisLocationInTheNativeGoogleMapsApp,
+                          style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600)),
                       onTap: () {
                         Navigator.pop(context);
                         _openInGoogleMaps(position);
@@ -2412,7 +2419,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         child: Icon(Icons.directions, color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue),
                       ),
                       title: Text(AppLocalizations.of(context)!.getDirections, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)),
-                      subtitle: Text(AppLocalizations.of(context)!.navigateToThisLocation, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600)),
+                      subtitle: Text(AppLocalizations.of(context)!.navigateToThisLocation,
+                          style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600)),
                       onTap: () {
                         Navigator.pop(context);
                         _getDirectionsToLocation(position);
@@ -3830,6 +3838,7 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (context) => NavigationOptionsSheet(place: place),
     );
@@ -3839,6 +3848,7 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (context) => PlaceDetailsSheet(place: place),
     );
@@ -4672,7 +4682,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                       _buildInfoCard(
                         title: AppLocalizations.of(context)!.hoursAndAvailability,
                         icon: Icons.access_time,
-                        color: widget.place.isOpen ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green) : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
+                        color: widget.place.isOpen
+                            ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green)
+                            : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
                         child: _buildExpandableStatusContent(settings),
                       ),
                       SizedBox(height: 12),
@@ -5015,6 +5027,7 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (context) => NavigationOptionsSheet(place: widget.place),
     );
@@ -5113,7 +5126,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                       ),
                       child: Icon(
                         widget.place.isOpen ? Icons.check_circle : Icons.cancel,
-                        color: widget.place.isOpen ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green) : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
+                        color: widget.place.isOpen
+                            ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green)
+                            : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
                         size: 16,
                       ),
                     ),
@@ -5123,7 +5138,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(15),
                         fontWeight: FontWeight.w600,
-                        color: widget.place.isOpen ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green) : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
+                        color: widget.place.isOpen
+                            ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green)
+                            : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
                       ),
                     ),
                   ],
@@ -5642,7 +5659,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                       ),
                       child: Icon(
                         widget.place.isOpen ? Icons.check_circle : Icons.cancel,
-                        color: widget.place.isOpen ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green) : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
+                        color: widget.place.isOpen
+                            ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green)
+                            : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
                         size: 16,
                       ),
                     ),
@@ -5652,7 +5671,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(15),
                         fontWeight: FontWeight.w600,
-                        color: widget.place.isOpen ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green) : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
+                        color: widget.place.isOpen
+                            ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green)
+                            : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
                       ),
                     ),
                   ],
@@ -5854,7 +5875,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                 content,
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(13),
-                  color: isClickable ? (Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade800),
+                  color: isClickable
+                      ? (Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600)
+                      : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade800),
                   decoration: isClickable ? TextDecoration.underline : null,
                 ),
                 maxLines: 1,
@@ -5863,7 +5886,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
             ],
           ),
         ),
-        if (isClickable && title != AppLocalizations.of(context)!.address) Icon(Icons.open_in_new, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600),
+        if (isClickable && title != AppLocalizations.of(context)!.address)
+          Icon(Icons.open_in_new, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600),
         if (isClickable && title == AppLocalizations.of(context)!.address) ...[
           if (_showCopiedFeedback) ...[
             Icon(Icons.check_circle, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green.shade600),
@@ -6136,6 +6160,7 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (context) => _ReviewsBottomSheet(
         place: place,
@@ -7160,7 +7185,9 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                         Container(
                           padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: place.isOpen ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.withOpacity(0.15) : Colors.green.withOpacity(0.1)) : (Theme.of(context).brightness == Brightness.dark ? Colors.red.withOpacity(0.15) : Colors.red.withOpacity(0.1)),
+                            color: place.isOpen
+                                ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.withOpacity(0.15) : Colors.green.withOpacity(0.1))
+                                : (Theme.of(context).brightness == Brightness.dark ? Colors.red.withOpacity(0.15) : Colors.red.withOpacity(0.1)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -7168,7 +7195,9 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(10),
                               fontWeight: FontWeight.w500,
-                              color: place.isOpen ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade400 : Colors.green) : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade400 : Colors.red),
+                              color: place.isOpen
+                                  ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade400 : Colors.green)
+                                  : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade400 : Colors.red),
                             ),
                           ),
                         ),

@@ -657,7 +657,7 @@
   "done": "Selesai",
   "previewTextSize": "Pratinjau ukuran teks",
   "adjustSliderTextSize": "Sesuaikan slider di bawah untuk mengubah ukuran teks",
-  "textSizeChangeNote": "Jika diaktifkan, ukuran teks dalam obrolan dan Momen akan diubah. Jika Anda memiliki pertanyaan atau umpan balik, silakan hubungi Tim WeChat.",
+  "textSizeChangeNote": "Gunakan penggeser untuk melihat pratinjau teks di HowAI.",
   "resetToDefaultButton": "Reset ke Default",
   "defaultFontSize": "Default",
   "editProfile": "Edit Profil",

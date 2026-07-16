@@ -2041,7 +2041,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get adjustSliderTextSize => 'Ajuste o seletor abaixo para alterar o tamanho do texto';
 
   @override
-  String get textSizeChangeNote => 'Se ativado, o tamanho do texto nas conversas e Momentos será alterado. Se tiver alguma questão ou feedback, por favor contacte a Equipa WeChat.';
+  String get textSizeChangeNote => 'Use o controlo para pré-visualizar o texto no HowAI.';
 
   @override
   String get resetToDefaultButton => 'Repor para Predefinição';
@@ -5050,7 +5050,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get adjustSliderTextSize => 'Ajuste o controle deslizante abaixo para alterar o tamanho do texto';
 
   @override
-  String get textSizeChangeNote => 'Se ativado, o tamanho do texto em chats e Moments será alterado. Se você tiver alguma dúvida ou feedback, entre em contato com a equipe do WeChat.';
+  String get textSizeChangeNote => 'Use o controle para visualizar o texto em todo o HowAI.';
 
   @override
   String get resetToDefaultButton => 'Redefinir para o padrão';

@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
 import '../widgets/image_gallery_dialog.dart';
 import 'supabase_service.dart';
+import '../core/theme/howai_theme.dart';
 
 class ImageService {
   static final ImagePicker _picker = ImagePicker();
@@ -169,12 +170,14 @@ class ImageService {
   }) {
     showModalBottomSheet(
       context: context,
+      showDragHandle: false,
       backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
+        final colors = context.howaiColors;
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+          decoration: BoxDecoration(
+            color: colors.canvas,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
           ),
           child: SafeArea(
             child: Column(
@@ -186,7 +189,7 @@ class ImageService {
                   width: 32,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: colors.textTertiary,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -197,17 +200,17 @@ class ImageService {
                     children: [
                       Text(
                         forPdf ? "Add Images to PDF" : attachPhotoText,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
-                          color: Colors.black87,
+                          color: colors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 24),
 
                       // Action buttons
                       ListTile(
-                        leading: const Icon(Icons.camera_alt, color: Colors.blue),
+                        leading: Icon(Icons.camera_alt, color: colors.accent),
                         title: Text(cameraText),
                         onTap: () {
                           Navigator.pop(context);
@@ -215,7 +218,7 @@ class ImageService {
                         },
                       ),
                       ListTile(
-                        leading: const Icon(Icons.photo_library, color: Colors.blue),
+                        leading: Icon(Icons.photo_library, color: colors.accent),
                         title: Text(galleryText),
                         onTap: () {
                           Navigator.pop(context);
@@ -224,7 +227,7 @@ class ImageService {
                       ),
                       const Divider(),
                       ListTile(
-                        leading: const Icon(Icons.close, color: Colors.grey),
+                        leading: Icon(Icons.close, color: colors.textSecondary),
                         title: Text(cancelText),
                         onTap: () => Navigator.pop(context),
                       ),
@@ -255,7 +258,7 @@ class ImageService {
   static Future<String?> uploadImageToSupabase(String localPath) async {
     try {
       final supabase = SupabaseService();
-      
+
       if (!supabase.isAuthenticated) {
         debugPrint('[ImageService] Not authenticated, skipping image upload');
         return null;
@@ -263,7 +266,7 @@ class ImageService {
 
       final userId = supabase.currentUser!.id;
       final file = File(localPath);
-      
+
       if (!file.existsSync()) {
         debugPrint('[ImageService] File does not exist: $localPath');
         return null;
@@ -276,14 +279,10 @@ class ImageService {
 
       // Upload to Supabase Storage
       final bytes = await file.readAsBytes();
-      await supabase.client.storage
-          .from('chat-images')
-          .uploadBinary(fileName, bytes);
+      await supabase.client.storage.from('chat-images').uploadBinary(fileName, bytes);
 
       // Get public URL
-      final publicUrl = supabase.client.storage
-          .from('chat-images')
-          .getPublicUrl(fileName);
+      final publicUrl = supabase.client.storage.from('chat-images').getPublicUrl(fileName);
 
       debugPrint('[ImageService] Uploaded image to Supabase: $publicUrl');
       return publicUrl;
@@ -297,12 +296,12 @@ class ImageService {
   /// Returns list of public URLs (null entries for failed uploads)
   static Future<List<String?>> uploadImagesToSupabase(List<String> localPaths) async {
     final List<String?> urls = [];
-    
+
     for (final path in localPaths) {
       final url = await uploadImageToSupabase(path);
       urls.add(url);
     }
-    
+
     return urls;
   }
 }

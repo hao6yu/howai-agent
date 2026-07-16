@@ -2041,7 +2041,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get adjustSliderTextSize => 'Ajustez le curseur ci-dessous pour changer la taille du texte';
 
   @override
-  String get textSizeChangeNote => 'Si activé, la taille du texte dans les chats et Moments sera modifiée. Si vous avez des questions ou commentaires, veuillez contacter l\'équipe WeChat.';
+  String get textSizeChangeNote => 'Utilisez le curseur pour prévisualiser le texte dans HowAI.';
 
   @override
   String get resetToDefaultButton => 'Rétablir par Défaut';

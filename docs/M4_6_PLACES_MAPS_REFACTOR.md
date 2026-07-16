@@ -1,6 +1,6 @@
 # M4.6 Places and Maps refactor
 
-Status: Planned after M4.5
+Status: In progress after M4.5
 Date: 2026-07-16
 
 ## Decision
@@ -73,6 +73,27 @@ responsibilities is the requirement.
    and failure states in light and dark mode.
 5. Run simulator and physical-device regression passes, remove obsolete paths,
    and capture final screenshots and accessibility checks.
+
+## Characterized interaction boundaries
+
+The first M4.6 slice keeps the public `PlaceResultWidget` contract stable and
+records the behaviors that must survive decomposition:
+
+- The chat result owns carousel selection and opens the full list or map with
+  the same result set and selected place.
+- Result cards expose photo gallery, address copy, directions, details, Street
+  View, sharing, rating, and review entry points.
+- Full map owns marker selection, camera fitting, map type, traffic, route
+  calculation, travel mode, and external navigation handoff.
+- Details owns contact links, opening hours, AI/review summaries, amenities,
+  rating breakdown, reviews, directions, and sharing.
+- Supporting sheets must return to the same selected place without resetting
+  the result collection.
+
+Category descriptions and fallback artwork are now derived by the shared
+`PlacePresentation` mapping so cards, lists, maps, and details cannot silently
+drift as they are extracted. Characterization tests lock its current priority,
+related-type, and unknown-type behavior.
 
 ## Exit criteria
 

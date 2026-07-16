@@ -9,6 +9,7 @@ import 'package:haogpt/generated/app_localizations.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert' as json;
 import '../config/app_config.dart';
+import '../features/places/presentation/place_presentation.dart';
 import '../services/location_service.dart';
 import '../providers/settings_provider.dart';
 import 'street_view_modal.dart';
@@ -56,55 +57,7 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
   }
 
   String _getPlaceDescription(PlaceResult place) {
-    final types = place.types;
-
-    if (types.contains('restaurant') || types.contains('food') || types.contains('meal_takeaway')) {
-      return '🍽️ Restaurant & Dining';
-    } else if (types.contains('cafe')) {
-      return '☕ Coffee Shop & Café';
-    } else if (types.contains('bakery') || types.contains('dessert')) {
-      return '🧁 Sweet Food & Bakery';
-    } else if (types.contains('convenience_store') || types.contains('ice_cream')) {
-      return '🍦 Ice Cream & Desserts';
-    } else if (types.contains('lodging') || types.contains('hotel')) {
-      return '🏨 Accommodation & Lodging';
-    } else if (types.contains('tourist_attraction') || types.contains('museum')) {
-      return '🎭 Tourist Attraction & Culture';
-    } else if (types.contains('shopping_mall') || types.contains('store') || types.contains('clothing_store')) {
-      return '🛍️ Shopping & Retail';
-    } else if (types.contains('parking')) {
-      return '🅿️ Parking Garage';
-    } else if (types.contains('hospital') || types.contains('doctor')) {
-      return '🏥 Healthcare & Medical';
-    } else if (types.contains('pharmacy')) {
-      return '💊 Pharmacy & Medicine';
-    } else if (types.contains('gas_station') || types.contains('car_repair')) {
-      return '⛽ Automotive Services';
-    } else if (types.contains('car_wash')) {
-      return '🚗 Car Wash & Service';
-    } else if (types.contains('bank')) {
-      return '🏦 Banking Services';
-    } else if (types.contains('atm')) {
-      return '🏧 ATM & Cash Machine';
-    } else if (types.contains('gym') || types.contains('spa')) {
-      return '💪 Health & Fitness';
-    } else if (types.contains('beauty_salon') || types.contains('hair_care')) {
-      return '💅 Beauty & Personal Care';
-    } else if (types.contains('laundry')) {
-      return '👕 Laundromat & Dry Cleaning';
-    } else if (types.contains('school') || types.contains('university')) {
-      return '🎓 Education & Learning';
-    } else if (types.contains('church') || types.contains('place_of_worship')) {
-      return '⛪ Places of Worship';
-    } else if (types.contains('park') || types.contains('zoo')) {
-      return '🌳 Parks & Recreation';
-    } else if (types.contains('movie_theater') || types.contains('night_club')) {
-      return '🎬 Entertainment & Nightlife';
-    } else if (types.contains('subway_station') || types.contains('restroom')) {
-      return '🚻 Public Restroom & Facilities';
-    } else {
-      return '📍 Local Business';
-    }
+    return PlacePresentation.fromTypes(place.types).description;
   }
 
   @override
@@ -641,7 +594,7 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
         return Container(
-          height: 200,
+          constraints: const BoxConstraints(minHeight: 200),
           padding: EdgeInsets.all(24),
           decoration: BoxDecoration(
             color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
@@ -649,6 +602,7 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
             border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200),
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
@@ -897,71 +851,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
   }
 
   Widget _buildPhotoPlaceholder(PlaceResult place, SettingsProvider settings) {
-    IconData icon = Icons.place;
-    Color color = Color(0xFF5856D6);
-
-    // Choose icon based on place type
-    if (place.types.contains('restaurant') || place.types.contains('food')) {
-      icon = Icons.restaurant;
-      color = Colors.orange;
-    } else if (place.types.contains('cafe')) {
-      icon = Icons.local_cafe;
-      color = Colors.brown;
-    } else if (place.types.contains('bakery')) {
-      icon = Icons.cake;
-      color = Colors.pink;
-    } else if (place.types.contains('convenience_store')) {
-      icon = Icons.icecream;
-      color = Colors.cyan;
-    } else if (place.types.contains('lodging')) {
-      icon = Icons.hotel;
-      color = Colors.blue;
-    } else if (place.types.contains('tourist_attraction')) {
-      icon = Icons.attractions;
-      color = Colors.purple;
-    } else if (place.types.contains('shopping_mall') || place.types.contains('store')) {
-      icon = Icons.shopping_bag;
-      color = Colors.green;
-    } else if (place.types.contains('parking')) {
-      icon = Icons.local_parking;
-      color = Colors.indigo;
-    } else if (place.types.contains('hospital')) {
-      icon = Icons.local_hospital;
-      color = Colors.red;
-    } else if (place.types.contains('pharmacy')) {
-      icon = Icons.medication;
-      color = Colors.red.shade300;
-    } else if (place.types.contains('gas_station')) {
-      icon = Icons.local_gas_station;
-      color = Colors.yellow.shade700;
-    } else if (place.types.contains('car_wash')) {
-      icon = Icons.car_repair;
-      color = Colors.teal;
-    } else if (place.types.contains('bank')) {
-      icon = Icons.account_balance;
-      color = Colors.blue.shade700;
-    } else if (place.types.contains('atm')) {
-      icon = Icons.atm;
-      color = Colors.green.shade700;
-    } else if (place.types.contains('gym')) {
-      icon = Icons.fitness_center;
-      color = Colors.orange.shade700;
-    } else if (place.types.contains('beauty_salon')) {
-      icon = Icons.face_retouching_natural;
-      color = Colors.pink.shade400;
-    } else if (place.types.contains('laundry')) {
-      icon = Icons.local_laundry_service;
-      color = Colors.blue.shade400;
-    } else if (place.types.contains('night_club')) {
-      icon = Icons.nightlife;
-      color = Colors.deepPurple;
-    } else if (place.types.contains('park')) {
-      icon = Icons.park;
-      color = Colors.green.shade600;
-    } else if (place.types.contains('subway_station')) {
-      icon = Icons.wc;
-      color = Colors.grey.shade600;
-    }
+    final presentation = PlacePresentation.fromTypes(place.types);
+    final icon = presentation.icon;
+    final color = presentation.accent;
 
     return Container(
       width: double.infinity,
@@ -3501,71 +3393,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
   }
 
   Widget _buildPhotoPlaceholderForMap(PlaceResult place, SettingsProvider settings) {
-    IconData icon = Icons.place;
-    Color color = Color(0xFF5856D6);
-
-    // Choose icon based on place type (same logic as main widget)
-    if (place.types.contains('restaurant') || place.types.contains('food')) {
-      icon = Icons.restaurant;
-      color = Colors.orange;
-    } else if (place.types.contains('cafe')) {
-      icon = Icons.local_cafe;
-      color = Colors.brown;
-    } else if (place.types.contains('bakery')) {
-      icon = Icons.cake;
-      color = Colors.pink;
-    } else if (place.types.contains('convenience_store')) {
-      icon = Icons.icecream;
-      color = Colors.cyan;
-    } else if (place.types.contains('lodging')) {
-      icon = Icons.hotel;
-      color = Colors.blue;
-    } else if (place.types.contains('tourist_attraction')) {
-      icon = Icons.attractions;
-      color = Colors.purple;
-    } else if (place.types.contains('shopping_mall') || place.types.contains('store')) {
-      icon = Icons.shopping_bag;
-      color = Colors.green;
-    } else if (place.types.contains('parking')) {
-      icon = Icons.local_parking;
-      color = Colors.indigo;
-    } else if (place.types.contains('hospital')) {
-      icon = Icons.local_hospital;
-      color = Colors.red;
-    } else if (place.types.contains('pharmacy')) {
-      icon = Icons.medication;
-      color = Colors.red.shade300;
-    } else if (place.types.contains('gas_station')) {
-      icon = Icons.local_gas_station;
-      color = Colors.yellow.shade700;
-    } else if (place.types.contains('car_wash')) {
-      icon = Icons.car_repair;
-      color = Colors.teal;
-    } else if (place.types.contains('bank')) {
-      icon = Icons.account_balance;
-      color = Colors.blue.shade700;
-    } else if (place.types.contains('atm')) {
-      icon = Icons.atm;
-      color = Colors.green.shade700;
-    } else if (place.types.contains('gym')) {
-      icon = Icons.fitness_center;
-      color = Colors.orange.shade700;
-    } else if (place.types.contains('beauty_salon')) {
-      icon = Icons.face_retouching_natural;
-      color = Colors.pink.shade400;
-    } else if (place.types.contains('laundry')) {
-      icon = Icons.local_laundry_service;
-      color = Colors.blue.shade400;
-    } else if (place.types.contains('night_club')) {
-      icon = Icons.nightlife;
-      color = Colors.deepPurple;
-    } else if (place.types.contains('park')) {
-      icon = Icons.park;
-      color = Colors.green.shade600;
-    } else if (place.types.contains('subway_station')) {
-      icon = Icons.wc;
-      color = Colors.grey.shade600;
-    }
+    final presentation = PlacePresentation.fromTypes(place.types);
+    final icon = presentation.icon;
+    final color = presentation.accent;
 
     return Container(
       width: double.infinity,
@@ -4747,55 +4577,7 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
   }
 
   String _getPlaceDescription() {
-    final types = widget.place.types;
-
-    if (types.contains('restaurant') || types.contains('food') || types.contains('meal_takeaway')) {
-      return '🍽️ Restaurant & Dining';
-    } else if (types.contains('cafe')) {
-      return '☕ Coffee Shop & Café';
-    } else if (types.contains('bakery') || types.contains('dessert')) {
-      return '🧁 Sweet Food & Bakery';
-    } else if (types.contains('convenience_store') || types.contains('ice_cream')) {
-      return '🍦 Ice Cream & Desserts';
-    } else if (types.contains('lodging') || types.contains('hotel')) {
-      return '🏨 Accommodation & Lodging';
-    } else if (types.contains('tourist_attraction') || types.contains('museum')) {
-      return '🎭 Tourist Attraction & Culture';
-    } else if (types.contains('shopping_mall') || types.contains('store') || types.contains('clothing_store')) {
-      return '🛍️ Shopping & Retail';
-    } else if (types.contains('parking')) {
-      return '🅿️ Parking Garage';
-    } else if (types.contains('hospital') || types.contains('doctor')) {
-      return '🏥 Healthcare & Medical';
-    } else if (types.contains('pharmacy')) {
-      return '💊 Pharmacy & Medicine';
-    } else if (types.contains('gas_station') || types.contains('car_repair')) {
-      return '⛽ Automotive Services';
-    } else if (types.contains('car_wash')) {
-      return '🚗 Car Wash & Service';
-    } else if (types.contains('bank')) {
-      return '🏦 Banking Services';
-    } else if (types.contains('atm')) {
-      return '🏧 ATM & Cash Machine';
-    } else if (types.contains('gym') || types.contains('spa')) {
-      return '💪 Health & Fitness';
-    } else if (types.contains('beauty_salon') || types.contains('hair_care')) {
-      return '💅 Beauty & Personal Care';
-    } else if (types.contains('laundry')) {
-      return '👕 Laundromat & Dry Cleaning';
-    } else if (types.contains('school') || types.contains('university')) {
-      return '🎓 Education & Learning';
-    } else if (types.contains('church') || types.contains('place_of_worship')) {
-      return '⛪ Places of Worship';
-    } else if (types.contains('park') || types.contains('zoo')) {
-      return '🌳 Parks & Recreation';
-    } else if (types.contains('movie_theater') || types.contains('night_club')) {
-      return '🎬 Entertainment & Nightlife';
-    } else if (types.contains('subway_station') || types.contains('restroom')) {
-      return '🚻 Public Restroom & Facilities';
-    } else {
-      return '📍 Local Business';
-    }
+    return PlacePresentation.fromTypes(widget.place.types).description;
   }
 
   Widget _buildDetailSection({

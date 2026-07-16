@@ -1,6 +1,6 @@
 # M4.1 UI refinement and M4.5 Automations
 
-Status: M4.1 complete; M4.5 foundation in progress
+Status: M4.1 complete; M4.5 conversational worker in internal validation
 Date: 2026-07-16
 Depends on: M3 reminder actions and M4 push delivery
 Rollout: internal accounts, then all eligible users
@@ -77,6 +77,30 @@ The recurrence remains a strict structured object, not user-provided cron.
 Ordinal fields are additive so installed clients that do not yet render them
 can continue reading existing reminders safely; the server rejects an old
 client update that would accidentally drop an ordinal pattern.
+
+M4.5 conversational delivery slice deployed for internal canaries on
+2026-07-16:
+
+- added one minute-level scheduler that leases a maximum of two due generated
+  runs per tick, with unique occurrences, short transactions, bounded retries,
+  and independent report/push delivery state;
+- added paid-user and usage-ledger budget reservations for both report
+  generation and the independent verification pass;
+- added live web retrieval, complete source retention, HTTPS/domain/citation
+  gates, a separate claim-verification model pass, and fail-closed withheld
+  results;
+- made successful runs append one idempotent assistant message to the stable
+  Automation conversation before a push record can exist;
+- made Firebase payloads carry the conversation and message identifiers, and
+  made the mobile client synchronously pull and open that conversation when the
+  notification is tapped; and
+- kept Market briefing execution gated off until a structured market-data
+  provider is implemented. Web search is not used as a quote feed.
+
+Local database, Edge contract, FCM payload, and Flutter notification-routing
+tests pass. The production migration and worker are active behind internal-only
+flags; physical-device run/message/deep-link validation is the remaining gate
+before full rollout.
 
 ## M4.1 — Clean UI refinement
 

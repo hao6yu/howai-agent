@@ -9,12 +9,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../firebase_options.dart';
 import '../models/push_notification_status.dart';
+import '../models/push_notification_destination.dart';
+import '../providers/conversation_provider.dart';
 import 'device_timezone_service.dart';
+import 'sync_service.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -41,10 +45,16 @@ class PushNotificationService with WidgetsBindingObserver {
   static const _iosRegistrationChannel = MethodChannel(
     'howai/push_notifications',
   );
-  static const _channel = AndroidNotificationChannel(
+  static const _reminderChannel = AndroidNotificationChannel(
     'howai_reminders',
     'Reminders',
     description: 'Time-sensitive reminders created with HowAI.',
+    importance: Importance.high,
+  );
+  static const _automationChannel = AndroidNotificationChannel(
+    'howai_automations',
+    'Automations',
+    description: 'Verified briefings and updates from HowAI Automations.',
     importance: Importance.high,
   );
 
@@ -85,7 +95,9 @@ class PushNotificationService with WidgetsBindingObserver {
         try {
           final value = jsonDecode(payload);
           if (value is Map) {
-            _handleNotificationData(Map<String, dynamic>.from(value));
+            unawaited(
+              _handleNotificationData(Map<String, dynamic>.from(value)),
+            );
           }
         } catch (_) {
           // Ignore malformed payloads from old notification versions.
@@ -95,7 +107,11 @@ class PushNotificationService with WidgetsBindingObserver {
     await _localNotifications
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(_channel);
+        ?.createNotificationChannel(_reminderChannel);
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(_automationChannel);
     await _messaging.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
@@ -106,7 +122,7 @@ class PushNotificationService with WidgetsBindingObserver {
       _showForegroundNotification,
     );
     _openedSubscription = FirebaseMessaging.onMessageOpenedApp.listen(
-      (message) => _handleNotificationData(message.data),
+      (message) => unawaited(_handleNotificationData(message.data)),
     );
     _tokenSubscription = _messaging.onTokenRefresh.listen((token) {
       unawaited(_registerTokenSilently(token));
@@ -116,6 +132,7 @@ class PushNotificationService with WidgetsBindingObserver {
         final user = state.session?.user;
         if (user != null && !user.isAnonymous) {
           unawaited(_syncSilently());
+          flushPendingNavigation();
         } else if (state.event == AuthChangeEvent.signedOut) {
           unawaited(_clearLocalToken());
         }
@@ -134,7 +151,7 @@ class PushNotificationService with WidgetsBindingObserver {
           .getInitialMessage()
           .timeout(const Duration(seconds: 3));
       if (initialMessage != null) {
-        _handleNotificationData(initialMessage.data);
+        await _handleNotificationData(initialMessage.data);
       }
     } catch (_) {
       // Some iOS launches never resolve getInitialMessage. Notification launch
@@ -256,7 +273,7 @@ class PushNotificationService with WidgetsBindingObserver {
 
   void flushPendingNavigation() {
     final pending = _pendingNavigation;
-    if (pending != null) _handleNotificationData(pending);
+    if (pending != null) unawaited(_handleNotificationData(pending));
   }
 
   Future<bool> _registerToken(String token) async {
@@ -345,15 +362,18 @@ class PushNotificationService with WidgetsBindingObserver {
     if (!Platform.isAndroid) return;
     final notification = message.notification;
     if (notification == null) return;
+    final isAutomation = message.data['type'] == 'automation';
     await _localNotifications.show(
       id: message.messageId?.hashCode ?? message.hashCode,
       title: notification.title,
       body: notification.body,
-      notificationDetails: const NotificationDetails(
+      notificationDetails: NotificationDetails(
         android: AndroidNotificationDetails(
-          'howai_reminders',
-          'Reminders',
-          channelDescription: 'Time-sensitive reminders created with HowAI.',
+          isAutomation ? 'howai_automations' : 'howai_reminders',
+          isAutomation ? 'Automations' : 'Reminders',
+          channelDescription: isAutomation
+              ? 'Verified briefings and updates from HowAI Automations.'
+              : 'Time-sensitive reminders created with HowAI.',
           importance: Importance.high,
           priority: Priority.high,
           icon: 'ic_launcher',
@@ -363,15 +383,41 @@ class PushNotificationService with WidgetsBindingObserver {
     );
   }
 
-  void _handleNotificationData(Map<String, dynamic> data) {
-    if (data['type'] != 'reminder') return;
+  Future<void> _handleNotificationData(Map<String, dynamic> data) async {
+    final destination = PushNotificationDestination.tryParse(data);
+    if (destination == null) return;
     final navigator = _navigatorKey?.currentState;
-    if (navigator == null) {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (navigator == null || user == null || user.isAnonymous) {
       _pendingNavigation = Map<String, dynamic>.from(data);
       return;
     }
     _pendingNavigation = null;
-    navigator.pushNamed('/actions', arguments: data['reminder_id']);
+    if (destination.type == PushNotificationDestinationType.reminder) {
+      navigator.pushNamed('/actions', arguments: destination.reminderId);
+      return;
+    }
+
+    final localId = await SyncService()
+        .syncConversationByUuid(destination.conversationId!)
+        .timeout(const Duration(seconds: 12), onTimeout: () => null);
+    if (localId == null || !navigator.mounted) {
+      _pendingNavigation = Map<String, dynamic>.from(data);
+      return;
+    }
+    final provider = Provider.of<ConversationProvider>(
+      navigator.context,
+      listen: false,
+    );
+    await provider.loadConversations(profileId: 1);
+    final matches = provider.allConversations
+        .where((conversation) => conversation.id == localId);
+    if (matches.isEmpty) {
+      _pendingNavigation = Map<String, dynamic>.from(data);
+      return;
+    }
+    provider.selectConversation(matches.first);
+    navigator.popUntil((route) => route.isFirst);
   }
 
   PushPermissionState _permissionState(AuthorizationStatus status) {

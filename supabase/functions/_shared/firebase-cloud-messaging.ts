@@ -94,6 +94,56 @@ export function buildReminderMessage(input: {
   };
 }
 
+export function buildAutomationMessage(input: {
+  token: string;
+  automationRunId: string;
+  deliveryId: string;
+  conversationId: string;
+  messageId: string;
+  title: string;
+  preview: string;
+}): Record<string, unknown> {
+  return {
+    message: {
+      token: input.token,
+      notification: {
+        title: `HowAI · ${input.title}`.slice(0, 200),
+        body: input.preview.slice(0, 500),
+      },
+      data: {
+        type: "automation",
+        automation_run_id: input.automationRunId,
+        delivery_id: input.deliveryId,
+        conversation_id: input.conversationId,
+        message_id: input.messageId,
+      },
+      android: {
+        priority: "high",
+        ttl: "86400s",
+        notification: {
+          channel_id: "howai_automations",
+          sound: "default",
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+        },
+      },
+      apns: {
+        headers: {
+          "apns-priority": "10",
+          "apns-expiration": String(Math.floor(Date.now() / 1000) + 86_400),
+          "apns-collapse-id": `automation-${input.automationRunId}`,
+        },
+        payload: {
+          aps: {
+            sound: "default",
+            category: "HOWAI_AUTOMATION",
+            "thread-id": input.conversationId,
+          },
+        },
+      },
+    },
+  };
+}
+
 export async function sendFcmMessage(
   serviceAccount: FcmServiceAccount,
   payload: Record<string, unknown>,

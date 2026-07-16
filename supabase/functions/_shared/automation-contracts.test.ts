@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { describeAutomation, normalizeAutomationCreate } from "./automation-contracts.ts";
+import {
+  describeAutomation,
+  nextAutomationOccurrence,
+  normalizeAutomationCreate,
+} from "./automation-contracts.ts";
 
 test("normalizes a scheduled news briefing", () => {
   const value = normalizeAutomationCreate({
@@ -82,4 +86,19 @@ test("requires a watchlist symbol", () => {
     },
     delivery_preferences: { push: true },
   }, new Date("2026-07-16T12:00:00Z")));
+});
+
+test("computes the next stored Automation occurrence", () => {
+  const next = nextAutomationOccurrence({
+    startLocal: "2026-07-17T07:00:00",
+    timezone: "America/Chicago",
+    scheduleRule: {
+      frequency: "weekly",
+      interval: 2,
+      weekdays: [1, 5],
+      ends_at: null,
+    },
+    after: new Date("2026-07-17T12:00:01Z"),
+  });
+  assert.equal(next?.toISOString(), "2026-07-27T12:00:00.000Z");
 });

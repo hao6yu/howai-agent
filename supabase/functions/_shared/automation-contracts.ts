@@ -88,6 +88,21 @@ export function describeAutomation(value: NormalizedAutomationCreate): string {
   return `${type}: ${value.title} — ${scope} — ${cadence} (${value.timezone})`;
 }
 
+export function nextAutomationOccurrence(input: {
+  startLocal: string;
+  timezone: string;
+  scheduleRule: Record<string, unknown>;
+  after: Date;
+}): Date | null {
+  return nextOccurrence({
+    startLocal: input.startLocal.replace(" ", "T").replace(/\.\d+$/, ""),
+    timezone: input.timezone,
+    recurrence: recurrenceForSchedule(input.scheduleRule, input.timezone),
+    after: input.after,
+    includeStart: false,
+  });
+}
+
 function normalizeSchedule(value: unknown, timezone: string): Record<string, unknown> {
   if (!isRecord(value)) throw invalid("schedule must be an object.");
   rejectUnknown(value, new Set(["frequency", "interval", "weekdays", "ends_at"]));

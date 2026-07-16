@@ -19,12 +19,14 @@ delivery are implemented and have passed the internal physical-device flow.
 M4.1 clean-interface refinement is complete. The M4.5 rollout-off foundation
 and proposal/approval backend are deployed: durable run history, strict News
 and Market briefing contracts, and an atomic paid-user approval path.
-Static Reminder fallback is now prohibited for generated briefing requests,
-and the next worker slice will append each run as an assistant message in one
-stable Automation conversation before sending a push deep link. Scheduling,
-workers, retrieval, validation, and generated delivery remain disabled. M4.6
-isolates the Places and Maps decomposition and visual refinement before the M5
-Realtime voice work begins.
+Static Reminder fallback is now prohibited for generated briefing requests.
+The M4.5 conversation-first worker is deployed for internal canaries: bounded due-run
+claims, metered live retrieval, deterministic source checks, independent AI
+verification, an idempotent assistant message, and a Firebase deep link into
+the stable Automation conversation. Market execution remains gated until a
+structured market-data source exists. Physical-device validation remains
+before full rollout. M4.6 isolates the Places and Maps
+decomposition and visual refinement before the M5 Realtime voice work begins.
 
 M0 delivered:
 

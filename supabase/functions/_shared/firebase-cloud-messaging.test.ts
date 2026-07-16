@@ -2,11 +2,40 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildAutomationMessage,
   buildReminderMessage,
   classifyFcmError,
   parseServiceAccount,
   sendFcmMessage,
 } from "./firebase-cloud-messaging.ts";
+
+test("builds a conversation-deep-linked Automation message", () => {
+  const payload = buildAutomationMessage({
+    token: "device-token",
+    automationRunId: "run-id",
+    deliveryId: "delivery-id",
+    conversationId: "conversation-id",
+    messageId: "message-id",
+    title: "Morning briefing",
+    preview: "Three verified stories are ready.",
+  });
+  const message = payload.message as Record<string, unknown>;
+  assert.deepEqual(message.notification, {
+    title: "HowAI · Morning briefing",
+    body: "Three verified stories are ready.",
+  });
+  assert.deepEqual(message.data, {
+    type: "automation",
+    automation_run_id: "run-id",
+    delivery_id: "delivery-id",
+    conversation_id: "conversation-id",
+    message_id: "message-id",
+  });
+  assert.equal(
+    ((message.android as Record<string, unknown>).notification as Record<string, unknown>).channel_id,
+    "howai_automations",
+  );
+});
 
 test("builds a cross-platform reminder message without notes", () => {
   const payload = buildReminderMessage({

@@ -38,6 +38,62 @@ class SyncService {
   String? get lastError => _lastError;
   bool get isAuthenticated => _supabase.isAuthenticated;
 
+  /// Pull one server-owned conversation and all of its messages immediately.
+  /// Used by notification deep links so the destination exists locally before
+  /// the chat screen is selected.
+  Future<int?> syncConversationByUuid(String conversationUuid) async {
+    if (!_supabase.isAuthenticated || conversationUuid.trim().isEmpty) {
+      return null;
+    }
+    try {
+      final userId = _supabase.currentUser!.id;
+      final dynamic response = await _supabase.client
+          .from('conversations')
+          .select()
+          .eq('id', conversationUuid)
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (response == null) return null;
+      final convData = Map<String, dynamic>.from(response as Map);
+      final title = convData['title'] as String? ?? 'Automation';
+      final isPinned = convData['is_pinned'] as bool? ?? false;
+      final archivedAt = convData['archived_at'] == null
+          ? null
+          : DateTime.parse(convData['archived_at'] as String);
+      final createdAt = DateTime.parse(convData['created_at'] as String);
+      final updatedAt = DateTime.parse(convData['updated_at'] as String);
+
+      var localId = _idMapping.getConversationLocalId(conversationUuid);
+      final localData =
+          localId == null ? null : await _database.getConversation(localId);
+      if (localId == null || localData == null) {
+        final conversation = Conversation(
+          title: title,
+          isPinned: isPinned,
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+          archivedAt: archivedAt,
+          profileId: 1,
+        );
+        localId = await _database.insertConversation(conversation.toMap());
+        await _idMapping.storeConversationMapping(localId, conversationUuid);
+      } else {
+        await _database.updateConversation({
+          'id': localId,
+          'title': title,
+          'is_pinned': isPinned ? 1 : 0,
+          'archived_at': archivedAt?.toIso8601String(),
+          'updated_at': updatedAt.toIso8601String(),
+        });
+      }
+      await _syncConversationMessages(conversationUuid, localId);
+      return localId;
+    } catch (error) {
+      debugPrint('[SyncService] Notification conversation sync failed: $error');
+      return null;
+    }
+  }
+
   /// Initialize sync service
   Future<void> initialize() async {
     await _idMapping.initialize();
@@ -647,7 +703,8 @@ class SyncService {
     } catch (error) {
       // Local state remains authoritative while offline. The normal periodic
       // last-write-wins sync will retry this newer conversation later.
-      debugPrint('[SyncService] Conversation update queued by timestamp: $error');
+      debugPrint(
+          '[SyncService] Conversation update queued by timestamp: $error');
     }
   }
 

@@ -29,6 +29,8 @@ test("builds a verified conversation message with visible sources", async () => 
 
   assert.equal(result.status, "succeeded");
   assert.match(result.messageContent, /### Sources/);
+  assert.match(result.messageContent, /Verified technology briefing/);
+  assert.doesNotMatch(result.messageContent, /significant and independently reported/);
   assert.match(result.messageContent, /\[Primary report\]\(https:\/\/primary\.test/);
   assert.equal(result.sources.length, 2);
   assert.equal(result.generationLedgerId, "ledger-generation");
@@ -39,6 +41,26 @@ test("builds a verified conversation message with visible sources", async () => 
   ]);
   assert.equal(payloads[0].tool_choice, "required");
   assert.deepEqual(payloads[0].include, ["web_search_call.action.sources"]);
+  assert.equal(payloads[0].max_output_tokens, 2_400);
+  assert.equal(payloads[0].max_tool_calls, 4);
+  assert.match(
+    String(payloads[0].input),
+    /between 2026-07-15T12:00:00\.000Z and 2026-07-16T12:00:00\.000Z/,
+  );
+  assert.match(
+    String(payloads[0].instructions),
+    /do not claim an objective ranking/i,
+  );
+  assert.equal(payloads[1].max_output_tokens, 2_400);
+  assert.equal(payloads[1].max_tool_calls, 3);
+  assert.match(
+    String(payloads[1].instructions),
+    /ordering of requested top items is editorial/i,
+  );
+  assert.equal(
+    (payloads[1].text as Record<string, unknown>).verbosity,
+    "low",
+  );
   assert.equal(
     ((payloads[1].text as Record<string, unknown>).format as Record<string, unknown>).strict,
     true,
@@ -73,6 +95,8 @@ test("withholds a briefing before verification when sources fail deterministic c
 
   assert.equal(calls, 1);
   assert.equal(result.status, "withheld");
+  assert.match(result.messageContent, /No unverified briefing was delivered/);
+  assert.doesNotMatch(result.messageContent, /next scheduled time/);
   assert.deepEqual(result.verification.issues, [
     "insufficient_sources",
     "excluded_source_domain",
@@ -92,6 +116,97 @@ test("withholds a draft when the independent verifier rejects a claim", async ()
   });
   assert.equal(result.status, "withheld");
   assert.match(String(result.verification.summary), /conflict/i);
+});
+
+test("prioritizes cited evidence over uncited web discovery results", async () => {
+  const generation = generationResponse();
+  const output = generation.output as Record<string, unknown>[];
+  const search = output[0].action as Record<string, unknown>;
+  search.sources = Array.from({ length: 12 }, (_, index) => ({
+    title: `Uncited discovery ${index + 1}`,
+    url: `https://discovery${index + 1}.example.test/item`,
+  }));
+  let call = 0;
+  const result = await buildVerifiedAutomationReport(baseInput(), {
+    apiKey: "test-key",
+    model: "gpt-5.6-luna",
+    fetcher: async () => {
+      call += 1;
+      return jsonResponse(
+        call === 1 ? generation : verificationResponse("pass"),
+      );
+    },
+  });
+
+  assert.equal(result.status, "succeeded");
+  assert.equal(result.sources[0].url, SOURCE_ONE);
+  assert.equal(result.sources[1].url, SOURCE_TWO);
+});
+
+test("matches verifier evidence after removing tracking parameters", async () => {
+  const generation = generationResponse();
+  const output = generation.output as Record<string, unknown>[];
+  const message = output[1];
+  const content = message.content as Record<string, unknown>[];
+  const annotations = content[0].annotations as Record<string, unknown>[];
+  annotations[0].url = `${SOURCE_ONE}?utm_source=openai`;
+  let call = 0;
+  const result = await buildVerifiedAutomationReport(baseInput(), {
+    apiKey: "test-key",
+    model: "gpt-5.6-luna",
+    fetcher: async () => {
+      call += 1;
+      return jsonResponse(
+        call === 1 ? generation : verificationResponse("pass"),
+      );
+    },
+  });
+
+  assert.equal(result.status, "succeeded");
+  assert.equal(result.sources[0].url, SOURCE_ONE);
+});
+
+test("passes a cleaned briefing when verifier reports non-fatal corrections", async () => {
+  let call = 0;
+  const verification = verificationResponse("pass");
+  const output = verification.output as Record<string, unknown>[];
+  const message = output[1];
+  const content = message.content as Record<string, unknown>[];
+  const parsed = JSON.parse(String(content[0].text));
+  parsed.issues = ["Removed one unsupported interpretation."];
+  content[0].text = JSON.stringify(parsed);
+  const result = await buildVerifiedAutomationReport(baseInput(), {
+    apiKey: "test-key",
+    model: "gpt-5.6-luna",
+    fetcher: async () => {
+      call += 1;
+      return jsonResponse(call === 1 ? generationResponse() : verification);
+    },
+  });
+
+  assert.equal(result.status, "succeeded");
+  assert.match(result.messageContent, /Verified technology briefing/);
+});
+
+test("accepts a claim when at least one cited URL matches retrieved evidence", async () => {
+  let call = 0;
+  const verification = verificationResponse("pass");
+  const output = verification.output as Record<string, unknown>[];
+  const message = output[1];
+  const content = message.content as Record<string, unknown>[];
+  const parsed = JSON.parse(String(content[0].text));
+  parsed.claims[0].source_urls.push("https://unmatched.example.test/article");
+  content[0].text = JSON.stringify(parsed);
+  const result = await buildVerifiedAutomationReport(baseInput(), {
+    apiKey: "test-key",
+    model: "gpt-5.6-luna",
+    fetcher: async () => {
+      call += 1;
+      return jsonResponse(call === 1 ? generationResponse() : verification);
+    },
+  });
+
+  assert.equal(result.status, "succeeded");
 });
 
 function baseInput(): {
@@ -173,6 +288,9 @@ function verificationResponse(status: "pass" | "withhold"): Record<string, unkno
             status,
             summary: status === "pass" ? "All material claims are supported." : "Sources conflict on a material claim.",
             preview: "Your verified morning technology briefing is ready.",
+            verified_briefing: status === "pass"
+              ? "### Verified technology briefing\n\nA supported technology update was reported today and is ready for review."
+              : "",
             issues: status === "pass" ? [] : ["Conflicting publication details"],
             claims: [{
               text: "A material technology update was reported today.",

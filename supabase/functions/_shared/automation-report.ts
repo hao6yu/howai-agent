@@ -72,6 +72,7 @@ type ParsedVerification = Readonly<{
   status: "pass" | "withhold";
   summary: string;
   preview: string;
+  verified_briefing: string;
   issues: string[];
   claims: Array<{
     text: string;
@@ -81,7 +82,8 @@ type ParsedVerification = Readonly<{
 }>;
 
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
-const MAX_SOURCES = 12;
+const MAX_EVIDENCE_SOURCES = 30;
+const MAX_DISPLAY_SOURCES = 12;
 
 export async function buildVerifiedAutomationReport(
   input: AutomationReportInput,
@@ -114,12 +116,14 @@ export async function buildVerifiedAutomationReport(
       store: false,
       safety_identifier: input.userId,
       reasoning: { effort: "low" },
-      max_output_tokens: 1_600,
+      max_output_tokens: 2_400,
+      max_tool_calls: 4,
       tools: [searchTool],
       tool_choice: "required",
       include: ["web_search_call.action.sources"],
       instructions: generationInstructions(template),
       input: generationRequest(template, input.scheduledFor),
+      text: { verbosity: "low" },
     },
   });
 
@@ -150,7 +154,11 @@ export async function buildVerifiedAutomationReport(
       store: false,
       safety_identifier: input.userId,
       reasoning: { effort: "low" },
-      max_output_tokens: 1_200,
+      // The output ceiling also includes reasoning tokens. Leave enough room
+      // for the strict verdict after retrieval, while bounding retrieval so a
+      // verifier cannot spend its whole response budget on repeated searches.
+      max_output_tokens: 2_400,
+      max_tool_calls: 3,
       tools: [searchTool],
       tool_choice: "required",
       include: ["web_search_call.action.sources"],
@@ -166,6 +174,7 @@ export async function buildVerifiedAutomationReport(
         sources,
       }),
       text: {
+        verbosity: "low",
         format: {
           type: "json_schema",
           name: "automation_verification",
@@ -177,21 +186,27 @@ export async function buildVerifiedAutomationReport(
   });
 
   const parsed = parseVerification(extractOutputText(verification.body));
-  const verificationIssues = validateVerification(parsed, sources);
+  const reportSources = mergeSources(
+    sources,
+    extractSources(verification.body),
+  );
+  const verificationIssues = validateVerification(parsed, reportSources);
   const passed = parsed.status === "pass" && verificationIssues.length === 0;
   if (!passed) {
     return withheldResult({
       template,
       reason: parsed.summary,
       issues: [...parsed.issues, ...verificationIssues],
-      sources,
+      sources: reportSources,
       generation,
       verification,
       claims: parsed.claims,
     });
   }
 
-  const messageContent = appendSources(draft, sources);
+  const verifiedBriefing = parsed.verified_briefing.trim();
+  const displaySources = selectDisplaySources(reportSources, parsed.claims);
+  const messageContent = appendSources(verifiedBriefing, displaySources);
   return {
     status: "succeeded",
     messageContent,
@@ -200,10 +215,10 @@ export async function buildVerifiedAutomationReport(
       kind: template.kind,
       title: template.title,
       scheduled_for: input.scheduledFor,
-      content: draft,
+      content: verifiedBriefing,
     },
     claims: parsed.claims,
-    sources,
+    sources: displaySources,
     verification: {
       status: "pass",
       summary: parsed.summary,
@@ -312,8 +327,13 @@ function generationInstructions(template: ParsedTemplate): string {
   return [
     "You prepare a scheduled HowAI briefing using live web search.",
     "Never invent a fact, date, quotation, price, or source.",
-    "Use exact dates and clearly distinguish reporting from analysis.",
-    "Prefer primary and authoritative sources; corroborate material claims.",
+    "Include only claims directly supported by the cited evidence you found during this run.",
+    "Use exact dates and clearly distinguish sourced reporting from your own editorial selection.",
+    "Do not infer causes, market rotation, sentiment, or likely effects unless a cited source directly supports that interpretation.",
+    "Reject sources whose publication date, event date, or subject does not match the requested freshness window and topic.",
+    "Prefer primary releases, regulators, exchanges, and attributable reporting; corroborate material claims with independent credible evidence.",
+    "Avoid generic search pages, quote pages, home pages, and unrelated dated documents as evidence.",
+    "When asked for top items, make a useful editorial selection; do not claim an objective ranking or that evidence proves the ordering.",
     `Keep the result ${template.config.summary_style} and useful on a phone.`,
     language,
     "Write the briefing only. Do not add a Sources section; the service adds verified links.",
@@ -326,16 +346,36 @@ function generationRequest(
 ): string {
   const topics = template.config.topics.join(", ");
   const region = template.config.region ? ` Region: ${template.config.region}.` : "";
-  return `As of ${scheduledFor}, prepare “${template.title}”. Cover ${topics}.${region} Return the ${template.config.item_count} most important fresh items from roughly the last ${template.sourcePolicy.freshness_hours} hours. Each item needs a concise headline, what happened, and why it matters.`;
+  const freshnessHours = Math.max(
+    1,
+    Math.min(168, integerOr(template.sourcePolicy.freshness_hours, 24)),
+  );
+  const scheduledAt = new Date(scheduledFor);
+  if (Number.isNaN(scheduledAt.getTime())) {
+    throw new AutomationReportError(
+      "The Automation schedule is invalid.",
+      "invalid_scheduled_time",
+      false,
+    );
+  }
+  const freshnessCutoff = new Date(
+    scheduledAt.getTime() - freshnessHours * 60 * 60 * 1_000,
+  ).toISOString();
+  return `As of ${scheduledAt.toISOString()}, prepare “${template.title}”. Cover ${topics}.${region} Select ${template.config.item_count} useful fresh items whose underlying event was published or materially updated between ${freshnessCutoff} and ${scheduledAt.toISOString()}. Each item needs a concise headline, what happened, and why it matters. Omit an item rather than filling the list with stale, mismatched, or weakly supported information.`;
 }
 
 function verificationInstructions(): string {
   return [
     "You are the independent verification pass for a scheduled briefing.",
     "Use live web search to check the draft's material claims, dates, and source quality.",
-    "Fail closed: choose withhold if a meaningful claim is stale, conflicting, unsupported, misleading, or only backed by an untrustworthy source.",
+    "Remove or correct unsupported wording when the remaining evidence is sufficient for a useful briefing. Choose withhold only when you cannot produce a useful fresh briefing from trustworthy evidence.",
+    "The selection and ordering of requested top items is editorial and is not itself a material factual claim. Do not require evidence that an item is objectively ranked first, second, or in the top N.",
+    "Do require evidence for the underlying events, dates, numbers, quotations, causal explanations, and market interpretations.",
+    "You may support a claim with credible cited evidence found in either the draft sources or your own verification search.",
     "A pass requires at least two credible sources overall and at least one cited source URL for every returned material claim.",
-    "Return only the requested JSON schema. Never rewrite unsupported content into a pass.",
+    "For a pass, return a self-contained verified_briefing containing only supported material claims and list those claims in claims. Do not mention the verification process.",
+    "For a withhold, return an empty verified_briefing.",
+    "Return only the requested JSON schema.",
   ].join("\n");
 }
 
@@ -343,11 +383,19 @@ function verificationSchema(): Record<string, unknown> {
   return {
     type: "object",
     additionalProperties: false,
-    required: ["status", "summary", "preview", "issues", "claims"],
+    required: [
+      "status",
+      "summary",
+      "preview",
+      "verified_briefing",
+      "issues",
+      "claims",
+    ],
     properties: {
       status: { type: "string", enum: ["pass", "withhold"] },
       summary: { type: "string", maxLength: 500 },
       preview: { type: "string", maxLength: 220 },
+      verified_briefing: { type: "string", maxLength: 6_000 },
       issues: {
         type: "array",
         maxItems: 10,
@@ -406,14 +454,15 @@ function extractOutputText(response: Record<string, unknown>): string {
 }
 
 function extractSources(response: Record<string, unknown>): AutomationSource[] {
-  const candidates: Array<{ title: string; url: string }> = [];
+  const cited: Array<{ title: string; url: string }> = [];
+  const discovered: Array<{ title: string; url: string }> = [];
   if (Array.isArray(response.output)) {
     for (const item of response.output) {
       if (!isRecord(item)) continue;
       if (item.type === "web_search_call" && isRecord(item.action) && Array.isArray(item.action.sources)) {
         for (const source of item.action.sources) {
           if (!isRecord(source) || typeof source.url !== "string") continue;
-          candidates.push({
+          discovered.push({
             url: source.url,
             title: typeof source.title === "string" ? source.title : source.url,
           });
@@ -424,7 +473,7 @@ function extractSources(response: Record<string, unknown>): AutomationSource[] {
           if (!isRecord(content) || !Array.isArray(content.annotations)) continue;
           for (const annotation of content.annotations) {
             if (!isRecord(annotation) || annotation.type !== "url_citation" || typeof annotation.url !== "string") continue;
-            candidates.push({
+            cited.push({
               url: annotation.url,
               title: typeof annotation.title === "string" ? annotation.title : annotation.url,
             });
@@ -433,6 +482,10 @@ function extractSources(response: Record<string, unknown>): AutomationSource[] {
       }
     }
   }
+  // A web-search call can expose many exploratory results. The URLs cited in
+  // the model's actual answer are the evidence the user saw, so keep those
+  // before uncited discovery candidates and the bounded MAX_SOURCES slice.
+  const candidates = [...cited, ...discovered];
   const seen = new Set<string>();
   const result: AutomationSource[] = [];
   for (const candidate of candidates) {
@@ -442,7 +495,7 @@ function extractSources(response: Record<string, unknown>): AutomationSource[] {
     } catch {
       continue;
     }
-    const normalized = parsed.toString();
+    const normalized = canonicalizeEvidenceUrl(parsed);
     if (seen.has(normalized)) continue;
     seen.add(normalized);
     result.push({
@@ -451,7 +504,23 @@ function extractSources(response: Record<string, unknown>): AutomationSource[] {
       url: normalized,
       domain: parsed.hostname.toLowerCase(),
     });
-    if (result.length >= MAX_SOURCES) break;
+    if (result.length >= MAX_EVIDENCE_SOURCES) break;
+  }
+  return result;
+}
+
+function mergeSources(
+  ...groups: readonly (readonly AutomationSource[])[]
+): AutomationSource[] {
+  const seen = new Set<string>();
+  const result: AutomationSource[] = [];
+  for (const group of groups) {
+    for (const source of group) {
+      if (seen.has(source.url)) continue;
+      seen.add(source.url);
+      result.push({ ...source, id: `source_${result.length + 1}` });
+      if (result.length >= MAX_EVIDENCE_SOURCES) return result;
+    }
   }
   return result;
 }
@@ -490,6 +559,7 @@ function parseVerification(value: string): ParsedVerification {
   }
   if (!isRecord(parsed) || (parsed.status !== "pass" && parsed.status !== "withhold") ||
     typeof parsed.summary !== "string" || typeof parsed.preview !== "string" ||
+    typeof parsed.verified_briefing !== "string" ||
     !Array.isArray(parsed.issues) || !Array.isArray(parsed.claims)) {
     throw new AutomationReportError(
       "The verification response did not match its contract.",
@@ -517,6 +587,7 @@ function parseVerification(value: string): ParsedVerification {
     status: parsed.status,
     summary: parsed.summary,
     preview: parsed.preview,
+    verified_briefing: parsed.verified_briefing,
     issues: parsed.issues.filter((issue): issue is string => typeof issue === "string"),
     claims,
   };
@@ -526,16 +597,49 @@ function validateVerification(
   verification: ParsedVerification,
   sources: readonly AutomationSource[],
 ): string[] {
-  const known = new Set(sources.map((source) => source.url));
+  const known = new Set(sources.map((source) => evidenceUrlKey(source.url)));
   const issues: string[] = [];
+  if (verification.status === "pass" && verification.verified_briefing.trim().length < 80) {
+    issues.push("verified_briefing_too_short");
+  }
   if (verification.claims.length === 0) issues.push("verification_claims_missing");
-  if (verification.issues.length > 0) issues.push("verification_reported_issues");
+  if (verification.status === "withhold" && verification.issues.length > 0) {
+    issues.push("verification_reported_issues");
+  }
   for (const claim of verification.claims) {
     if (!claim.supported) issues.push("unsupported_claim");
     if (claim.source_urls.length === 0) issues.push("claim_source_missing");
-    if (claim.source_urls.some((url) => !known.has(url))) issues.push("claim_source_not_in_generation");
+    if (!claim.source_urls.some((url) => known.has(evidenceUrlKey(url)))) {
+      issues.push("claim_source_not_in_evidence");
+    }
   }
   return [...new Set(issues)];
+}
+
+function selectDisplaySources(
+  evidence: readonly AutomationSource[],
+  claims: readonly ParsedVerification["claims"][number][],
+): AutomationSource[] {
+  const byUrl = new Map(evidence.map((source) => [evidenceUrlKey(source.url), source]));
+  const selected: AutomationSource[] = [];
+  const seen = new Set<string>();
+  const add = (source: AutomationSource | undefined) => {
+    if (!source || seen.has(source.url) || selected.length >= MAX_DISPLAY_SOURCES) return;
+    seen.add(source.url);
+    selected.push({ ...source, id: `source_${selected.length + 1}` });
+  };
+  for (const claim of claims) {
+    for (const url of claim.source_urls) {
+      add(byUrl.get(evidenceUrlKey(url)));
+    }
+  }
+  // A verified report should show the evidence actually used for its claims,
+  // not every exploratory search result. Fall back only for an unexpected
+  // claim-less result; validation normally prevents that state.
+  if (selected.length === 0) {
+    for (const source of evidence) add(source);
+  }
+  return selected;
 }
 
 function appendSources(
@@ -557,7 +661,7 @@ function withheldResult(input: {
   verification?: ModelCallResult;
   claims?: readonly Record<string, unknown>[];
 }): AutomationReportResult {
-  const message = `I ran “${input.template.title}”, but I couldn't verify the results well enough to send them confidently. I’ll try again at the next scheduled time.`;
+  const message = `I couldn't verify “${input.template.title}” well enough to send it. No unverified briefing was delivered. You can try Run now again from Automations.`;
   return {
     status: "withheld",
     messageContent: message,
@@ -568,7 +672,7 @@ function withheldResult(input: {
       withheld: true,
     },
     claims: input.claims ?? [],
-    sources: input.sources,
+    sources: input.sources.slice(0, MAX_DISPLAY_SOURCES),
     verification: {
       status: "withhold",
       summary: input.reason.slice(0, 500),
@@ -635,6 +739,32 @@ function escapeMarkdown(value: string): string {
 
 function integerOr(value: unknown, fallback: number): number {
   return Number.isInteger(value) ? Number(value) : fallback;
+}
+
+function canonicalizeEvidenceUrl(value: string | URL): string {
+  try {
+    const parsed = value instanceof URL ? new URL(value.toString()) : new URL(value);
+    parsed.hash = "";
+    for (const key of [...parsed.searchParams.keys()]) {
+      if (key.toLowerCase().startsWith("utm_")) parsed.searchParams.delete(key);
+    }
+    return parsed.toString();
+  } catch {
+    return typeof value === "string" ? value : "";
+  }
+}
+
+function evidenceUrlKey(value: string): string {
+  const canonical = canonicalizeEvidenceUrl(value);
+  try {
+    const parsed = new URL(canonical);
+    const contentId = parsed.pathname.match(/([a-f0-9]{32})\/?$/i)?.[1];
+    return contentId
+      ? `${parsed.origin.toLowerCase()}/content/${contentId.toLowerCase()}`
+      : canonical;
+  } catch {
+    return canonical;
+  }
 }
 
 function stringArray(value: unknown): string[] {

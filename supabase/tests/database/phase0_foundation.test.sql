@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public, pg_catalog;
-select plan(38);
+select plan(40);
 
 select is(
   (select count(*) from public.feature_flags),
@@ -255,6 +255,34 @@ select is(
   ),
   false,
   'the project-wide circuit breaker spans users and model roles'
+);
+
+select is(
+  (
+    select accepted
+    from public.reserve_ai_usage_v2(
+      '10000000-0000-0000-0000-000000000001',
+      '31000000-0000-0000-0000-000000000005',
+      'paid', 'research', 'interactive-research', 'research', 'gpt-5.2', 'low',
+      600, 600, 10000, 5000, 20000, 1000000000, 10000000000, null
+    )
+  ),
+  true,
+  'interactive Research reserves its own route budget'
+);
+
+select is(
+  (
+    select accepted
+    from public.reserve_ai_usage_v2(
+      '10000000-0000-0000-0000-000000000001',
+      '31000000-0000-0000-0000-000000000006',
+      'paid', 'research', 'automation_generation', 'automation', 'gpt-5.2', 'low',
+      600, 600, 10000, 5000, 20000, 1000000000, 10000000000, null
+    )
+  ),
+  true,
+  'Automation reserves independently from interactive Research'
 );
 
 select is(

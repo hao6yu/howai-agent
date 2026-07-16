@@ -19,25 +19,28 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const DISPATCH_SECRET = Deno.env.get("REMINDER_DISPATCH_SECRET") ?? "";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
-const OPENAI_MODEL = Deno.env.get("OPENAI_PROXY_RESEARCH_MODEL") ??
-  Deno.env.get("OPENAI_PROXY_CHAT_MODEL") ?? "gpt-5.6-sol";
+// Scheduled work is high-volume by nature. Keep paid interactive chat on Sol,
+// while Automations use the independently metered GPT-5.6 Luna route plus a
+// separate fail-closed verification pass.
+const OPENAI_MODEL = Deno.env.get("AUTOMATION_MODEL") ??
+  Deno.env.get("OPENAI_PROXY_MODEL_LUNA") ?? "gpt-5.6-luna";
 const SERVICE_ACCOUNT_JSON = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_JSON") ?? "";
 const RUN_BATCH_SIZE = 2;
 const DELIVERY_BATCH_SIZE = 20;
 const MAX_RUN_ATTEMPTS = 4;
 const MAX_DELIVERY_ATTEMPTS = 5;
 
-const RESEARCH_RESERVATION_MICROUSD = envNumber(
-  "OPENAI_PROXY_RESEARCH_RESERVATION_MICROUSD",
-  250_000,
+const AUTOMATION_RESERVATION_MICROUSD = envNumber(
+  "AUTOMATION_RESERVATION_MICROUSD",
+  100_000,
 );
-const RESEARCH_DAILY_BUDGET_MICROUSD = envNumber(
-  "OPENAI_PROXY_RESEARCH_DAILY_BUDGET_MICROUSD",
-  1_000_000,
+const AUTOMATION_DAILY_BUDGET_MICROUSD = envNumber(
+  "AUTOMATION_DAILY_BUDGET_MICROUSD",
+  2_000_000,
 );
-const RESEARCH_MONTHLY_BUDGET_MICROUSD = envNumber(
-  "OPENAI_PROXY_RESEARCH_MONTHLY_BUDGET_MICROUSD",
-  10_000_000,
+const AUTOMATION_MONTHLY_BUDGET_MICROUSD = envNumber(
+  "AUTOMATION_MONTHLY_BUDGET_MICROUSD",
+  40_000_000,
 );
 const PAID_USER_DAILY_BUDGET_MICROUSD = envNumber(
   "OPENAI_PROXY_PAID_USER_DAILY_BUDGET_MICROUSD",
@@ -186,7 +189,10 @@ async function executeRun(
       p_generation_usage_ledger_id: result.generationLedgerId,
       p_verification_usage_ledger_id: result.verificationLedgerId,
       p_next_run_at: nextRunAt,
-      p_create_delivery: result.status === "succeeded" && pushEnabled,
+      // Keep a withheld result in the conversation and Automation history,
+      // but do not interrupt the user with a failure push. Only a completed,
+      // verified briefing earns a notification.
+      p_create_delivery: pushEnabled && result.status === "succeeded",
       p_error_code: null,
       p_error_message: null,
     });
@@ -224,12 +230,15 @@ async function reserveUsage(
     p_cohort: "paid",
     p_intent: "research",
     p_requested_alias: `automation_${phase}`,
-    p_model_role: "research",
+    // Automation has its own budget route. Using the interactive Research
+    // route here lets scheduled work exhaust foreground Research (and vice
+    // versa), even though they are separate product capabilities.
+    p_model_role: "automation",
     p_resolved_model: OPENAI_MODEL,
     p_reasoning_effort: "low",
-    p_reservation_microusd: RESEARCH_RESERVATION_MICROUSD,
-    p_route_daily_budget_microusd: RESEARCH_DAILY_BUDGET_MICROUSD,
-    p_route_monthly_budget_microusd: RESEARCH_MONTHLY_BUDGET_MICROUSD,
+    p_reservation_microusd: AUTOMATION_RESERVATION_MICROUSD,
+    p_route_daily_budget_microusd: AUTOMATION_DAILY_BUDGET_MICROUSD,
+    p_route_monthly_budget_microusd: AUTOMATION_MONTHLY_BUDGET_MICROUSD,
     p_user_daily_budget_microusd: PAID_USER_DAILY_BUDGET_MICROUSD,
     p_user_monthly_budget_microusd: PAID_USER_MONTHLY_BUDGET_MICROUSD,
     p_global_daily_budget_microusd: GLOBAL_DAILY_BUDGET_MICROUSD,
@@ -270,7 +279,7 @@ async function reconcileUsage(input: {
     })
     : null;
   const actualCost = tokenCost == null
-    ? (usage ? RESEARCH_RESERVATION_MICROUSD : 0)
+    ? (usage ? AUTOMATION_RESERVATION_MICROUSD : 0)
     : tokenCost + webSearchToolCostMicrousd(usage?.webSearchCalls ?? 0);
   const { error } = await supabaseAdmin!.rpc("reconcile_ai_usage_v2", {
     p_request_id: input.requestId,
@@ -311,7 +320,7 @@ async function finishWithheldRun(
   const title = typeof run.template_snapshot.title === "string"
     ? run.template_snapshot.title
     : "this Automation";
-  const message = `I ran “${title}”, but I couldn't complete and verify it safely this time. I’ll try again at the next scheduled time.`;
+  const message = `I couldn't verify “${title}” well enough to send it. No unverified briefing was delivered. You can try Run now again from Automations.`;
   const { error: finishError } = await supabaseAdmin!.rpc("finish_automation_run", {
     p_run_id: run.run_id,
     p_status: "withheld",

@@ -85,6 +85,84 @@ test("forced search upgrades quick requests and guarantees the search tool", () 
   ]);
 });
 
+test("server-authorized reminder requests expose and require only that function", () => {
+  const reminderTool = { type: "function", name: "reminders_create" };
+  const payload: Record<string, unknown> = {
+    metadata: { howai_response_profile: "quick" },
+    tools: [
+      { type: "image_generation" },
+      { type: "web_search" },
+      reminderTool,
+    ],
+  };
+
+  const result = applyResponseProfile(payload, "gpt-5.6-sol", {
+    requiredFunctionName: "reminders_create",
+  });
+
+  assert.deepEqual(result, {
+    profile: "standard",
+    webSearchMode: "disabled",
+    reasoningEffort: "low",
+    maxOutputTokens: 1_200,
+  });
+  assert.equal(payload.tool_choice, "required");
+  assert.deepEqual(payload.tools, [reminderTool]);
+});
+
+test("required reminder choice survives when it is the only client tool", () => {
+  const payload: Record<string, unknown> = {
+    metadata: { howai_response_profile: "standard" },
+    tools: [{ type: "function", name: "reminders_create" }],
+  };
+
+  applyResponseProfile(payload, "gpt-5.6-sol", {
+    requiredFunctionName: "reminders_create",
+  });
+
+  assert.equal(payload.tool_choice, "required");
+});
+
+test("required reminder update excludes create and web tools", () => {
+  const updateTool = { type: "function", name: "reminders_update" };
+  const payload: Record<string, unknown> = {
+    metadata: { howai_response_profile: "quick" },
+    tools: [
+      { type: "web_search" },
+      { type: "function", name: "reminders_create" },
+      updateTool,
+    ],
+  };
+
+  const result = applyResponseProfile(payload, "gpt-5.6-sol", {
+    requiredFunctionName: "reminders_update",
+  });
+
+  assert.equal(result.profile, "standard");
+  assert.equal(payload.tool_choice, "required");
+  assert.deepEqual(payload.tools, [updateTool]);
+});
+
+test("required reminder resume exposes only the resume tool", () => {
+  const resumeTool = { type: "function", name: "reminders_resume" };
+  const payload: Record<string, unknown> = {
+    metadata: { howai_response_profile: "quick" },
+    tools: [
+      { type: "web_search" },
+      { type: "function", name: "reminders_update" },
+      resumeTool,
+    ],
+  };
+
+  const result = applyResponseProfile(payload, "gpt-5.6-sol", {
+    requiredFunctionName: "reminders_resume",
+  });
+
+  assert.equal(result.profile, "standard");
+  assert.equal(payload.tool_choice, "required");
+  assert.deepEqual(payload.tools, [resumeTool]);
+});
+
 test("research preserves stricter client caps while requesting high reasoning", () => {
   const payload: Record<string, unknown> = {
     metadata: { howai_intent: "research" },
@@ -142,7 +220,8 @@ test("reasoning override metadata is ignored unless the proxy authorizes it", ()
 
 test("search guidance is server-owned, count-aware, and removable", () => {
   const payload: Record<string, unknown> = {
-    instructions: `Be helpful.\n\n<web_search_output_guidance>client text</web_search_output_guidance>`,
+    instructions:
+      `Be helpful.\n\n<web_search_output_guidance>client text</web_search_output_guidance>`,
   };
 
   applyWebSearchOutputGuidance(payload, "auto");

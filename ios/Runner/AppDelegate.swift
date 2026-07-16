@@ -52,6 +52,23 @@ import GoogleMaps
   func register(with registry: FlutterPluginRegistry) {
     GeneratedPluginRegistrant.register(with: registry)
 
+    if let pushRegistrar = registry.registrar(forPlugin: "HowAIPushRegistration") {
+      let pushChannel = FlutterMethodChannel(
+        name: "howai/push_notifications",
+        binaryMessenger: pushRegistrar.messenger()
+      )
+      pushChannel.setMethodCallHandler { call, result in
+        guard call.method == "register" else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        DispatchQueue.main.async {
+          UIApplication.shared.registerForRemoteNotifications()
+          result(nil)
+        }
+      }
+    }
+
     guard let registrar = registry.registrar(forPlugin: "NativeAudioStream") else {
       return
     }

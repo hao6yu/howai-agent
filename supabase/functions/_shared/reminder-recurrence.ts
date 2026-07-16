@@ -64,12 +64,12 @@ export function normalizeReminderSchedule(
     ]),
   );
 
-  const title = requiredText(value.title, "title", 200);
+  const title = normalizeReminderTitle(value.title);
   const notes = optionalText(value.notes, "notes", 4_000);
   const timezone = requiredText(value.timezone, "timezone", 128);
   validateTimezone(timezone);
   const startLocal = normalizeLocalDateTime(value.start_local);
-  const recurrence = normalizeRecurrence(value.recurrence);
+  const recurrence = normalizeRecurrence(value.recurrence, timezone);
   if (!startMatchesRecurrence(parseLocalDateTime(startLocal), recurrence)) {
     throw new ReminderValidationError(
       "start_local must match the selected recurrence weekday or month date.",
@@ -103,7 +103,10 @@ export function normalizeReminderSchedule(
   };
 }
 
-export function normalizeRecurrence(value: unknown): ReminderRecurrence | null {
+export function normalizeRecurrence(
+  value: unknown,
+  timezone?: string,
+): ReminderRecurrence | null {
   if (value == null) return null;
   if (!isRecord(value)) {
     throw new ReminderValidationError("recurrence must be an object or null.");
@@ -172,7 +175,7 @@ export function normalizeRecurrence(value: unknown): ReminderRecurrence | null {
 
   const endsAt = value.ends_at == null
     ? null
-    : normalizeInstant(value.ends_at, "recurrence.ends_at");
+    : normalizeRecurrenceEnd(value.ends_at, timezone);
 
   return {
     frequency,
@@ -305,7 +308,17 @@ export function describeReminderSchedule(
       ? `monthly on day ${recurrence.day_of_month}`
       : `every ${recurrence.interval} months on day ${recurrence.day_of_month}`;
   }
-  return `${schedule.title} — ${cadence} at ${time} (${schedule.timezone})`;
+  const endLabel = recurrence.ends_at
+    ? ` until ${
+      new Intl.DateTimeFormat("en-US", {
+        timeZone: schedule.timezone,
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }).format(new Date(recurrence.ends_at))
+    }`
+    : "";
+  return `${schedule.title} — ${cadence} at ${time}${endLabel} (${schedule.timezone})`;
 }
 
 export function localDateTimeToUtc(
@@ -501,6 +514,35 @@ function normalizeInstant(value: unknown, field: string): string {
   return date.toISOString();
 }
 
+function normalizeRecurrenceEnd(
+  value: unknown,
+  timezone?: string,
+): string {
+  if (typeof value !== "string") {
+    throw new ReminderValidationError(
+      "recurrence.ends_at must be an ISO-8601 timestamp, local date, or null.",
+    );
+  }
+
+  const normalized = value.trim();
+  const localDate = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+  const localDateTime = LOCAL_DATE_TIME.test(normalized);
+  if (localDate || localDateTime) {
+    if (!timezone) {
+      throw new ReminderValidationError(
+        "recurrence.ends_at must include a timezone offset.",
+      );
+    }
+    const localValue = localDate ? `${normalized}T23:59:59` : normalized;
+    return localDateTimeToUtc(
+      parseLocalDateTime(localValue),
+      timezone,
+    ).toISOString();
+  }
+
+  return normalizeInstant(normalized, "recurrence.ends_at");
+}
+
 function requiredText(value: unknown, field: string, max: number): string {
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new ReminderValidationError(`${field} must be a non-empty string.`);
@@ -510,6 +552,15 @@ function requiredText(value: unknown, field: string, max: number): string {
     throw new ReminderValidationError(`${field} is too long.`);
   }
   return normalized;
+}
+
+function normalizeReminderTitle(value: unknown): string {
+  const title = requiredText(value, "title", 200);
+  const cleaned = title
+    .replace(/\s+(?:reminder\s+)?draft$/i, "")
+    .replace(/\s+reminder$/i, "")
+    .trim();
+  return cleaned || title;
 }
 
 function optionalText(

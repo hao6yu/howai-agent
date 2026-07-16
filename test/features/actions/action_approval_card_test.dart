@@ -37,10 +37,10 @@ void main() {
     expect(find.text('Starts tomorrow'), findsOneWidget);
     expect(approved, isFalse);
 
-    await tester.tap(find.text('Approve'));
+    await tester.tap(find.text('Create'));
     expect(approved, isTrue);
 
-    await tester.tap(find.text('Not now'));
+    await tester.tap(find.text('Cancel'));
     expect(rejected, isTrue);
   });
 
@@ -67,5 +67,38 @@ void main() {
     );
     expect(approve.onPressed, isNull);
     expect(reject.onPressed, isNull);
+  });
+
+  testWidgets('stays content-sized inside a confirmation dialog', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: FilledButton(
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => Dialog(
+                    child: ActionApprovalCard(
+                      proposal: proposal(),
+                      onApprove: () {},
+                      onReject: () {},
+                    ),
+                  ),
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+
+    expect(tester.getSize(find.byType(Card)).height, lessThan(420));
   });
 }

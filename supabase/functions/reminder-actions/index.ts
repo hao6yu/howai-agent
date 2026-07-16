@@ -8,6 +8,10 @@ import {
   normalizeReminderSchedule,
   ReminderValidationError,
 } from "../_shared/reminder-recurrence.ts";
+import {
+  snoozeFromLegacyInstant,
+  snoozeFromNextOccurrence,
+} from "../_shared/reminder-snooze.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -144,6 +148,9 @@ Deno.serve(async (req) => {
     return jsonResponse(400, { error: "Unsupported operation." }, origin);
   } catch (error) {
     if (error instanceof ReminderValidationError) {
+      // Log only the bounded validation code, never reminder content or model
+      // arguments. This makes future 422s diagnosable without leaking user data.
+      console.warn("Reminder validation rejected", error.code);
       return jsonResponse(
         422,
         { error: error.message, code: error.code },
@@ -188,6 +195,10 @@ async function proposeAction(
   }
   const conversationId = optionalUuid(body.conversation_id, "conversation_id");
   if (conversationId) await assertConversationOwnership(userId, conversationId);
+  const replacesProposalId = optionalUuid(
+    body.replaces_proposal_id,
+    "replaces_proposal_id",
+  );
 
   const { data: existing, error: existingError } = await supabaseAdmin!
     .from("agent_action_runs")
@@ -202,22 +213,65 @@ async function proposeAction(
     }, origin);
   }
 
-  const since = new Date(Date.now() - 86_400_000).toISOString();
-  const { count, error: countError } = await supabaseAdmin!
-    .from("agent_action_runs")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("proposed_at", since);
-  if (countError) throw countError;
-  if ((count ?? 0) >= MAX_PROPOSALS_PER_DAY) {
-    return jsonResponse(
-      429,
-      { error: "The daily reminder-action limit has been reached." },
-      origin,
-    );
+  if (!replacesProposalId) {
+    const since = new Date(Date.now() - 86_400_000).toISOString();
+    const { count, error: countError } = await supabaseAdmin!
+      .from("agent_action_runs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("proposed_at", since);
+    if (countError) throw countError;
+    if ((count ?? 0) >= MAX_PROPOSALS_PER_DAY) {
+      return jsonResponse(
+        429,
+        { error: "The daily reminder-action limit has been reached." },
+        origin,
+      );
+    }
   }
 
   const normalized = await normalizeAction(userId, typedAction, body.arguments);
+  if (replacesProposalId) {
+    const { data: replaced, error: replaceError } = await supabaseAdmin!
+      .from("agent_action_runs")
+      .update({
+        origin: actionOrigin,
+        arguments: normalized.arguments,
+        human_summary: normalized.summary,
+        warnings: normalized.warnings,
+        idempotency_key: idempotencyKey,
+        proposed_at: new Date().toISOString(),
+      })
+      .eq("id", replacesProposalId)
+      .eq("user_id", userId)
+      .eq("action_type", typedAction)
+      .eq("status", "proposed")
+      .select(ACTION_RUN_COLUMNS)
+      .maybeSingle();
+    if (replaceError?.code === "23505") {
+      const { data: raced, error: racedError } = await supabaseAdmin!
+        .from("agent_action_runs")
+        .select(ACTION_RUN_COLUMNS)
+        .eq("user_id", userId)
+        .eq("idempotency_key", idempotencyKey)
+        .single();
+      if (racedError || !raced) throw racedError ?? replaceError;
+      return jsonResponse(200, {
+        proposal: serializeProposal(raced as ActionRun),
+      }, origin);
+    }
+    if (replaceError) throw replaceError;
+    if (!replaced) {
+      throw new ReminderValidationError(
+        "That reminder draft is no longer awaiting approval.",
+        "proposal_not_pending",
+      );
+    }
+    return jsonResponse(200, {
+      proposal: serializeProposal(replaced as ActionRun),
+    }, origin);
+  }
+
   const { data, error } = await supabaseAdmin!
     .from("agent_action_runs")
     .insert({
@@ -420,13 +474,29 @@ async function normalizeAction(
         new Set([
           "reminder_id",
           "expected_version",
+          "snooze_minutes",
           "snooze_until",
         ]),
       );
-      const nextFireAt = futureInstant(
-        rawArguments.snooze_until,
-        "snooze_until",
-      );
+      const hasMinutes = rawArguments.snooze_minutes !== undefined;
+      const hasLegacyInstant = rawArguments.snooze_until !== undefined;
+      if (hasMinutes === hasLegacyInstant) {
+        throw new ReminderValidationError(
+          "Provide exactly one snooze duration.",
+        );
+      }
+      const now = new Date();
+      const nextFireAt = hasMinutes
+        ? snoozeFromNextOccurrence({
+          nextFireAt: reminder.next_fire_at,
+          minutes: rawArguments.snooze_minutes,
+          now,
+        })
+        : snoozeFromLegacyInstant({
+          nextFireAt: reminder.next_fire_at,
+          requestedUntil: rawArguments.snooze_until,
+          now,
+        });
       return {
         arguments: { ...base, next_fire_at: nextFireAt },
         summary: `Snooze “${reminder.title}” until ${
@@ -678,19 +748,6 @@ function successMessage(actionType: ActionType): string {
     case "reminders_delete":
       return "Reminder deleted.";
   }
-}
-
-function futureInstant(value: unknown, field: string): string {
-  if (typeof value !== "string") {
-    throw new ReminderValidationError(
-      `${field} must be an ISO-8601 timestamp.`,
-    );
-  }
-  const date = new Date(value);
-  if (!Number.isFinite(date.getTime()) || date.getTime() <= Date.now()) {
-    throw new ReminderValidationError(`${field} must be in the future.`);
-  }
-  return date.toISOString();
 }
 
 function formatInstant(value: string, timezone: string): string {

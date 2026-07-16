@@ -42,6 +42,22 @@ void main() {
         'ends_at': null,
       },
     });
+    expect(reminder.agentUpdateContext(), {
+      'reminder_id': 'reminder-1',
+      'expected_version': 3,
+      'status': 'active',
+      'title': 'Water the plants',
+      'notes': 'Use the small can',
+      'timezone': 'America/Chicago',
+      'start_local': '2026-07-20T08:30:00',
+      'recurrence': {
+        'frequency': 'weekly',
+        'interval': 1,
+        'weekdays': [1, 4],
+        'day_of_month': null,
+        'ends_at': null,
+      },
+    });
   });
 
   test('parses a one-time completed reminder', () {

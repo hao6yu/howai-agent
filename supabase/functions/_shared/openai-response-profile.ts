@@ -11,6 +11,7 @@ export type AppliedResponseProfile = Readonly<{
 
 export type ResponseProfileOptions = Readonly<{
   allowReasoningOverride?: boolean;
+  requiredFunctionName?: string | null;
 }>;
 
 const WEB_SEARCH_OUTPUT_GUIDANCE = `<web_search_output_guidance>
@@ -65,9 +66,22 @@ export function applyResponseProfile(
     : [];
   const nonSearchTools = tools.filter((tool) => !isWebSearchTool(tool));
   const hasWebSearch = tools.some(isWebSearchTool);
+  const requiredFunctionTool = options.requiredFunctionName
+    ? tools.find((tool) =>
+      tool.type === "function" && tool.name === options.requiredFunctionName
+    )
+    : undefined;
   let webSearchMode: WebSearchMode = hasWebSearch ? "auto" : "disabled";
 
-  if (profile === "quick") {
+  // Action proposals are safe to force because the function only creates a
+  // reviewable draft. Keep this server-authorized and expose exactly one tool.
+  if (requiredFunctionTool && profile === "quick") profile = "standard";
+
+  if (requiredFunctionTool) {
+    payload.tools = [requiredFunctionTool];
+    payload.tool_choice = "required";
+    webSearchMode = "disabled";
+  } else if (profile === "quick") {
     payload.tools = nonSearchTools;
     delete payload.tool_choice;
     webSearchMode = "disabled";
@@ -88,7 +102,9 @@ export function applyResponseProfile(
   if (Array.isArray(payload.tools) && payload.tools.length === 0) {
     delete payload.tools;
     delete payload.tool_choice;
-  } else if (webSearchMode !== "force" && !hasWebSearch) {
+  } else if (
+    !requiredFunctionTool && webSearchMode !== "force" && !hasWebSearch
+  ) {
     // Never trust a client-supplied required choice after its requested tool
     // has been removed by entitlement or profile controls.
     delete payload.tool_choice;

@@ -102,6 +102,7 @@ class ReminderService {
     required AgentActionOrigin origin,
     String? conversationId,
     String? idempotencyKey,
+    String? replacesProposalId,
   }) async {
     _requireSignedInUser();
     try {
@@ -114,6 +115,7 @@ class ReminderService {
           'origin': origin.name,
           'conversation_id': conversationId,
           'idempotency_key': idempotencyKey ?? _newIdempotencyKey(actionType),
+          'replaces_proposal_id': replacesProposalId,
         },
       ).timeout(const Duration(seconds: 15));
       final data = _map(response.data);
@@ -128,19 +130,27 @@ class ReminderService {
     Map<String, dynamic> toolCall, {
     required AgentActionOrigin origin,
     String? conversationId,
+    ActionProposal? replacesProposal,
   }) {
-    if (toolCall['name'] != 'reminders_create') {
+    final actionType = toolCall['name']?.toString();
+    if (actionType != 'reminders_create' &&
+        actionType != 'reminders_update' &&
+        actionType != 'reminders_resume') {
       throw const ReminderServiceException('Unsupported reminder tool call.');
     }
+    final supportedActionType = actionType!;
     final arguments = _map(toolCall['arguments']);
     final callId = toolCall['call_id']?.toString().trim();
     return propose(
-      actionType: 'reminders_create',
+      actionType: supportedActionType,
       arguments: arguments,
       origin: origin,
       conversationId: conversationId,
       idempotencyKey:
           callId == null || callId.isEmpty ? null : 'openai:$callId',
+      replacesProposalId: supportedActionType == 'reminders_create'
+          ? replacesProposal?.proposalId
+          : null,
     );
   }
 

@@ -24,6 +24,75 @@ test("normalizes a one-time reminder in an IANA timezone", () => {
   assert.match(describeReminderSchedule(schedule), /America\/Chicago/);
 });
 
+test("removes model-facing reminder draft suffixes from action titles", () => {
+  const schedule = normalizeReminderSchedule({
+    title: "Rest reminder draft",
+    notes: null,
+    timezone: "America/Chicago",
+    start_local: "2026-07-16T09:30:00",
+    recurrence: null,
+  }, new Date("2026-07-15T12:00:00Z"));
+
+  assert.equal(schedule.title, "Rest");
+  assert.doesNotMatch(describeReminderSchedule(schedule), /reminder draft/i);
+});
+
+test("describes recurring reminders without exposing recurrence JSON", () => {
+  const schedule = normalizeReminderSchedule({
+    title: "Pick up Madeline",
+    notes: null,
+    timezone: "America/Chicago",
+    start_local: "2026-07-21T15:30:00",
+    recurrence: {
+      frequency: "weekly",
+      interval: 1,
+      weekdays: [2],
+      day_of_month: null,
+      ends_at: "2026-09-21T23:59:59-05:00",
+    },
+  }, new Date("2026-07-15T12:00:00Z"));
+
+  assert.equal(
+    describeReminderSchedule(schedule),
+    "Pick up Madeline — every Tue at 3:30 PM until Sep 21, 2026 (America/Chicago)",
+  );
+});
+
+test("interprets a model-provided local recurrence end in its timezone", () => {
+  const dateOnly = normalizeReminderSchedule({
+    title: "Pick up my daughter",
+    notes: null,
+    timezone: "America/Chicago",
+    start_local: "2026-07-21T15:30:00",
+    recurrence: {
+      frequency: "weekly",
+      interval: 1,
+      weekdays: [2],
+      day_of_month: null,
+      ends_at: "2026-09-21",
+    },
+  }, new Date("2026-07-15T18:00:00Z"));
+  const localDateTime = normalizeReminderSchedule({
+    title: "Pick up my daughter",
+    notes: null,
+    timezone: "America/Chicago",
+    start_local: "2026-07-21T15:30:00",
+    recurrence: {
+      frequency: "weekly",
+      interval: 1,
+      weekdays: [2],
+      day_of_month: null,
+      ends_at: "2026-09-21T15:30:00",
+    },
+  }, new Date("2026-07-15T18:00:00Z"));
+
+  assert.equal(dateOnly.recurrence?.ends_at, "2026-09-22T04:59:59.000Z");
+  assert.equal(
+    localDateTime.recurrence?.ends_at,
+    "2026-09-21T20:30:00.000Z",
+  );
+});
+
 test("daily recurrence preserves local wall-clock time across DST", () => {
   const next = nextOccurrence({
     startLocal: "2026-03-07T08:00:00",

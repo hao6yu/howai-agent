@@ -36,7 +36,9 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ReminderProvider>().ensureInitialized();
+      // A reminder can complete while this screen is closed. Always reconcile
+      // with the server when the user opens Actions instead of showing cache.
+      context.read<ReminderProvider>().ensureInitialized(force: true);
       context.read<PushNotificationProvider>().ensureInitialized();
     });
   }
@@ -291,10 +293,7 @@ class _ActionsWorkspaceScreenState extends State<ActionsWorkspaceScreen> {
         actionType = 'reminders_snooze';
         arguments = {
           ...base,
-          'snooze_until': DateTime.now()
-              .toUtc()
-              .add(const Duration(minutes: 10))
-              .toIso8601String(),
+          'snooze_minutes': 10,
         };
         break;
       case _ReminderMenuAction.complete:
@@ -511,9 +510,11 @@ class _ActionApprovalDialogState extends State<_ActionApprovalDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Padding(
-        padding: const EdgeInsets.all(8),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
         child: ActionApprovalCard(
           proposal: widget.proposal,
           isBusy: _busy,

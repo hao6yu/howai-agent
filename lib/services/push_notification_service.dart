@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,6 +38,9 @@ class PushNotificationService with WidgetsBindingObserver {
   static final PushNotificationService instance = PushNotificationService._();
 
   static const _tokenPreferenceKey = 'howai_fcm_registration_token';
+  static const _iosRegistrationChannel = MethodChannel(
+    'howai/push_notifications',
+  );
   static const _channel = AndroidNotificationChannel(
     'howai_reminders',
     'Reminders',
@@ -53,6 +57,7 @@ class PushNotificationService with WidgetsBindingObserver {
   StreamSubscription<String>? _tokenSubscription;
   StreamSubscription<AuthState>? _authSubscription;
   Map<String, dynamic>? _pendingNavigation;
+  Future<bool>? _syncInFlight;
   bool _initialized = false;
 
   bool get supportsRemoteNotifications =>
@@ -119,15 +124,22 @@ class PushNotificationService with WidgetsBindingObserver {
 
     WidgetsBinding.instance.addObserver(this);
     _initialized = true;
+    unawaited(_loadInitialMessageSilently());
+    unawaited(_syncSilently());
+  }
+
+  Future<void> _loadInitialMessageSilently() async {
     try {
-      final initialMessage = await _messaging.getInitialMessage();
+      final initialMessage = await _messaging
+          .getInitialMessage()
+          .timeout(const Duration(seconds: 3));
       if (initialMessage != null) {
         _handleNotificationData(initialMessage.data);
       }
     } catch (_) {
-      // Notification launch recovery must not block the rest of app startup.
+      // Some iOS launches never resolve getInitialMessage. Notification launch
+      // recovery is best-effort and must never delay the first app frame.
     }
-    unawaited(_syncSilently());
   }
 
   @override
@@ -186,18 +198,41 @@ class PushNotificationService with WidgetsBindingObserver {
   }
 
   Future<bool> syncIfAuthorized() async {
+    final inFlight = _syncInFlight;
+    if (inFlight != null) return inFlight;
+
+    final operation = _performAuthorizedSync();
+    _syncInFlight = operation;
+    try {
+      return await operation;
+    } finally {
+      if (identical(_syncInFlight, operation)) _syncInFlight = null;
+    }
+  }
+
+  Future<bool> _performAuthorizedSync() async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null || user.isAnonymous || !supportsRemoteNotifications) {
       return false;
     }
     final permission = await permissionState();
+    _debugLog('Permission state: $permission');
     if (permission != PushPermissionState.authorized &&
         permission != PushPermissionState.provisional) {
       return false;
     }
-    if (Platform.isIOS && !await _waitForApnsToken()) return false;
+    if (Platform.isIOS) {
+      await _requestIosRemoteNotificationRegistration();
+      if (!await _waitForApnsToken()) {
+        _debugLog(
+            'APNs token was not delivered before registration timed out.');
+        return false;
+      }
+    }
+    _debugLog('APNs token is available; requesting the FCM token.');
     final token = await _messaging.getToken();
     if (token == null || token.trim().isEmpty) return false;
+    _debugLog('FCM token is available; registering this device.');
     return _registerToken(token);
   }
 
@@ -260,17 +295,40 @@ class PushNotificationService with WidgetsBindingObserver {
   Future<void> _syncSilently() async {
     try {
       await syncIfAuthorized();
-    } catch (_) {
+    } catch (error, stackTrace) {
+      _debugLog('Background registration failed: $error', stackTrace);
       // Startup must not fail when the rollout is disabled or the network is down.
     }
   }
 
   Future<bool> _waitForApnsToken() async {
-    for (var attempt = 0; attempt < 20; attempt++) {
-      if (await _messaging.getAPNSToken() != null) return true;
-      await Future<void>.delayed(const Duration(milliseconds: 500));
+    try {
+      for (var attempt = 0; attempt < 20; attempt++) {
+        if (await _messaging.getAPNSToken() != null) {
+          _debugLog('APNs token arrived after ${attempt + 1} attempt(s).');
+          return true;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 500));
+      }
+    } catch (error, stackTrace) {
+      _debugLog('Reading the APNs token failed: $error', stackTrace);
     }
     return false;
+  }
+
+  Future<void> _requestIosRemoteNotificationRegistration() async {
+    try {
+      await _iosRegistrationChannel.invokeMethod<void>('register');
+      _debugLog('Requested native APNs registration.');
+    } catch (error, stackTrace) {
+      _debugLog('Native APNs registration request failed: $error', stackTrace);
+    }
+  }
+
+  void _debugLog(String message, [StackTrace? stackTrace]) {
+    if (!kDebugMode) return;
+    debugPrint('[PushNotifications] $message');
+    if (stackTrace != null) debugPrintStack(stackTrace: stackTrace);
   }
 
   Future<void> _clearLocalToken() async {

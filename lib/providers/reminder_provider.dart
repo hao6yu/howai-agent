@@ -106,16 +106,20 @@ class ReminderProvider extends ChangeNotifier {
     Map<String, dynamic> toolCall, {
     required AgentActionOrigin origin,
     String? conversationId,
+    ActionProposal? replacesProposal,
   }) async {
     final proposal = await _service.proposeToolCall(
       toolCall,
       origin: origin,
       conversationId: conversationId,
+      replacesProposal: replacesProposal,
     );
     _pendingProposals = [
       proposal,
       ..._pendingProposals.where(
-        (candidate) => candidate.proposalId != proposal.proposalId,
+        (candidate) =>
+            candidate.proposalId != proposal.proposalId &&
+            candidate.proposalId != replacesProposal?.proposalId,
       ),
     ];
     notifyListeners();

@@ -199,6 +199,8 @@ const ALLOWED_TOOL_TYPES = new Set([
 const ALLOWED_FUNCTION_NAMES = new Set([
   "generate_pptx",
   "reminders_create",
+  "reminders_update",
+  "reminders_resume",
 ]);
 
 type ProxyPath = "/v1/responses" | "/v1/audio/transcriptions";
@@ -560,6 +562,7 @@ async function sanitizeResponsesBody(
     : null;
   let policyContext: PolicyContext | null = null;
   const intent = requestIntent(json.metadata);
+  const requiredFunctionName = requestedActionFunction(json.metadata);
 
   if (rollout.active) {
     const entitlement = rollout.entitlement;
@@ -738,6 +741,7 @@ async function sanitizeResponsesBody(
       rollout.entitlement?.cohort === "paid" &&
       rollout.entitlement.trusted &&
       isGpt56Model(resolvedModel),
+    requiredFunctionName,
   });
   if (policyContext) {
     if (
@@ -765,6 +769,7 @@ async function sanitizeResponsesBody(
         removeWebSearchTools(json);
         appliedProfile = applyResponseProfile(json, resolvedModel, {
           allowReasoningOverride: false,
+          requiredFunctionName,
         });
         policyContext = {
           ...policyContext,
@@ -787,6 +792,7 @@ async function sanitizeResponsesBody(
   json.safety_identifier = user.id;
   if (json.metadata && typeof json.metadata === "object") {
     delete (json.metadata as Record<string, unknown>).howai_user_id;
+    delete (json.metadata as Record<string, unknown>).howai_action;
   }
 
   return {
@@ -908,6 +914,18 @@ function requestIntent(metadata: unknown): RequestIntent {
       candidate === "research"
     ? candidate
     : "primary_chat";
+}
+
+function requestedActionFunction(metadata: unknown): string | null {
+  const candidate = metadata && typeof metadata === "object"
+    ? (metadata as Record<string, unknown>).howai_action
+    : null;
+  // Reminder execution still requires a separate approval endpoint. Do not
+  // generalize this metadata switch to functions with immediate side effects.
+  if (candidate === "reminder_create") return "reminders_create";
+  if (candidate === "reminder_update") return "reminders_update";
+  if (candidate === "reminder_resume") return "reminders_resume";
+  return null;
 }
 
 function containsAttachment(value: unknown): boolean {

@@ -93,8 +93,11 @@ The web client is maintained in a separate repository.
    ```
 5. Run the app:
    ```bash
-   flutter run --dart-define-from-file=.env
+   scripts/run-configured.sh
    ```
+
+   Pass normal Flutter run arguments through the wrapper, for example
+   `scripts/run-configured.sh -d <device-id>`.
 
 `.env` is intentionally not bundled as a Flutter asset. Values passed with
 `--dart-define` are still visible in a compiled mobile app, so only put public

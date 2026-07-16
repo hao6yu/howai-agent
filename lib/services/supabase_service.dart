@@ -86,6 +86,10 @@ class SupabaseService {
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
 
+      if (!result) {
+        throw StateError('Could not open the Google sign-in page.');
+      }
+
       // The OAuth flow was initiated successfully
       // The actual authentication happens in the external browser
       // Supabase will automatically update the auth state when the user returns via deep link
@@ -116,6 +120,10 @@ class SupabaseService {
         redirectTo: redirectUrl,
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
+
+      if (!result) {
+        throw StateError('Could not open the Apple sign-in page.');
+      }
 
       // The OAuth flow was initiated successfully
       // Supabase will handle the HTTPS callback from Apple, then redirect to our deep link

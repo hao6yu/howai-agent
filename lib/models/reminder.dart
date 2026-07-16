@@ -126,6 +126,15 @@ class Reminder {
         'recurrence': recurrence?.toJson(),
       };
 
+  /// Bounded, user-owned state supplied to the reminder update tool. The
+  /// backend still validates ownership and [version] before execution.
+  Map<String, dynamic> agentUpdateContext() => {
+        'reminder_id': id,
+        'expected_version': version,
+        'status': status.name,
+        ...scheduleArguments(),
+      };
+
   static String _localTimestamp(DateTime value) {
     String two(int number) => number.toString().padLeft(2, '0');
     return '${value.year.toString().padLeft(4, '0')}-'

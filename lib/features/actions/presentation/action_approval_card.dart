@@ -25,18 +25,19 @@ class ActionApprovalCard extends StatelessWidget {
       container: true,
       label: 'Review proposed action: ${proposal.summary}',
       child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 8),
+        margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: colors.secondaryContainer,
                       borderRadius: BorderRadius.circular(12),
@@ -68,7 +69,7 @@ class ActionApprovalCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Text(
                 proposal.summary,
                 style: theme.textTheme.bodyLarge?.copyWith(
@@ -96,24 +97,30 @@ class ActionApprovalCard extends StatelessWidget {
                   ),
                 ),
               ],
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
                     onPressed: isBusy ? null : onReject,
-                    child: const Text('Not now'),
+                    child: const Text('Cancel'),
                   ),
                   const SizedBox(width: 8),
                   FilledButton.icon(
                     onPressed: isBusy ? null : onApprove,
+                    style: proposal.actionType == 'reminders_delete'
+                        ? FilledButton.styleFrom(
+                            backgroundColor: colors.error,
+                            foregroundColor: colors.onError,
+                          )
+                        : null,
                     icon: isBusy
                         ? const SizedBox.square(
                             dimension: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.check_rounded),
-                    label: const Text('Approve'),
+                    label: Text(_approvalLabel(proposal.actionType)),
                   ),
                 ],
               ),
@@ -129,5 +136,28 @@ class ActionApprovalCard extends StatelessWidget {
         .replaceFirst('reminders_', '')
         .replaceAll('_', ' ')
         .toUpperCase();
+  }
+
+  String _approvalLabel(String actionType) {
+    switch (actionType) {
+      case 'reminders_create':
+        return 'Create';
+      case 'reminders_update':
+        return 'Save changes';
+      case 'reminders_resume':
+        return 'Resume';
+      case 'reminders_pause':
+        return 'Pause';
+      case 'reminders_snooze':
+        return 'Snooze';
+      case 'reminders_skip_next':
+        return 'Skip';
+      case 'reminders_complete':
+        return 'Complete';
+      case 'reminders_delete':
+        return 'Delete';
+      default:
+        return 'Approve';
+    }
   }
 }

@@ -42,4 +42,4 @@ You can refer to the `env.example` file in the root directory for a template.
 1. Clone this repository
 2. Create `.env` file with the configuration above
 3. Run `flutter pub get` to install dependencies
-4. Run `flutter run --dart-define-from-file=.env` to start the app
+4. Run `scripts/run-configured.sh` to start the app

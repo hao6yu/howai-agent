@@ -37,7 +37,11 @@ import '../constants/chat_ui_constants.dart';
 import '../models/chat_message.dart';
 import '../models/knowledge_item.dart';
 import '../models/thinking_level.dart';
+import '../models/reminder.dart';
 import '../core/agent/agent_action_contracts.dart';
+import '../core/agent/chat_response_policy.dart';
+import '../core/agent/reminder_action_intent.dart';
+import '../core/agent/reminder_action_messages.dart';
 import '../services/database_service.dart';
 import '../services/openai_service.dart';
 import '../services/elevenlabs_service.dart';
@@ -686,9 +690,12 @@ class _AiChatScreenState extends State<AiChatScreen>
     int? conversationId,
     required String requestId,
     required String aiName,
+    required String appLocale,
     String? reasoningEffortOverride,
     bool allowReminderActions = false,
     String? reminderTimezone,
+    Map<String, dynamic>? pendingReminderDraft,
+    List<Map<String, dynamic>> existingReminders = const [],
   }) async {
     final timestamp = DateTime.now().toIso8601String();
 
@@ -721,6 +728,11 @@ class _AiChatScreenState extends State<AiChatScreen>
       return text.replaceAll(titlePattern, '').trim();
     }
 
+    String sanitizeAssistantText(String text) => redactReminderInternals(
+          _stripTitleJson(text),
+          existingReminders,
+        );
+
     // Helper to extract title from text
     String? _extractTitle(String text) {
       final titleMatch =
@@ -745,7 +757,10 @@ class _AiChatScreenState extends State<AiChatScreen>
         aiPersonality: aiPersonality,
         reasoningEffortOverride: reasoningEffortOverride,
         allowReminderActions: allowReminderActions,
+        appLocale: appLocale,
         reminderTimezone: reminderTimezone,
+        pendingReminderDraft: pendingReminderDraft,
+        existingReminders: existingReminders,
       );
 
       await for (final event in stream) {
@@ -764,7 +779,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             if (title == null && generateTitle) {
               title = _extractTitle(fullText);
             }
-            String displayText = _stripTitleJson(fullText);
+            String displayText = sanitizeAssistantText(fullText);
 
             // Only show message once we have actual content (not just title JSON)
             if (displayText.trim().isNotEmpty) {
@@ -899,7 +914,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       }
 
       // Clean up the final text
-      String cleanedText = _stripTitleJson(fullText);
+      String cleanedText = sanitizeAssistantText(fullText);
 
       // Ensure the latest streamed text is rendered before the temporary
       // message is replaced by the persisted row.
@@ -985,6 +1000,8 @@ class _AiChatScreenState extends State<AiChatScreen>
     if (text.trim().isEmpty &&
         (images == null || images.isEmpty) &&
         (files == null || files.isEmpty)) return;
+
+    final appLocale = Localizations.localeOf(context).toLanguageTag();
 
     // Hide keyboard immediately when sending message
     FocusScope.of(context).unfocus();
@@ -1297,12 +1314,27 @@ class _AiChatScreenState extends State<AiChatScreen>
       final reasoningEffortOverride =
           subscriptionService.isPremium ? _thinkingLevel.reasoningEffort : null;
 
-      final reminderProvider =
-          Provider.of<ReminderProvider>(context, listen: false);
-      final allowReminderActions = await reminderProvider.ensureCapability();
+      final reminderProvider = Provider.of<ReminderProvider>(
+        context,
+        listen: false,
+      );
+      final wantsFreshReminderState = isExistingReminderUpdateRequest(text) ||
+          isExistingReminderResumeRequest(text);
+      await reminderProvider.ensureInitialized(force: wantsFreshReminderState);
+      final allowReminderActions = reminderProvider.isAvailable;
       final reminderTimezone = allowReminderActions
           ? await DeviceTimezoneService.currentIdentifier()
           : null;
+      final pendingReminderProposal = _pendingActionProposal;
+      final existingReminders = allowReminderActions
+          ? reminderProvider.reminders
+              .where(
+                (reminder) => reminder.status != ReminderStatus.completed,
+              )
+              .take(30)
+              .map((reminder) => reminder.agentUpdateContext())
+              .toList(growable: false)
+          : <Map<String, dynamic>>[];
 
       // Check if streaming is enabled
       // Image-generation style requests stay non-streaming because the
@@ -1340,9 +1372,12 @@ class _AiChatScreenState extends State<AiChatScreen>
           conversationId: conversationId,
           requestId: requestId,
           aiName: aiName,
+          appLocale: appLocale,
           reasoningEffortOverride: reasoningEffortOverride,
           allowReminderActions: allowReminderActions,
           reminderTimezone: reminderTimezone,
+          pendingReminderDraft: pendingReminderProposal?.arguments,
+          existingReminders: existingReminders,
         );
       } else {
         print('[ChatScreen] Using NON-STREAMING response path');
@@ -1363,7 +1398,10 @@ class _AiChatScreenState extends State<AiChatScreen>
           fileAttachments: files,
           aiPersonality: aiPersonality,
           allowReminderActions: allowReminderActions,
+          appLocale: appLocale,
           reminderTimezone: reminderTimezone,
+          pendingReminderDraft: pendingReminderProposal?.arguments,
+          existingReminders: existingReminders,
         );
       }
 
@@ -1427,6 +1465,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         aiText = aiText
             .replaceAll(RegExp(r'\s*\{"title"\s*:\s*"[^"]*"\}\s*'), '')
             .trim();
+        aiText = redactReminderInternals(aiText, existingReminders);
 
         // Debug: Log the received files
         //// print('[ChatScreen] Received response from OpenAI:');
@@ -1496,6 +1535,7 @@ class _AiChatScreenState extends State<AiChatScreen>
 
         if (actionToolCall != null) {
           try {
+            final actionName = actionToolCall['name']?.toString();
             final conversationUuid = conversationId == null
                 ? null
                 : IDMappingService().getConversationUUID(conversationId);
@@ -1505,11 +1545,23 @@ class _AiChatScreenState extends State<AiChatScreen>
                   ? AgentActionOrigin.voice
                   : AgentActionOrigin.text,
               conversationId: conversationUuid,
+              replacesProposal: actionName == 'reminders_create'
+                  ? pendingReminderProposal
+                  : null,
             );
             if (mounted) {
               setState(() => _pendingActionProposal = proposal);
             }
-            if (aiText.trim().isEmpty) {
+            if (actionName == 'reminders_update') {
+              aiText =
+                  'I prepared the reminder update. Review the changes below before I save it.';
+            } else if (actionName == 'reminders_resume') {
+              aiText =
+                  'I found the paused reminder. Review it below before I turn it back on.';
+            } else if (pendingReminderProposal != null) {
+              aiText =
+                  'I updated this reminder. Review the changes below before I save it.';
+            } else if (aiText.trim().isEmpty) {
               aiText =
                   'I drafted this reminder. Review it below before I save it.';
             }
@@ -1518,11 +1570,7 @@ class _AiChatScreenState extends State<AiChatScreen>
               aiText =
                   'I could not prepare that reminder. Please check the time and try again.';
             }
-            if (mounted) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) _showErrorSnackBar(error.toString());
-              });
-            }
+            debugPrint('[ChatScreen] Reminder proposal failed: $error');
           }
         }
 
@@ -2347,15 +2395,57 @@ class _AiChatScreenState extends State<AiChatScreen>
         _pendingActionProposal = null;
         _pendingActionBusy = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result?.displayMessage ?? 'Reminder dismissed.'),
+      await _appendAssistantActionMessage(
+        reminderActionDecisionMessage(
+          proposal: proposal,
+          decision: decision,
+          result: result,
         ),
       );
     } catch (error) {
       if (!mounted) return;
       setState(() => _pendingActionBusy = false);
-      _showErrorSnackBar(error.toString());
+      debugPrint('[ChatScreen] Reminder decision failed: $error');
+      await _appendAssistantActionMessage(
+        'I couldn’t finish that reminder action. Please try again.',
+      );
+    }
+  }
+
+  Future<void> _appendAssistantActionMessage(String text) async {
+    if (!mounted) return;
+    final conversationId =
+        context.read<ConversationProvider>().selectedConversation?.id;
+    final timestamp = DateTime.now().toIso8601String();
+    final message = ChatMessage(
+      message: text,
+      isUserMessage: false,
+      timestamp: timestamp,
+      profileId: _currentProfileId,
+      conversationId: conversationId,
+    );
+
+    setState(() => _messages.add(message));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scrollToBottom(animated: true);
+    });
+
+    try {
+      final messageId = await _databaseService.insertChatMessage(message);
+      if (!mounted) return;
+      setState(() {
+        final index = _messages.indexWhere(
+          (candidate) =>
+              !candidate.isUserMessage &&
+              candidate.id == null &&
+              candidate.timestamp == timestamp,
+        );
+        if (index != -1) {
+          _messages[index] = message.copyWith(id: messageId);
+        }
+      });
+    } catch (error) {
+      debugPrint('[ChatScreen] Could not persist action reply: $error');
     }
   }
 
@@ -2848,7 +2938,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             child: ActionApprovalCard(
                               proposal: _pendingActionProposal!,
-                              isBusy: _pendingActionBusy,
+                              isBusy: _pendingActionBusy || _isSending,
                               onApprove: () => _decidePendingAction(
                                 AgentActionDecision.approved,
                               ),

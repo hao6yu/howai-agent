@@ -84,6 +84,7 @@ type ParsedVerification = Readonly<{
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const MAX_EVIDENCE_SOURCES = 30;
 const MAX_DISPLAY_SOURCES = 12;
+const MAX_COMPACT_SOURCE_LINKS = 5;
 
 export async function buildVerifiedAutomationReport(
   input: AutomationReportInput,
@@ -646,10 +647,12 @@ function appendSources(
   draft: string,
   sources: readonly AutomationSource[],
 ): string {
-  const links = sources.map((source) =>
-    `- [${escapeMarkdown(source.title)}](${source.url})`
+  const links = sources.slice(0, MAX_COMPACT_SOURCE_LINKS).map((source, index) =>
+    `[${index + 1}](${source.url})`
   );
-  return `${draft.trim()}\n\n### Sources\n\n${links.join("\n")}`;
+  return links.length === 0
+    ? draft.trim()
+    : `${draft.trim()}\n\nSources: ${links.join(" · ")}`;
 }
 
 function withheldResult(input: {
@@ -731,10 +734,6 @@ function previewText(value: string): string {
     .replace(/\s+/g, " ")
     .trim();
   return compact.length <= 180 ? compact : `${compact.slice(0, 177).trimEnd()}…`;
-}
-
-function escapeMarkdown(value: string): string {
-  return value.replace(/[\\[\]]/g, "\\$&");
 }
 
 function integerOr(value: unknown, fallback: number): number {

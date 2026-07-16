@@ -28,10 +28,12 @@ test("builds a verified conversation message with visible sources", async () => 
   });
 
   assert.equal(result.status, "succeeded");
-  assert.match(result.messageContent, /### Sources/);
+  assert.match(result.messageContent, /Sources: \[1\]\(https:\/\/example\.com/);
+  assert.match(result.messageContent, / · \[2\]\(https:\/\/primary\.test/);
+  assert.doesNotMatch(result.messageContent, /### Sources/);
+  assert.doesNotMatch(result.messageContent, /Primary report/);
   assert.match(result.messageContent, /Verified technology briefing/);
   assert.doesNotMatch(result.messageContent, /significant and independently reported/);
-  assert.match(result.messageContent, /\[Primary report\]\(https:\/\/primary\.test/);
   assert.equal(result.sources.length, 2);
   assert.equal(result.generationLedgerId, "ledger-generation");
   assert.equal(result.verificationLedgerId, "ledger-verification");

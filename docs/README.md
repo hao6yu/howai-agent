@@ -7,6 +7,7 @@ Release runbooks:
 - [M4.1 UI refinement and M4.5 Automations](M4_1_UI_AND_M4_5_AUTOMATIONS.md)
 - [M4.1 interface audit](M4_1_UI_AUDIT.md)
 - [M4.6 Places and Maps refactor](M4_6_PLACES_MAPS_REFACTOR.md)
+- [M7 release candidate](M7_RELEASE_CANDIDATE_RUNBOOK.md)
 
 ## Environment Variables
 

@@ -1102,5 +1102,20 @@
   "thinkingFast": "快速",
   "thinkingBalanced": "均衡",
   "thinkingDeep": "深度",
-  "thinkingLevelNote": "級別越高，耗時越長，並會使用更多推理權杖。"
+  "thinkingLevelNote": "級別越高，耗時越長，並會使用更多推理權杖。",
+  "knowledgeHubSettingsTitle": "記憶與個人化",
+  "knowledgeHubSettingsDescription": "選擇 HowAI 何時可以使用或學習長期資訊。系統不會自動儲存秘密和敏感資訊。",
+  "knowledgeHubPersonalization": "在回覆中使用記憶",
+  "knowledgeHubPersonalizationDesc": "使用知識中心中的啟用項目來個人化聊天和語音。",
+  "knowledgeHubLearnChats": "從較長的聊天中學習",
+  "knowledgeHubLearnChatsDesc": "在有意義的對話後，檢視使用者明確提供的實用資訊。",
+  "knowledgeHubLearnVoice": "在語音通話後學習",
+  "knowledgeHubLearnVoiceDesc": "檢視至少包含五輪使用者發言的通話，以找出適合長期保留的資訊。",
+  "knowledgeHubSettingsSave": "儲存設定",
+  "knowledgeHubSettingsSaved": "記憶設定已儲存。",
+  "knowledgeHubSuggestedTitle": "建議的記憶（{count}）",
+  "knowledgeHubSuggestedDescription": "在使用 HowAI 推論的資訊前先進行檢視。",
+  "knowledgeHubSuggestionAdd": "新增",
+  "knowledgeHubSuggestionDismiss": "忽略",
+  "knowledgeHubSuggestionReviewFailed": "無法更新該建議記憶。"
 }

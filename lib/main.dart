@@ -1,5 +1,10 @@
+import 'dart:async';
+import 'dart:ui';
+
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -32,11 +37,25 @@ import 'core/theme/howai_theme.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  //// print('====== HowAI APP STARTED ======');
+  await runZonedGuarded(
+    _bootstrap,
+    (error, stack) async {
+      debugPrint('Unhandled startup error: $error');
+      if (Firebase.apps.isNotEmpty) {
+        await FirebaseCrashlytics.instance.recordError(
+          error,
+          stack,
+          fatal: true,
+        );
+      }
+    },
+  );
+}
 
+Future<void> _bootstrap() async {
   // Initialize Supabase with deep link handling
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
@@ -50,12 +69,26 @@ void main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await FirebaseCrashlytics.instance
+        .setCrashlyticsCollectionEnabled(!kDebugMode);
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
     FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
     await PushNotificationService.instance.initialize(
       navigatorKey: rootNavigatorKey,
     );
-  } catch (error) {
+  } catch (error, stack) {
     debugPrint('Push notification initialization is unavailable: $error');
+    if (Firebase.apps.isNotEmpty) {
+      await FirebaseCrashlytics.instance.recordError(
+        error,
+        stack,
+        reason: 'Firebase or push notification initialization failed',
+      );
+    }
   }
 
   // Check database integrity and repair if needed

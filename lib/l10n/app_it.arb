@@ -1102,5 +1102,20 @@
   "thinkingFast": "Veloce",
   "thinkingBalanced": "Bilanciato",
   "thinkingDeep": "Approfondito",
-  "thinkingLevelNote": "I livelli più alti richiedono più tempo e più token di ragionamento."
+  "thinkingLevelNote": "I livelli più alti richiedono più tempo e più token di ragionamento.",
+  "knowledgeHubSettingsTitle": "Memoria e personalizzazione",
+  "knowledgeHubSettingsDescription": "Scegli quando HowAI può usare o apprendere dettagli duraturi. Segreti e dettagli sensibili non vengono salvati automaticamente.",
+  "knowledgeHubPersonalization": "Usa la memoria nelle risposte",
+  "knowledgeHubPersonalizationDesc": "Usa gli elementi attivi del Centro conoscenze per personalizzare chat e voce.",
+  "knowledgeHubLearnChats": "Impara dalle chat più lunghe",
+  "knowledgeHubLearnChatsDesc": "Esamina i dettagli utili dichiarati dall’utente dopo conversazioni significative.",
+  "knowledgeHubLearnVoice": "Impara dopo le chiamate vocali",
+  "knowledgeHubLearnVoiceDesc": "Esamina le chiamate con almeno cinque turni dell’utente per individuare dettagli duraturi.",
+  "knowledgeHubSettingsSave": "Salva impostazioni",
+  "knowledgeHubSettingsSaved": "Impostazioni della memoria salvate.",
+  "knowledgeHubSuggestedTitle": "Ricordi suggeriti ({count})",
+  "knowledgeHubSuggestedDescription": "Esamina i dettagli dedotti da HowAI prima che vengano usati.",
+  "knowledgeHubSuggestionAdd": "Aggiungi",
+  "knowledgeHubSuggestionDismiss": "Ignora",
+  "knowledgeHubSuggestionReviewFailed": "Impossibile aggiornare il ricordo suggerito."
 }

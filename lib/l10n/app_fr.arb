@@ -1102,5 +1102,20 @@
   "thinkingFast": "Rapide",
   "thinkingBalanced": "Équilibré",
   "thinkingDeep": "Approfondi",
-  "thinkingLevelNote": "Les niveaux supérieurs prennent plus de temps et utilisent plus de jetons de raisonnement."
+  "thinkingLevelNote": "Les niveaux supérieurs prennent plus de temps et utilisent plus de jetons de raisonnement.",
+  "knowledgeHubSettingsTitle": "Mémoire et personnalisation",
+  "knowledgeHubSettingsDescription": "Choisissez quand HowAI peut utiliser ou apprendre des informations durables. Les secrets et données sensibles ne sont pas enregistrés automatiquement.",
+  "knowledgeHubPersonalization": "Utiliser la mémoire dans les réponses",
+  "knowledgeHubPersonalizationDesc": "Utilisez les éléments actifs du Centre de connaissances pour personnaliser le chat et la voix.",
+  "knowledgeHubLearnChats": "Apprendre des conversations longues",
+  "knowledgeHubLearnChatsDesc": "Examinez les informations utiles données par l’utilisateur après des conversations importantes.",
+  "knowledgeHubLearnVoice": "Apprendre après les appels vocaux",
+  "knowledgeHubLearnVoiceDesc": "Examinez les appels comprenant au moins cinq interventions de l’utilisateur pour trouver des informations durables.",
+  "knowledgeHubSettingsSave": "Enregistrer les réglages",
+  "knowledgeHubSettingsSaved": "Réglages de mémoire enregistrés.",
+  "knowledgeHubSuggestedTitle": "Souvenirs suggérés ({count})",
+  "knowledgeHubSuggestedDescription": "Examinez les informations déduites par HowAI avant leur utilisation.",
+  "knowledgeHubSuggestionAdd": "Ajouter",
+  "knowledgeHubSuggestionDismiss": "Ignorer",
+  "knowledgeHubSuggestionReviewFailed": "Impossible de mettre à jour ce souvenir suggéré."
 }

@@ -9,6 +9,10 @@ import {
   ReminderValidationError,
 } from "./reminder-recurrence.ts";
 
+function normalizeFormattedWhitespace(value: string): string {
+  return value.replace(/\s/g, " ");
+}
+
 test("normalizes a one-time reminder in an IANA timezone", () => {
   const schedule = normalizeReminderSchedule({
     title: "  Call Mom  ",
@@ -55,7 +59,7 @@ test("describes recurring reminders without exposing recurrence JSON", () => {
   }, new Date("2026-07-15T12:00:00Z"));
 
   assert.equal(
-    describeReminderSchedule(schedule),
+    normalizeFormattedWhitespace(describeReminderSchedule(schedule)),
     "Pick up Madeline — every Tue at 3:30 PM until Sep 21, 2026 (America/Chicago)",
   );
 });
@@ -193,7 +197,7 @@ test("monthly recurrence supports the last Friday", () => {
   }, new Date("2026-01-01T12:00:00Z"));
 
   assert.match(
-    describeReminderSchedule(schedule),
+    normalizeFormattedWhitespace(describeReminderSchedule(schedule)),
     /monthly on the last Fri at 4:00 PM/,
   );
   const next = nextOccurrence({

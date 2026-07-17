@@ -1102,5 +1102,20 @@
   "thinkingFast": "Hızlı",
   "thinkingBalanced": "Dengeli",
   "thinkingDeep": "Derin",
-  "thinkingLevelNote": "Daha yüksek düzeyler daha uzun sürer ve daha fazla akıl yürütme belirteci kullanır."
+  "thinkingLevelNote": "Daha yüksek düzeyler daha uzun sürer ve daha fazla akıl yürütme belirteci kullanır.",
+  "knowledgeHubSettingsTitle": "Hafıza ve kişiselleştirme",
+  "knowledgeHubSettingsDescription": "HowAI’ın kalıcı ayrıntıları ne zaman kullanabileceğini veya öğrenebileceğini seçin. Sırlar ve hassas ayrıntılar otomatik olarak kaydedilmez.",
+  "knowledgeHubPersonalization": "Yanıtlarda hafızayı kullan",
+  "knowledgeHubPersonalizationDesc": "Sohbeti ve sesi kişiselleştirmek için etkin Bilgi Merkezi öğelerini kullanın.",
+  "knowledgeHubLearnChats": "Uzun sohbetlerden öğren",
+  "knowledgeHubLearnChatsDesc": "Anlamlı konuşmalardan sonra kullanıcının belirttiği yararlı ayrıntıları inceleyin.",
+  "knowledgeHubLearnVoice": "Sesli aramalardan sonra öğren",
+  "knowledgeHubLearnVoiceDesc": "Kalıcı ayrıntılar için en az beş kullanıcı sırası içeren aramaları inceleyin.",
+  "knowledgeHubSettingsSave": "Ayarları kaydet",
+  "knowledgeHubSettingsSaved": "Hafıza ayarları kaydedildi.",
+  "knowledgeHubSuggestedTitle": "Önerilen anılar ({count})",
+  "knowledgeHubSuggestedDescription": "HowAI’ın çıkardığı ayrıntıları kullanılmadan önce inceleyin.",
+  "knowledgeHubSuggestionAdd": "Ekle",
+  "knowledgeHubSuggestionDismiss": "Reddet",
+  "knowledgeHubSuggestionReviewFailed": "Önerilen anı güncellenemedi."
 }

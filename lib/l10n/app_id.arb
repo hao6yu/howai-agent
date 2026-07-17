@@ -1103,5 +1103,20 @@
   "thinkingFast": "Cepat",
   "thinkingBalanced": "Seimbang",
   "thinkingDeep": "Mendalam",
-  "thinkingLevelNote": "Tingkat yang lebih tinggi memerlukan waktu dan token penalaran lebih banyak."
+  "thinkingLevelNote": "Tingkat yang lebih tinggi memerlukan waktu dan token penalaran lebih banyak.",
+  "knowledgeHubSettingsTitle": "Memori & personalisasi",
+  "knowledgeHubSettingsDescription": "Pilih kapan HowAI boleh menggunakan atau mempelajari detail jangka panjang. Rahasia dan detail sensitif tidak disimpan secara otomatis.",
+  "knowledgeHubPersonalization": "Gunakan memori dalam respons",
+  "knowledgeHubPersonalizationDesc": "Gunakan item Pusat Pengetahuan aktif untuk mempersonalisasi chat dan suara.",
+  "knowledgeHubLearnChats": "Belajar dari chat yang lebih panjang",
+  "knowledgeHubLearnChatsDesc": "Tinjau detail berguna yang dinyatakan pengguna setelah percakapan bermakna.",
+  "knowledgeHubLearnVoice": "Belajar setelah panggilan suara",
+  "knowledgeHubLearnVoiceDesc": "Tinjau panggilan dengan sedikitnya lima giliran pengguna untuk menemukan detail jangka panjang.",
+  "knowledgeHubSettingsSave": "Simpan pengaturan",
+  "knowledgeHubSettingsSaved": "Pengaturan memori disimpan.",
+  "knowledgeHubSuggestedTitle": "Memori yang disarankan ({count})",
+  "knowledgeHubSuggestedDescription": "Tinjau detail yang disimpulkan HowAI sebelum digunakan.",
+  "knowledgeHubSuggestionAdd": "Tambah",
+  "knowledgeHubSuggestionDismiss": "Abaikan",
+  "knowledgeHubSuggestionReviewFailed": "Memori yang disarankan tidak dapat diperbarui."
 }

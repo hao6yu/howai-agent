@@ -5,7 +5,9 @@ import test from "node:test";
 const fixtureUrl = new URL("../evals/gpt56-m1-v1/fixtures.json", import.meta.url);
 
 test("GPT-5.6 M1 fixtures are versioned, synthetic, and structurally valid", async () => {
-  const suite = JSON.parse(await readFile(fixtureUrl, "utf8")) as Record<string, unknown>;
+  const suite = JSON.parse(
+    await readFile(decodeURIComponent(fixtureUrl.pathname), "utf8"),
+  ) as Record<string, unknown>;
 
   assert.equal(suite.schema_version, 1);
   assert.equal(suite.eval_version, "gpt56-m1-v1");

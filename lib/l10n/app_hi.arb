@@ -1102,5 +1102,20 @@
   "thinkingFast": "तेज़",
   "thinkingBalanced": "संतुलित",
   "thinkingDeep": "गहरा",
-  "thinkingLevelNote": "ऊँचे स्तरों में अधिक समय और अधिक रीजनिंग टोकन लगते हैं।"
+  "thinkingLevelNote": "ऊँचे स्तरों में अधिक समय और अधिक रीजनिंग टोकन लगते हैं।",
+  "knowledgeHubSettingsTitle": "मेमोरी और वैयक्तिकरण",
+  "knowledgeHubSettingsDescription": "चुनें कि HowAI स्थायी जानकारी का उपयोग या उसे कब सीख सकता है। गोपनीय और संवेदनशील जानकारी अपने आप सहेजी नहीं जाती।",
+  "knowledgeHubPersonalization": "जवाबों में मेमोरी का उपयोग करें",
+  "knowledgeHubPersonalizationDesc": "चैट और वॉइस को व्यक्तिगत बनाने के लिए सक्रिय नॉलेज हब आइटम का उपयोग करें।",
+  "knowledgeHubLearnChats": "लंबी चैट से सीखें",
+  "knowledgeHubLearnChatsDesc": "सार्थक बातचीत के बाद उपयोगकर्ता द्वारा बताई गई उपयोगी जानकारी की समीक्षा करें।",
+  "knowledgeHubLearnVoice": "वॉइस कॉल के बाद सीखें",
+  "knowledgeHubLearnVoiceDesc": "स्थायी जानकारी के लिए कम से कम पाँच उपयोगकर्ता टर्न वाली कॉल की समीक्षा करें।",
+  "knowledgeHubSettingsSave": "सेटिंग सहेजें",
+  "knowledgeHubSettingsSaved": "मेमोरी सेटिंग सहेजी गईं।",
+  "knowledgeHubSuggestedTitle": "सुझाई गई मेमोरी ({count})",
+  "knowledgeHubSuggestedDescription": "HowAI द्वारा अनुमानित जानकारी का उपयोग होने से पहले उसकी समीक्षा करें।",
+  "knowledgeHubSuggestionAdd": "जोड़ें",
+  "knowledgeHubSuggestionDismiss": "खारिज करें",
+  "knowledgeHubSuggestionReviewFailed": "उस सुझाई गई मेमोरी को अपडेट नहीं किया जा सका।"
 }

@@ -29,7 +29,7 @@ test("a trusted paid primary chat resolves to Sol", () => {
   assert.equal(result.maxOutputTokens, 3_000);
 });
 
-test("trusted paid synchronous research preserves the legacy model and high reasoning", () => {
+test("trusted paid synchronous research uses Sol with high reasoning", () => {
   const result = resolveModelPolicy({
     cohort: "paid",
     entitlementTrusted: true,
@@ -40,7 +40,7 @@ test("trusted paid synchronous research preserves the legacy model and high reas
   });
 
   assert.equal(result.role, "research");
-  assert.equal(result.model, "gpt-5.2");
+  assert.equal(result.model, "gpt-5.6-sol");
   assert.equal(result.reasoningEffort, "high");
 });
 

@@ -1103,5 +1103,20 @@
   "thinkingFast": "빠르게",
   "thinkingBalanced": "균형",
   "thinkingDeep": "깊게",
-  "thinkingLevelNote": "높은 수준일수록 더 오래 걸리고 더 많은 추론 토큰을 사용합니다."
+  "thinkingLevelNote": "높은 수준일수록 더 오래 걸리고 더 많은 추론 토큰을 사용합니다.",
+  "knowledgeHubSettingsTitle": "메모리 및 개인화",
+  "knowledgeHubSettingsDescription": "HowAI가 장기 정보를 사용하거나 학습할 시점을 선택하세요. 비밀 및 민감한 정보는 자동으로 저장되지 않습니다.",
+  "knowledgeHubPersonalization": "응답에 메모리 사용",
+  "knowledgeHubPersonalizationDesc": "활성 지식 허브 항목을 사용하여 채팅과 음성을 개인화합니다.",
+  "knowledgeHubLearnChats": "긴 채팅에서 학습",
+  "knowledgeHubLearnChatsDesc": "의미 있는 대화 후 사용자가 말한 유용한 정보를 검토합니다.",
+  "knowledgeHubLearnVoice": "음성 통화 후 학습",
+  "knowledgeHubLearnVoiceDesc": "사용자 발언이 5회 이상인 통화에서 장기 정보를 검토합니다.",
+  "knowledgeHubSettingsSave": "설정 저장",
+  "knowledgeHubSettingsSaved": "메모리 설정이 저장되었습니다.",
+  "knowledgeHubSuggestedTitle": "제안된 메모리 ({count})",
+  "knowledgeHubSuggestedDescription": "HowAI가 추론한 정보를 사용하기 전에 검토하세요.",
+  "knowledgeHubSuggestionAdd": "추가",
+  "knowledgeHubSuggestionDismiss": "삭제",
+  "knowledgeHubSuggestionReviewFailed": "제안된 메모리를 업데이트할 수 없습니다."
 }

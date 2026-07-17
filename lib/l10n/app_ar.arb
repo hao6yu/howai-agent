@@ -1103,5 +1103,20 @@
   "thinkingFast": "سريع",
   "thinkingBalanced": "متوازن",
   "thinkingDeep": "عميق",
-  "thinkingLevelNote": "تستغرق المستويات الأعلى وقتًا أطول وتستخدم رموز استدلال أكثر."
+  "thinkingLevelNote": "تستغرق المستويات الأعلى وقتًا أطول وتستخدم رموز استدلال أكثر.",
+  "knowledgeHubSettingsTitle": "الذاكرة والتخصيص",
+  "knowledgeHubSettingsDescription": "اختر متى يمكن لـ HowAI استخدام التفاصيل الدائمة أو تعلّمها. لا يتم حفظ الأسرار والتفاصيل الحساسة تلقائيًا.",
+  "knowledgeHubPersonalization": "استخدام الذاكرة في الردود",
+  "knowledgeHubPersonalizationDesc": "استخدم عناصر مركز المعرفة النشطة لتخصيص الدردشة والصوت.",
+  "knowledgeHubLearnChats": "التعلّم من المحادثات الطويلة",
+  "knowledgeHubLearnChatsDesc": "راجع التفاصيل المفيدة التي يذكرها المستخدم بعد المحادثات المهمة.",
+  "knowledgeHubLearnVoice": "التعلّم بعد المكالمات الصوتية",
+  "knowledgeHubLearnVoiceDesc": "راجع المكالمات التي تتضمن خمس مداخلات للمستخدم على الأقل بحثًا عن تفاصيل دائمة.",
+  "knowledgeHubSettingsSave": "حفظ الإعدادات",
+  "knowledgeHubSettingsSaved": "تم حفظ إعدادات الذاكرة.",
+  "knowledgeHubSuggestedTitle": "ذكريات مقترحة ({count})",
+  "knowledgeHubSuggestedDescription": "راجع التفاصيل التي استنتجها HowAI قبل استخدامها.",
+  "knowledgeHubSuggestionAdd": "إضافة",
+  "knowledgeHubSuggestionDismiss": "تجاهل",
+  "knowledgeHubSuggestionReviewFailed": "تعذّر تحديث الذاكرة المقترحة."
 }

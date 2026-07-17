@@ -1102,5 +1102,20 @@
   "thinkingFast": "Nhanh",
   "thinkingBalanced": "Cân bằng",
   "thinkingDeep": "Sâu",
-  "thinkingLevelNote": "Mức cao hơn mất nhiều thời gian và dùng nhiều token suy luận hơn."
+  "thinkingLevelNote": "Mức cao hơn mất nhiều thời gian và dùng nhiều token suy luận hơn.",
+  "knowledgeHubSettingsTitle": "Bộ nhớ và cá nhân hóa",
+  "knowledgeHubSettingsDescription": "Chọn thời điểm HowAI có thể sử dụng hoặc học thông tin lâu dài. Bí mật và thông tin nhạy cảm không được tự động lưu.",
+  "knowledgeHubPersonalization": "Dùng bộ nhớ trong câu trả lời",
+  "knowledgeHubPersonalizationDesc": "Dùng các mục Trung tâm kiến thức đang hoạt động để cá nhân hóa trò chuyện và giọng nói.",
+  "knowledgeHubLearnChats": "Học từ các cuộc trò chuyện dài",
+  "knowledgeHubLearnChatsDesc": "Xem lại thông tin hữu ích do người dùng nêu sau các cuộc trò chuyện có ý nghĩa.",
+  "knowledgeHubLearnVoice": "Học sau cuộc gọi thoại",
+  "knowledgeHubLearnVoiceDesc": "Xem lại các cuộc gọi có ít nhất năm lượt người dùng để tìm thông tin lâu dài.",
+  "knowledgeHubSettingsSave": "Lưu cài đặt",
+  "knowledgeHubSettingsSaved": "Đã lưu cài đặt bộ nhớ.",
+  "knowledgeHubSuggestedTitle": "Ký ức được đề xuất ({count})",
+  "knowledgeHubSuggestedDescription": "Xem lại thông tin HowAI suy ra trước khi sử dụng.",
+  "knowledgeHubSuggestionAdd": "Thêm",
+  "knowledgeHubSuggestionDismiss": "Bỏ qua",
+  "knowledgeHubSuggestionReviewFailed": "Không thể cập nhật ký ức được đề xuất."
 }

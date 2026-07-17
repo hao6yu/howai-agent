@@ -1084,5 +1084,20 @@
   "thinkingFast": "快速",
   "thinkingBalanced": "均衡",
   "thinkingDeep": "深度",
-  "thinkingLevelNote": "级别越高，耗时越长，并会使用更多推理令牌。"
+  "thinkingLevelNote": "级别越高，耗时越长，并会使用更多推理令牌。",
+  "knowledgeHubSettingsTitle": "记忆与个性化",
+  "knowledgeHubSettingsDescription": "选择 HowAI 何时可以使用或学习长期信息。系统不会自动保存秘密和敏感信息。",
+  "knowledgeHubPersonalization": "在回复中使用记忆",
+  "knowledgeHubPersonalizationDesc": "使用知识中心中的活跃项目来个性化聊天和语音。",
+  "knowledgeHubLearnChats": "从较长的聊天中学习",
+  "knowledgeHubLearnChatsDesc": "在有意义的对话后，复核用户明确提供的有用信息。",
+  "knowledgeHubLearnVoice": "在语音通话后学习",
+  "knowledgeHubLearnVoiceDesc": "复核至少包含五轮用户发言的通话，以发现适合长期保留的信息。",
+  "knowledgeHubSettingsSave": "保存设置",
+  "knowledgeHubSettingsSaved": "记忆设置已保存。",
+  "knowledgeHubSuggestedTitle": "建议的记忆（{count}）",
+  "knowledgeHubSuggestedDescription": "在使用 HowAI 推断的信息前先进行复核。",
+  "knowledgeHubSuggestionAdd": "添加",
+  "knowledgeHubSuggestionDismiss": "忽略",
+  "knowledgeHubSuggestionReviewFailed": "无法更新该建议记忆。"
 }

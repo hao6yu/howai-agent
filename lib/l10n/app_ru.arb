@@ -1102,5 +1102,20 @@
   "thinkingFast": "Быстро",
   "thinkingBalanced": "Сбалансированно",
   "thinkingDeep": "Глубоко",
-  "thinkingLevelNote": "Более высокие уровни работают дольше и используют больше токенов рассуждения."
+  "thinkingLevelNote": "Более высокие уровни работают дольше и используют больше токенов рассуждения.",
+  "knowledgeHubSettingsTitle": "Память и персонализация",
+  "knowledgeHubSettingsDescription": "Выберите, когда HowAI может использовать или запоминать долгосрочные сведения. Секреты и конфиденциальные данные не сохраняются автоматически.",
+  "knowledgeHubPersonalization": "Использовать память в ответах",
+  "knowledgeHubPersonalizationDesc": "Используйте активные элементы Центра знаний для персонализации чата и голоса.",
+  "knowledgeHubLearnChats": "Учиться из длинных чатов",
+  "knowledgeHubLearnChatsDesc": "Проверяйте полезные сведения, сообщённые пользователем после содержательных разговоров.",
+  "knowledgeHubLearnVoice": "Учиться после голосовых звонков",
+  "knowledgeHubLearnVoiceDesc": "Проверяйте звонки, где пользователь говорил не менее пяти раз, на наличие долгосрочных сведений.",
+  "knowledgeHubSettingsSave": "Сохранить настройки",
+  "knowledgeHubSettingsSaved": "Настройки памяти сохранены.",
+  "knowledgeHubSuggestedTitle": "Предложенные воспоминания ({count})",
+  "knowledgeHubSuggestedDescription": "Проверьте сведения, которые HowAI вывел, прежде чем они будут использованы.",
+  "knowledgeHubSuggestionAdd": "Добавить",
+  "knowledgeHubSuggestionDismiss": "Отклонить",
+  "knowledgeHubSuggestionReviewFailed": "Не удалось обновить предложенное воспоминание."
 }

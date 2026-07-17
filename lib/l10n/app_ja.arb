@@ -1102,5 +1102,20 @@
   "thinkingFast": "高速",
   "thinkingBalanced": "バランス",
   "thinkingDeep": "深く",
-  "thinkingLevelNote": "高いレベルほど時間がかかり、推論トークンを多く使用します。"
+  "thinkingLevelNote": "高いレベルほど時間がかかり、推論トークンを多く使用します。",
+  "knowledgeHubSettingsTitle": "メモリとパーソナライズ",
+  "knowledgeHubSettingsDescription": "HowAI が長期的な情報を使用または学習できるタイミングを選択します。秘密や機密情報は自動的に保存されません。",
+  "knowledgeHubPersonalization": "回答でメモリを使用",
+  "knowledgeHubPersonalizationDesc": "有効なナレッジハブ項目を使ってチャットと音声をパーソナライズします。",
+  "knowledgeHubLearnChats": "長いチャットから学習",
+  "knowledgeHubLearnChatsDesc": "有意義な会話の後、ユーザーが述べた有用な情報を確認します。",
+  "knowledgeHubLearnVoice": "音声通話後に学習",
+  "knowledgeHubLearnVoiceDesc": "ユーザーの発言が5回以上ある通話から長期的な情報を確認します。",
+  "knowledgeHubSettingsSave": "設定を保存",
+  "knowledgeHubSettingsSaved": "メモリ設定を保存しました。",
+  "knowledgeHubSuggestedTitle": "提案されたメモリ（{count}）",
+  "knowledgeHubSuggestedDescription": "HowAI が推測した情報を使用する前に確認します。",
+  "knowledgeHubSuggestionAdd": "追加",
+  "knowledgeHubSuggestionDismiss": "却下",
+  "knowledgeHubSuggestionReviewFailed": "提案されたメモリを更新できませんでした。"
 }

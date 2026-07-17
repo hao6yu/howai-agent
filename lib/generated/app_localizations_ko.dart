@@ -2525,51 +2525,51 @@ class AppLocalizationsKo extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => '한 곳에서 언제든지 항목을 편집, 고정, 비활성화 또는 삭제할 수 있습니다.';
 
   @override
-  String get knowledgeHubSettingsTitle => 'Memory & personalization';
+  String get knowledgeHubSettingsTitle => '메모리 및 개인화';
 
   @override
-  String get knowledgeHubSettingsDescription => 'Choose when HowAI can use or learn durable details. Secrets and sensitive details are not saved automatically.';
+  String get knowledgeHubSettingsDescription => 'HowAI가 장기 정보를 사용하거나 학습할 시점을 선택하세요. 비밀 및 민감한 정보는 자동으로 저장되지 않습니다.';
 
   @override
-  String get knowledgeHubPersonalization => 'Use memory in responses';
+  String get knowledgeHubPersonalization => '응답에 메모리 사용';
 
   @override
-  String get knowledgeHubPersonalizationDesc => 'Use active Knowledge Hub items to personalize chat and voice.';
+  String get knowledgeHubPersonalizationDesc => '활성 지식 허브 항목을 사용하여 채팅과 음성을 개인화합니다.';
 
   @override
-  String get knowledgeHubLearnChats => 'Learn from longer chats';
+  String get knowledgeHubLearnChats => '긴 채팅에서 학습';
 
   @override
-  String get knowledgeHubLearnChatsDesc => 'Review useful user-stated details after meaningful conversations.';
+  String get knowledgeHubLearnChatsDesc => '의미 있는 대화 후 사용자가 말한 유용한 정보를 검토합니다.';
 
   @override
-  String get knowledgeHubLearnVoice => 'Learn after voice calls';
+  String get knowledgeHubLearnVoice => '음성 통화 후 학습';
 
   @override
-  String get knowledgeHubLearnVoiceDesc => 'Review calls with at least five user turns for durable details.';
+  String get knowledgeHubLearnVoiceDesc => '사용자 발언이 5회 이상인 통화에서 장기 정보를 검토합니다.';
 
   @override
-  String get knowledgeHubSettingsSave => 'Save settings';
+  String get knowledgeHubSettingsSave => '설정 저장';
 
   @override
-  String get knowledgeHubSettingsSaved => 'Memory settings saved.';
+  String get knowledgeHubSettingsSaved => '메모리 설정이 저장되었습니다.';
 
   @override
   String knowledgeHubSuggestedTitle(int count) {
-    return 'Suggested memories ($count)';
+    return '제안된 메모리 ($count)';
   }
 
   @override
-  String get knowledgeHubSuggestedDescription => 'Review details HowAI inferred before they are used.';
+  String get knowledgeHubSuggestedDescription => 'HowAI가 추론한 정보를 사용하기 전에 검토하세요.';
 
   @override
-  String get knowledgeHubSuggestionAdd => 'Add';
+  String get knowledgeHubSuggestionAdd => '추가';
 
   @override
-  String get knowledgeHubSuggestionDismiss => 'Dismiss';
+  String get knowledgeHubSuggestionDismiss => '삭제';
 
   @override
-  String get knowledgeHubSuggestionReviewFailed => 'Couldn\'t update that suggested memory.';
+  String get knowledgeHubSuggestionReviewFailed => '제안된 메모리를 업데이트할 수 없습니다.';
 
   @override
   String get knowledgeHubUpgradeToPremium => '프리미엄으로 업그레이드';

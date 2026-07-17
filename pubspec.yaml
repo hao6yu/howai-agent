@@ -4,7 +4,7 @@ description: >
   HowAI 
 
 publish_to: 'none'
-version: 1.3.16+39
+version: 2.0.0+40
 environment:
   sdk: ">=3.4.0 <4.0.0"
 
@@ -73,6 +73,7 @@ dependencies:
   sign_in_with_apple: ^6.1.3  # For native Apple Sign In
   flutter_timezone: ^5.1.0  # IANA timezone for DST-safe reminders
   firebase_core: ^4.12.1
+  firebase_crashlytics: ^5.2.6
   firebase_messaging: ^16.4.3
   flutter_local_notifications: ^20.1.0
   

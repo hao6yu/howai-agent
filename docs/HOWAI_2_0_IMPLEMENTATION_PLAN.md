@@ -1,9 +1,8 @@
 # HowAI 2.0 — Assistant Workspace
 
-Status: Draft for product approval
+Status: M7 release candidate ready for internal validation
 Date: 2026-07-14
-Current app version: `1.3.16+39`
-Proposed release version: `2.0.0`
+Current release candidate: `2.0.0+40`
 
 Repository scope: Flutter clients and the shared Supabase backend. The web
 client is maintained and released from its own repository.
@@ -33,7 +32,10 @@ across chat and voice, structured user-controlled memory, post-chat/call
 learning, suggestion review, and personalization privacy controls. Its schema,
 RLS, and Edge Functions are deployed; physical-device regression remains. M6
 Persistent Research is deferred from HowAI 2.0. M7 release-candidate hardening
-is the next milestone after the current internal feature regressions pass.
+is complete in code with localization coverage, Crashlytics, reduced mobile
+permissions, an Apple privacy manifest, API 36 targeting, a repeatable release
+gate, and a documented internal-to-full rollout. Physical-device and
+store-submission sign-off remain before full rollout.
 
 M0 delivered:
 

@@ -1,4 +1,9 @@
 include: package:flutter_lints/flutter.yaml
 analyzer:
+  exclude:
+    - build/**
+    - ios/Pods/**
+    - ios/.symlinks/**
+    - lib/generated/**
   errors:
     prefer_const_constructors: ignore

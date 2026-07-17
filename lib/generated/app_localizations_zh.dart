@@ -2525,51 +2525,51 @@ class AppLocalizationsZh extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => '随时从一处编辑、固定、禁用或删除项目。';
 
   @override
-  String get knowledgeHubSettingsTitle => 'Memory & personalization';
+  String get knowledgeHubSettingsTitle => '记忆与个性化';
 
   @override
-  String get knowledgeHubSettingsDescription => 'Choose when HowAI can use or learn durable details. Secrets and sensitive details are not saved automatically.';
+  String get knowledgeHubSettingsDescription => '选择 HowAI 何时可以使用或学习长期信息。系统不会自动保存秘密和敏感信息。';
 
   @override
-  String get knowledgeHubPersonalization => 'Use memory in responses';
+  String get knowledgeHubPersonalization => '在回复中使用记忆';
 
   @override
-  String get knowledgeHubPersonalizationDesc => 'Use active Knowledge Hub items to personalize chat and voice.';
+  String get knowledgeHubPersonalizationDesc => '使用知识中心中的活跃项目来个性化聊天和语音。';
 
   @override
-  String get knowledgeHubLearnChats => 'Learn from longer chats';
+  String get knowledgeHubLearnChats => '从较长的聊天中学习';
 
   @override
-  String get knowledgeHubLearnChatsDesc => 'Review useful user-stated details after meaningful conversations.';
+  String get knowledgeHubLearnChatsDesc => '在有意义的对话后，复核用户明确提供的有用信息。';
 
   @override
-  String get knowledgeHubLearnVoice => 'Learn after voice calls';
+  String get knowledgeHubLearnVoice => '在语音通话后学习';
 
   @override
-  String get knowledgeHubLearnVoiceDesc => 'Review calls with at least five user turns for durable details.';
+  String get knowledgeHubLearnVoiceDesc => '复核至少包含五轮用户发言的通话，以发现适合长期保留的信息。';
 
   @override
-  String get knowledgeHubSettingsSave => 'Save settings';
+  String get knowledgeHubSettingsSave => '保存设置';
 
   @override
-  String get knowledgeHubSettingsSaved => 'Memory settings saved.';
+  String get knowledgeHubSettingsSaved => '记忆设置已保存。';
 
   @override
   String knowledgeHubSuggestedTitle(int count) {
-    return 'Suggested memories ($count)';
+    return '建议的记忆（$count）';
   }
 
   @override
-  String get knowledgeHubSuggestedDescription => 'Review details HowAI inferred before they are used.';
+  String get knowledgeHubSuggestedDescription => '在使用 HowAI 推断的信息前先进行复核。';
 
   @override
-  String get knowledgeHubSuggestionAdd => 'Add';
+  String get knowledgeHubSuggestionAdd => '添加';
 
   @override
-  String get knowledgeHubSuggestionDismiss => 'Dismiss';
+  String get knowledgeHubSuggestionDismiss => '忽略';
 
   @override
-  String get knowledgeHubSuggestionReviewFailed => 'Couldn\'t update that suggested memory.';
+  String get knowledgeHubSuggestionReviewFailed => '无法更新该建议记忆。';
 
   @override
   String get knowledgeHubUpgradeToPremium => '升级至高级版';
@@ -5579,6 +5579,53 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get knowledgeHubFeatureControlDesc => '隨時從一處編輯、固定、禁用或刪除項目。';
+
+  @override
+  String get knowledgeHubSettingsTitle => '記憶與個人化';
+
+  @override
+  String get knowledgeHubSettingsDescription => '選擇 HowAI 何時可以使用或學習長期資訊。系統不會自動儲存秘密和敏感資訊。';
+
+  @override
+  String get knowledgeHubPersonalization => '在回覆中使用記憶';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => '使用知識中心中的啟用項目來個人化聊天和語音。';
+
+  @override
+  String get knowledgeHubLearnChats => '從較長的聊天中學習';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => '在有意義的對話後，檢視使用者明確提供的實用資訊。';
+
+  @override
+  String get knowledgeHubLearnVoice => '在語音通話後學習';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => '檢視至少包含五輪使用者發言的通話，以找出適合長期保留的資訊。';
+
+  @override
+  String get knowledgeHubSettingsSave => '儲存設定';
+
+  @override
+  String get knowledgeHubSettingsSaved => '記憶設定已儲存。';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return '建議的記憶（$count）';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => '在使用 HowAI 推論的資訊前先進行檢視。';
+
+  @override
+  String get knowledgeHubSuggestionAdd => '新增';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => '忽略';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => '無法更新該建議記憶。';
 
   @override
   String get knowledgeHubUpgradeToPremium => '升級至高級版';

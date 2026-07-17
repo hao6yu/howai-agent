@@ -14,7 +14,8 @@ test("builds a verified message while keeping sources out of the body", async ()
     apiKey: "test-key",
     model: "gpt-5.6-sol",
     fetcher: async (_url, init) => {
-      payloads.push(JSON.parse(String(init?.body)));
+      const request = init as { body?: BodyInit | null } | undefined;
+      payloads.push(JSON.parse(String(request?.body)));
       call += 1;
       return jsonResponse(call === 1 ? generationResponse() : verificationResponse("pass"));
     },

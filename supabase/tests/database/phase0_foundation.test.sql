@@ -11,9 +11,13 @@ select is(
 );
 
 select is(
-  (select count(*) from public.feature_flags where enabled),
-  0::bigint,
-  'all new capabilities default to disabled'
+  (
+    select array_agg(key order by key)
+    from public.feature_flags
+    where enabled
+  ),
+  array['realtime_voice']::text[],
+  'only the internal Realtime voice beta is enabled'
 );
 
 select ok(

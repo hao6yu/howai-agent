@@ -888,15 +888,83 @@ Add an authenticated `realtime-session` Edge Function that:
 
 ### D5. Migration strategy
 
-- Internal builds: OpenAI Realtime opt-in.
-- Beta: OpenAI default with an automatic/manual ElevenLabs fallback.
-- Production: staged enablement by account cohort.
+- Internal: OpenAI Realtime for explicit canary accounts.
+- Full rollout: OpenAI default with an automatic/manual ElevenLabs fallback.
 - Remove the old path only in a later release after reliability, cost, and quality targets are met.
+
+### D6. M5 implementation status — July 17, 2026
+
+Implemented for the internal canary:
+
+- Deployed an authenticated `realtime-session` Edge Function. The long-lived
+  OpenAI key and safety-identifier salt remain in Supabase; Flutter receives
+  only a short-lived Realtime client secret.
+- Added server-owned model/voice selection, paid/free/anonymous session-start
+  quotas, maximum duration, one-active-session enforcement, and a kill switch
+  through `feature_flags.realtime_voice`.
+- Added the `realtime_voice_sessions` operational table with RLS. It stores
+  safe session metadata only—never client secrets, audio, or transcripts.
+- Added provider-neutral Flutter voice contracts, OpenAI WebRTC transport,
+  streaming user/assistant transcripts, semantic turn detection, mute/end,
+  Bluetooth-preferred routing, a transient-disconnect grace period, and
+  ElevenLabs fallback.
+- Added model-directed live web search through the authenticated Supabase
+  proxy; Realtime receives compact verified results and never receives a
+  provider credential.
+- Added an internal voice-vision beta using Realtime image input: the camera
+  stays off by default, a clean live preview replaces the orb when enabled,
+  and compressed image frames are sampled from the already-running preview
+  stream with spoken turns. Sampling no longer invokes still-photo capture, so
+  the visible preview does not pause or flash. The sampling implementation is
+  intentionally invisible in the product UI; HowAI does not store continuous
+  video.
+- Anchored the active camera stage directly below the voice header and reduced
+  its height, eliminating the vertically centered dead zone and leaving more
+  room for transcript, approvals, and call controls.
+- Voice vision is presented conversationally as a live shared view. The model
+  no longer exposes frame-sampling implementation details or volunteers
+  limitations about snapshots and motion; when visibility is poor, it asks the
+  user to reframe, move closer, improve lighting, or hold steady.
+- Added camera lifecycle, permission, front/back switching, bounded image
+  size, uncertainty/privacy instructions, and compact layouts that retain the
+  transcript, action approval, mute, camera, and end-call controls.
+- Made camera vision an explicit opt-in before a call, with an immediate
+  preview and the same reversible control before and during the call. Turning
+  it off disposes the camera controller so the camera no longer consumes
+  battery. Flash/torch is forced off for all sampled frames.
+- Moved audio-session routing ahead of the Realtime connection and gave the
+  short opening greeting a sufficient output budget, preventing route changes
+  or token limits from cutting the greeting off after its first few words.
+- New call creation atomically supersedes a stale active reservation for the
+  same user. Flutter registers the opaque OpenAI call ID after WebRTC setup so
+  Supabase can also call the provider hangup endpoint when replacing a call.
+  This recovers from app crashes, abandoned sessions, and live transports on
+  another client without weakening the one-live-call rule.
+- Routed Realtime reminder tools through the same server proposal and approval
+  contract used by text chat. Voice can create, update, or resume reminders,
+  but cannot activate a change without user approval.
+- Added a public-only mobile build wrapper and removed direct OpenAI-key
+  fallback from the app. Provider API keys are excluded even if a legacy local
+  `.env` still contains one.
+- Added Deno policy/tool tests, pgTAP reservation/RLS tests, Flutter Realtime
+  protocol tests, and a physical iOS canary build.
+
+Still required before changing the flag from `internal` to `full`:
+
+- Complete the physical-device voice matrix, including Wi-Fi/cellular changes,
+  Bluetooth/headsets, interruptions, background timeout, and poor networks.
+- Validate voice vision on iOS and Android across object explanation, text
+  translation, low-light framing, front/back camera switching, repair guidance,
+  permission denial, and image-size/latency limits.
+- Verify first-audio latency, connection success, server quota accounting,
+  transcript persistence, approval/result speech, and fallback behavior.
+- Add the post-call summary presentation and complete Android device coverage.
 
 Official references:
 
 - [OpenAI Voice agents](https://developers.openai.com/api/docs/guides/voice-agents)
 - [OpenAI Realtime with WebRTC](https://developers.openai.com/api/docs/guides/realtime-webrtc)
+- [OpenAI Realtime image inputs](https://developers.openai.com/api/docs/guides/realtime-conversations#image-inputs)
 - [OpenAI function calling](https://developers.openai.com/api/docs/guides/function-calling)
 
 ## 12. Workstream E — persistent Research workspace
@@ -1180,7 +1248,7 @@ Do not log prompt contents, reminder notes, transcripts, research reports, API k
 | M4.1 — Clean UI refinement | Content-first navigation, lighter chat surface, adaptive composer, compact approvals, UI component extraction | Product UX, keyboard, accessibility, and chat regressions pass |
 | M4.5 — Automations beta | Automations UI, schedules/runs/queue, verified news briefings, market briefing foundation, push deep links | Internal then full rollout passes; unsupported claims are withheld and citations remain durable |
 | M4.6 — Places and Maps refactor (deferred) | Characterization foundation is complete; defer the full cards, list, map, details, reviews, Street View, navigation, and transient-state refactor | Resume in a later 2.x milestone without blocking HowAI 2.0 |
-| M5 — Realtime voice beta | Ephemeral session endpoint, WebRTC client, transcript, interruption, reminder tools, ElevenLabs fallback | Voice quality, safety, usage, and fallback gates pass |
+| M5 — Realtime voice beta | Ephemeral session endpoint, WebRTC client, transcript, interruption, live search, sampled-frame vision beta, reminder tools, ElevenLabs fallback | Voice, vision, safety, usage, and fallback gates pass |
 | M6 — Research beta | Persistent projects/runs/sources, background Responses, webhook, completion push | Leave/resume/completion flow passes and sources remain durable |
 | M7 — Release candidate | Localization, accessibility, performance, security review, store assets/privacy, internal-to-full rollout controls | All release gates pass and rollback is tested |
 

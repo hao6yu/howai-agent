@@ -58,8 +58,9 @@ https://<project-ref>.supabase.co/functions/v1/openai-proxy
 
 ## 3) Configure app build values
 
-Set these in your local `.env` and pass them at build/run time with
-`--dart-define-from-file=.env`:
+Set these in your local `.env`. Build and run through
+`scripts/with-public-mobile-config.sh` or `scripts/run-configured.sh`, which
+exclude provider credentials from the compiled app:
 
 ```env
 OPENAI_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/openai-proxy

@@ -8,9 +8,11 @@
   <string>App</string>
   <key>CFBundleIdentifier</key>
   <string>io.flutter.flutter.app</string>
-  <key>CFBundleInfoDictionaryVersion</key>
-  <string>6.0</string>
-  <key>CFBundleName</key>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>MinimumOSVersion</key>
+	<string>13.0</string>
+	<key>CFBundleName</key>
   <string>App</string>
   <key>CFBundlePackageType</key>
   <string>FMWK</string>
@@ -20,7 +22,5 @@
   <string>????</string>
   <key>CFBundleVersion</key>
   <string>1.0</string>
-  <key>MinimumOSVersion</key>
-  <string>13.0</string>
 </dict>
 </plist>

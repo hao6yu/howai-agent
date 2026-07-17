@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   resolveFreeWebSearchRollout,
   shouldOfferFreeWebSearch,
+  shouldReserveFreeWebSearch,
   webSearchAccountedCostMicrousd,
   webSearchToolCostMicrousd,
 } from "./openai-web-search.ts";
@@ -105,4 +106,25 @@ test("tool cost uses actual calls and reconciles the full searched request", () 
   assert.equal(webSearchAccountedCostMicrousd(1, 40_000, 30_153), 30_153);
   assert.equal(webSearchAccountedCostMicrousd(1, 40_000, 5_000), 10_000);
   assert.equal(webSearchAccountedCostMicrousd(2, 40_000, 30_153), 30_153);
+});
+
+test("Free automatic and explicitly required searches both reserve quota", () => {
+  const eligible = {
+    cohort: "free" as const,
+    modelRole: "luna" as const,
+    webSearchMode: "auto" as const,
+  };
+  assert.equal(shouldReserveFreeWebSearch(eligible), true);
+  assert.equal(
+    shouldReserveFreeWebSearch({ ...eligible, webSearchMode: "force" }),
+    true,
+  );
+  assert.equal(
+    shouldReserveFreeWebSearch({ ...eligible, webSearchMode: "disabled" }),
+    false,
+  );
+  assert.equal(
+    shouldReserveFreeWebSearch({ ...eligible, cohort: "paid" }),
+    false,
+  );
 });

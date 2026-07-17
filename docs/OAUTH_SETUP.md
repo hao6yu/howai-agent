@@ -31,7 +31,7 @@ scripts/run-configured.sh -d <device-id>
 The equivalent raw command is:
 
 ```bash
-flutter run --dart-define-from-file=.env -d <device-id>
+scripts/run-configured.sh -d <device-id>
 ```
 
 VS Code's checked-in launch configurations already include the same define
@@ -40,8 +40,8 @@ file.
 Release builds must also include the file:
 
 ```bash
-flutter build ios --release --dart-define-from-file=.env
-flutter build appbundle --release --dart-define-from-file=.env
+scripts/with-public-mobile-config.sh flutter build ios --release
+scripts/with-public-mobile-config.sh flutter build appbundle --release
 ```
 
 Only public mobile configuration belongs in `.env`. OpenAI, Apple, and other

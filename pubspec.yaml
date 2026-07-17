@@ -29,6 +29,7 @@ dependencies:
   http: ^1.1.0
   audio_session: ^0.2.2
   elevenlabs_agents: ^0.3.0  # For ElevenLabs Agent voice calls
+  flutter_webrtc: 1.2.0  # Direct WebRTC transport for OpenAI Realtime
   lottie: ^3.3.0
   speech_to_text: 7.0.0
   in_app_purchase: ^3.2.3  # For subscription handling
@@ -36,6 +37,8 @@ dependencies:
   in_app_purchase_android: ^0.4.0  # Android Google Play billing verification
   url_launcher: ^6.3.1
   image_picker: ^1.0.4
+  camera: ^0.12.0+2  # Live preview + sampled stream frames for Realtime voice vision
+  image: ^4.3.0  # Encode sampled camera-stream frames without freezing preview
   photo_view: ^0.15.0
   flutter_image_compress: ^2.1.0
   image_cropper: ^9.1.0  # For image cropping and editing

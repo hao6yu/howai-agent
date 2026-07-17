@@ -6,6 +6,7 @@ import {
   legacyModelAllowlist,
   type ModelPolicyConfig,
   type ModelPolicyDecision,
+  type ModelRole,
   type RequestIntent,
   resolveModelPolicy,
   type UserCohort,
@@ -42,6 +43,7 @@ import {
   type FreeWebSearchRollout,
   resolveFreeWebSearchRollout,
   shouldOfferFreeWebSearch,
+  shouldReserveFreeWebSearch,
   webSearchAccountedCostMicrousd,
   webSearchToolCostMicrousd,
 } from "../_shared/openai-web-search.ts";
@@ -227,7 +229,7 @@ type PolicyContext = {
   ledgerId: string;
   cohort: UserCohort;
   intent: RequestIntent;
-  modelRole: string;
+  modelRole: ModelRole;
   reasoningEffort: string;
   reservationMicrousd: number;
   freeWebSearch: FreeWebSearchReservation;
@@ -654,9 +656,6 @@ async function sanitizeResponsesBody(
       }
       delete json.tool_choice;
       delete json.max_tool_calls;
-      if (json.metadata && typeof json.metadata === "object") {
-        delete (json.metadata as Record<string, unknown>).howai_web_search;
-      }
       if (
         shouldOfferFreeWebSearch({
           rolloutActive: rollout.freeWebSearch.active,
@@ -721,9 +720,11 @@ async function sanitizeResponsesBody(
   });
   if (policyContext) {
     if (
-      policyContext.cohort === "free" &&
-      policyContext.modelRole === "luna" &&
-      appliedProfile.webSearchMode === "auto"
+      shouldReserveFreeWebSearch({
+        cohort: policyContext.cohort,
+        modelRole: policyContext.modelRole,
+        webSearchMode: appliedProfile.webSearchMode,
+      })
     ) {
       json.max_tool_calls = 1;
       const searchReservation = await reserveFreeWebSearch(

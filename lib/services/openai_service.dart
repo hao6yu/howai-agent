@@ -96,13 +96,10 @@ class _ResponseProfileConfig {
 }
 
 class OpenAIService {
-  // gpt-5.2 Responses API endpoint
-  static String _baseUrl = 'https://api.openai.com/v1/responses';
-  static String _audioTranscriptionUrl =
-      'https://api.openai.com/v1/audio/transcriptions';
-  static String? _apiKey;
+  // All OpenAI traffic is authenticated and forwarded by Supabase.
+  static String _baseUrl = '';
+  static String _audioTranscriptionUrl = '';
   static String? _proxyBaseUrl;
-  static String? _proxyToken;
   static String? _supabaseAnonKey;
   static String _chatModel =
       'howai-chat'; // Server-side alias resolved by the Supabase proxy
@@ -662,11 +659,9 @@ class OpenAIService {
   static final Map<String, String> _promptCache = {};
   static const int _maxCacheSize = 100;
 
-  // Initialize with env variables or direct values
-  static Future<void> initialize({String? apiKey}) async {
-    _apiKey = apiKey ?? AppConfig.openAIApiKey;
+  // Initialize with public mobile proxy configuration only.
+  static Future<void> initialize() async {
     _proxyBaseUrl = AppConfig.openAIProxyBaseUrl.trim();
-    _proxyToken = AppConfig.openAIProxyToken.trim();
     _supabaseAnonKey = AppConfig.supabaseAnonKey.trim();
 
     if (_proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty) {
@@ -685,8 +680,7 @@ class OpenAIService {
 
   static bool get _isUsingProxy =>
       _proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty;
-  static bool get _hasApiKey => _apiKey != null && _apiKey!.isNotEmpty;
-  static bool get _isConfigured => _isUsingProxy || _hasApiKey;
+  static bool get _isConfigured => _isUsingProxy;
 
   static Future<Map<String, String>> _buildHeaders(
       {bool includeJsonContentType = true}) async {
@@ -703,11 +697,6 @@ class OpenAIService {
       if (_supabaseAnonKey != null && _supabaseAnonKey!.isNotEmpty) {
         headers['apikey'] = _supabaseAnonKey!;
       }
-      if (_proxyToken != null && _proxyToken!.isNotEmpty) {
-        headers['X-HowAI-Proxy-Token'] = _proxyToken!;
-      }
-    } else if (_hasApiKey) {
-      headers['Authorization'] = 'Bearer $_apiKey';
     }
 
     return headers;
@@ -1284,7 +1273,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
       _log('[OpenAIService] 📤 Request to $_baseUrl');
       _log('[OpenAIService] 📤 Model: $modelToUse');
       _log(
-        '[OpenAIService] 📤 Transport: ${_isUsingProxy ? "proxy" : "direct"}',
+        '[OpenAIService] 📤 Transport: ${_isUsingProxy ? "proxy" : "unconfigured"}',
       );
 
       final response = await _httpPostWithTimeout(

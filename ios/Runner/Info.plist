@@ -75,7 +75,7 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>This app needs speech recognition permission to understand your voice inputs.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>This app uses the camera to let you take and send photos in chat.</string>
+	<string>This app uses the camera when you choose to show HowAI what you see in chat or a voice conversation.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to let you select and send images in chat.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

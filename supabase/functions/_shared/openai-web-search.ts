@@ -21,6 +21,12 @@ export type FreeWebSearchEligibility = Readonly<{
   intent: RequestIntent;
 }>;
 
+export type FreeWebSearchReservationEligibility = Readonly<{
+  cohort: UserCohort;
+  modelRole: ModelRole;
+  webSearchMode: "auto" | "force" | "disabled";
+}>;
+
 export const WEB_SEARCH_TOOL_CALL_MICROUSD = 10_000;
 export const DEFAULT_FREE_WEB_SEARCH_RESERVATION_MICROUSD = 40_000;
 
@@ -46,6 +52,14 @@ export function shouldOfferFreeWebSearch(
     input.cohort === "free" &&
     input.modelRole === "luna" &&
     input.intent === "primary_chat";
+}
+
+export function shouldReserveFreeWebSearch(
+  input: FreeWebSearchReservationEligibility,
+): boolean {
+  return input.cohort === "free" &&
+    input.modelRole === "luna" &&
+    input.webSearchMode !== "disabled";
 }
 
 export function webSearchToolCostMicrousd(callCount: number): number {

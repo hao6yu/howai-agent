@@ -63,7 +63,7 @@ The web client is maintained in a separate repository.
 
 - Flutter SDK 3.0+
 - Dart SDK
-- API keys for: OpenAI, ElevenLabs, Google Maps, Supabase
+- Public mobile configuration for Supabase, Google Maps, and provider proxies
 
 ### Setup
 
@@ -74,9 +74,7 @@ The web client is maintained in a separate repository.
    ```
 2. Copy `env.example` to `.env` for local build-time configuration:
    ```
-   # Local development only. Do not include OpenAI keys in production mobile builds.
-   OPENAI_API_KEY=
-   # Production: route through the Supabase Edge Function proxy.
+   # OpenAI is always routed through the Supabase Edge Function proxy.
    OPENAI_PROXY_BASE_URL=https://your-project.supabase.co/functions/v1/openai-proxy
    ELEVENLABS_PROXY_BASE_URL=https://your-project.supabase.co/functions/v1/elevenlabs-proxy
    GOOGLE_MAPS_API_KEY=...
@@ -100,9 +98,9 @@ The web client is maintained in a separate repository.
    `scripts/run-configured.sh -d <device-id>`.
 
 `.env` is intentionally not bundled as a Flutter asset. Values passed with
-`--dart-define` are still visible in a compiled mobile app, so only put public
-client config there for production. Keep server secrets, especially
-`OPENAI_API_KEY`, in Supabase secrets.
+`--dart-define` are still visible in a compiled mobile app. The configured
+runner filters the file through an explicit public-value allowlist. Keep
+provider credentials, especially `OPENAI_API_KEY`, in Supabase secrets.
 
 ### Optional: OpenAI Proxy (Recommended for Production)
 
@@ -152,10 +150,20 @@ ELEVENLABS_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/elevenl
 
 ```bash
 # iOS
-flutter build ios --release --dart-define-from-file=.env
+scripts/with-public-mobile-config.sh flutter build ios --release
 
 # Android
-flutter build apk --release --dart-define-from-file=.env
+scripts/with-public-mobile-config.sh flutter build apk --release
+```
+
+For a physical iPhone build that must launch from the Home Screen, install the
+release app above. A Flutter debug app installed without an attached
+`flutter run` or Xcode session is terminated by iOS at launch.
+
+```bash
+xcrun devicectl device install app \
+  --device <device-id> \
+  build/ios/iphoneos/Runner.app
 ```
 
 ## Screens

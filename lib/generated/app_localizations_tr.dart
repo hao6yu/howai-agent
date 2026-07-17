@@ -2866,7 +2866,10 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatLandingTitle => 'Size nasıl yardımcı olabilirim?';
 
   @override
-  String get chatLandingSubtitle => 'Yazın veya ses gönderin. Gerisini ben hallederim.';
+  String get chatLandingSubtitle => 'Yazın, konuşun veya ne gördüğünüzü bana gösterin.';
+
+  @override
+  String get chatLandingLiveVision => 'Canlı görüş';
 
   @override
   String get chatLandingTipCompact => 'İpucu: Fotoğraflar, dosyalar, PDF ve görsel araçları için + simgesine dokunun.';

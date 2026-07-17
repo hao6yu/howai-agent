@@ -2866,7 +2866,10 @@ class AppLocalizationsDe extends AppLocalizations {
   String get chatLandingTitle => 'Wobei kann ich dir helfen?';
 
   @override
-  String get chatLandingSubtitle => 'Tippe oder sende eine Sprachnachricht. Ich übernehme den Rest.';
+  String get chatLandingSubtitle => 'Schreibe, sprich oder zeig mir, was du siehst.';
+
+  @override
+  String get chatLandingLiveVision => 'Live-Vision';
 
   @override
   String get chatLandingTipCompact => 'Tipp: Tippe auf + für Fotos, Dateien, PDF und Bild-Tools.';

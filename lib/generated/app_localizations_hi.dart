@@ -2866,7 +2866,10 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chatLandingTitle => 'मैं आपकी कैसे मदद कर सकता हूँ?';
 
   @override
-  String get chatLandingSubtitle => 'टाइप करें या आवाज भेजें। बाकी मैं संभाल लूंगा।';
+  String get chatLandingSubtitle => 'लिखें, बोलें या मुझे दिखाएँ कि आप क्या देख रहे हैं।';
+
+  @override
+  String get chatLandingLiveVision => 'लाइव विज़न';
 
   @override
   String get chatLandingTipCompact => 'टिप: फ़ोटो, फाइलें, PDF और इमेज टूल्स के लिए + दबाएं।';

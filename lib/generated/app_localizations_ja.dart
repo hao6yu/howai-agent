@@ -2866,7 +2866,10 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatLandingTitle => '何をお手伝いできますか？';
 
   @override
-  String get chatLandingSubtitle => '入力または音声で送信してください。あとは私が対応します。';
+  String get chatLandingSubtitle => '入力するか、話しかけるか、見ているものを見せてください。';
+
+  @override
+  String get chatLandingLiveVision => 'ライブビジョン';
 
   @override
   String get chatLandingTipCompact => 'ヒント: + をタップして写真、ファイル、PDF、画像ツールを使えます。';

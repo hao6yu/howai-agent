@@ -2866,7 +2866,10 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatLandingTitle => '我可以帮你做什么？';
 
   @override
-  String get chatLandingSubtitle => '输入文字或发送语音，其余交给我。';
+  String get chatLandingSubtitle => '输入、说话，或让我看看你眼前的内容。';
+
+  @override
+  String get chatLandingLiveVision => '实时视觉';
 
   @override
   String get chatLandingTipCompact => '提示：点按 + 可使用照片、文件、PDF 和图像工具。';
@@ -5922,7 +5925,10 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get chatLandingTitle => '我可以幫你做什麼？';
 
   @override
-  String get chatLandingSubtitle => '輸入或傳送語音，剩下交給我。';
+  String get chatLandingSubtitle => '輸入、說話，或讓我看看你眼前的內容。';
+
+  @override
+  String get chatLandingLiveVision => '即時視覺';
 
   @override
   String get chatLandingTipCompact => '提示：點擊 + 可使用照片、檔案、PDF 與圖片工具。';

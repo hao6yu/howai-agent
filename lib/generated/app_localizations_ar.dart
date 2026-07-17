@@ -2866,7 +2866,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatLandingTitle => 'كيف يمكنني مساعدتك؟';
 
   @override
-  String get chatLandingSubtitle => 'اكتب أو أرسل صوتًا. سأهتم بالباقي.';
+  String get chatLandingSubtitle => 'اكتب أو تحدث أو أرني ما تراه.';
+
+  @override
+  String get chatLandingLiveVision => 'رؤية مباشرة';
 
   @override
   String get chatLandingTipCompact => 'نصيحة: اضغط + لاستخدام الصور والملفات وPDF وأدوات الصور.';

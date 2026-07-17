@@ -2866,7 +2866,10 @@ class AppLocalizationsVi extends AppLocalizations {
   String get chatLandingTitle => 'Tôi có thể giúp gì cho bạn?';
 
   @override
-  String get chatLandingSubtitle => 'Nhập hoặc gửi giọng nói. Tôi sẽ xử lý phần còn lại.';
+  String get chatLandingSubtitle => 'Nhập, nói hoặc cho tôi xem những gì bạn thấy.';
+
+  @override
+  String get chatLandingLiveVision => 'Thị giác trực tiếp';
 
   @override
   String get chatLandingTipCompact => 'Mẹo: Nhấn + để dùng ảnh, tệp, PDF và công cụ hình ảnh.';

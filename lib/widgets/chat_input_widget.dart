@@ -187,10 +187,16 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
         : screenWidth;
     final isTablet = shortestSide >= 600;
     final isPhoneLandscape = !isTablet && isLandscape;
+    final isIdleComposer = !widget.textInputFocusNode.hasFocus &&
+        !widget.isVoiceInputMode &&
+        widget.textController.text.trim().isEmpty &&
+        widget.pendingImages.isEmpty &&
+        widget.pendingFiles.isEmpty;
 
     // Keep the composer compact; the parent SafeArea already provides the
     // required iPhone home-indicator clearance.
-    final verticalPadding = isPhoneLandscape ? 4.0 : 8.0;
+    final verticalPadding =
+        isPhoneLandscape ? 4.0 : (isIdleComposer ? 6.0 : 8.0);
     final horizontalPadding = isPhoneLandscape ? 12.0 : 16.0;
 
     return Container(
@@ -697,6 +703,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
             textCapitalization: TextCapitalization.sentences,
             keyboardType: TextInputType.multiline,
             textInputAction: TextInputAction.send,
+            onTapOutside: (_) => widget.textInputFocusNode.unfocus(),
             onSubmitted: (value) {
               _sendMessage();
             },
@@ -712,13 +719,23 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   Widget _buildAdaptiveComposer(bool isPhoneLandscape) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        final buttonSize = settings
-            .getScaledFontSize(isPhoneLandscape ? 38 : 42)
-            .clamp(38.0, 52.0)
-            .toDouble();
         final hasDraft = widget.textController.text.trim().isNotEmpty ||
             widget.pendingImages.isNotEmpty ||
             widget.pendingFiles.isNotEmpty;
+        final isIdleCollapsed = !isPhoneLandscape &&
+            !widget.textInputFocusNode.hasFocus &&
+            !widget.isVoiceInputMode &&
+            !hasDraft;
+        final buttonSize = settings
+            .getScaledFontSize(
+              isPhoneLandscape
+                  ? 38
+                  : isIdleCollapsed
+                      ? 40
+                      : 42,
+            )
+            .clamp(38.0, 52.0)
+            .toDouble();
         final canSend = hasDraft && !widget.isSending;
 
         Widget toolsButton = _buildComposerControl(
@@ -799,8 +816,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
         final colors = context.howaiColors;
         final composer = Container(
           key: const ValueKey<String>('adaptive_composer'),
-          constraints: BoxConstraints(minHeight: buttonSize + 8),
-          padding: const EdgeInsets.all(4),
+          constraints: BoxConstraints(
+            minHeight: isIdleCollapsed ? 44 : buttonSize + 8,
+          ),
+          padding: EdgeInsets.all(isIdleCollapsed ? 2 : 4),
           decoration: BoxDecoration(
             color: colors.surface,
             borderRadius: BorderRadius.circular(12),
@@ -839,7 +858,11 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           padding: EdgeInsets.symmetric(
-            horizontal: widget.textInputFocusNode.hasFocus ? 0 : 12,
+            horizontal: widget.textInputFocusNode.hasFocus
+                ? 0
+                : isIdleCollapsed
+                    ? 18
+                    : 12,
           ),
           child: composer,
         );

@@ -103,7 +103,7 @@ void main() {
     final voiceCenter = tester.getCenter(voice);
     expect((toolsCenter.dy - fieldCenter.dy).abs(), lessThan(8));
     expect((voiceCenter.dy - fieldCenter.dy).abs(), lessThan(8));
-    expect(tester.getSize(find.byType(ChatInputWidget)).height, lessThan(80));
+    expect(tester.getSize(find.byType(ChatInputWidget)).height, lessThan(65));
   });
 
   testWidgets('composer expands horizontally when the field is focused',
@@ -117,6 +117,20 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.getSize(composer).width, greaterThan(restingWidth));
+  });
+
+  testWidgets('tapping outside the field dismisses the keyboard focus',
+      (tester) async {
+    await pumpComposer(tester);
+
+    final fieldFinder = find.byType(TextField);
+    await tester.tap(fieldFinder);
+    await tester.pump();
+    expect(tester.widget<TextField>(fieldFinder).focusNode?.hasFocus, isTrue);
+
+    await tester.tapAt(const Offset(8, 8));
+    await tester.pump();
+    expect(tester.widget<TextField>(fieldFinder).focusNode?.hasFocus, isFalse);
   });
 
   testWidgets('send replaces both voice controls while a draft exists',

@@ -2866,7 +2866,10 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatLandingTitle => '무엇을 도와드릴까요?';
 
   @override
-  String get chatLandingSubtitle => '입력하거나 음성으로 보내세요. 나머지는 제가 처리할게요.';
+  String get chatLandingSubtitle => '입력하거나 말하거나 보고 있는 것을 보여 주세요.';
+
+  @override
+  String get chatLandingLiveVision => '라이브 비전';
 
   @override
   String get chatLandingTipCompact => '팁: +를 눌러 사진, 파일, PDF, 이미지 도구를 사용하세요.';

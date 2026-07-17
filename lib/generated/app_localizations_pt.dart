@@ -2866,7 +2866,10 @@ class AppLocalizationsPt extends AppLocalizations {
   String get chatLandingTitle => 'Como posso ajudar você?';
 
   @override
-  String get chatLandingSubtitle => 'Digite ou envie voz. Eu cuido do resto.';
+  String get chatLandingSubtitle => 'Escreva, fale ou mostre-me o que está a ver.';
+
+  @override
+  String get chatLandingLiveVision => 'Visão em direto';
 
   @override
   String get chatLandingTipCompact => 'Dica: toque em + para fotos, arquivos, PDF e ferramentas de imagem.';
@@ -5922,7 +5925,10 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get chatLandingTitle => 'Como posso te ajudar?';
 
   @override
-  String get chatLandingSubtitle => 'Digite ou envie voz. Eu cuido do resto.';
+  String get chatLandingSubtitle => 'Digite, fale ou me mostre o que você está vendo.';
+
+  @override
+  String get chatLandingLiveVision => 'Visão ao vivo';
 
   @override
   String get chatLandingTipCompact => 'Dica: toque em + para fotos, arquivos, PDF e ferramentas de imagem.';

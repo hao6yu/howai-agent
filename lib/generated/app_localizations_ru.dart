@@ -2866,7 +2866,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chatLandingTitle => 'Чем я могу помочь?';
 
   @override
-  String get chatLandingSubtitle => 'Печатайте или отправляйте голосом. Остальное я сделаю сам.';
+  String get chatLandingSubtitle => 'Напишите, скажите или покажите мне, что вы видите.';
+
+  @override
+  String get chatLandingLiveVision => 'Живое зрение';
 
   @override
   String get chatLandingTipCompact => 'Совет: нажмите + для фото, файлов, PDF и инструментов изображений.';

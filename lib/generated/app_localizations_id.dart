@@ -2866,7 +2866,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get chatLandingTitle => 'Apa yang bisa saya bantu?';
 
   @override
-  String get chatLandingSubtitle => 'Ketik atau kirim suara. Saya yang tangani sisanya.';
+  String get chatLandingSubtitle => 'Ketik, bicara, atau tunjukkan apa yang Anda lihat.';
+
+  @override
+  String get chatLandingLiveVision => 'Visi langsung';
 
   @override
   String get chatLandingTipCompact => 'Tip: Ketuk + untuk foto, file, PDF, dan alat gambar.';

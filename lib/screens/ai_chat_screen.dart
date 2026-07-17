@@ -96,7 +96,7 @@ class AiChatScreen extends StatefulWidget {
 }
 
 class _AiChatScreenState extends State<AiChatScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final DatabaseService _databaseService = DatabaseService();
@@ -109,6 +109,8 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Add a FocusNode for the text input
   final FocusNode _textInputFocusNode = FocusNode();
+  bool _keyboardVisible = false;
+  bool _followKeyboardToLatest = false;
 
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
@@ -222,6 +224,8 @@ class _AiChatScreenState extends State<AiChatScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _textInputFocusNode.addListener(_handleTextInputFocusChange);
 
     _micAnimationController = AnimationController(
       vsync: this,
@@ -368,6 +372,8 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _textInputFocusNode.removeListener(_handleTextInputFocusChange);
     _textController.dispose();
     _scrollController.dispose();
     _micAnimationController.dispose();
@@ -411,6 +417,39 @@ class _AiChatScreenState extends State<AiChatScreen>
     _flutterTts = null;
 
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted) return;
+    final keyboardVisible = View.of(context).viewInsets.bottom > 0;
+    if (keyboardVisible && !_keyboardVisible) {
+      _followKeyboardToLatest = _isNearBottom(threshold: 280);
+    }
+    _keyboardVisible = keyboardVisible;
+    if (!keyboardVisible) {
+      _followKeyboardToLatest = false;
+      return;
+    }
+    if (_followKeyboardToLatest) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _keyboardVisible && _followKeyboardToLatest) {
+          _scrollToBottom(animated: false);
+        }
+      });
+    }
+  }
+
+  void _handleTextInputFocusChange() {
+    if (!_textInputFocusNode.hasFocus) return;
+    _followKeyboardToLatest = _isNearBottom(threshold: 280);
+    if (_followKeyboardToLatest) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _textInputFocusNode.hasFocus) {
+          _scrollToBottom(animated: true);
+        }
+      });
+    }
   }
 
   // PDF Auto-conversion methods
@@ -2700,7 +2739,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   color: Theme.of(context).scaffoldBackgroundColor,
                   child: SafeArea(
                     bottom: true,
-                    maintainBottomViewPadding: true,
+                    maintainBottomViewPadding: false,
                     child: Column(
                       children: [
                         // Chat messages list
@@ -2738,13 +2777,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                                               )
                                             : ListView.builder(
                                                 controller: _scrollController,
+                                                keyboardDismissBehavior:
+                                                    ScrollViewKeyboardDismissBehavior
+                                                        .onDrag,
                                                 padding: EdgeInsets.fromLTRB(
                                                   16,
                                                   20,
                                                   16,
-                                                  _isVoiceInputMode
-                                                      ? 100
-                                                      : 80, // More padding for voice mode
+                                                  20,
                                                 ),
                                                 itemCount:
                                                     displayMessages.length,
@@ -5630,7 +5670,29 @@ class _AiChatScreenState extends State<AiChatScreen>
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _LandingCapabilityButton(
+                      icon: Icons.graphic_eq_rounded,
+                      label:
+                          AppLocalizations.of(context)!.voiceCallFeatureTitle,
+                      onTap: () => _startElevenLabsCall(),
+                    ),
+                    _LandingCapabilityButton(
+                      icon: Icons.videocam_outlined,
+                      label:
+                          AppLocalizations.of(context)!.chatLandingLiveVision,
+                      onTap: () => _startElevenLabsCall(
+                        initialVisionEnabled: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 560),
                   child: Column(
@@ -6001,10 +6063,12 @@ class _AiChatScreenState extends State<AiChatScreen>
   ///
   /// Opens the full-screen call UI. When the call ends with a transcript,
   /// navigates to the new conversation.
-  void _startElevenLabsCall() async {
+  void _startElevenLabsCall({bool initialVisionEnabled = false}) async {
     final result = await Navigator.of(context).push<int?>(
       MaterialPageRoute(
-        builder: (context) => const ElevenLabsCallScreen(),
+        builder: (context) => ElevenLabsCallScreen(
+          initialVisionEnabled: initialVisionEnabled,
+        ),
         fullscreenDialog: true,
       ),
     );
@@ -6954,6 +7018,55 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
           ),
         );
       },
+    );
+  }
+}
+
+class _LandingCapabilityButton extends StatelessWidget {
+  const _LandingCapabilityButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.howaiColors;
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: colors.divider),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: colors.accent),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: colors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

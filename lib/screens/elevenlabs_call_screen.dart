@@ -47,7 +47,12 @@ class _TranscriptEntry {
 /// On call end, creates a new conversation with the call transcript
 /// and navigates back to it automatically.
 class ElevenLabsCallScreen extends StatefulWidget {
-  const ElevenLabsCallScreen({super.key});
+  const ElevenLabsCallScreen({
+    super.key,
+    this.initialVisionEnabled = false,
+  });
+
+  final bool initialVisionEnabled;
 
   @override
   State<ElevenLabsCallScreen> createState() => _ElevenLabsCallScreenState();
@@ -88,6 +93,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   bool _isPremium = false;
   bool _initialized = false;
   bool _preferenceLoadScheduled = false;
+  bool _initialVisionScheduled = false;
   bool _forceBackupProvider = false;
   bool _showBackupOption = false;
 
@@ -158,6 +164,14 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       _preferenceLoadScheduled = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         unawaited(_loadVoicePreference());
+      });
+    }
+    if (widget.initialVisionEnabled && !_initialVisionScheduled) {
+      _initialVisionScheduled = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_visionEnabled) {
+          unawaited(_toggleVision());
+        }
       });
     }
   }
@@ -1576,6 +1590,196 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     super.dispose();
   }
 
+  Widget _buildConnectedCallBody({
+    required BoxConstraints constraints,
+    required ThemeData theme,
+    required HowAIColors colors,
+    required AppLocalizations l10n,
+    required Color accent,
+    required bool isCompact,
+    required String activityLabel,
+    required String statusText,
+  }) {
+    final cameraHeight = min(
+      250.0,
+      max(
+        178.0,
+        constraints.maxHeight * (constraints.maxHeight < 700 ? 0.27 : 0.30),
+      ),
+    );
+    final connectedOrbSize = isCompact ? 116.0 : 132.0;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        isCompact ? 16 : 24,
+        8,
+        isCompact ? 16 : 24,
+        8,
+      ),
+      child: Column(
+        children: [
+          if (_visionEnabled)
+            _buildVisionCameraStage(
+              colors: colors,
+              height: cameraHeight,
+            )
+          else
+            AnimatedBuilder(
+              animation: _orbPulseController,
+              builder: (context, child) {
+                return _RealtimeVoiceOrb(
+                  size: connectedOrbSize,
+                  animationValue: _orbPulseController.value,
+                  accent: accent,
+                  disabled: false,
+                  connecting: false,
+                  connected: true,
+                  assistantSpeaking: _isAssistantSpeaking,
+                  muted: _isPaused,
+                  onTap: null,
+                );
+              },
+            ),
+          const SizedBox(height: 12),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: Column(
+                children: [
+                  Container(
+                    width: double.infinity,
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: colors.divider),
+                    ),
+                    child: Text(
+                      _currentTranscript == null ? activityLabel : statusText,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: _currentTranscript == null
+                            ? colors.textTertiary
+                            : colors.textSecondary,
+                        height: 1.42,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  if (_pendingVoiceProposal != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: _VoiceApprovalPanel(
+                        proposal: _pendingVoiceProposal!,
+                        isBusy: _isActionBusy,
+                        onApprove: () => unawaited(
+                          _decideVoiceProposal(AgentActionDecision.approved),
+                        ),
+                        onReject: () => unawaited(
+                          _decideVoiceProposal(AgentActionDecision.rejected),
+                        ),
+                      ),
+                    ),
+                  if (_error != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.errorContainer,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          _error!,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onErrorContainer,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  if (_visionError != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: colors.warning.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _visionError!,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colors.textPrimary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            if (_visionNeedsSettings)
+                              TextButton(
+                                onPressed: openAppSettings,
+                                child: const Text('Open Settings'),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          if (_isSavingTranscript) ...[
+            const SizedBox(height: 8),
+            const SizedBox.square(
+              dimension: 22,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _VoiceControlButton(
+                icon: _visionEnabled
+                    ? Icons.videocam_rounded
+                    : Icons.videocam_outlined,
+                label: _visionEnabled ? 'Vision on' : 'Use camera',
+                foregroundColor:
+                    _visionEnabled ? colors.accent : colors.textPrimary,
+                backgroundColor:
+                    _visionEnabled ? colors.accentSoft : colors.surface,
+                onTap: () => unawaited(_toggleVision()),
+              ),
+              SizedBox(width: isCompact ? 14 : 22),
+              _VoiceControlButton(
+                icon: _isPaused ? Icons.mic_off_rounded : Icons.mic_rounded,
+                label: _isPaused ? l10n.voiceCallUnmute : l10n.voiceCallMute,
+                foregroundColor: _isPaused ? colors.danger : colors.textPrimary,
+                backgroundColor: colors.surface,
+                onTap: _toggleMute,
+              ),
+              SizedBox(width: isCompact ? 14 : 22),
+              _VoiceControlButton(
+                icon: Icons.call_end_rounded,
+                label: l10n.voiceCallEndCall,
+                foregroundColor: Colors.white,
+                backgroundColor: colors.danger,
+                onTap: () => _closeCall(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1625,6 +1829,18 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
+            if (_isConnected) {
+              return _buildConnectedCallBody(
+                constraints: constraints,
+                theme: theme,
+                colors: howaiColors,
+                l10n: l10n,
+                accent: primaryColor,
+                isCompact: isCompact,
+                activityLabel: activityLabel,
+                statusText: statusText,
+              );
+            }
             final visionHeight = min(
               300.0,
               max(

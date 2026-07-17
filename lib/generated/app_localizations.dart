@@ -5690,8 +5690,14 @@ abstract class AppLocalizations {
   /// No description provided for @chatLandingSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Type or send voice. I\'ll handle the rest.'**
+  /// **'Type, talk, or show me what you see.'**
   String get chatLandingSubtitle;
+
+  /// No description provided for @chatLandingLiveVision.
+  ///
+  /// In en, this message translates to:
+  /// **'Live vision'**
+  String get chatLandingLiveVision;
 
   /// No description provided for @chatLandingTipCompact.
   ///

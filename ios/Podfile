@@ -64,6 +64,14 @@ post_install do |installer|
         config.build_settings['COPY_PHASE_STRIP'] = 'NO'
         config.build_settings['STRIP_INSTALLED_PRODUCT'] = 'NO'
       end
+
+      # HowAI only requests location while the app is in use. Exclude
+      # geolocator's unused "Always" permission code so App Store Connect does
+      # not require NSLocationAlwaysAndWhenInUseUsageDescription.
+      if target.name == 'geolocator_apple'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'BYPASS_PERMISSION_LOCATION_ALWAYS=1'
+      end
     
       # Add specific permission settings if needed
       if target.name == 'permission_handler_apple'

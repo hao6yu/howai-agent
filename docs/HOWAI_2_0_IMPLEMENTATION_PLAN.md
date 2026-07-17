@@ -31,7 +31,9 @@ Realtime voice is implemented for internal testing, including actions, search,
 and optional turn-aware vision. M5.1 now provides one server-owned personality
 across chat and voice, structured user-controlled memory, post-chat/call
 learning, suggestion review, and personalization privacy controls. Its schema,
-RLS, and Edge Functions are deployed; physical-device regression remains.
+RLS, and Edge Functions are deployed; physical-device regression remains. M6
+Persistent Research is deferred from HowAI 2.0. M7 release-candidate hardening
+is the next milestone after the current internal feature regressions pass.
 
 M0 delivered:
 
@@ -216,7 +218,6 @@ At release, a user should be able to:
 - Open a notification directly into the relevant reminder and conversation.
 - Start a low-latency speech-to-speech session, interrupt the assistant naturally, and see a live transcript.
 - Create the same reminder from text or voice through one shared action system.
-- Start long-running research, leave the app, receive completion notification, and reopen a saved report with sources.
 - Schedule a daily or weekly briefing, receive a concise notification preview,
   and open the full, source-validated report with clickable citations.
 - Understand what HowAI is doing, what it will change, and whether an action succeeded.
@@ -228,14 +229,13 @@ At release, a user should be able to:
 - UI theme and accessibility cleanup.
 - Simplified chat composer and tool/mode selection.
 - Improved onboarding, conversation management, and paywall behavior.
-- Content-first navigation for Chat, Research, and Automations.
+- Content-first navigation for Chat and Automations.
 - Reminder and recurring-reminder tools.
 - Reminder management workspace.
 - Firebase Cloud Messaging for Android and iOS/APNs.
 - Foreground/local-notification presentation and notification actions.
 - OpenAI Realtime speech-to-speech voice over WebRTC.
 - Persistent voice transcripts and shared text/voice tools.
-- Persistent background Research projects, runs, sources, and reports.
 - Automations for reminders, recurring reminders, news briefings, and market
   briefings, with per-run validation and durable history.
 - Feature flags, kill switches, structured telemetry, tests, CI, and an
@@ -244,6 +244,7 @@ At release, a user should be able to:
 
 ### Explicitly excluded from 2.0
 
+- Persistent background Research projects, runs, sources, and reports.
 - Google Calendar, Apple Calendar, Apple Reminders, Microsoft, Todoist, or Notion synchronization.
 - Sending email, Slack, SMS, WhatsApp, or messages to other people.
 - Shared reminders or family/team task lists.
@@ -383,7 +384,10 @@ All schemas use strict mode, reject unknown fields, and are validated again by t
 
 GPT-5.6 is a model family. The current `gpt-5.6` alias routes to flagship `gpt-5.6-sol`; use explicit physical model IDs in server configuration so staging, logs, rate limits, and rollback remain predictable. The client sends an intent such as primary chat, lightweight chat, title, or research; the Supabase proxy verifies the entitlement and selects the physical model. It must not trust a client-selected premium alias.
 
-This workstream applies to primary text chat and text-agent orchestration. OpenAI Realtime voice remains on the dedicated Realtime model, and persistent Research uses an evaluated research model rather than ordinary GPT-5.6 chat.
+This workstream applies to primary text chat and text-agent orchestration.
+OpenAI Realtime voice remains on the dedicated Realtime model. Deferred
+Persistent Research must use an evaluated research model rather than ordinary
+GPT-5.6 chat when it returns.
 
 ### 0.1 Inventory and role mapping
 
@@ -392,7 +396,8 @@ This workstream applies to primary text chat and text-agent orchestration. OpenA
 - Keep `gpt-5-nano` as the free fallback and for background classification, titles, routing, and other lightweight work, including for paid users.
 - Evaluate `gpt-5.6-luna` as a metered free-tier experience. Do not replace `gpt-5-nano` globally: Luna is 20 times its input price and 15 times its output price.
 - Reserve `gpt-5.6-terra` for evaluated fallback or a future mid-tier use case; free clients cannot request Terra or Sol directly.
-- Treat background Research and Realtime voice as separate model roles.
+- Treat Realtime voice as a separate model role; keep the deferred Research
+  role isolated when it returns.
 
 ### 0.2 Entitlement routing and cost controls
 
@@ -973,6 +978,9 @@ Official references:
 
 ## 12. Workstream E — persistent Research workspace
 
+Status: **Deferred from HowAI 2.0.** Preserve this design for a later 2.x
+release, but do not make Research implementation or rollout a 2.0 release gate.
+
 The current “Deep Research” mode is a synchronous high-reasoning chat configuration, not a durable research job. Replace it with explicit projects and background runs.
 
 ### E1. Research UI
@@ -1254,7 +1262,7 @@ Do not log prompt contents, reminder notes, transcripts, research reports, API k
 | M4.6 — Places and Maps refactor (deferred) | Characterization foundation is complete; defer the full cards, list, map, details, reviews, Street View, navigation, and transient-state refactor | Resume in a later 2.x milestone without blocking HowAI 2.0 |
 | M5 — Realtime voice beta | Ephemeral session endpoint, WebRTC client, transcript, interruption, live search, sampled-frame vision beta, reminder tools, ElevenLabs fallback | Voice, vision, safety, usage, and fallback gates pass |
 | M5.1 — Shared personality and memory | One server-owned identity across text and voice, structured memories, suggestion review, post-chat/call learning, privacy controls | Prompt regressions, owner isolation, memory review, opt-out, and cross-channel personalization pass |
-| M6 — Research beta | Persistent projects/runs/sources, background Responses, webhook, completion push | Leave/resume/completion flow passes and sources remain durable |
+| M6 — Research beta (deferred) | Preserve the persistent Research design for a later 2.x release; no implementation in HowAI 2.0 | Does not block HowAI 2.0 |
 | M7 — Release candidate | Localization, accessibility, performance, security review, store assets/privacy, internal-to-full rollout controls | All release gates pass and rollback is tested |
 
 M4.1 follows the completed M4 internal notification flow. It establishes the
@@ -1263,8 +1271,9 @@ M4.5 reuses reminder approval, scheduling, usage-ledger, and push infrastructure
 without renaming the existing reminder schema. The initial M4.6
 characterization work remains as a safe future refactor seam, but the full
 Places and Maps redesign is deferred. M5 Realtime is followed by M5.1
-personality and memory hardening before M6 Research reuses the refined UI,
-shared identity, and durable run patterns.
+personality and memory hardening, then M7 release-candidate work. Deferred M6
+Research can later reuse the refined UI, shared identity, and durable run
+patterns.
 
 ### M5.1 — Shared personality and controllable memory
 
@@ -1313,7 +1322,8 @@ These defaults let implementation begin without blocking the architecture:
   user, and at most one automatic run per briefing per day. Reminders remain
   available independently.
 - Realtime voice keeps the existing free/premium usage concept, with limits moved to server configuration.
-- Persistent Research is premium or quota-limited because it can create long-running provider cost.
+- If Persistent Research returns in a later 2.x release, it must be premium or
+  quota-limited because it can create long-running provider cost.
 - Notification lock-screen text defaults to the reminder title without private notes.
 - OpenAI Realtime is feature-flagged and ElevenLabs remains the beta fallback.
 - The primary `howai-chat` alias migrates to explicit `gpt-5.6-sol` after the M1 canary gates pass.
@@ -1326,23 +1336,23 @@ The following require external project credentials or store-console access:
 
 - APNs key, Apple Team ID, and push entitlement provisioning.
 - FCM service-account permission for HTTP v1 sending.
-- OpenAI project access and rate limits for GPT-5.6 Sol, Realtime, background Research, and webhook creation.
-- OpenAI webhook signing secret.
+- OpenAI project access and rate limits for GPT-5.6 Sol and Realtime.
 - Supabase staging/branch environment and production secret management.
-- Store privacy disclosures covering voice, notifications, and persistent research.
+- Store privacy disclosures covering voice, vision, memory, and notifications.
 
 ## 22. Definition of done
 
 HowAI 2.0 is done when:
 
-- The five release pillars work through one coherent navigation and visual system.
+- The shipped chat, Automations, notifications, voice/vision, and memory
+  capabilities work through one coherent navigation and visual system.
 - Text and voice create the same validated reminder proposals and require the same approval contract.
 - Recurring schedules remain correct across timezone and daylight-saving changes.
 - Push delivery is observable, retryable, deep-linkable, and free of duplicate visible occurrences.
 - Realtime secrets and all long-lived provider credentials remain server-side.
-- Research jobs persist independently of the app session and provider response retention.
 - Primary text chat resolves to GPT-5.6 Sol, passes the versioned eval suite, and can roll back without a client release.
 - RLS, privileged backend paths, and webhook verification pass security tests.
-- Feature flags can roll GPT-5.6 back and disable Realtime, reminder writes, reminder delivery, or Research without shipping a new client.
+- Feature flags can roll GPT-5.6 back and disable Realtime, reminder writes,
+  reminder delivery, or Automations without shipping a new client.
 - The legacy voice fallback and rollback plan are verified.
 - Automated tests, physical-device tests, accessibility review, localization, and staged beta gates pass.

@@ -14,9 +14,37 @@ import 'supabase_service.dart';
 // No automatic bypass — use the debug toggle in Settings to test premium.
 const bool kBypassSubscriptionForDebug = false;
 
+@visibleForTesting
+bool resolvePremiumStatus({
+  required bool realStatus,
+  required bool isDebugBuild,
+  bool? debugOverride,
+}) {
+  if (isDebugBuild && debugOverride != null) {
+    return debugOverride;
+  }
+  return realStatus;
+}
+
 enum SubscriptionTier {
   free,
   premium,
+}
+
+class _TrustedServerEntitlement {
+  final bool active;
+  final DateTime? expiresAt;
+
+  const _TrustedServerEntitlement({
+    required this.active,
+    required this.expiresAt,
+  });
+
+  int? get cacheValidUntilMs {
+    final expiry = expiresAt;
+    if (expiry == null || !expiry.isAfter(DateTime.now())) return null;
+    return expiry.millisecondsSinceEpoch;
+  }
 }
 
 class SubscriptionLimits {
@@ -271,6 +299,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   bool get isDebugFreeOverride => _debugOverridePremium == false;
 
   Future<void> setDebugPremiumOverride(bool value) async {
+    if (!kDebugMode) return;
     _debugOverridePremium = value ? true : null;
     final prefs = await SharedPreferences.getInstance();
     if (_debugOverridePremium == null) {
@@ -282,6 +311,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   }
 
   Future<void> setDebugFreeOverride() async {
+    if (!kDebugMode) return;
     _debugOverridePremium = false;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('debug_override_premium', false);
@@ -354,12 +384,11 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       (_isSubscribed && _subscriptionTier == SubscriptionTier.premium);
 
   // Convenience getters for subscription status (with debug override)
-  bool get isPremium {
-    if (_debugOverridePremium != null) {
-      return _debugOverridePremium == true;
-    }
-    return _realSubscriptionStatus;
-  }
+  bool get isPremium => resolvePremiumStatus(
+        realStatus: _realSubscriptionStatus,
+        isDebugBuild: kDebugMode,
+        debugOverride: _debugOverridePremium,
+      );
 
   bool get isFree => !isPremium;
 
@@ -483,7 +512,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       debugPrint(
           '[SubscriptionService] Init complete: isSubscribed=$_isSubscribed, tier=$_subscriptionTier');
 
-      // Sync from Supabase (non-blocking, informational only — does NOT grant premium)
+      // Reconcile again after startup so a restored auth session can recover
+      // server-granted access even if StoreKit has no readable transaction.
       _loadSubscriptionFromSupabase();
     } catch (e) {
       _errorMessage = "Initialization error: $e";
@@ -496,6 +526,11 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<void> _loadDebugOverride() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (!kDebugMode) {
+        _debugOverridePremium = null;
+        await prefs.remove('debug_override_premium');
+        return;
+      }
       if (prefs.containsKey('debug_override_premium')) {
         _debugOverridePremium = prefs.getBool('debug_override_premium');
       } else {
@@ -579,8 +614,9 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   Future<bool> tryUseImageAnalysis() async {
     if (isPremium) return true;
-    if (_usageStats.imageAnalysisCount >= limits.imageAnalysisWeekly)
+    if (_usageStats.imageAnalysisCount >= limits.imageAnalysisWeekly) {
       return false;
+    }
 
     _usageStats = UsageStats(
       imageAnalysisCount: _usageStats.imageAnalysisCount + 1,
@@ -604,8 +640,9 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<bool> tryUseImageGeneration() async {
     if (isPremium) return true;
     await _checkAndResetWeeklyUsage();
-    if (_usageStats.imageGenerationsCount >= limits.imageGenerationsWeekly)
+    if (_usageStats.imageGenerationsCount >= limits.imageGenerationsWeekly) {
       return false;
+    }
 
     _usageStats = UsageStats(
       imageAnalysisCount: _usageStats.imageAnalysisCount,
@@ -631,8 +668,9 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<bool> tryUsePdfGeneration() async {
     if (isPremium) return true;
     await _checkAndResetWeeklyUsage();
-    if (_usageStats.pdfGenerationsCount >= limits.pdfGenerationsWeekly)
+    if (_usageStats.pdfGenerationsCount >= limits.pdfGenerationsWeekly) {
       return false;
+    }
 
     _usageStats = UsageStats(
       imageAnalysisCount: _usageStats.imageAnalysisCount,
@@ -652,8 +690,9 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<bool> tryUsePlacesExplorer() async {
     if (isPremium) return true;
     await _checkAndResetWeeklyUsage();
-    if (_usageStats.placesExplorerCount >= limits.placesExplorerWeekly)
+    if (_usageStats.placesExplorerCount >= limits.placesExplorerWeekly) {
       return false;
+    }
 
     _usageStats = UsageStats(
       imageAnalysisCount: _usageStats.imageAnalysisCount,
@@ -673,8 +712,9 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<bool> tryUseDocumentAnalysis() async {
     if (isPremium) return true;
     await _checkAndResetWeeklyUsage();
-    if (_usageStats.documentAnalysisCount >= limits.documentAnalysisWeekly)
+    if (_usageStats.documentAnalysisCount >= limits.documentAnalysisWeekly) {
       return false;
+    }
 
     _usageStats = UsageStats(
       imageAnalysisCount: _usageStats.imageAnalysisCount,
@@ -756,7 +796,10 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       // Start from clean state — guilty until proven innocent.
       bool hasActiveSubscription = false;
 
-      // Primary check: ask the platform store directly
+      // Ask both trusted sources. StoreKit/Play supports offline ownership and
+      // fresh purchases; app_entitlements supports account-linked access and
+      // server-managed grants. A positive result from either source grants the
+      // UI tier. Server failures never revoke valid local access.
       if (Platform.isIOS) {
         hasActiveSubscription = await _verifyViaStoreKit2();
       } else if (Platform.isAndroid) {
@@ -770,6 +813,15 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
           debugPrint(
               '[SubscriptionService] Using cached entitlement (offline/error fallback)');
         }
+      }
+
+      final serverEntitlement = await _fetchTrustedServerEntitlement();
+      if (serverEntitlement?.active == true) {
+        hasActiveSubscription = true;
+        await _setValidatedEntitlementCache(
+          prefs,
+          expiresAtMs: serverEntitlement!.cacheValidUntilMs,
+        );
       }
 
       _isSubscribed = hasActiveSubscription;
@@ -1176,7 +1228,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   }
 
   // ---------------------------------------------------------------------------
-  // Supabase sync (non-blocking, informational)
+  // Supabase sync
   // ---------------------------------------------------------------------------
 
   void _syncSubscriptionToSupabase(PurchaseDetails purchaseDetails) {
@@ -1227,6 +1279,10 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     try {
       if (!_supabase.isAuthenticated) return;
 
+      // The server-owned entitlement is authoritative for signed-in accounts.
+      // Refresh it before mirroring the legacy informational status row.
+      await _refreshSubscriptionFromTrustedServer();
+
       final userId = _supabase.currentUser!.id;
       final platform = Platform.isIOS ? 'ios' : 'android';
 
@@ -1267,6 +1323,51 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       debugPrint(
           '[SubscriptionService] Error syncing current subscription (silent): $e');
     }
+  }
+
+  Future<_TrustedServerEntitlement?> _fetchTrustedServerEntitlement() async {
+    if (!_supabase.isAuthenticated) return null;
+
+    try {
+      final response = await _supabase.client.functions.invoke(
+          'entitlement-status',
+          body: const {}).timeout(const Duration(seconds: 10));
+      final data = response.data;
+      if (data is! Map) return null;
+      final entitlement = data['entitlement'];
+      if (entitlement is! Map) return null;
+
+      final active = entitlement['active'] == true;
+      final expiresAtRaw = entitlement['expires_at'];
+      final expiresAt = expiresAtRaw is String
+          ? DateTime.tryParse(expiresAtRaw)?.toLocal()
+          : null;
+      return _TrustedServerEntitlement(
+        active: active,
+        expiresAt: expiresAt,
+      );
+    } catch (e) {
+      debugPrint(
+          '[SubscriptionService] Trusted entitlement refresh failed (using store/cache): $e');
+      return null;
+    }
+  }
+
+  Future<void> _refreshSubscriptionFromTrustedServer() async {
+    final entitlement = await _fetchTrustedServerEntitlement();
+    if (entitlement?.active != true) return;
+
+    _isSubscribed = true;
+    _subscriptionTier = SubscriptionTier.premium;
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_isSubscribedKey, true);
+    await prefs.setString('subscriptionTier', 'premium');
+    await _setValidatedEntitlementCache(
+      prefs,
+      expiresAtMs: entitlement!.cacheValidUntilMs,
+    );
+    notifyListeners();
   }
 
   Future<void> _syncVerifiedAppleEntitlement({
@@ -1336,26 +1437,13 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     return DateTime.tryParse(value.replaceFirst(' ', 'T'));
   }
 
-  /// Load subscription info from Supabase — informational only.
-  /// Does NOT grant premium. The platform store is the source of truth.
+  /// Reconcile the signed-in account with the server-owned entitlement.
+  /// The private app_entitlements table is never queried by the app directly.
   Future<void> _loadSubscriptionFromSupabase() async {
     try {
       if (!_supabase.isAuthenticated) return;
 
-      final userId = _supabase.currentUser!.id;
-
-      final response = await _supabase.client
-          .from('subscription_status')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      if (response != null) {
-        final isActive = response['is_active'] as bool? ?? false;
-        debugPrint(
-            '[SubscriptionService] Supabase subscription record: is_active=$isActive (informational only)');
-      }
-
+      await _refreshSubscriptionFromTrustedServer();
       await _loadUsageStatsFromSupabase();
     } catch (e) {
       debugPrint(

@@ -69,6 +69,7 @@ import '../services/device_timezone_service.dart';
 import '../widgets/place_result_widget.dart';
 import '../services/chat_integration_helper.dart';
 import '../services/profile_translation_service.dart';
+import '../services/profile_name_service.dart';
 import '../services/feature_showcase_service.dart';
 import 'elevenlabs_call_screen.dart';
 import '../services/knowledge_hub_service.dart';
@@ -102,6 +103,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   final DatabaseService _databaseService = DatabaseService();
   final OpenAIService _openAIService = OpenAIService();
   final AutomationService _automationService = AutomationService();
+  final ProfileNameService _profileNameService = ProfileNameService();
   final ElevenLabsService _elevenLabsService = ElevenLabsService();
   final SpeechRecognitionService _speechRecognitionService =
       SpeechRecognitionService();
@@ -716,6 +718,47 @@ class _AiChatScreenState extends State<AiChatScreen>
   bool _streamingMessageAdded = false;
   String? _activeStreamingMessageTimestamp;
 
+  Future<String> _applyProfileNameToolCall(
+    Map<String, dynamic> toolCall, {
+    required String existingAssistantText,
+  }) async {
+    final profileId = _currentProfileId;
+    final rawArguments = toolCall['arguments'];
+    if (profileId == null || rawArguments is! Map) {
+      debugPrint('[ChatScreen] Preferred-name tool had invalid context.');
+      return existingAssistantText.trim().isNotEmpty
+          ? existingAssistantText
+          : 'I could not save that preferred name right now.';
+    }
+
+    try {
+      final result = await _profileNameService.applyToolCall(
+        profileId: profileId,
+        arguments: Map<String, dynamic>.from(rawArguments),
+      );
+      if (mounted) {
+        final profileProvider =
+            Provider.of<ProfileProvider>(context, listen: false);
+        await profileProvider.loadProfiles();
+        if (result.displayName != null) {
+          setState(() => _currentProfileName = result.displayName);
+        }
+      }
+      if (existingAssistantText.trim().isNotEmpty) {
+        return existingAssistantText;
+      }
+      return result.status == 'known'
+          ? 'Got it — I’ll call you ${result.displayName}.'
+          : 'No problem — I won’t ask again.';
+    } on ProfileNameServiceException catch (error) {
+      debugPrint('[ChatScreen] Preferred-name update failed: $error');
+      return error.message;
+    } catch (error) {
+      debugPrint('[ChatScreen] Preferred-name update failed: $error');
+      return 'I could not save that preferred name right now.';
+    }
+  }
+
   /// Handle streaming response from OpenAI
   /// Returns a Map compatible with the non-streaming response format
   Future<Map<String, dynamic>?> _handleStreamingResponse({
@@ -763,6 +806,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     List<String>? images;
     List<String>? files;
     Map<String, dynamic>? actionToolCall;
+    Map<String, dynamic>? profileToolCall;
     String lastRenderedText = '';
     DateTime? lastUiUpdateAt;
     DateTime? lastAutoScrollAt;
@@ -923,6 +967,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             images = event.images;
             files = event.files;
             actionToolCall = event.actionToolCall;
+            profileToolCall = event.profileToolCall;
             break;
 
           case StreamEventType.error:
@@ -1003,6 +1048,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         'files': files,
         'streamTimestamp': timestamp,
         'actionToolCall': actionToolCall,
+        'profileToolCall': profileToolCall,
       };
     } catch (e) {
       print('[ChatScreen] Streaming exception: $e');
@@ -1532,6 +1578,10 @@ class _AiChatScreenState extends State<AiChatScreen>
         final actionToolCall = rawActionToolCall is Map
             ? Map<String, dynamic>.from(rawActionToolCall)
             : null;
+        final rawProfileToolCall = response['profileToolCall'];
+        final profileToolCall = rawProfileToolCall is Map
+            ? Map<String, dynamic>.from(rawProfileToolCall)
+            : null;
 
         // Strip any title JSON that may have leaked into the response text (anywhere in text)
         aiText = aiText
@@ -1603,6 +1653,13 @@ class _AiChatScreenState extends State<AiChatScreen>
           }
         } else {
           conversationId = conversationProvider.selectedConversation!.id;
+        }
+
+        if (profileToolCall != null) {
+          aiText = await _applyProfileNameToolCall(
+            profileToolCall,
+            existingAssistantText: aiText,
+          );
         }
 
         if (actionToolCall != null) {

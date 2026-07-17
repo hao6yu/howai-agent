@@ -8,9 +8,12 @@ type MemoryRow = Readonly<{
   content: string;
 }>;
 
+type DisplayNameStatus = "unknown" | "prompted" | "known" | "declined";
+
 export async function loadHowAiPersonalContext(
   admin: SupabaseClient,
   userId: string,
+  options: Readonly<{ includeMemory?: boolean }> = {},
 ): Promise<HowAiPersonalContext | null> {
   const now = new Date().toISOString();
   const [
@@ -21,7 +24,7 @@ export async function loadHowAiPersonalContext(
     entitlementResult,
   ] = await Promise.all([
     admin.from("profiles")
-      .select("name")
+      .select("name,name_status")
       .eq("id", userId)
       .maybeSingle(),
     admin.from("user_profiles")
@@ -52,12 +55,6 @@ export async function loadHowAiPersonalContext(
       "HowAI memory preference lookup failed",
       preferencesResult.error.message,
     );
-    // Privacy controls fail closed. A missing row still uses the documented
-    // default, but a failed lookup must never bypass an existing opt-out.
-    return null;
-  }
-  if (preferencesResult.data?.personalization_enabled === false) {
-    return null;
   }
   if (profileResult.error) {
     console.error("HowAI profile context lookup failed", profileResult.error);
@@ -78,10 +75,27 @@ export async function loadHowAiPersonalContext(
   const learned = learnedResult.data;
   const memories = (memoriesResult.data ?? []) as MemoryRow[];
   const entitlement = entitlementResult.data;
-  const hasPaidPersonalization = !entitlementResult.error &&
+  const rawNameStatus = profileResult.data?.name_status;
+  const displayNameStatus: DisplayNameStatus =
+    rawNameStatus === "prompted" || rawNameStatus === "known" ||
+      rawNameStatus === "declined"
+      ? rawNameStatus
+      : "unknown";
+  // A user's explicit profile name is account data, not inferred memory.
+  // Memory personalization still fails closed independently when its privacy
+  // preference cannot be verified or has been disabled.
+  const personalizationAllowed = options.includeMemory !== false &&
+    !preferencesResult.error &&
+    preferencesResult.data?.personalization_enabled !== false;
+  const hasPaidPersonalization = personalizationAllowed &&
+    !entitlementResult.error &&
     isStoredEntitlementActive(entitlement);
   return {
-    displayName: profileResult.data?.name ?? null,
+    displayName: displayNameStatus === "known"
+      ? profileResult.data?.name ?? null
+      : null,
+    displayNameStatus,
+    shouldAskPreferredName: false,
     profileSummary: hasPaidPersonalization
       ? learned?.profile_summary ?? null
       : null,
@@ -99,5 +113,35 @@ export async function loadHowAiPersonalContext(
         content: memory.content,
       }))
       : [],
+  };
+}
+
+export async function claimHowAiPreferredNamePrompt(
+  admin: SupabaseClient,
+  userId: string,
+  context: HowAiPersonalContext | null,
+): Promise<HowAiPersonalContext | null> {
+  if (!context || context.displayNameStatus !== "unknown") return context;
+  const now = new Date().toISOString();
+  const { data, error } = await admin.from("profiles")
+    .update({
+      name_status: "prompted",
+      name_prompted_at: now,
+      updated_at: now,
+    })
+    .eq("id", userId)
+    .eq("name_status", "unknown")
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    console.error("HowAI preferred-name prompt claim failed", error.message);
+    return context;
+  }
+  if (!data) return { ...context, shouldAskPreferredName: false };
+  return {
+    ...context,
+    displayName: null,
+    displayNameStatus: "prompted",
+    shouldAskPreferredName: true,
   };
 }

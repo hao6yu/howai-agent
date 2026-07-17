@@ -14,6 +14,7 @@ import '../config/app_config.dart';
 import 'ai_personality_service.dart';
 import 'subscription_service.dart';
 import 'file_service.dart';
+import 'profile_name_service.dart';
 
 /// Event types for streaming responses
 enum StreamEventType {
@@ -32,6 +33,7 @@ class StreamEvent {
   final List<String>? images; // For done events
   final List<String>? files; // For done events
   final Map<String, dynamic>? actionToolCall; // Server-approved action proposal
+  final Map<String, dynamic>? profileToolCall;
   final String? error; // For error events
 
   StreamEvent({
@@ -42,6 +44,7 @@ class StreamEvent {
     this.images,
     this.files,
     this.actionToolCall,
+    this.profileToolCall,
     this.error,
   });
 
@@ -66,6 +69,7 @@ class StreamEvent {
     List<String>? images,
     List<String>? files,
     Map<String, dynamic>? actionToolCall,
+    Map<String, dynamic>? profileToolCall,
   }) =>
       StreamEvent(
         type: StreamEventType.done,
@@ -74,6 +78,7 @@ class StreamEvent {
         images: images,
         files: files,
         actionToolCall: actionToolCall,
+        profileToolCall: profileToolCall,
       );
 }
 
@@ -118,6 +123,11 @@ class OpenAIService {
   static http.Client get httpClient {
     _httpClient ??= http.Client();
     return _httpClient!;
+  }
+
+  static bool get _canUseProfileNameTool {
+    final user = Supabase.instance.client.auth.currentUser;
+    return user != null && user.isAnonymous != true;
   }
 
   static void _log(Object message) {
@@ -1116,6 +1126,9 @@ Note: Could not extract text content from this file. Please describe what you'd 
           _reminderToolForName(forcedReminderToolName, existingReminders),
         );
       } else {
+        if (_canUseProfileNameTool) {
+          tools.add(ProfileNameService.toolDefinition());
+        }
         // Image generation - built-in tool (OpenAI handles DALL-E internally)
         if (allowImageGeneration) {
           tools.add({'type': 'image_generation'});
@@ -1285,6 +1298,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
         List<String> filePaths = [];
         List<dynamic>? toolCalls;
         Map<String, dynamic>? actionToolCall;
+        Map<String, dynamic>? profileToolCall;
         // Debug: Print raw response structure
         _log('[OpenAIService] 📥 Raw response keys: ${data.keys.toList()}');
         _log('[OpenAIService] 📥 Response status: ${data['status']}');
@@ -1589,6 +1603,25 @@ Note: Could not extract text content from this file. Please describe what you'd 
                 }
               } catch (_) {
                 _log('[OpenAIService] Invalid reminder action arguments');
+              }
+              continue;
+            }
+
+            if (functionName == ProfileNameService.toolName &&
+                functionArgs != null) {
+              try {
+                final decoded = functionArgs is String
+                    ? jsonDecode(functionArgs)
+                    : functionArgs;
+                if (decoded is Map) {
+                  profileToolCall = {
+                    'name': functionName,
+                    'call_id': toolCallId,
+                    'arguments': Map<String, dynamic>.from(decoded),
+                  };
+                }
+              } catch (_) {
+                _log('[OpenAIService] Invalid preferred-name arguments');
               }
               continue;
             }
@@ -2198,6 +2231,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
           'files': filePaths,
           'title': conversationTitle,
           'actionToolCall': actionToolCall,
+          'profileToolCall': profileToolCall,
         };
       } else {
         //// _log('Error - Status code: ${response.statusCode}');
@@ -2450,6 +2484,9 @@ AUTOMATIONS:
         tools.add(_reminderResumeTool(existingReminders));
       }
     }
+    if (!forceReminderAction && !forceWebSearch && _canUseProfileNameTool) {
+      tools.add(ProfileNameService.toolDefinition());
+    }
     if (!forceReminderAction &&
         !forceWebSearch &&
         allowAutomationActions &&
@@ -2511,6 +2548,7 @@ AUTOMATIONS:
       List<String> images = [];
       List<String> files = [];
       Map<String, dynamic>? actionToolCall;
+      Map<String, dynamic>? profileToolCall;
       bool sawFirstDelta = false;
       // Process SSE stream. Keep a buffer because chunks may split lines/JSON.
       String sseBuffer = '';
@@ -2623,6 +2661,24 @@ AUTOMATIONS:
                         '[OpenAIService-Stream] Invalid reminder action arguments',
                       );
                     }
+                  } else if (item['type'] == 'function_call' &&
+                      item['name'] == ProfileNameService.toolName) {
+                    try {
+                      final decoded = item['arguments'] is String
+                          ? jsonDecode(item['arguments'])
+                          : item['arguments'];
+                      if (decoded is Map) {
+                        profileToolCall = {
+                          'name': item['name'],
+                          'call_id': item['call_id'] ?? item['id'],
+                          'arguments': Map<String, dynamic>.from(decoded),
+                        };
+                      }
+                    } catch (_) {
+                      _log(
+                        '[OpenAIService-Stream] Invalid preferred-name arguments',
+                      );
+                    }
                   }
                 }
               }
@@ -2659,7 +2715,8 @@ AUTOMATIONS:
       if (fullText.isEmpty &&
           images.isEmpty &&
           files.isEmpty &&
-          actionToolCall == null) {
+          actionToolCall == null &&
+          profileToolCall == null) {
         yield StreamEvent.error('The response completed without content.');
         return;
       }
@@ -2669,6 +2726,7 @@ AUTOMATIONS:
         images: images.isNotEmpty ? images : null,
         files: files.isNotEmpty ? files : null,
         actionToolCall: actionToolCall,
+        profileToolCall: profileToolCall,
       );
     } catch (e) {
       yield StreamEvent.error('Stream error: $e');

@@ -11,6 +11,7 @@ export const NO_AUTOMATION_TOOL_AUTHORIZATION: AutomationToolAuthorization =
 
 export const NEWS_AUTOMATION_FUNCTION = "automations_create_news_briefing";
 export const MARKET_AUTOMATION_FUNCTION = "automations_create_market_briefing";
+export const PROFILE_NAME_FUNCTION = "profiles_update_display_name";
 
 const ALLOWED_TOOL_TYPES = new Set([
   "web_search",
@@ -21,6 +22,7 @@ const ALLOWED_TOOL_TYPES = new Set([
 
 const BASE_ALLOWED_FUNCTION_NAMES = new Set([
   "generate_pptx",
+  PROFILE_NAME_FUNCTION,
   "reminders_create",
   "reminders_update",
   "reminders_resume",
@@ -38,6 +40,11 @@ export function requestsAutomationFunction(tools: unknown): boolean {
     return name === NEWS_AUTOMATION_FUNCTION ||
       name === MARKET_AUTOMATION_FUNCTION;
   });
+}
+
+export function requestsProfileNameFunction(tools: unknown): boolean {
+  if (!Array.isArray(tools)) return false;
+  return tools.some((tool) => functionName(tool) === PROFILE_NAME_FUNCTION);
 }
 
 /**

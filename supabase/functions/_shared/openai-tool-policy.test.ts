@@ -5,6 +5,7 @@ import {
   MARKET_AUTOMATION_FUNCTION,
   NEWS_AUTOMATION_FUNCTION,
   requestsAutomationFunction,
+  requestsProfileNameFunction,
   sanitizeResponseTools,
 } from "./openai-tool-policy.ts";
 
@@ -17,9 +18,11 @@ test("generated Automation tools are stripped without trusted authorization", ()
       newsTool,
       marketTool,
       { type: "function", name: "client_defined_unsafe_tool" },
+      { type: "function", name: "profiles_update_display_name" },
       { type: "function", name: "reminders_create" },
     ]),
     [
+      { type: "function", name: "profiles_update_display_name" },
       { type: "function", name: "reminders_create" },
     ],
   );
@@ -83,5 +86,27 @@ test("nested legacy function shape is sanitized by the same allowlist", () => {
     [
       { type: "function", function: { name: NEWS_AUTOMATION_FUNCTION } },
     ],
+  );
+});
+
+test("preferred-name onboarding is claimed only for capable clients", () => {
+  assert.equal(
+    requestsProfileNameFunction([
+      { type: "function", name: "profiles_update_display_name" },
+    ]),
+    true,
+  );
+  assert.equal(
+    requestsProfileNameFunction([
+      { type: "function", function: { name: "profiles_update_display_name" } },
+    ]),
+    true,
+  );
+  assert.equal(
+    requestsProfileNameFunction([
+      { type: "function", name: "reminders_create" },
+      { type: "web_search" },
+    ]),
+    false,
   );
 });

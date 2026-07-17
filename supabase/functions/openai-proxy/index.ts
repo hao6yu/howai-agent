@@ -36,6 +36,7 @@ import {
   type AutomationToolAuthorization,
   NO_AUTOMATION_TOOL_AUTHORIZATION,
   requestsAutomationFunction,
+  requestsProfileNameFunction,
   sanitizeResponseTools,
 } from "../_shared/openai-tool-policy.ts";
 import {
@@ -47,7 +48,10 @@ import {
   webSearchAccountedCostMicrousd,
   webSearchToolCostMicrousd,
 } from "../_shared/openai-web-search.ts";
-import { loadHowAiPersonalContext } from "../_shared/howai-memory-context.ts";
+import {
+  claimHowAiPreferredNamePrompt,
+  loadHowAiPersonalContext,
+} from "../_shared/howai-memory-context.ts";
 import { applyHowAiPromptPolicy } from "../_shared/howai-prompt-policy.ts";
 import { isStoredEntitlementActive } from "../_shared/entitlement-status.ts";
 
@@ -773,11 +777,22 @@ async function sanitizeResponsesBody(
     : null;
   const personalizationDisabled =
     requestMetadata?.howai_disable_personalization === true;
-  const personalContext = !personalizationDisabled &&
-      !user.isAnonymous &&
-      supabaseAdmin
-    ? await loadHowAiPersonalContext(supabaseAdmin, user.id)
+  let personalContext = !user.isAnonymous && supabaseAdmin
+    ? await loadHowAiPersonalContext(supabaseAdmin, user.id, {
+      includeMemory: !personalizationDisabled,
+    })
     : null;
+  if (
+    personalContext && intent === "primary_chat" &&
+    personalContext.displayNameStatus === "unknown" && supabaseAdmin &&
+    requestsProfileNameFunction(json.tools)
+  ) {
+    personalContext = await claimHowAiPreferredNamePrompt(
+      supabaseAdmin,
+      user.id,
+      personalContext,
+    );
+  }
   applyHowAiPromptPolicy(json, personalContext);
   applyWebSearchOutputGuidance(json, appliedProfile.webSearchMode);
   json.model = resolvedModel;

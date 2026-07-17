@@ -1302,6 +1302,14 @@ deduplicates post-session extraction, prevents a weaker inference from
 downgrading an approved memory, and replaces inaccurate on-device-only privacy
 copy with a description of the Supabase/OpenAI service path.
 
+Preferred names are explicit profile data rather than inferred memory. Blank,
+literal `User`, and email-derived profile names remain unknown. A capable new
+client gets one optional conversational question, after its substantive reply;
+text or voice can then save a clearly self-identified name through the same
+strict profile tool. Declining suppresses future prompts. Existing app builds
+without that tool do not consume the one-time prompt, and neither channel may
+guess a name from documents, other people, or uncertain context.
+
 ## 19. Estimated delivery range
 
 Assumptions: one experienced engineer, access to Firebase/Apple/OpenAI/Supabase project settings, no major remote-schema surprises, and product review available at milestone boundaries.

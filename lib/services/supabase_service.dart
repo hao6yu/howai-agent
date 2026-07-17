@@ -204,10 +204,18 @@ class SupabaseService {
     String? avatarUrl,
   }) async {
     try {
+      final normalizedName = name?.replaceAll(RegExp(r'\s+'), ' ').trim();
+      final hasKnownName = normalizedName != null &&
+          normalizedName.isNotEmpty &&
+          normalizedName.toLowerCase() != 'user';
       final data = {
         'id': userId,
         if (email != null) 'email': email,
-        if (name != null) 'name': name,
+        if (hasKnownName) 'name': normalizedName,
+        if (hasKnownName) 'name_status': 'known',
+        if (hasKnownName) 'name_source': 'user',
+        if (hasKnownName)
+          'name_prompted_at': DateTime.now().toUtc().toIso8601String(),
         if (avatarUrl != null) 'avatar_url': avatarUrl,
         'updated_at': DateTime.now().toIso8601String(),
       };

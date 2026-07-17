@@ -18,7 +18,11 @@ import {
   buildRealtimeWebSearchTools,
   REALTIME_WEB_SEARCH_TOOL_NAME,
 } from "../_shared/realtime-web-search.ts";
-import { loadHowAiPersonalContext } from "../_shared/howai-memory-context.ts";
+import {
+  claimHowAiPreferredNamePrompt,
+  loadHowAiPersonalContext,
+} from "../_shared/howai-memory-context.ts";
+import { buildRealtimeProfileTools } from "../_shared/realtime-profile-tools.ts";
 import {
   HOWAI_CORE_INSTRUCTIONS,
   type HowAiPersonalContext,
@@ -341,7 +345,7 @@ Speak naturally. Keep ordinary spoken answers compact unless the user asks for d
 Let the user interrupt naturally. After an interruption, stop the previous thought and respond to the latest complete request. Do not scold or mention the interruption.
 
 # Opening
-When the call connects, greet the user in one short sentence and ask how you can help. Do not start with a capability list.
+When the call connects, greet the user in one short sentence. If preferred_name_onboarding is present, ask what they would like to be called and wait for their answer. Otherwise, when a real display_name is present, use it naturally once in the greeting and ask how you can help. Never address the user as "User", an email address, or an email-derived handle. Do not start with a capability list.
 </realtime_voice_policy>`,
     renderHowAiUserContext(personalContext),
     `When an answer depends on current or recently changed information, call ${REALTIME_WEB_SEARCH_TOOL_NAME} before answering. This search is read-only and does not require approval. Do not claim that live search is unavailable until the tool reports that it is unavailable.`,
@@ -532,11 +536,19 @@ Deno.serve(async (req: Request) => {
       user,
       entitlement.internalCanary,
     );
-    const personalContext = user.isAnonymous
+    let personalContext = user.isAnonymous
       ? null
       : await loadHowAiPersonalContext(supabaseAdmin, user.id);
+    if (personalContext?.displayNameStatus === "unknown") {
+      personalContext = await claimHowAiPreferredNamePrompt(
+        supabaseAdmin,
+        user.id,
+        personalContext,
+      );
+    }
     const realtimeTools = [
       ...buildRealtimeWebSearchTools(!user.isAnonymous),
+      ...buildRealtimeProfileTools(!user.isAnonymous),
       ...reminderConfiguration.tools,
     ];
     const audioInputConfiguration = realtimeVoiceAudioInputConfiguration();

@@ -21,6 +21,7 @@ import '../services/device_timezone_service.dart';
 import '../services/elevenlabs_voice_session_service.dart';
 import '../services/openai_realtime_voice_service.dart';
 import '../services/personal_memory_service.dart';
+import '../services/profile_name_service.dart';
 import '../services/reminder_service.dart';
 import '../services/subscription_service.dart';
 import '../services/voice_action_approval.dart';
@@ -75,6 +76,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   final VoiceCallUsageService _usageService = VoiceCallUsageService();
   final ReminderService _reminderService = ReminderService();
   final VoiceWebSearchService _voiceWebSearchService = VoiceWebSearchService();
+  final ProfileNameService _profileNameService = ProfileNameService();
   VoiceSessionService? _voiceSessionService;
   VoiceSessionProvider? _activeProvider;
 
@@ -336,6 +338,10 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       await _handleVoiceWebSearch(call);
       return;
     }
+    if (call.name == ProfileNameService.toolName) {
+      await _handleVoiceProfileNameUpdate(call);
+      return;
+    }
 
     final approvalCommand = parseVoicePendingActionCommand(call);
     if (approvalCommand != null) {
@@ -441,6 +447,54 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
           'message': error is ReminderServiceException
               ? error.message
               : 'The action proposal could not be prepared.',
+        },
+      );
+    }
+  }
+
+  Future<void> _handleVoiceProfileNameUpdate(VoiceToolCall call) async {
+    final profileId = _currentProfileId;
+    if (profileId == null) {
+      await _sendVoiceToolResult(
+        call.callId,
+        const {
+          'status': 'failed',
+          'message': 'No signed-in profile is available for this update.',
+        },
+      );
+      return;
+    }
+
+    try {
+      final result = await _profileNameService.applyToolCall(
+        profileId: profileId,
+        arguments: call.arguments,
+      );
+      if (mounted) {
+        await Provider.of<ProfileProvider>(context, listen: false)
+            .loadProfiles();
+        if (result.displayName != null) {
+          _setStateIfMounted(() {
+            _currentProfileName = result.displayName!;
+          });
+        }
+      }
+      await _sendVoiceToolResult(call.callId, result.toToolResult());
+    } on ProfileNameServiceException catch (error) {
+      await _sendVoiceToolResult(
+        call.callId,
+        {
+          'status': 'failed',
+          'message': error.message,
+        },
+      );
+    } catch (error) {
+      debugPrint('Voice preferred-name update failed: $error');
+      await _sendVoiceToolResult(
+        call.callId,
+        const {
+          'status': 'failed',
+          'message': 'The preferred name could not be saved right now.',
         },
       );
     }
@@ -774,7 +828,8 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       final profile = await _databaseService.getProfile(_currentProfileId!);
       final resolvedProfileName = (profile?.name ?? _currentProfileName).trim();
       final userName =
-          resolvedProfileName.isNotEmpty ? resolvedProfileName : 'there';
+          ProfileNameService.normalizeDisplayName(resolvedProfileName) ??
+              'there';
       final profileCharacteristics = profile?.characteristics ?? {};
 
       final aiPersonalityMap =

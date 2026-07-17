@@ -83,9 +83,12 @@ Run these flows on one physical iPhone and one physical Android device:
    approval, camera on/off, camera switching, session cleanup, and fallback.
 8. Knowledge Hub covers personalization toggles, suggested memory review,
    chat/voice learning, opt-out, and owner isolation.
-9. Light/dark mode, text scaling, VoiceOver/TalkBack labels, keyboard,
+9. Preferred-name onboarding covers blank, `User`, email-derived, known,
+   declined, rename, mixed-language chat, and voice greeting cases without
+   repeating the question or affecting older app builds.
+10. Light/dark mode, text scaling, VoiceOver/TalkBack labels, keyboard,
    landscape recovery, background/resume, and offline/error recovery.
-10. Verify Crashlytics receives one deliberate internal non-fatal test event,
+11. Verify Crashlytics receives one deliberate internal non-fatal test event,
     then remove the test trigger before full rollout.
 
 Do not advance while there is a reproducible startup crash, cross-user data

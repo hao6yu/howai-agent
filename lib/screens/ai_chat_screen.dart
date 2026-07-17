@@ -72,6 +72,7 @@ import '../services/profile_translation_service.dart';
 import '../services/feature_showcase_service.dart';
 import 'elevenlabs_call_screen.dart';
 import '../services/knowledge_hub_service.dart';
+import '../services/personal_memory_service.dart';
 import '../utils/language_utils.dart';
 import '../utils/location_query_detector.dart';
 import '../utils/conversation_guard.dart';
@@ -149,8 +150,8 @@ class _AiChatScreenState extends State<AiChatScreen>
   bool _showVoiceInputHelp = true;
 
   // Add this after other state variables
-  int _messageCountSinceLastAnalysis = 0;
-  static const int _analysisThreshold = 20; // Analyze after every 20 messages
+  int _userTurnsSinceLastMemoryReview = 0;
+  static const int _memoryReviewThreshold = 10;
 
   // Flag to prevent duplicate AI responses during new conversation creation
   bool _isCreatingNewConversation = false;
@@ -696,6 +697,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     required String requestId,
     required String aiName,
     required String appLocale,
+    String? memoryContext,
     String? reasoningEffortOverride,
     bool allowReminderActions = false,
     bool allowAutomationActions = false,
@@ -768,6 +770,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         allowAutomationActions: allowAutomationActions,
         allowMarketAutomationActions: allowMarketAutomationActions,
         appLocale: appLocale,
+        memoryContext: memoryContext,
         reminderTimezone: reminderTimezone,
         pendingReminderDraft: pendingReminderDraft,
         pendingAutomationDraft: pendingAutomationDraft,
@@ -1178,7 +1181,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)));
 
     final history = conversationMessages
-        .take(50) // Take last 50 messages for context
+        .skip(math.max(0, conversationMessages.length - 50))
         .map((msg) => {
               'role': msg.isUserMessage ? 'user' : 'assistant',
               'content': msg.message,
@@ -1203,7 +1206,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     setState(() {
       _isSending = true;
       _textController.clear();
-      _messageCountSinceLastAnalysis++;
+      _userTurnsSinceLastMemoryReview++;
       _isPdfWorkflowActive =
           false; // Reset PDF workflow flag when sending message
     });
@@ -1316,8 +1319,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         }
       }
 
-      finalMessage = await _injectKnowledgeContextIfEligible(
-        message: finalMessage,
+      final memoryContext = await _buildKnowledgeContextIfEligible(
         userPrompt: text,
         subscriptionService: subscriptionService,
       );
@@ -1396,6 +1398,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           requestId: requestId,
           aiName: aiName,
           appLocale: appLocale,
+          memoryContext: memoryContext,
           reasoningEffortOverride: reasoningEffortOverride,
           allowReminderActions: allowReminderActions,
           allowAutomationActions: allowAutomationActions,
@@ -1427,6 +1430,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           allowAutomationActions: allowAutomationActions,
           allowMarketAutomationActions: allowMarketAutomationActions,
           appLocale: appLocale,
+          memoryContext: memoryContext,
           reminderTimezone: reminderTimezone,
           pendingReminderDraft: pendingReminderProposal?.arguments,
           pendingAutomationDraft: pendingAutomationProposal?.arguments,
@@ -1919,11 +1923,27 @@ class _AiChatScreenState extends State<AiChatScreen>
             }
           } else {}
         }
-        // Analyze user characteristics if we've reached the threshold
-        if (_messageCountSinceLastAnalysis >= _analysisThreshold &&
-            _currentProfileId != null) {
-          _analyzeUserCharacteristics(history);
-          _messageCountSinceLastAnalysis = 0;
+        if (_userTurnsSinceLastMemoryReview >= _memoryReviewThreshold &&
+            _currentProfileId != null &&
+            conversationId != null &&
+            subscriptionService.isPremium) {
+          final memoryMessages = history
+              .where((entry) =>
+                  (entry['role'] == 'user' || entry['role'] == 'assistant') &&
+                  entry['content'] is String)
+              .map((entry) => <String, String>{
+                    'role': entry['role'] as String,
+                    'content': entry['content'] as String,
+                  })
+              .toList(growable: true)
+            ..add({'role': 'assistant', 'content': aiText});
+          unawaited(PersonalMemoryService().learnFromConversation(
+            source: MemoryLearningSource.chat,
+            sourceId: conversationId.toString(),
+            profileId: _currentProfileId!,
+            messages: memoryMessages,
+          ));
+          _userTurnsSinceLastMemoryReview = 0;
         }
       } else {
         // Cancel timers on null response
@@ -3609,17 +3629,16 @@ class _AiChatScreenState extends State<AiChatScreen>
     );
   }
 
-  Future<String> _injectKnowledgeContextIfEligible({
-    required String message,
+  Future<String?> _buildKnowledgeContextIfEligible({
     required String userPrompt,
     required SubscriptionService subscriptionService,
   }) async {
     if (!subscriptionService.isPremium) {
-      return message;
+      return null;
     }
 
     if (_currentProfileId == null) {
-      return message;
+      return null;
     }
 
     try {
@@ -3631,14 +3650,14 @@ class _AiChatScreenState extends State<AiChatScreen>
       );
 
       if (knowledgeContext.isEmpty) {
-        return message;
+        return null;
       }
 
-      return '$knowledgeContext\n\nUser request: $message';
+      return knowledgeContext;
     } on PremiumRequiredException {
-      return message;
+      return null;
     } catch (_) {
-      return message;
+      return null;
     }
   }
 
@@ -4742,27 +4761,6 @@ class _AiChatScreenState extends State<AiChatScreen>
 
     // Cancel the recording
     _audioRecorderService.cancelRecording();
-  }
-
-  Future<void> _analyzeUserCharacteristics(
-      List<Map<String, String>> history) async {
-    if (_currentProfileId == null) return;
-
-    try {
-      final characteristics = await _openAIService.analyzeUserCharacteristics(
-        history: history,
-        userName: _currentProfileName ?? 'User',
-      );
-
-      if (characteristics.isNotEmpty) {
-        final profileProvider =
-            Provider.of<ProfileProvider>(context, listen: false);
-        await profileProvider.updateProfileCharacteristics(
-            _currentProfileId!, characteristics);
-      } else {}
-    } catch (e) {
-      //debug
-    }
   }
 
   // Image picking methods replaced with service calls

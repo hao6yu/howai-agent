@@ -350,7 +350,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get continuousUpdatesDesc => '常に新機能と改善を提供！';
 
   @override
-  String get privacyBanner => 'あなたのデータはデバイスに保存されます。トラッキングなし。広告なし。常に自分でコントロールできます。';
+  String get privacyBanner => 'データはいつでもご自身で管理できます。AIリクエストと有効にした同期機能は、HowAIのサービスを通じて安全に処理されます。広告はありません。';
 
   @override
   String get subscriptionDetailsTitle => 'サブスクリプション詳細';
@@ -475,7 +475,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get instructionsSection7Line3 => '• 設定 > AI分析セクションでAIが生成した分析を確認できます。';
 
   @override
-  String get instructionsSection7Line4 => '• すべての分析はプライバシーのためデバイス上で行われ—データがデバイスから出ることはありません。';
+  String get instructionsSection7Line4 => '• AI機能はHowAIのSupabaseおよびOpenAIサービスを通じてコンテンツを安全に処理する場合があります。パーソナライズはメモリ設定で管理できます。';
 
   @override
   String get instructionsSection7Line5 => '• 設定でいつでもこのデータを消去できます。';
@@ -2523,6 +2523,53 @@ class AppLocalizationsJa extends AppLocalizations {
 
   @override
   String get knowledgeHubFeatureControlDesc => 'いつでも 1 か所からアイテムを編集、固定、無効化、または削除できます。';
+
+  @override
+  String get knowledgeHubSettingsTitle => 'Memory & personalization';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'Choose when HowAI can use or learn durable details. Secrets and sensitive details are not saved automatically.';
+
+  @override
+  String get knowledgeHubPersonalization => 'Use memory in responses';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'Use active Knowledge Hub items to personalize chat and voice.';
+
+  @override
+  String get knowledgeHubLearnChats => 'Learn from longer chats';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'Review useful user-stated details after meaningful conversations.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'Learn after voice calls';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'Review calls with at least five user turns for durable details.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'Save settings';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'Memory settings saved.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'Suggested memories ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'Review details HowAI inferred before they are used.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'Add';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'Dismiss';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'Couldn\'t update that suggested memory.';
 
   @override
   String get knowledgeHubUpgradeToPremium => 'プレミアムにアップグレード';

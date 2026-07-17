@@ -350,7 +350,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get continuousUpdatesDesc => '不断推出新功能和改进！';
 
   @override
-  String get privacyBanner => '您的数据仅保存在本地。无跟踪，无广告，您始终掌控。';
+  String get privacyBanner => '您的数据始终由您掌控。AI 请求和已启用的同步功能会通过 HowAI 服务安全处理。无广告。';
 
   @override
   String get subscriptionDetailsTitle => '订阅详情';
@@ -475,7 +475,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get instructionsSection7Line3 => '• 可在设置 > AI 洞察中查看分析结果。';
 
   @override
-  String get instructionsSection7Line4 => '• 所有分析均在本地完成，保障隐私——数据不会离开您的设备。';
+  String get instructionsSection7Line4 => '• AI 功能可能会通过 HowAI 的 Supabase 和 OpenAI 服务安全处理内容。您可在“记忆”设置中管理个性化。';
 
   @override
   String get instructionsSection7Line5 => '• 您可随时在设置中清除这些数据。';
@@ -2525,6 +2525,53 @@ class AppLocalizationsZh extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => '随时从一处编辑、固定、禁用或删除项目。';
 
   @override
+  String get knowledgeHubSettingsTitle => 'Memory & personalization';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'Choose when HowAI can use or learn durable details. Secrets and sensitive details are not saved automatically.';
+
+  @override
+  String get knowledgeHubPersonalization => 'Use memory in responses';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'Use active Knowledge Hub items to personalize chat and voice.';
+
+  @override
+  String get knowledgeHubLearnChats => 'Learn from longer chats';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'Review useful user-stated details after meaningful conversations.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'Learn after voice calls';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'Review calls with at least five user turns for durable details.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'Save settings';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'Memory settings saved.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'Suggested memories ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'Review details HowAI inferred before they are used.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'Add';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'Dismiss';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'Couldn\'t update that suggested memory.';
+
+  @override
   String get knowledgeHubUpgradeToPremium => '升级至高级版';
 
   @override
@@ -3359,7 +3406,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get continuousUpdatesDesc => '不斷推出新功能和改進！';
 
   @override
-  String get privacyBanner => '您的資料僅保存在本地。無追蹤，無廣告，您始終掌控。';
+  String get privacyBanner => '您的資料始終由您掌控。AI 請求和已啟用的同步功能會透過 HowAI 服務安全處理。無廣告。';
 
   @override
   String get subscriptionDetailsTitle => '訂閱詳情';
@@ -3484,7 +3531,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get instructionsSection7Line3 => '• 可在設定 > AI 洞察中查看分析結果。';
 
   @override
-  String get instructionsSection7Line4 => '• 所有分析均在本地完成，保障隱私——資料不會離開您的裝置。';
+  String get instructionsSection7Line4 => '• AI 功能可能會透過 HowAI 的 Supabase 和 OpenAI 服務安全處理內容。您可在「記憶」設定中管理個人化。';
 
   @override
   String get instructionsSection7Line5 => '• 您可隨時在設定中清除這些資料。';

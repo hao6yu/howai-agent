@@ -782,7 +782,7 @@ abstract class AppLocalizations {
   /// No description provided for @privacyBanner.
   ///
   /// In en, this message translates to:
-  /// **'Your data stays on your device. No tracking. No ads. You\'re always in control.'**
+  /// **'Your data stays under your control. AI requests and enabled sync features are processed securely through HowAI services. No ads.'**
   String get privacyBanner;
 
   /// No description provided for @subscriptionDetailsTitle.
@@ -1028,7 +1028,7 @@ abstract class AppLocalizations {
   /// No description provided for @instructionsSection7Line4.
   ///
   /// In en, this message translates to:
-  /// **'• All analysis is done on-device for your privacy—no data leaves your device.'**
+  /// **'• AI features may securely process content through HowAI\'s Supabase and OpenAI services. Manage personalization in Memory settings.'**
   String get instructionsSection7Line4;
 
   /// No description provided for @instructionsSection7Line5.
@@ -5020,6 +5020,96 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Edit, pin, disable, or delete items any time from one place.'**
   String get knowledgeHubFeatureControlDesc;
+
+  /// No description provided for @knowledgeHubSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Memory & personalization'**
+  String get knowledgeHubSettingsTitle;
+
+  /// No description provided for @knowledgeHubSettingsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose when HowAI can use or learn durable details. Secrets and sensitive details are not saved automatically.'**
+  String get knowledgeHubSettingsDescription;
+
+  /// No description provided for @knowledgeHubPersonalization.
+  ///
+  /// In en, this message translates to:
+  /// **'Use memory in responses'**
+  String get knowledgeHubPersonalization;
+
+  /// No description provided for @knowledgeHubPersonalizationDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Use active Knowledge Hub items to personalize chat and voice.'**
+  String get knowledgeHubPersonalizationDesc;
+
+  /// No description provided for @knowledgeHubLearnChats.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn from longer chats'**
+  String get knowledgeHubLearnChats;
+
+  /// No description provided for @knowledgeHubLearnChatsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Review useful user-stated details after meaningful conversations.'**
+  String get knowledgeHubLearnChatsDesc;
+
+  /// No description provided for @knowledgeHubLearnVoice.
+  ///
+  /// In en, this message translates to:
+  /// **'Learn after voice calls'**
+  String get knowledgeHubLearnVoice;
+
+  /// No description provided for @knowledgeHubLearnVoiceDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Review calls with at least five user turns for durable details.'**
+  String get knowledgeHubLearnVoiceDesc;
+
+  /// No description provided for @knowledgeHubSettingsSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save settings'**
+  String get knowledgeHubSettingsSave;
+
+  /// No description provided for @knowledgeHubSettingsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Memory settings saved.'**
+  String get knowledgeHubSettingsSaved;
+
+  /// No description provided for @knowledgeHubSuggestedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Suggested memories ({count})'**
+  String knowledgeHubSuggestedTitle(int count);
+
+  /// No description provided for @knowledgeHubSuggestedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Review details HowAI inferred before they are used.'**
+  String get knowledgeHubSuggestedDescription;
+
+  /// No description provided for @knowledgeHubSuggestionAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get knowledgeHubSuggestionAdd;
+
+  /// No description provided for @knowledgeHubSuggestionDismiss.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get knowledgeHubSuggestionDismiss;
+
+  /// No description provided for @knowledgeHubSuggestionReviewFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update that suggested memory.'**
+  String get knowledgeHubSuggestionReviewFailed;
 
   /// No description provided for @knowledgeHubUpgradeToPremium.
   ///

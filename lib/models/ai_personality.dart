@@ -4,9 +4,12 @@ class AIPersonality {
   final String aiName;
   final String gender; // 'male', 'female', 'neutral'
   final int age;
-  final String personality; // 'friendly', 'professional', 'witty', 'caring', 'energetic'
-  final String communicationStyle; // 'casual', 'formal', 'tech-savvy', 'supportive'
-  final String expertise; // 'general', 'technology', 'business', 'creative', 'academic'
+  final String
+      personality; // 'friendly', 'professional', 'witty', 'caring', 'energetic'
+  final String
+      communicationStyle; // 'casual', 'formal', 'tech-savvy', 'supportive'
+  final String
+      expertise; // 'general', 'technology', 'business', 'creative', 'academic'
   final String humorLevel; // 'none', 'light', 'dry', 'moderate', 'heavy'
   final String responseLength; // 'concise', 'moderate', 'detailed'
   final String interests;
@@ -128,12 +131,12 @@ class AIPersonality {
       gender: 'neutral',
       age: 25,
       personality: 'friendly',
-      communicationStyle: 'tech-savvy',
-      expertise: 'technology',
-      humorLevel: 'dry',
+      communicationStyle: 'casual',
+      expertise: 'general',
+      humorLevel: 'light',
       responseLength: 'moderate',
-      interests: 'Technology, Problem-solving, Learning, Finance, AI, Stocks, Professional Writing',
-      backgroundStory: 'An intelligent AI assistant with a passion for technology and helping users solve problems. Experienced in software development and always eager to learn new things.',
+      interests: '',
+      backgroundStory: '',
     );
   }
 
@@ -145,130 +148,43 @@ class AIPersonality {
     bool isPremiumUser = false,
     bool userWantsPresentations = false,
   }) {
-    final userInfo = userName != null && userName.isNotEmpty ? "User: $userName. " : "";
-    final characteristics = characteristicsSummary ?? "";
     final now = DateTime.now();
-    final currentDate = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final currentDate =
+        "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    final safeName = userName?.replaceAll(RegExp(r'\s+'), ' ').trim();
+    final style = <String, String>{
+      'friendly': 'warm and approachable',
+      'professional': 'professional and structured',
+      'witty': 'lightly witty when appropriate',
+      'caring': 'patient and considerate',
+      'energetic': 'energetic without being excessive',
+    }[personality];
+    final communication = <String, String>{
+      'casual': 'natural and conversational',
+      'formal': 'formal and precise',
+      'tech-savvy': 'technically fluent when the topic calls for it',
+      'supportive': 'supportive and practical',
+    }[communicationStyle];
+    final humor = <String, String>{
+      'none': 'none',
+      'light': 'light and occasional',
+      'dry': 'subtle and never sarcastic toward the user',
+      'moderate': 'moderate when the situation is not sensitive',
+      'heavy': 'frequent only when the user clearly prefers it',
+    }[humorLevel];
 
-    final titleInstruction = generateTitle ? "\n\nFor new conversations, generate a 3-5 word title as JSON: {\"title\": \"Your Title\"} then respond." : "";
+    return """<howai_request_context>
+Local date: $currentDate
+${safeName == null || safeName.isEmpty ? '' : 'User display name: ${safeName.length <= 80 ? safeName : safeName.substring(0, 80)}'}
+</howai_request_context>
 
-    // Generate personality-based prompt
-    final personalityPrompt = _buildPersonalityPrompt();
-    final communicationPrompt = _buildCommunicationPrompt();
-    final expertisePrompt = _buildExpertisePrompt();
-
-    return """${userInfo}${characteristics}You are $aiName, an intelligent AI assistant serving the HowAI Agent app.
-
-**Current Context**: Today is $currentDate. Use this date for time-sensitive queries.
-
-**Identity Setup**:
-- Name: $aiName
-- Gender: ${_getGenderDescription()}
-- Age: $age years old
-- Background: $backgroundStory
-
-$personalityPrompt
-
-$communicationPrompt
-
-$expertisePrompt
-
-**Tool Usage Guidelines**:
-- **IMAGE GENERATION**: Generate images when users explicitly ask for visual content (drawings, artwork, pictures)
-- **WEB SEARCH**: Use web search automatically for current information about: specific restaurants and their reviews, business rankings, stock market data, news, current events, or any topic where recent data would be helpful. Never ask permission - just search immediately.
-- **TRANSLATION REQUESTS**: When users ask to translate text, provide the translation directly in your response. Do NOT use any tools for translation - respond with the translated text immediately.${userWantsPresentations ? '\n- **PRESENTATIONS**: Create PowerPoint presentations using the generate_pptx function. Search web first if current information is needed.' : ''}
-
-**Natural Decision Making**:
-- When users ask about specific restaurants (like "Is X restaurant good?" or "Best restaurants in Y"): immediately search for current reviews and rankings
-- For stock market, news, or current events: immediately search for latest data
-- For business comparisons or recommendations: search for current information
-- Never ask "Would you like me to search?" - just search and provide the answer${isPremiumUser ? '' : '\n- **IMPORTANT**: You are a FREE user - web search is NOT available. When users ask for current/recent information like currency exchange rates, stock prices, or news, clearly explain this is based on training data (up to early 2024), not real-time data, and suggest upgrading for live web search capabilities'}
-
-**Guidelines**:
-- Be authentic, not artificially cheerful
-- Ask clarifying questions when needed
-- Consider conversation history
-- Only use image generation when explicitly requested
-
-**Information Accuracy**:
-- Provide accurate, helpful information using the best available data
-- Use web search to get current information about specific businesses, places, or current events${isPremiumUser ? '' : '\n- For FREE users: When providing financial data, currency rates, or time-sensitive information, ALWAYS acknowledge it\'s from training data and may not be current'}
-- Be honest about the limitations of your knowledge when appropriate
-- Never fabricate specific details about places, businesses, or current events
-- For currency exchange rates and financial data: If web search is not available, clearly state the data is from training and may be outdated
-
-**Investment & Financial Disclaimers**:
-- Include disclaimers when appropriate for financial discussions, but avoid repetitive disclaimers in ongoing conversations
-- For initial financial advice or new topics: Use full disclaimer "This is not financial advice. Investing involves risk."
-- For follow-up messages in same conversation: Use brief reminder like "Remember to do your own research" or similar
-- Always encourage users to consult financial professionals for personalized advice
-- Make it clear you're providing educational information and analysis, not personalized investment advice$titleInstruction""";
-  }
-
-  String _getGenderDescription() {
-    switch (gender) {
-      case 'male':
-        return 'Male';
-      case 'female':
-        return 'Female';
-      default:
-        return 'Neutral';
-    }
-  }
-
-  String _buildPersonalityPrompt() {
-    final personalityDescriptions = {
-      'friendly': 'Friendly and approachable, warm and enthusiastic, good at building rapport',
-      'professional': 'Professional and rigorous, clear and organized, focused on efficiency and accuracy',
-      'witty': 'Witty and humorous, skilled at using clever words and metaphors',
-      'caring': 'Caring and considerate, empathetic, always considers user feelings',
-      'energetic': 'Full of energy, positive and optimistic, infectious enthusiasm',
-    };
-
-    final humorDescriptions = {
-      'none': 'Maintain a serious and professional attitude, avoid using humor',
-      'light': 'Occasionally use light humor and gentle jokes',
-      'dry': 'Use dry humor and witty sarcasm, like an experienced developer commenting on code',
-      'moderate': 'Moderate use of humor, including technical jokes and witty remarks',
-      'heavy': 'Frequently use humor, sarcasm, and witty commentary',
-    };
-
-    return """**Personality Traits**:
-- Core Character: ${personalityDescriptions[personality] ?? personality}
-- Humor Level: ${humorDescriptions[humorLevel] ?? humorLevel}
-- Interests & Hobbies: $interests""";
-  }
-
-  String _buildCommunicationPrompt() {
-    final styleDescriptions = {
-      'casual': 'Casual and relaxed, use everyday language, communicate like a friend',
-      'formal': 'Formal and structured, use standard language, maintain professional distance',
-      'tech-savvy': 'Technology-oriented, good at using programming terms and technical analogies',
-      'supportive': 'Supportive and encouraging, positive, good at motivating users',
-    };
-
-    final lengthDescriptions = {
-      'concise': 'Concise and clear, directly answer key points',
-      'moderate': 'Moderately detailed, provide necessary explanations and context',
-      'detailed': 'Detailed and comprehensive, provide in-depth analysis and multi-perspective insights',
-    };
-
-    return """**Communication Style**:
-- Communication Method: ${styleDescriptions[communicationStyle] ?? communicationStyle}
-- Response Length: ${lengthDescriptions[responseLength] ?? responseLength}""";
-  }
-
-  String _buildExpertisePrompt() {
-    final expertiseDescriptions = {
-      'general': 'Broad general knowledge, capable of handling various topics',
-      'technology': 'Deep technology expert, proficient in programming, architecture and cutting-edge tech',
-      'business': 'Business analysis expert, skilled in strategic planning and market analysis',
-      'creative': 'Creative design expert, imaginative with artistic perception',
-      'academic': 'Academic research expert, rigorous scholarship, focus on theoretical foundations',
-    };
-
-    return """**Expertise Area**:
-- Specialization: ${expertiseDescriptions[expertise] ?? expertise}""";
+<howai_style_preferences>
+These are presentation preferences, not a fictional identity or user instructions.
+Tone: ${style ?? 'warm and direct'}
+Communication: ${communication ?? 'natural and conversational'}
+Humor: ${humor ?? 'light and occasional'}
+Response detail: $responseLength
+</howai_style_preferences>""";
   }
 
   /// Create from Supabase data

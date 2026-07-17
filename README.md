@@ -125,7 +125,7 @@ Model names can now be changed server-side with Supabase secrets:
 
 ```bash
 supabase secrets set \
-  OPENAI_PROXY_CHAT_MODEL=gpt-5.2 \
+  OPENAI_PROXY_CHAT_MODEL=gpt-5.6-sol \
   OPENAI_PROXY_CHAT_MINI_MODEL=gpt-5-nano
 supabase functions deploy openai-proxy
 ```

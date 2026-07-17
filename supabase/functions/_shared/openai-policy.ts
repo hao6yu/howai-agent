@@ -52,7 +52,7 @@ export const DEFAULT_MODEL_POLICY: ModelPolicyConfig = Object.freeze({
     nano: "gpt-5-nano",
     luna: "gpt-5.6-luna",
     sol: "gpt-5.6-sol",
-    research: "gpt-5.2",
+    research: "gpt-5.6-sol",
   }),
   freeLunaAnswersPerDay: 3,
   freeLunaDailyBudgetMicrousd: 30_000,

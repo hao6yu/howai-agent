@@ -8,7 +8,7 @@ Proposed release version: `2.0.0`
 Repository scope: Flutter clients and the shared Supabase backend. The web
 client is maintained and released from its own repository.
 
-Implementation status (2026-07-16): M0 and the M1 GPT-5.6
+Implementation status (2026-07-17): M0 and the M1 GPT-5.6
 evaluation/canary foundation are deployed. Production migration history, RLS,
 privileges, advisors, and the current Edge Functions have been verified. The
 private internal canary is enabled for internal test accounts and a
@@ -27,7 +27,11 @@ the stable Automation conversation. Market execution remains gated until a
 structured market-data source exists. Physical-device validation remains
 before full rollout. The M4.6 Places and Maps characterization foundation is
 complete, while its full decomposition and visual redesign are deferred. M5
-Realtime voice is the next active milestone.
+Realtime voice is implemented for internal testing, including actions, search,
+and optional turn-aware vision. M5.1 now provides one server-owned personality
+across chat and voice, structured user-controlled memory, post-chat/call
+learning, suggestion review, and personalization privacy controls. Its schema,
+RLS, and Edge Functions are deployed; physical-device regression remains.
 
 M0 delivered:
 
@@ -1249,6 +1253,7 @@ Do not log prompt contents, reminder notes, transcripts, research reports, API k
 | M4.5 — Automations beta | Automations UI, schedules/runs/queue, verified news briefings, market briefing foundation, push deep links | Internal then full rollout passes; unsupported claims are withheld and citations remain durable |
 | M4.6 — Places and Maps refactor (deferred) | Characterization foundation is complete; defer the full cards, list, map, details, reviews, Street View, navigation, and transient-state refactor | Resume in a later 2.x milestone without blocking HowAI 2.0 |
 | M5 — Realtime voice beta | Ephemeral session endpoint, WebRTC client, transcript, interruption, live search, sampled-frame vision beta, reminder tools, ElevenLabs fallback | Voice, vision, safety, usage, and fallback gates pass |
+| M5.1 — Shared personality and memory | One server-owned identity across text and voice, structured memories, suggestion review, post-chat/call learning, privacy controls | Prompt regressions, owner isolation, memory review, opt-out, and cross-channel personalization pass |
 | M6 — Research beta | Persistent projects/runs/sources, background Responses, webhook, completion push | Leave/resume/completion flow passes and sources remain durable |
 | M7 — Release candidate | Localization, accessibility, performance, security review, store assets/privacy, internal-to-full rollout controls | All release gates pass and rollback is tested |
 
@@ -1257,8 +1262,34 @@ final navigation and Automations surface before M4.5 adds generated content.
 M4.5 reuses reminder approval, scheduling, usage-ledger, and push infrastructure
 without renaming the existing reminder schema. The initial M4.6
 characterization work remains as a safe future refactor seam, but the full
-Places and Maps redesign is deferred. M5 Realtime and M6 Research reuse the
-refined UI and durable run patterns.
+Places and Maps redesign is deferred. M5 Realtime is followed by M5.1
+personality and memory hardening before M6 Research reuses the refined UI,
+shared identity, and durable run patterns.
+
+### M5.1 — Shared personality and controllable memory
+
+M5.1 removes the separate chat, quick-chat, and voice personalities. The
+Supabase proxy owns one lean HowAI identity and tone policy; text and Realtime
+add only their channel-specific delivery rules. The shared policy follows
+intentional multilingual and code-switched conversation, uses app language only
+as a fallback, avoids fabricated expertise or biography, and treats all profile
+and memory fields as untrusted data rather than instructions.
+
+Personalization uses structured, owner-scoped memories instead of periodically
+overwriting an opaque personality JSON object. Explicit high-confidence facts
+can become active after a meaningful chat or voice session; uncertain
+inferences remain suggestions until the user accepts or dismisses them in the
+Knowledge Hub. Sensitive details, secrets, credentials, precise addresses,
+health details, and financial details are excluded from automatic learning.
+Users can disable personalization, chat learning, or voice learning
+independently. Existing manually saved Knowledge Hub memories synchronize to
+the server-backed store so Realtime voice and text chat can share the same
+relevant context without exposing a provider key to Flutter.
+
+M5.1 also fixes chat history selection to send the latest bounded window,
+deduplicates post-session extraction, prevents a weaker inference from
+downgrading an approved memory, and replaces inaccurate on-device-only privacy
+copy with a description of the Supabase/OpenAI service path.
 
 ## 19. Estimated delivery range
 

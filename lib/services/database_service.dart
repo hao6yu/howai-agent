@@ -34,7 +34,7 @@ class DatabaseService {
     String path = join(await getDatabasesPath(), 'haogpt.db');
     final db = await openDatabase(
       path,
-      version: 19,
+      version: 20,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
       onConfigure: (db) async {
@@ -321,6 +321,26 @@ class DatabaseService {
       );
     }
 
+    if (oldVersion < 20) {
+      await _safeAddColumn(
+        db,
+        table: 'knowledge_items',
+        column: 'cloud_id',
+        definition: 'TEXT',
+      );
+      await _safeAddColumn(
+        db,
+        table: 'knowledge_items',
+        column: 'source_type',
+        definition: "TEXT NOT NULL DEFAULT 'manual'",
+      );
+      await db.execute('''
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_knowledge_items_cloud_id
+        ON knowledge_items(cloud_id)
+        WHERE cloud_id IS NOT NULL
+      ''');
+    }
+
     // Add avatarPath and createdAt columns if missing
     final columns = await db.rawQuery("PRAGMA table_info(profiles)");
     final hasAvatarPath = columns.any((col) => col['name'] == 'avatarPath');
@@ -441,6 +461,8 @@ class DatabaseService {
         profile_id INTEGER NOT NULL,
         conversation_id INTEGER,
         source_message_id INTEGER,
+        cloud_id TEXT,
+        source_type TEXT NOT NULL DEFAULT 'manual',
         title TEXT NOT NULL,
         content TEXT NOT NULL,
         memory_type TEXT NOT NULL,
@@ -463,6 +485,11 @@ class DatabaseService {
     await db.execute('''
       CREATE INDEX IF NOT EXISTS idx_knowledge_items_profile_type
       ON knowledge_items(profile_id, memory_type)
+    ''');
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_knowledge_items_cloud_id
+      ON knowledge_items(cloud_id)
+      WHERE cloud_id IS NOT NULL
     ''');
   }
 
@@ -974,6 +1001,24 @@ class DatabaseService {
     // Ensure additive columns exist.
     await _safeAddColumn(
       db,
+      table: 'knowledge_items',
+      column: 'cloud_id',
+      definition: 'TEXT',
+    );
+    await _safeAddColumn(
+      db,
+      table: 'knowledge_items',
+      column: 'source_type',
+      definition: "TEXT NOT NULL DEFAULT 'manual'",
+    );
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_knowledge_items_cloud_id
+      ON knowledge_items(cloud_id)
+      WHERE cloud_id IS NOT NULL
+    ''');
+
+    await _safeAddColumn(
+      db,
       table: 'profiles',
       column: 'avatarPath',
       definition: 'TEXT',
@@ -1356,6 +1401,18 @@ class DatabaseService {
       limit: 1,
     );
 
+    if (maps.isEmpty) return null;
+    return KnowledgeItem.fromMap(maps.first);
+  }
+
+  Future<KnowledgeItem?> getKnowledgeItemByCloudId(String cloudId) async {
+    final db = await database;
+    final maps = await db.query(
+      'knowledge_items',
+      where: 'cloud_id = ?',
+      whereArgs: [cloudId],
+      limit: 1,
+    );
     if (maps.isEmpty) return null;
     return KnowledgeItem.fromMap(maps.first);
   }

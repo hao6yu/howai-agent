@@ -18,6 +18,12 @@ import {
   buildRealtimeWebSearchTools,
   REALTIME_WEB_SEARCH_TOOL_NAME,
 } from "../_shared/realtime-web-search.ts";
+import { loadHowAiPersonalContext } from "../_shared/howai-memory-context.ts";
+import {
+  HOWAI_CORE_INSTRUCTIONS,
+  type HowAiPersonalContext,
+  renderHowAiUserContext,
+} from "../_shared/howai-prompt-policy.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
 const OPENAI_SAFETY_IDENTIFIER_SALT =
@@ -326,11 +332,21 @@ function sessionInstructions(
   timezone: string,
   localDateTime: string,
   reminderContext: string | null,
+  personalContext: HowAiPersonalContext | null,
 ): string {
   const instructions = [
-    "You are HowAI, a warm, concise, capable voice assistant.",
-    "Speak naturally and keep ordinary answers brief unless the user asks for detail.",
-    "Follow the user's language and code-switching naturally; do not force the conversation into one language.",
+    HOWAI_CORE_INSTRUCTIONS,
+    `<realtime_voice_policy>
+# Voice delivery
+Speak naturally. Keep ordinary spoken answers compact unless the user asks for detail. Do not narrate hidden reasoning, tool routing, URLs, raw citations, or internal metadata.
+
+# Turn taking
+Let the user interrupt naturally. After an interruption, stop the previous thought and respond to the latest complete request. Do not scold or mention the interruption.
+
+# Opening
+When the call connects, greet the user in one short sentence and ask how you can help. Do not start with a capability list.
+</realtime_voice_policy>`,
+    renderHowAiUserContext(personalContext),
     `When an answer depends on current or recently changed information, call ${REALTIME_WEB_SEARCH_TOOL_NAME} before answering. This search is read-only and does not require approval. Do not claim that live search is unavailable until the tool reports that it is unavailable.`,
     "After a live-search result, answer concisely for speech, attribute important claims to source names naturally when useful, and never read URLs or citation syntax aloud.",
     REALTIME_VOICE_VISION_INSTRUCTIONS,
@@ -344,7 +360,7 @@ function sessionInstructions(
     `The user's current IANA timezone is ${timezone}; their local date and time is ${localDateTime}.`,
   ];
   if (reminderContext) instructions.push(reminderContext);
-  return instructions.join(" ");
+  return instructions.filter(Boolean).join("\n\n");
 }
 
 function safeTimezone(value: unknown): string {
@@ -519,6 +535,9 @@ Deno.serve(async (req: Request) => {
       user,
       entitlement.internalCanary,
     );
+    const personalContext = user.isAnonymous
+      ? null
+      : await loadHowAiPersonalContext(supabaseAdmin, user.id);
     const realtimeTools = [
       ...buildRealtimeWebSearchTools(!user.isAnonymous),
       ...reminderConfiguration.tools,
@@ -539,6 +558,7 @@ Deno.serve(async (req: Request) => {
             timezone,
             localDateTime,
             reminderConfiguration.context,
+            personalContext,
           ),
           tools: realtimeTools,
           tool_choice: "auto",

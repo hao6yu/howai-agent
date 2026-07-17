@@ -20,6 +20,7 @@ import '../services/database_service.dart';
 import '../services/device_timezone_service.dart';
 import '../services/elevenlabs_voice_session_service.dart';
 import '../services/openai_realtime_voice_service.dart';
+import '../services/personal_memory_service.dart';
 import '../services/reminder_service.dart';
 import '../services/subscription_service.dart';
 import '../services/voice_action_approval.dart';
@@ -1292,6 +1293,21 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     if (!mounted) return;
 
     if (conversationId != null) {
+      final userTurns = _transcript.where((entry) => entry.isUser).length;
+      if (_isPremium && userTurns >= 5 && _currentProfileId != null) {
+        final memoryMessages = _transcript
+            .map((entry) => <String, String>{
+                  'role': entry.isUser ? 'user' : 'assistant',
+                  'content': entry.text,
+                })
+            .toList(growable: false);
+        unawaited(PersonalMemoryService().learnFromConversation(
+          source: MemoryLearningSource.voice,
+          sourceId: conversationId.toString(),
+          profileId: _currentProfileId!,
+          messages: memoryMessages,
+        ));
+      }
       Navigator.of(context).pop(conversationId);
       return;
     }

@@ -350,7 +350,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get continuousUpdatesDesc => 'Nouvelles fonctionnalités et améliorations en permanence !';
 
   @override
-  String get privacyBanner => 'Vos données restent sur votre appareil. Pas de suivi. Pas de publicités. Vous gardez toujours le contrôle.';
+  String get privacyBanner => 'Vous gardez le contrôle de vos données. Les requêtes IA et les fonctions de synchronisation activées sont traitées de manière sécurisée via les services HowAI. Sans publicité.';
 
   @override
   String get subscriptionDetailsTitle => 'Détails de l\'abonnement';
@@ -475,7 +475,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get instructionsSection7Line3 => '• Consultez vos analyses générées par l\'IA dans la section Paramètres > Analyses IA.';
 
   @override
-  String get instructionsSection7Line4 => '• Toute l\'analyse est effectuée sur l\'appareil pour votre confidentialité—aucune donnée ne quitte votre appareil.';
+  String get instructionsSection7Line4 => '• Les fonctions d’IA peuvent traiter du contenu de manière sécurisée via les services Supabase et OpenAI de HowAI. Gérez la personnalisation dans les réglages de Mémoire.';
 
   @override
   String get instructionsSection7Line5 => '• Vous pouvez effacer ces données à tout moment dans les Paramètres.';
@@ -2523,6 +2523,53 @@ class AppLocalizationsFr extends AppLocalizations {
 
   @override
   String get knowledgeHubFeatureControlDesc => 'Modifiez, épinglez, désactivez ou supprimez des éléments à tout moment à partir d\'un seul endroit.';
+
+  @override
+  String get knowledgeHubSettingsTitle => 'Memory & personalization';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'Choose when HowAI can use or learn durable details. Secrets and sensitive details are not saved automatically.';
+
+  @override
+  String get knowledgeHubPersonalization => 'Use memory in responses';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'Use active Knowledge Hub items to personalize chat and voice.';
+
+  @override
+  String get knowledgeHubLearnChats => 'Learn from longer chats';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'Review useful user-stated details after meaningful conversations.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'Learn after voice calls';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'Review calls with at least five user turns for durable details.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'Save settings';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'Memory settings saved.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'Suggested memories ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'Review details HowAI inferred before they are used.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'Add';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'Dismiss';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'Couldn\'t update that suggested memory.';
 
   @override
   String get knowledgeHubUpgradeToPremium => 'Passer à Premium';

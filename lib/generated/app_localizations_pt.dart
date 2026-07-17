@@ -350,7 +350,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get continuousUpdatesDesc => 'Novas funcionalidades e melhorias a toda a hora!';
 
   @override
-  String get privacyBanner => 'Os seus dados ficam no seu dispositivo. Sem rastreamento. Sem anúncios. Está sempre no controlo.';
+  String get privacyBanner => 'Mantém o controlo dos seus dados. Os pedidos de IA e as funcionalidades de sincronização ativadas são processados em segurança através dos serviços HowAI. Sem anúncios.';
 
   @override
   String get subscriptionDetailsTitle => 'Detalhes da Subscrição';
@@ -475,7 +475,7 @@ class AppLocalizationsPt extends AppLocalizations {
   String get instructionsSection7Line3 => '• Veja os seus insights gerados por IA na secção Definições > Insights IA.';
 
   @override
-  String get instructionsSection7Line4 => '• Toda a análise é feita no dispositivo para a sua privacidade—nenhum dado sai do seu dispositivo.';
+  String get instructionsSection7Line4 => '• As funcionalidades de IA podem processar conteúdo em segurança através dos serviços Supabase e OpenAI da HowAI. Gira a personalização nas definições de Memória.';
 
   @override
   String get instructionsSection7Line5 => '• Pode limpar estes dados a qualquer momento nas Definições.';
@@ -2525,6 +2525,53 @@ class AppLocalizationsPt extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'Edite, fixe, desative ou exclua itens a qualquer momento e em um só lugar.';
 
   @override
+  String get knowledgeHubSettingsTitle => 'Memory & personalization';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'Choose when HowAI can use or learn durable details. Secrets and sensitive details are not saved automatically.';
+
+  @override
+  String get knowledgeHubPersonalization => 'Use memory in responses';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'Use active Knowledge Hub items to personalize chat and voice.';
+
+  @override
+  String get knowledgeHubLearnChats => 'Learn from longer chats';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'Review useful user-stated details after meaningful conversations.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'Learn after voice calls';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'Review calls with at least five user turns for durable details.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'Save settings';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'Memory settings saved.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'Suggested memories ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'Review details HowAI inferred before they are used.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'Add';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'Dismiss';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'Couldn\'t update that suggested memory.';
+
+  @override
   String get knowledgeHubUpgradeToPremium => 'Atualizar para Premium';
 
   @override
@@ -3359,7 +3406,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get continuousUpdatesDesc => 'Novos recursos e melhorias o tempo todo!';
 
   @override
-  String get privacyBanner => 'Seus dados permanecem no seu dispositivo. Sem rastreamento. Sem anúncios. Você sempre está no controle.';
+  String get privacyBanner => 'Você mantém o controle dos seus dados. Solicitações de IA e recursos de sincronização ativados são processados com segurança pelos serviços HowAI. Sem anúncios.';
 
   @override
   String get subscriptionDetailsTitle => 'Detalhes da Assinatura';
@@ -3484,7 +3531,7 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
   String get instructionsSection7Line3 => '• Veja seus insights gerados por IA na seção Configurações > Insights de IA.';
 
   @override
-  String get instructionsSection7Line4 => '• Toda análise é feita no dispositivo para sua privacidade—nenhum dado sai do seu dispositivo.';
+  String get instructionsSection7Line4 => '• Os recursos de IA podem processar conteúdo com segurança pelos serviços Supabase e OpenAI da HowAI. Gerencie a personalização nas configurações de Memória.';
 
   @override
   String get instructionsSection7Line5 => '• Você pode limpar esses dados a qualquer momento nas Configurações.';

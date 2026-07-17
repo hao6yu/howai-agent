@@ -47,6 +47,8 @@ import {
   webSearchAccountedCostMicrousd,
   webSearchToolCostMicrousd,
 } from "../_shared/openai-web-search.ts";
+import { loadHowAiPersonalContext } from "../_shared/howai-memory-context.ts";
+import { applyHowAiPromptPolicy } from "../_shared/howai-prompt-policy.ts";
 
 const OPENAI_BASE_URL = "https://api.openai.com";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -67,7 +69,7 @@ const MAX_REQUESTS_PER_HOUR = Number(
 const ANON_MAX_REQUESTS_PER_DAY = Number(
   Deno.env.get("OPENAI_PROXY_ANON_MAX_REQUESTS_PER_DAY") ?? 300,
 );
-const CHAT_MODEL = Deno.env.get("OPENAI_PROXY_CHAT_MODEL") ?? "gpt-5.2";
+const CHAT_MODEL = Deno.env.get("OPENAI_PROXY_CHAT_MODEL") ?? "gpt-5.6-sol";
 const CHAT_MINI_MODEL = Deno.env.get("OPENAI_PROXY_CHAT_MINI_MODEL") ??
   "gpt-5-nano";
 const MODEL_POLICY_ENV_ENABLED =
@@ -763,6 +765,19 @@ async function sanitizeResponsesBody(
       reasoningEffort: appliedProfile.reasoningEffort,
     };
   }
+  const requestMetadata = json.metadata &&
+      typeof json.metadata === "object" &&
+      !Array.isArray(json.metadata)
+    ? json.metadata as Record<string, unknown>
+    : null;
+  const personalizationDisabled =
+    requestMetadata?.howai_disable_personalization === true;
+  const personalContext = !personalizationDisabled &&
+      !user.isAnonymous &&
+      supabaseAdmin
+    ? await loadHowAiPersonalContext(supabaseAdmin, user.id)
+    : null;
+  applyHowAiPromptPolicy(json, personalContext);
   applyWebSearchOutputGuidance(json, appliedProfile.webSearchMode);
   json.model = resolvedModel;
   delete json.user;
@@ -770,6 +785,8 @@ async function sanitizeResponsesBody(
   if (json.metadata && typeof json.metadata === "object") {
     delete (json.metadata as Record<string, unknown>).howai_user_id;
     delete (json.metadata as Record<string, unknown>).howai_action;
+    delete (json.metadata as Record<string, unknown>)
+      .howai_disable_personalization;
   }
 
   return {

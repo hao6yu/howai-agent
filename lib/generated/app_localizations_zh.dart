@@ -350,7 +350,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get continuousUpdatesDesc => '不断推出新功能和改进！';
 
   @override
-  String get privacyBanner => '您的数据仅保存在本地。无跟踪，无广告，您始终掌控。';
+  String get privacyBanner => '您的数据始终由您掌控。AI 请求和已启用的同步功能会通过 HowAI 服务安全处理。无广告。';
 
   @override
   String get subscriptionDetailsTitle => '订阅详情';
@@ -475,7 +475,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get instructionsSection7Line3 => '• 可在设置 > AI 洞察中查看分析结果。';
 
   @override
-  String get instructionsSection7Line4 => '• 所有分析均在本地完成，保障隐私——数据不会离开您的设备。';
+  String get instructionsSection7Line4 => '• AI 功能可能会通过 HowAI 的 Supabase 和 OpenAI 服务安全处理内容。您可在“记忆”设置中管理个性化。';
 
   @override
   String get instructionsSection7Line5 => '• 您可随时在设置中清除这些数据。';
@@ -805,7 +805,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get voiceInputTipsGotIt => '知道了';
 
   @override
-  String get chatInputHint => '问我任何问题，开始我们的对话...';
+  String get chatInputHint => '询问 HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get adjustSliderTextSize => '调整下面的滑块来改变文字大小';
 
   @override
-  String get textSizeChangeNote => '如果启用，聊天和动态中的文字大小将被更改。如果你有任何问题或反馈，请联系微信团队。';
+  String get textSizeChangeNote => '使用滑块预览 HowAI 中的文字大小。';
 
   @override
   String get resetToDefaultButton => '重置为默认';
@@ -2525,6 +2525,53 @@ class AppLocalizationsZh extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => '随时从一处编辑、固定、禁用或删除项目。';
 
   @override
+  String get knowledgeHubSettingsTitle => '记忆与个性化';
+
+  @override
+  String get knowledgeHubSettingsDescription => '选择 HowAI 何时可以使用或学习长期信息。系统不会自动保存秘密和敏感信息。';
+
+  @override
+  String get knowledgeHubPersonalization => '在回复中使用记忆';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => '使用知识中心中的活跃项目来个性化聊天和语音。';
+
+  @override
+  String get knowledgeHubLearnChats => '从较长的聊天中学习';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => '在有意义的对话后，复核用户明确提供的有用信息。';
+
+  @override
+  String get knowledgeHubLearnVoice => '在语音通话后学习';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => '复核至少包含五轮用户发言的通话，以发现适合长期保留的信息。';
+
+  @override
+  String get knowledgeHubSettingsSave => '保存设置';
+
+  @override
+  String get knowledgeHubSettingsSaved => '记忆设置已保存。';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return '建议的记忆（$count）';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => '在使用 HowAI 推断的信息前先进行复核。';
+
+  @override
+  String get knowledgeHubSuggestionAdd => '添加';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => '忽略';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => '无法更新该建议记忆。';
+
+  @override
   String get knowledgeHubUpgradeToPremium => '升级至高级版';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatLandingTitle => '我可以帮你做什么？';
 
   @override
-  String get chatLandingSubtitle => '输入文字或发送语音，其余交给我。';
+  String get chatLandingSubtitle => '输入、说话，或让我看看你眼前的内容。';
 
   @override
   String get chatLandingTipCompact => '提示：点按 + 可使用照片、文件、PDF 和图像工具。';
@@ -2858,7 +2905,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get premiumBannerSubtitle5 => '高级版让一切成为可能';
 
   @override
-  String get voiceCallFeatureTitle => 'AI语音通话';
+  String get voiceCallFeatureTitle => '语音与视觉';
 
   @override
   String get voiceCallFeatureDesc => '与AI进行实时自然对话';
@@ -2980,16 +3027,37 @@ class AppLocalizationsZh extends AppLocalizations {
   String get speakButtonTooltip => '开始语音通话';
 
   @override
-  String get back => 'Back';
+  String get back => '返回';
 
   @override
-  String get menu => 'Menu';
+  String get menu => '菜单';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => '此设备上没有可用的语音';
 
   @override
-  String get memory => 'Memory';
+  String get memory => '记忆';
+
+  @override
+  String get research => '研究';
+
+  @override
+  String get thinkingLevel => '思考级别';
+
+  @override
+  String get thinkingAuto => '自动';
+
+  @override
+  String get thinkingFast => '快速';
+
+  @override
+  String get thinkingBalanced => '均衡';
+
+  @override
+  String get thinkingDeep => '深度';
+
+  @override
+  String get thinkingLevelNote => '级别越高，耗时越长，并会使用更多推理令牌。';
 }
 
 /// The translations for Chinese, as used in Taiwan (`zh_TW`).
@@ -3338,7 +3406,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get continuousUpdatesDesc => '不斷推出新功能和改進！';
 
   @override
-  String get privacyBanner => '您的資料僅保存在本地。無追蹤，無廣告，您始終掌控。';
+  String get privacyBanner => '您的資料始終由您掌控。AI 請求和已啟用的同步功能會透過 HowAI 服務安全處理。無廣告。';
 
   @override
   String get subscriptionDetailsTitle => '訂閱詳情';
@@ -3463,7 +3531,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get instructionsSection7Line3 => '• 可在設定 > AI 洞察中查看分析結果。';
 
   @override
-  String get instructionsSection7Line4 => '• 所有分析均在本地完成，保障隱私——資料不會離開您的裝置。';
+  String get instructionsSection7Line4 => '• AI 功能可能會透過 HowAI 的 Supabase 和 OpenAI 服務安全處理內容。您可在「記憶」設定中管理個人化。';
 
   @override
   String get instructionsSection7Line5 => '• 您可隨時在設定中清除這些資料。';
@@ -3793,7 +3861,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get voiceInputTipsGotIt => '知道了';
 
   @override
-  String get chatInputHint => '問我任何問題，開始我們的對話...';
+  String get chatInputHint => '詢問 HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -5029,7 +5097,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get adjustSliderTextSize => '調整下面的滑塊來改變文字大小';
 
   @override
-  String get textSizeChangeNote => '如果啟用，聊天和動態中的文字大小將被更改。如果你有任何問題或反饋，請聯繫微信團隊。';
+  String get textSizeChangeNote => '使用滑桿預覽 HowAI 中的文字大小。';
 
   @override
   String get resetToDefaultButton => '重置為默認';
@@ -5513,6 +5581,53 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get knowledgeHubFeatureControlDesc => '隨時從一處編輯、固定、禁用或刪除項目。';
 
   @override
+  String get knowledgeHubSettingsTitle => '記憶與個人化';
+
+  @override
+  String get knowledgeHubSettingsDescription => '選擇 HowAI 何時可以使用或學習長期資訊。系統不會自動儲存秘密和敏感資訊。';
+
+  @override
+  String get knowledgeHubPersonalization => '在回覆中使用記憶';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => '使用知識中心中的啟用項目來個人化聊天和語音。';
+
+  @override
+  String get knowledgeHubLearnChats => '從較長的聊天中學習';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => '在有意義的對話後，檢視使用者明確提供的實用資訊。';
+
+  @override
+  String get knowledgeHubLearnVoice => '在語音通話後學習';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => '檢視至少包含五輪使用者發言的通話，以找出適合長期保留的資訊。';
+
+  @override
+  String get knowledgeHubSettingsSave => '儲存設定';
+
+  @override
+  String get knowledgeHubSettingsSaved => '記憶設定已儲存。';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return '建議的記憶（$count）';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => '在使用 HowAI 推論的資訊前先進行檢視。';
+
+  @override
+  String get knowledgeHubSuggestionAdd => '新增';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => '忽略';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => '無法更新該建議記憶。';
+
+  @override
   String get knowledgeHubUpgradeToPremium => '升級至高級版';
 
   @override
@@ -5807,7 +5922,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get chatLandingTitle => '我可以幫你做什麼？';
 
   @override
-  String get chatLandingSubtitle => '輸入或傳送語音，剩下交給我。';
+  String get chatLandingSubtitle => '輸入、說話，或讓我看看你眼前的內容。';
 
   @override
   String get chatLandingTipCompact => '提示：點擊 + 可使用照片、檔案、PDF 與圖片工具。';
@@ -5846,7 +5961,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get premiumBannerSubtitle5 => '進階版讓一切成為可能';
 
   @override
-  String get voiceCallFeatureTitle => 'AI 語音通話';
+  String get voiceCallFeatureTitle => '語音與視覺';
 
   @override
   String get voiceCallFeatureDesc => '與 AI 進行即時自然對話';
@@ -5966,4 +6081,37 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get speakButtonTooltip => '開始語音通話';
+
+  @override
+  String get back => '返回';
+
+  @override
+  String get menu => '選單';
+
+  @override
+  String get voiceNoVoicesAvailable => '此裝置上沒有可用的語音';
+
+  @override
+  String get memory => '記憶';
+
+  @override
+  String get research => '研究';
+
+  @override
+  String get thinkingLevel => '思考級別';
+
+  @override
+  String get thinkingAuto => '自動';
+
+  @override
+  String get thinkingFast => '快速';
+
+  @override
+  String get thinkingBalanced => '均衡';
+
+  @override
+  String get thinkingDeep => '深度';
+
+  @override
+  String get thinkingLevelNote => '級別越高，耗時越長，並會使用更多推理權杖。';
 }

@@ -1,254 +1,100 @@
-# OAuth Setup Guide
+# HowAI OAuth runbook
 
-## Overview
-This guide explains how to configure Google and Apple OAuth for the HowAI mobile app.
+Google and Apple sign-in use Supabase Auth with PKCE. On mobile, Supabase opens
+the provider in the system browser and returns to:
 
-## Deep Link Configuration
-
-### iOS (Info.plist)
-✅ Already configured with URL scheme: `com.hyu.haogpt`
-
-```xml
-<key>CFBundleURLTypes</key>
-<array>
-    <dict>
-        <key>CFBundleTypeRole</key>
-        <string>Editor</string>
-        <key>CFBundleURLSchemes</key>
-        <array>
-            <string>com.hyu.haogpt</string>
-        </array>
-    </dict>
-</array>
-```
-
-### Android (AndroidManifest.xml)
-✅ Already configured with deep link intent filter
-
-```xml
-<intent-filter>
-    <action android:name="android.intent.action.VIEW" />
-    <category android:name="android.intent.category.DEFAULT" />
-    <category android:name="android.intent.category.BROWSABLE" />
-    <data
-        android:scheme="com.hyu.haogpt"
-        android:host="login-callback" />
-</intent-filter>
-```
-
-## Supabase Configuration
-
-### 1. Add Redirect URLs in Supabase Dashboard
-
-Go to your Supabase project → Authentication → URL Configuration
-
-Add these redirect URLs:
-```
-com.hyu.haogpt://login-callback/
+```text
 com.hyu.haogpt://login-callback
 ```
 
-### 2. Configure OAuth Providers
+## The easy-to-repeat local build mistake
 
-#### Google OAuth
+HowAI reads `SUPABASE_URL` and `SUPABASE_ANON_KEY` from Dart build defines.
+The root `.env` file is deliberately not bundled as an asset.
 
-1. **Google Cloud Console Setup:**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create or select your project
-   - Enable Google+ API
-   - Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client ID"
-   
-2. **Create OAuth Client IDs:**
-   
-   **For iOS:**
-   - Application type: iOS
-   - Bundle ID: `com.hyu.haogpt`
-   - Copy the Client ID
-   
-   **For Android:**
-   - Application type: Android
-   - Package name: `com.hyu.haogpt`
-   - SHA-1 certificate fingerprint: (get from your keystore)
-   - Copy the Client ID
-   
-   **For Web (Supabase):**
-   - Application type: Web application
-   - Authorized redirect URIs: 
-     - `https://your-project.supabase.co/auth/v1/callback`
-   - Copy Client ID and Client Secret
+Do **not** run this:
 
-3. **Configure in Supabase:**
-   - Go to Supabase Dashboard → Authentication → Providers
-   - Enable Google provider
-   - Paste Web Client ID and Client Secret
-   - Save
-
-#### Apple Sign In
-
-1. **Apple Developer Console Setup:**
-   - Go to [Apple Developer](https://developer.apple.com/)
-   - Certificates, Identifiers & Profiles
-   - Identifiers → App IDs
-   - Select your app ID: `com.hyu.haogpt`
-   - Enable "Sign in with Apple"
-   - Configure Services ID:
-     - Create new Services ID
-     - Enable "Sign in with Apple"
-     - Configure domains and redirect URLs:
-       - Domain: `your-project.supabase.co`
-       - Redirect URL: `https://your-project.supabase.co/auth/v1/callback`
-
-2. **Create Key:**
-   - Keys → Create new key
-   - Enable "Sign in with Apple"
-   - Download the key file (.p8)
-   - Note the Key ID
-
-3. **Configure in Supabase:**
-   - Go to Supabase Dashboard → Authentication → Providers
-   - Enable Apple provider
-   - Enter:
-     - Services ID
-     - Team ID
-     - Key ID
-     - Private Key (contents of .p8 file)
-   - Save
-
-## Testing
-
-### Test Google Sign In
-1. Run the app
-2. Tap "Continue with Google"
-3. Browser/WebView opens with Google sign in
-4. After signing in, should redirect back to app
-5. App should show main chat screen (not web version)
-
-### Test Apple Sign In
-1. Run the app on iOS device (not simulator for full testing)
-2. Tap "Continue with Apple"
-3. Apple sign in sheet appears
-4. After signing in, should return to app
-5. App should show main chat screen
-
-## Troubleshooting
-
-### Issue: Redirects to web version instead of app
-
-**Solution:**
-- ✅ Deep links configured in iOS Info.plist
-- ✅ Deep links configured in Android AndroidManifest.xml
-- ✅ Supabase initialized with PKCE flow
-- ✅ OAuth methods use correct redirect URL
-- ⚠️ Make sure redirect URLs are added in Supabase Dashboard
-
-### Issue: "Invalid redirect URL" error
-
-**Solution:**
-- Check Supabase Dashboard → Authentication → URL Configuration
-- Ensure `com.hyu.haogpt://login-callback/` is in allowed redirect URLs
-- Try both with and without trailing slash
-
-### Issue: OAuth doesn't work on Android
-
-**Solution:**
-- Verify SHA-1 fingerprint is correct in Google Cloud Console
-- Get SHA-1 from your keystore:
-  ```bash
-  keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-  ```
-- Add SHA-1 to Google Cloud Console OAuth client
-
-### Issue: Apple Sign In not working
-
-**Solution:**
-- Ensure "Sign in with Apple" capability is enabled in Xcode
-- Verify Services ID is correctly configured
-- Check that private key (.p8) is correctly pasted in Supabase
-- Ensure Team ID and Key ID are correct
-
-## Code Implementation
-
-### Supabase Service (lib/services/supabase_service.dart)
-
-Uses **native Google Sign In** and **native Apple Sign In** as recommended by Supabase:
-
-```dart
-// Sign in with Google using native Google Sign In (recommended by Supabase)
-Future<AuthResponse> signInWithGoogle() async {
-  try {
-    const webClientId = 'YOUR_WEB_CLIENT_ID';
-    
-    final GoogleSignIn googleSignIn = GoogleSignIn(
-      serverClientId: webClientId,
-    );
-
-    final googleUser = await googleSignIn.signIn();
-    if (googleUser == null) throw Exception('Google sign in was cancelled');
-
-    final googleAuth = await googleUser.authentication;
-    
-    // Sign in to Supabase with the Google tokens
-    final response = await _client.auth.signInWithIdToken(
-      provider: OAuthProvider.google,
-      idToken: googleAuth.idToken!,
-      accessToken: googleAuth.accessToken!,
-    );
-
-    return response;
-  } catch (e) {
-    debugPrint('[SupabaseService] Google sign in error: $e');
-    rethrow;
-  }
-}
+```bash
+flutter run -d <device-id>
 ```
 
-### Benefits of Native Auth:
-- ✅ **Stays in app** - No browser redirect
-- ✅ **Better UX** - Native Google/Apple UI
-- ✅ **Faster** - Direct token exchange
-- ✅ **More secure** - No deep link vulnerabilities
-- ✅ **Recommended by Supabase** - Official approach
+It builds successfully, but Supabase receives an empty URL. Google and Apple
+then both appear to do nothing because the app tries to open a relative
+`/auth/v1/authorize` URL instead of an HTTPS URL.
 
-### Main App Initialization (lib/main.dart)
+Use the checked-in wrapper for local devices and simulators:
 
-```dart
-// Initialize Supabase with deep link handling
-await Supabase.initialize(
-  url: dotenv.env['SUPABASE_URL'] ?? '',
-  anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
-  authOptions: const FlutterAuthClientOptions(
-    authFlowType: AuthFlowType.pkce,
-  ),
-);
+```bash
+scripts/run-configured.sh -d <device-id>
 ```
 
-## Security Notes
+The equivalent raw command is:
 
-1. **Never commit OAuth secrets to git**
-   - Keep `.env` file in `.gitignore`
-   - Store secrets in environment variables
+```bash
+scripts/run-configured.sh -d <device-id>
+```
 
-2. **Use PKCE flow for mobile**
-   - ✅ Already configured
-   - More secure than implicit flow
+VS Code's checked-in launch configurations already include the same define
+file.
 
-3. **Validate redirect URLs**
-   - Only allow your app's custom scheme
-   - Prevent open redirect vulnerabilities
+Release builds must also include the file:
 
-## Next Steps
+```bash
+scripts/with-public-mobile-config.sh flutter build ios --release
+scripts/with-public-mobile-config.sh flutter build appbundle --release
+```
 
-1. ✅ Deep link configuration complete
-2. ⚠️ Configure Google OAuth in Google Cloud Console
-3. ⚠️ Configure Apple Sign In in Apple Developer Console
-4. ⚠️ Add redirect URLs in Supabase Dashboard
-5. ⚠️ Test on real devices (iOS and Android)
+Only public mobile configuration belongs in `.env`. OpenAI, Apple, and other
+server secrets stay in Supabase/provider secret storage.
 
-## Status
+## Canonical configuration
 
-- ✅ Deep links configured (iOS & Android)
-- ✅ Supabase PKCE flow enabled
-- ✅ OAuth methods updated
-- ⚠️ Requires OAuth provider configuration
-- ⚠️ Requires Supabase redirect URL configuration
+- iOS bundle ID: `com.hyu.HaoGPT`
+- Android application ID: `com.hyu.haogpt`
+- Mobile callback: `com.hyu.haogpt://login-callback`
+- Supabase project ref: `yjxoreszkpdealtzyvyu`
+- Provider callback: `https://yjxoreszkpdealtzyvyu.supabase.co/auth/v1/callback`
+- Web redirect: `https://chat.howai.io`
 
+Supabase Authentication > URL Configuration should allow both:
+
+```text
+com.hyu.haogpt://login-callback
+com.hyu.haogpt://login-callback/
+```
+
+Google's Web OAuth client and the Apple Services ID both use the Supabase
+provider callback above. Do not rotate provider credentials when neither
+Google nor Apple opens; verify the build defines first.
+
+## Triage order
+
+1. If **both** buttons do nothing, check the on-device configuration screen or
+   confirm the build used `.env`.
+2. If the browser never opens, inspect Flutter logs for `Could not open` and
+   verify `SUPABASE_URL` was compiled as a valid HTTPS URL.
+3. If the provider page opens but errors, inspect Supabase Auth `/authorize`
+   logs and that provider's configuration.
+4. If provider login succeeds but HowAI does not resume, verify the mobile
+   callback in Supabase and the platform deep-link registration.
+5. If HowAI receives the callback but sign-in fails, inspect the PKCE `/token`
+   exchange. Do not clear app data during the flow because it removes the code
+   verifier.
+
+Useful callback check after an iOS build:
+
+```bash
+plutil -p build/ios/iphoneos/Runner.app/Info.plist | rg -A8 CFBundleURLTypes
+```
+
+## Release smoke test
+
+On a real iPhone:
+
+1. Install over the currently released build.
+2. Complete Google sign-in, then sign out.
+3. Complete Apple sign-in, then force-quit and reopen.
+4. Confirm the session persists and the correct account is shown.
+5. Cancel each provider once and confirm the app remains usable.
+
+Do not use a simulator-only Apple test as release sign-off.

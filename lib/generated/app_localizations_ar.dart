@@ -350,7 +350,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get continuousUpdatesDesc => 'ميزات جديدة وتحسينات طوال الوقت!';
 
   @override
-  String get privacyBanner => 'تبقى بياناتك على جهازك. لا تتبع. لا إعلانات. أنت دائماً متحكم.';
+  String get privacyBanner => 'تبقى بياناتك تحت سيطرتك. تتم معالجة طلبات الذكاء الاصطناعي وميزات المزامنة المفعّلة بأمان عبر خدمات HowAI. بلا إعلانات.';
 
   @override
   String get subscriptionDetailsTitle => 'تفاصيل الاشتراك';
@@ -475,7 +475,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get instructionsSection7Line3 => '• اعرض رؤى الذكاء الاصطناعي التي تم إنشاؤها في قسم الإعدادات > رؤى الذكاء الاصطناعي.';
 
   @override
-  String get instructionsSection7Line4 => '• يتم إجراء جميع التحليلات على الجهاز لخصوصيتك—لا تغادر أي بيانات جهازك.';
+  String get instructionsSection7Line4 => '• قد تعالج ميزات الذكاء الاصطناعي المحتوى بأمان عبر خدمات Supabase وOpenAI الخاصة بـ HowAI. يمكنك إدارة التخصيص من إعدادات الذاكرة.';
 
   @override
   String get instructionsSection7Line5 => '• يمكنك مسح هذه البيانات في أي وقت في الإعدادات.';
@@ -805,7 +805,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get voiceInputTipsGotIt => 'فهمت';
 
   @override
-  String get chatInputHint => 'اسأل أي شيء لبدء محادثتنا...';
+  String get chatInputHint => 'اسأل HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get adjustSliderTextSize => 'اضبط شريط التمرير أدناه لتغيير حجم النص';
 
   @override
-  String get textSizeChangeNote => 'إذا تم التمكين، سيتم تغيير حجم النص في الدردشات واللحظات. إذا كانت لديك أسئلة أو ملاحظات، يرجى الاتصال بفريق WeChat.';
+  String get textSizeChangeNote => 'استخدم شريط التمرير لمعاينة النص في HowAI.';
 
   @override
   String get resetToDefaultButton => 'إعادة التعيين إلى الافتراضي';
@@ -2525,6 +2525,53 @@ class AppLocalizationsAr extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'تحرير العناصر أو تثبيتها أو تعطيلها أو حذفها في أي وقت من مكان واحد.';
 
   @override
+  String get knowledgeHubSettingsTitle => 'الذاكرة والتخصيص';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'اختر متى يمكن لـ HowAI استخدام التفاصيل الدائمة أو تعلّمها. لا يتم حفظ الأسرار والتفاصيل الحساسة تلقائيًا.';
+
+  @override
+  String get knowledgeHubPersonalization => 'استخدام الذاكرة في الردود';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'استخدم عناصر مركز المعرفة النشطة لتخصيص الدردشة والصوت.';
+
+  @override
+  String get knowledgeHubLearnChats => 'التعلّم من المحادثات الطويلة';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'راجع التفاصيل المفيدة التي يذكرها المستخدم بعد المحادثات المهمة.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'التعلّم بعد المكالمات الصوتية';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'راجع المكالمات التي تتضمن خمس مداخلات للمستخدم على الأقل بحثًا عن تفاصيل دائمة.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'حفظ الإعدادات';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'تم حفظ إعدادات الذاكرة.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'ذكريات مقترحة ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'راجع التفاصيل التي استنتجها HowAI قبل استخدامها.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'إضافة';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'تجاهل';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'تعذّر تحديث الذاكرة المقترحة.';
+
+  @override
   String get knowledgeHubUpgradeToPremium => 'الترقية إلى بريميوم';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatLandingTitle => 'كيف يمكنني مساعدتك؟';
 
   @override
-  String get chatLandingSubtitle => 'اكتب أو أرسل صوتًا. سأهتم بالباقي.';
+  String get chatLandingSubtitle => 'اكتب أو تحدث أو أرني ما تراه.';
 
   @override
   String get chatLandingTipCompact => 'نصيحة: اضغط + لاستخدام الصور والملفات وPDF وأدوات الصور.';
@@ -2858,7 +2905,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'بريميوم يجعل كل شيء ممكنًا';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'الصوت والرؤية';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
@@ -2980,14 +3027,35 @@ class AppLocalizationsAr extends AppLocalizations {
   String get speakButtonTooltip => 'بدء مكالمة صوتية';
 
   @override
-  String get back => 'Back';
+  String get back => 'رجوع';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'القائمة';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'لا توجد أصوات متاحة على هذا الجهاز';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'الذاكرة';
+
+  @override
+  String get research => 'بحث';
+
+  @override
+  String get thinkingLevel => 'مستوى التفكير';
+
+  @override
+  String get thinkingAuto => 'تلقائي';
+
+  @override
+  String get thinkingFast => 'سريع';
+
+  @override
+  String get thinkingBalanced => 'متوازن';
+
+  @override
+  String get thinkingDeep => 'عميق';
+
+  @override
+  String get thinkingLevelNote => 'تستغرق المستويات الأعلى وقتًا أطول وتستخدم رموز استدلال أكثر.';
 }

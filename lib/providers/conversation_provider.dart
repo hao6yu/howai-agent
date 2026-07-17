@@ -6,13 +6,20 @@ class ConversationProvider with ChangeNotifier {
   List<Conversation> _conversations = [];
   Conversation? _selectedConversation;
 
-  List<Conversation> get conversations => _conversations;
+  List<Conversation> get conversations =>
+      _conversations.where((conversation) => !conversation.isArchived).toList();
+  List<Conversation> get archivedConversations =>
+      _conversations.where((conversation) => conversation.isArchived).toList();
+  List<Conversation> get allConversations => List.unmodifiable(_conversations);
   Conversation? get selectedConversation => _selectedConversation;
 
   Future<void> loadConversations({int? profileId}) async {
     // print('ConversationProvider.loadConversations called with profileId: $profileId');
     final db = DatabaseService();
-    final convMaps = await db.getConversations(profileId: profileId);
+    final convMaps = await db.getConversations(
+      profileId: profileId,
+      includeArchived: true,
+    );
     _conversations = convMaps.map((m) => Conversation.fromMap(m)).toList();
     // print('ConversationProvider.loadConversations loaded ${_conversations.length} conversations');
 
@@ -20,8 +27,9 @@ class ConversationProvider with ChangeNotifier {
     // We'll leave the current selection as is or null
     if (_selectedConversation != null) {
       // If we had a selection, make sure it still exists in the updated list
-      final stillExists =
-          _conversations.any((c) => c.id == _selectedConversation!.id);
+      final stillExists = _conversations.any(
+        (c) => c.id == _selectedConversation!.id && !c.isArchived,
+      );
       if (!stillExists) {
         _selectedConversation = null;
         // print('ConversationProvider: Previously selected conversation no longer exists, clearing selection');
@@ -81,6 +89,7 @@ class ConversationProvider with ChangeNotifier {
     conversation.isPinned = pin;
     conversation.updatedAt = DateTime.now();
     await db.updateConversation(conversation.toMap());
+    await db.syncService.updateConversation(conversation);
     await loadConversations(profileId: conversation.profileId);
     notifyListeners();
   }
@@ -109,6 +118,7 @@ class ConversationProvider with ChangeNotifier {
     target.title = trimmedTitle;
     target.updatedAt = DateTime.now();
     await db.updateConversation(target.toMap());
+    await db.syncService.updateConversation(target);
     await loadConversations(profileId: profileId);
 
     final selected = _selectedConversation;
@@ -117,6 +127,42 @@ class ConversationProvider with ChangeNotifier {
           _conversations.firstWhere((c) => c.id == conversationId);
     }
     notifyListeners();
+  }
+
+  Future<void> archiveConversation(Conversation conversation) async {
+    final db = DatabaseService();
+    final now = DateTime.now();
+    conversation.archivedAt = now;
+    conversation.updatedAt = now;
+    await db.updateConversation(conversation.toMap());
+    await db.syncService.updateConversation(conversation);
+    if (_selectedConversation?.id == conversation.id) {
+      _selectedConversation = null;
+    }
+    await loadConversations(profileId: conversation.profileId);
+  }
+
+  Future<void> restoreConversation(Conversation conversation) async {
+    final db = DatabaseService();
+    conversation.archivedAt = null;
+    conversation.updatedAt = DateTime.now();
+    await db.updateConversation(conversation.toMap());
+    await db.syncService.updateConversation(conversation);
+    await loadConversations(profileId: conversation.profileId);
+  }
+
+  Future<bool> deleteConversation(Conversation conversation) async {
+    if (conversation.id == null) return false;
+    final db = DatabaseService();
+    final remoteDeleted = await db.syncService.deleteConversation(conversation);
+    if (!remoteDeleted) return false;
+
+    await db.deleteConversation(conversation.id!);
+    if (_selectedConversation?.id == conversation.id) {
+      _selectedConversation = null;
+    }
+    await loadConversations(profileId: conversation.profileId);
+    return true;
   }
 
   // Add rename, delete, etc. as needed

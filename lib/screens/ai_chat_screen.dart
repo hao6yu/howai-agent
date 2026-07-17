@@ -17,6 +17,7 @@ import '../widgets/chat_message_widget.dart';
 import '../widgets/chat_input_widget.dart';
 import '../widgets/pptx_generation_dialog.dart';
 import '../widgets/translation_dialog.dart';
+import '../widgets/subscription_banner.dart';
 import '../utils/chat_utils.dart';
 
 // Import the extracted services
@@ -35,31 +36,44 @@ import '../constants/chat_ui_constants.dart';
 
 import '../models/chat_message.dart';
 import '../models/knowledge_item.dart';
+import '../models/thinking_level.dart';
+import '../models/reminder.dart';
+import '../core/agent/agent_action_contracts.dart';
+import '../core/agent/chat_response_policy.dart';
+import '../core/agent/reminder_action_intent.dart';
+import '../core/agent/reminder_action_messages.dart';
+import '../core/agent/automation_action_messages.dart';
 import '../services/database_service.dart';
 import '../services/openai_service.dart';
+import '../services/automation_service.dart';
 import '../services/elevenlabs_service.dart';
 import '../services/speech_recognition_service.dart';
 import '../services/audio_recorder_service.dart';
 import '../providers/profile_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/reminder_provider.dart';
+import '../providers/push_notification_provider.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import '../widgets/conversation_drawer.dart';
+import '../widgets/new_conversation_button.dart';
 import '../providers/conversation_provider.dart';
 import '../providers/ai_personality_provider.dart';
 import '../services/subscription_service.dart';
 import '../widgets/upgrade_dialog.dart';
-import '../widgets/subscription_banner.dart';
 import '../services/file_service.dart';
 import '../services/location_service.dart';
 import '../services/sync_service.dart';
 import '../services/id_mapping_service.dart';
+import '../services/device_timezone_service.dart';
 import '../widgets/place_result_widget.dart';
 import '../services/chat_integration_helper.dart';
 import '../services/profile_translation_service.dart';
+import '../services/profile_name_service.dart';
 import '../services/feature_showcase_service.dart';
 import 'elevenlabs_call_screen.dart';
 import '../services/knowledge_hub_service.dart';
+import '../services/personal_memory_service.dart';
 import '../utils/language_utils.dart';
 import '../utils/location_query_detector.dart';
 import '../utils/conversation_guard.dart';
@@ -67,6 +81,8 @@ import '../utils/chat_snackbar_service.dart';
 import '../widgets/language_selection_popup.dart';
 import '../widgets/full_language_selection_dialog.dart';
 import '../widgets/location_search_dialog.dart';
+import '../features/actions/presentation/action_approval_card.dart';
+import '../core/theme/howai_theme.dart';
 
 class AiChatScreen extends StatefulWidget {
   final VoidCallback? onNavigateToGuide;
@@ -81,11 +97,13 @@ class AiChatScreen extends StatefulWidget {
 }
 
 class _AiChatScreenState extends State<AiChatScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final DatabaseService _databaseService = DatabaseService();
   final OpenAIService _openAIService = OpenAIService();
+  final AutomationService _automationService = AutomationService();
+  final ProfileNameService _profileNameService = ProfileNameService();
   final ElevenLabsService _elevenLabsService = ElevenLabsService();
   final SpeechRecognitionService _speechRecognitionService =
       SpeechRecognitionService();
@@ -93,6 +111,8 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Add a FocusNode for the text input
   final FocusNode _textInputFocusNode = FocusNode();
+  bool _keyboardVisible = false;
+  bool _followKeyboardToLatest = false;
 
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
@@ -134,8 +154,8 @@ class _AiChatScreenState extends State<AiChatScreen>
   bool _showVoiceInputHelp = true;
 
   // Add this after other state variables
-  int _messageCountSinceLastAnalysis = 0;
-  static const int _analysisThreshold = 20; // Analyze after every 20 messages
+  int _userTurnsSinceLastMemoryReview = 0;
+  static const int _memoryReviewThreshold = 10;
 
   // Flag to prevent duplicate AI responses during new conversation creation
   bool _isCreatingNewConversation = false;
@@ -192,20 +212,22 @@ class _AiChatScreenState extends State<AiChatScreen>
   // Add system instruction for PPTX generation
   String? _pendingSystemInstruction;
 
-  // Deep research/thinking mode toggle state (premium feature)
-  bool _forceDeepResearch = false;
+  // Paid GPT-5.6 reasoning control. Auto preserves the server-selected profile.
+  ThinkingLevel _thinkingLevel = ThinkingLevel.auto;
+
+  ActionProposal? _pendingActionProposal;
+  bool _pendingActionBusy = false;
 
   // Showcase GlobalKeys for feature highlighting
-  final GlobalKey _deepResearchKey = GlobalKey();
   final GlobalKey _drawerButtonKey = GlobalKey();
   final GlobalKey _quickActionsKey = GlobalKey();
   final GlobalKey _speakButtonKey = GlobalKey();
-  bool _showcaseCompleted = false;
-  BuildContext? _showcaseContext;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _textInputFocusNode.addListener(_handleTextInputFocusChange);
 
     _micAnimationController = AnimationController(
       vsync: this,
@@ -239,6 +261,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     _loadMessages();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _addWelcomeMessageIfNeeded();
+      context.read<ReminderProvider>().ensureCapability();
     });
 
     // Listen for conversation selection changes
@@ -262,9 +285,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _applyPremiumVoiceDefaultsIfNeeded();
     });
-
-    // Initialize feature showcase
-    _initializeFeatureShowcase();
 
     // Setup real-time sync for current conversation
     _setupRealtimeSync();
@@ -296,94 +316,6 @@ class _AiChatScreenState extends State<AiChatScreen>
       debugPrint('[AIChatScreen] Error setting up real-time sync (silent): $e');
       // Silent failure - doesn't affect user experience
     }
-  }
-
-  // Initialize feature showcase
-  void _initializeFeatureShowcase() async {
-    // print('🎯 [ChatScreen] Initializing feature showcase...');
-
-    // Wait for UI to fully load before checking for showcase
-    await Future.delayed(const Duration(milliseconds: 1500));
-
-    if (!mounted) {
-      // print('🎯 [ChatScreen] Widget not mounted, skipping showcase');
-      return;
-    }
-
-    // print('🎯 [ChatScreen] Checking if should show showcase...');
-    final shouldShow = await FeatureShowcaseService.shouldShowShowcase();
-    // print('🎯 [ChatScreen] Should show showcase: $shouldShow');
-
-    if (shouldShow) {
-      // print('🎯 [ChatScreen] Starting feature showcase...');
-      _startFeatureShowcase();
-    } else {
-      // print('🎯 [ChatScreen] Not showing showcase');
-
-      // Debug: Print showcase status
-      final status = await FeatureShowcaseService.getShowcaseStatus();
-      // print('🎯 [ChatScreen] Showcase status: $status');
-    }
-  }
-
-  void _startFeatureShowcase() {
-    if (!mounted || _showcaseCompleted || _showcaseContext == null) {
-      // print('🎯 [ChatScreen] Cannot start showcase - mounted: $mounted, completed: $_showcaseCompleted, context: ${_showcaseContext != null}');
-      return;
-    }
-
-    // Get features from service (single source of truth)
-    final features =
-        FeatureShowcaseService.getFeaturesForCurrentVersion(context);
-    final keysToShow = _mapFeaturesToKeys(features);
-
-    if (keysToShow.isEmpty) {
-      // print('🎯 [ChatScreen] No features to showcase');
-      return;
-    }
-
-    // print('🎯 [ChatScreen] Starting showcase with ${keysToShow.length} features');
-
-    // Verify ShowCaseWidget is available
-    try {
-      final showcaseWidget = ShowCaseWidget.of(_showcaseContext!);
-      // print('🎯 [ChatScreen] ShowCaseWidget found: ${showcaseWidget != null}');
-
-      // Start the showcase with features from service
-      ShowCaseWidget.of(_showcaseContext!).startShowCase(keysToShow);
-      // print('🎯 [ChatScreen] ✅ Showcase started successfully!');
-    } catch (e) {
-      // print('🎯 [ChatScreen] ❌ Error starting showcase: $e');
-    }
-  }
-
-  // Map feature IDs to GlobalKeys
-  List<GlobalKey> _mapFeaturesToKeys(List<ShowcaseFeature> features) {
-    final keys = <GlobalKey>[];
-    for (final feature in features) {
-      final key = () {
-        switch (feature.id) {
-          case 'drawer_button':
-          case 'knowledge_hub':
-            return _drawerButtonKey;
-          case 'tools_mode':
-          case 'web_search':
-          case 'quick_actions':
-            return _quickActionsKey;
-          case 'deep_research':
-            return _deepResearchKey;
-          case 'speak_button':
-            return _speakButtonKey;
-          default:
-            // print('🎯 [ChatScreen] ⚠️ Unknown feature ID: ${feature.id}');
-            return null;
-        }
-      }();
-      if (key != null && key.currentContext != null && !keys.contains(key)) {
-        keys.add(key);
-      }
-    }
-    return keys;
   }
 
   // Get showcase data for a specific feature ID
@@ -442,6 +374,8 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _textInputFocusNode.removeListener(_handleTextInputFocusChange);
     _textController.dispose();
     _scrollController.dispose();
     _micAnimationController.dispose();
@@ -485,6 +419,39 @@ class _AiChatScreenState extends State<AiChatScreen>
     _flutterTts = null;
 
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (!mounted) return;
+    final keyboardVisible = View.of(context).viewInsets.bottom > 0;
+    if (keyboardVisible && !_keyboardVisible) {
+      _followKeyboardToLatest = _isNearBottom(threshold: 280);
+    }
+    _keyboardVisible = keyboardVisible;
+    if (!keyboardVisible) {
+      _followKeyboardToLatest = false;
+      return;
+    }
+    if (_followKeyboardToLatest) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _keyboardVisible && _followKeyboardToLatest) {
+          _scrollToBottom(animated: false);
+        }
+      });
+    }
+  }
+
+  void _handleTextInputFocusChange() {
+    if (!_textInputFocusNode.hasFocus) return;
+    _followKeyboardToLatest = _isNearBottom(threshold: 280);
+    if (_followKeyboardToLatest) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _textInputFocusNode.hasFocus) {
+          _scrollToBottom(animated: true);
+        }
+      });
+    }
   }
 
   // PDF Auto-conversion methods
@@ -552,10 +519,10 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   Future<void> _loadMoreMessages() async {
     if (_isLoadingMore || !_hasMore) return;
-    final conversationId = Provider.of<ConversationProvider>(context,
-            listen: false)
-        .selectedConversation
-        ?.id;
+    final conversationId =
+        Provider.of<ConversationProvider>(context, listen: false)
+            .selectedConversation
+            ?.id;
     if (conversationId == null) return;
 
     setState(() {
@@ -751,6 +718,47 @@ class _AiChatScreenState extends State<AiChatScreen>
   bool _streamingMessageAdded = false;
   String? _activeStreamingMessageTimestamp;
 
+  Future<String> _applyProfileNameToolCall(
+    Map<String, dynamic> toolCall, {
+    required String existingAssistantText,
+  }) async {
+    final profileId = _currentProfileId;
+    final rawArguments = toolCall['arguments'];
+    if (profileId == null || rawArguments is! Map) {
+      debugPrint('[ChatScreen] Preferred-name tool had invalid context.');
+      return existingAssistantText.trim().isNotEmpty
+          ? existingAssistantText
+          : 'I could not save that preferred name right now.';
+    }
+
+    try {
+      final result = await _profileNameService.applyToolCall(
+        profileId: profileId,
+        arguments: Map<String, dynamic>.from(rawArguments),
+      );
+      if (mounted) {
+        final profileProvider =
+            Provider.of<ProfileProvider>(context, listen: false);
+        await profileProvider.loadProfiles();
+        if (result.displayName != null) {
+          setState(() => _currentProfileName = result.displayName);
+        }
+      }
+      if (existingAssistantText.trim().isNotEmpty) {
+        return existingAssistantText;
+      }
+      return result.status == 'known'
+          ? 'Got it — I’ll call you ${result.displayName}.'
+          : 'No problem — I won’t ask again.';
+    } on ProfileNameServiceException catch (error) {
+      debugPrint('[ChatScreen] Preferred-name update failed: $error');
+      return error.message;
+    } catch (error) {
+      debugPrint('[ChatScreen] Preferred-name update failed: $error');
+      return 'I could not save that preferred name right now.';
+    }
+  }
+
   /// Handle streaming response from OpenAI
   /// Returns a Map compatible with the non-streaming response format
   Future<Map<String, dynamic>?> _handleStreamingResponse({
@@ -763,12 +771,23 @@ class _AiChatScreenState extends State<AiChatScreen>
     required bool generateTitle,
     required bool isPremiumUser,
     required bool allowWebSearch,
+    required bool forceWebSearch,
     required bool allowImageGeneration,
     SubscriptionService? subscriptionService,
     dynamic aiPersonality,
     int? conversationId,
     required String requestId,
     required String aiName,
+    required String appLocale,
+    String? memoryContext,
+    String? reasoningEffortOverride,
+    bool allowReminderActions = false,
+    bool allowAutomationActions = false,
+    bool allowMarketAutomationActions = false,
+    String? reminderTimezone,
+    Map<String, dynamic>? pendingReminderDraft,
+    Map<String, dynamic>? pendingAutomationDraft,
+    List<Map<String, dynamic>> existingReminders = const [],
   }) async {
     final timestamp = DateTime.now().toIso8601String();
 
@@ -786,11 +805,14 @@ class _AiChatScreenState extends State<AiChatScreen>
     String? title;
     List<String>? images;
     List<String>? files;
+    Map<String, dynamic>? actionToolCall;
+    Map<String, dynamic>? profileToolCall;
     String lastRenderedText = '';
     DateTime? lastUiUpdateAt;
     DateTime? lastAutoScrollAt;
     const autoScrollInterval = Duration(milliseconds: 250);
     bool shouldFollowStream = false;
+    bool streamAborted = false;
 
     // Helper to strip title JSON from text
     String _stripTitleJson(String text) {
@@ -798,6 +820,11 @@ class _AiChatScreenState extends State<AiChatScreen>
       final titlePattern = RegExp(r'\s*\{"title"\s*:\s*"[^"]*"\}\s*');
       return text.replaceAll(titlePattern, '').trim();
     }
+
+    String sanitizeAssistantText(String text) => redactReminderInternals(
+          _stripTitleJson(text),
+          existingReminders,
+        );
 
     // Helper to extract title from text
     String? _extractTitle(String text) {
@@ -817,14 +844,26 @@ class _AiChatScreenState extends State<AiChatScreen>
         generateTitle: generateTitle,
         isPremiumUser: isPremiumUser,
         allowWebSearch: allowWebSearch,
+        forceWebSearch: forceWebSearch,
         allowImageGeneration: allowImageGeneration,
         subscriptionService: subscriptionService,
         aiPersonality: aiPersonality,
+        reasoningEffortOverride: reasoningEffortOverride,
+        allowReminderActions: allowReminderActions,
+        allowAutomationActions: allowAutomationActions,
+        allowMarketAutomationActions: allowMarketAutomationActions,
+        appLocale: appLocale,
+        memoryContext: memoryContext,
+        reminderTimezone: reminderTimezone,
+        pendingReminderDraft: pendingReminderDraft,
+        pendingAutomationDraft: pendingAutomationDraft,
+        existingReminders: existingReminders,
       );
 
       await for (final event in stream) {
         // Check if request was cancelled
         if (_requestCancelled || _currentRequestId != requestId) {
+          streamAborted = true;
           break;
         }
 
@@ -837,7 +876,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             if (title == null && generateTitle) {
               title = _extractTitle(fullText);
             }
-            String displayText = _stripTitleJson(fullText);
+            String displayText = sanitizeAssistantText(fullText);
 
             // Only show message once we have actual content (not just title JSON)
             if (displayText.trim().isNotEmpty) {
@@ -927,6 +966,8 @@ class _AiChatScreenState extends State<AiChatScreen>
             title = event.title ?? title ?? _extractTitle(fullText);
             images = event.images;
             files = event.files;
+            actionToolCall = event.actionToolCall;
+            profileToolCall = event.profileToolCall;
             break;
 
           case StreamEventType.error:
@@ -950,10 +991,31 @@ class _AiChatScreenState extends State<AiChatScreen>
         }
       }
 
-      // Clean up the final text
-      String cleanedText = _stripTitleJson(fullText);
+      if (streamAborted) {
+        final shouldClearSending =
+            _currentRequestId == requestId || _requestCancelled;
+        setState(() {
+          _messages.removeWhere((m) =>
+              !m.isUserMessage &&
+              m.id == null &&
+              (m.timestamp == timestamp ||
+                  m.conversationId == conversationId ||
+                  m.conversationId == null));
+          _streamingMessageIndex = null;
+          _streamingMessageAdded = false;
+          _activeStreamingMessageTimestamp = null;
+          if (shouldClearSending) {
+            _isSending = false;
+          }
+        });
+        return null;
+      }
 
-      // Ensure the latest streamed text is rendered before we remove the temporary message.
+      // Clean up the final text
+      String cleanedText = sanitizeAssistantText(fullText);
+
+      // Ensure the latest streamed text is rendered before the temporary
+      // message is replaced by the persisted row.
       final finalPlaceholderIndex = _messages.lastIndexWhere((m) =>
           !m.isUserMessage &&
           m.id == null &&
@@ -974,24 +1036,9 @@ class _AiChatScreenState extends State<AiChatScreen>
         });
       }
 
-      // Remove the streaming message - it will be re-added by the normal flow with proper DB save
-      if (finalPlaceholderIndex != -1) {
-        setState(() {
-          _messages.removeAt(finalPlaceholderIndex);
-        });
-      }
-      // Fallback cleanup in case index tracking became stale during rebuilds.
-      setState(() {
-        _messages.removeWhere((m) =>
-            !m.isUserMessage &&
-            m.id == null &&
-            (m.conversationId == conversationId ||
-                m.timestamp == timestamp ||
-                m.conversationId == null));
-        _streamingMessageIndex = null;
-        _streamingMessageAdded = false;
-        _activeStreamingMessageTimestamp = null;
-      });
+      // Keep the temporary streamed row visible while the final message is
+      // saved. The persisted row replaces it later in a single setState, which
+      // avoids a visible remove-then-readd blink at the end of streaming.
 
       // Return response in the same format as non-streaming
       return {
@@ -1000,6 +1047,8 @@ class _AiChatScreenState extends State<AiChatScreen>
         'images': images,
         'files': files,
         'streamTimestamp': timestamp,
+        'actionToolCall': actionToolCall,
+        'profileToolCall': profileToolCall,
       };
     } catch (e) {
       print('[ChatScreen] Streaming exception: $e');
@@ -1051,6 +1100,8 @@ class _AiChatScreenState extends State<AiChatScreen>
         (images == null || images.isEmpty) &&
         (files == null || files.isEmpty)) return;
 
+    final appLocale = Localizations.localeOf(context).toLanguageTag();
+
     // Hide keyboard immediately when sending message
     FocusScope.of(context).unfocus();
 
@@ -1093,7 +1144,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     // Get subscription service
     final subscriptionService =
         Provider.of<SubscriptionService>(context, listen: false);
-
     // Check image analysis limits if images are present (but don't consume usage yet)
     if (images != null && images.isNotEmpty) {
       if (!subscriptionService.isPremium) {
@@ -1120,6 +1170,8 @@ class _AiChatScreenState extends State<AiChatScreen>
         null) {
       setState(() {
         _messages = [];
+        _pendingActionProposal = null;
+        _pendingActionBusy = false;
       });
     }
 
@@ -1214,7 +1266,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)));
 
     final history = conversationMessages
-        .take(50) // Take last 50 messages for context
+        .skip(math.max(0, conversationMessages.length - 50))
         .map((msg) => {
               'role': msg.isUserMessage ? 'user' : 'assistant',
               'content': msg.message,
@@ -1236,16 +1288,14 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
 
     // Set loading state first
-    final isDeepResearchMode =
-        _forceDeepResearch && subscriptionService.isPremium;
     setState(() {
       _isSending = true;
       _textController.clear();
-      _messageCountSinceLastAnalysis++;
+      _userTurnsSinceLastMemoryReview++;
       _isPdfWorkflowActive =
           false; // Reset PDF workflow flag when sending message
     });
-    _startLoadingMessageRotation(aiName, isDeepResearch: isDeepResearchMode);
+    _startLoadingMessageRotation(aiName);
 
     // Add message to UI state AFTER building the history, but check for duplicates
     setState(() {
@@ -1354,32 +1404,59 @@ class _AiChatScreenState extends State<AiChatScreen>
         }
       }
 
-      finalMessage = await _injectKnowledgeContextIfEligible(
-        message: finalMessage,
+      final memoryContext = await _buildKnowledgeContextIfEligible(
         userPrompt: text,
         subscriptionService: subscriptionService,
       );
 
-      // Determine if we should use deep research mode
-      final isDeepResearchMode =
-          _forceDeepResearch && subscriptionService.isPremium;
-      if (isDeepResearchMode) {
-        // print('[ChatScreen] Deep Research Mode ENABLED - Using reasoning model');
-      }
+      final reasoningEffortOverride =
+          subscriptionService.isPremium ? _thinkingLevel.reasoningEffort : null;
+
+      final reminderProvider = Provider.of<ReminderProvider>(
+        context,
+        listen: false,
+      );
+      final wantsFreshReminderState = isExistingReminderUpdateRequest(text) ||
+          isExistingReminderResumeRequest(text);
+      await reminderProvider.ensureInitialized(force: wantsFreshReminderState);
+      final allowReminderActions = reminderProvider.isAvailable;
+      final allowAutomationActions = subscriptionService.isPremium &&
+          await _automationService.checkAvailability();
+      final allowMarketAutomationActions =
+          allowAutomationActions && _automationService.marketBriefingsAvailable;
+      final reminderTimezone = allowReminderActions || allowAutomationActions
+          ? await DeviceTimezoneService.currentIdentifier()
+          : null;
+      final pendingActionProposal = _pendingActionProposal;
+      final pendingReminderProposal =
+          pendingActionProposal?.actionType == 'reminders_create'
+              ? pendingActionProposal
+              : null;
+      final pendingAutomationProposal =
+          pendingActionProposal?.actionType == 'automations_create'
+              ? pendingActionProposal
+              : null;
+      final existingReminders = allowReminderActions
+          ? reminderProvider.reminders
+              .where(
+                (reminder) => reminder.status != ReminderStatus.completed,
+              )
+              .take(30)
+              .map((reminder) => reminder.agentUpdateContext())
+              .toList(growable: false)
+          : <Map<String, dynamic>>[];
 
       // Check if streaming is enabled
-      // Disable streaming for:
-      // 1) deep research mode (reasoning takes too long to stream)
-      // 2) image-generation style requests (streaming path skips image tool)
+      // Image-generation style requests stay non-streaming because the
+      // streaming path does not receive the generated image result reliably.
       final isLikelyImageGenerationRequest =
           _looksLikeImageGenerationRequest(finalMessage);
-      final useStreaming = settings.useStreaming &&
-          !isDeepResearchMode &&
-          !isLikelyImageGenerationRequest;
+      final useStreaming =
+          settings.useStreaming && !isLikelyImageGenerationRequest;
       print(
         '[ChatScreen] Streaming decision => useStreaming=$useStreaming '
         '(settings.useStreaming=${settings.useStreaming}, '
-        'isDeepResearchMode=$isDeepResearchMode, '
+        'reasoningEffortOverride=$reasoningEffortOverride, '
         'isLikelyImageGenerationRequest=$isLikelyImageGenerationRequest)',
       );
 
@@ -1397,6 +1474,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           generateTitle: shouldGenerateAiTitle,
           isPremiumUser: subscriptionService.isPremium,
           allowWebSearch: subscriptionService.canUseWebSearch,
+          forceWebSearch: false,
           allowImageGeneration: true,
           subscriptionService: subscriptionService,
           fileAttachments: files,
@@ -1404,6 +1482,16 @@ class _AiChatScreenState extends State<AiChatScreen>
           conversationId: conversationId,
           requestId: requestId,
           aiName: aiName,
+          appLocale: appLocale,
+          memoryContext: memoryContext,
+          reasoningEffortOverride: reasoningEffortOverride,
+          allowReminderActions: allowReminderActions,
+          allowAutomationActions: allowAutomationActions,
+          allowMarketAutomationActions: allowMarketAutomationActions,
+          reminderTimezone: reminderTimezone,
+          pendingReminderDraft: pendingReminderProposal?.arguments,
+          pendingAutomationDraft: pendingAutomationProposal?.arguments,
+          existingReminders: existingReminders,
         );
       } else {
         print('[ChatScreen] Using NON-STREAMING response path');
@@ -1417,11 +1505,21 @@ class _AiChatScreenState extends State<AiChatScreen>
           generateTitle: shouldGenerateAiTitle,
           isPremiumUser: subscriptionService.isPremium,
           allowWebSearch: subscriptionService.canUseWebSearch,
+          forceWebSearch: false,
           allowImageGeneration: true,
-          isDeepResearch: isDeepResearchMode,
+          reasoningEffortOverride: reasoningEffortOverride,
           subscriptionService: subscriptionService,
           fileAttachments: files,
           aiPersonality: aiPersonality,
+          allowReminderActions: allowReminderActions,
+          allowAutomationActions: allowAutomationActions,
+          allowMarketAutomationActions: allowMarketAutomationActions,
+          appLocale: appLocale,
+          memoryContext: memoryContext,
+          reminderTimezone: reminderTimezone,
+          pendingReminderDraft: pendingReminderProposal?.arguments,
+          pendingAutomationDraft: pendingAutomationProposal?.arguments,
+          existingReminders: existingReminders,
         );
       }
 
@@ -1476,11 +1574,20 @@ class _AiChatScreenState extends State<AiChatScreen>
         List<String>? generatedImages = response['images'] as List<String>?;
         List<String>? generatedFiles = response['files'] as List<String>?;
         final String? streamTimestamp = response['streamTimestamp'] as String?;
+        final rawActionToolCall = response['actionToolCall'];
+        final actionToolCall = rawActionToolCall is Map
+            ? Map<String, dynamic>.from(rawActionToolCall)
+            : null;
+        final rawProfileToolCall = response['profileToolCall'];
+        final profileToolCall = rawProfileToolCall is Map
+            ? Map<String, dynamic>.from(rawProfileToolCall)
+            : null;
 
         // Strip any title JSON that may have leaked into the response text (anywhere in text)
         aiText = aiText
             .replaceAll(RegExp(r'\s*\{"title"\s*:\s*"[^"]*"\}\s*'), '')
             .trim();
+        aiText = redactReminderInternals(aiText, existingReminders);
 
         // Debug: Log the received files
         //// print('[ChatScreen] Received response from OpenAI:');
@@ -1548,6 +1655,72 @@ class _AiChatScreenState extends State<AiChatScreen>
           conversationId = conversationProvider.selectedConversation!.id;
         }
 
+        if (profileToolCall != null) {
+          aiText = await _applyProfileNameToolCall(
+            profileToolCall,
+            existingAssistantText: aiText,
+          );
+        }
+
+        if (actionToolCall != null) {
+          try {
+            final actionName = actionToolCall['name']?.toString();
+            final conversationUuid = conversationId == null
+                ? null
+                : IDMappingService().getConversationUUID(conversationId);
+            final actionOrigin = _isVoiceInputMode
+                ? AgentActionOrigin.voice
+                : AgentActionOrigin.text;
+            final isAutomation =
+                actionName?.startsWith('automations_create_') == true;
+            final proposal = isAutomation
+                ? await _automationService.proposeToolCall(
+                    actionToolCall,
+                    origin: actionOrigin,
+                    conversationId: conversationUuid,
+                    replacesProposal: pendingAutomationProposal,
+                  )
+                : await reminderProvider.proposeToolCall(
+                    actionToolCall,
+                    origin: actionOrigin,
+                    conversationId: conversationUuid,
+                    replacesProposal: actionName == 'reminders_create'
+                        ? pendingReminderProposal
+                        : null,
+                  );
+            if (mounted) {
+              setState(() => _pendingActionProposal = proposal);
+            }
+            if (isAutomation) {
+              aiText = pendingAutomationProposal == null
+                  ? 'I drafted this Automation. Review it below before I activate it.'
+                  : 'I updated this Automation draft. Review the changes below.';
+            } else if (actionName == 'reminders_update') {
+              aiText =
+                  'I prepared the reminder update. Review the changes below before I save it.';
+            } else if (actionName == 'reminders_resume') {
+              aiText =
+                  'I found the paused reminder. Review it below before I turn it back on.';
+            } else if (pendingReminderProposal != null) {
+              aiText =
+                  'I updated this reminder. Review the changes below before I save it.';
+            } else if (aiText.trim().isEmpty) {
+              aiText =
+                  'I drafted this reminder. Review it below before I save it.';
+            }
+          } catch (error) {
+            if (aiText.trim().isEmpty) {
+              aiText = actionToolCall['name']
+                          ?.toString()
+                          .startsWith('automations_create_') ==
+                      true
+                  ? 'I could not prepare that Automation. Please check the schedule and try again.'
+                  : 'I could not prepare that reminder. Please check the time and try again.';
+            }
+            debugPrint('[ChatScreen] Action proposal failed: $error');
+          }
+        }
+
         // Post-process: download and replace image URLs with local file paths
         aiText = await replaceImageUrlsWithLocalFiles(aiText);
 
@@ -1605,6 +1778,15 @@ class _AiChatScreenState extends State<AiChatScreen>
             //// print('[ChatScreen] Existing message with same content and files already exists');
             // Just update state from database, but don't add a new message
             setState(() {
+              if (streamTimestamp != null && streamTimestamp.isNotEmpty) {
+                _messages.removeWhere((existing) =>
+                    !existing.isUserMessage &&
+                    existing.id == null &&
+                    existing.timestamp == streamTimestamp);
+              }
+              _streamingMessageIndex = null;
+              _streamingMessageAdded = false;
+              _activeStreamingMessageTimestamp = null;
               _isSending = false;
               _isCreatingNewConversation = false;
               _currentRequestId = null;
@@ -1752,6 +1934,9 @@ class _AiChatScreenState extends State<AiChatScreen>
             // Add all messages to state with their database IDs
             _messages.addAll(completedMessages);
             _pruneStreamingGhostAssistantRows(conversationId: conversationId);
+            _streamingMessageIndex = null;
+            _streamingMessageAdded = false;
+            _activeStreamingMessageTimestamp = null;
 
             // Debug: Log _messages state after adding
             //// print('[ChatScreen] _messages state now has ${_messages.length} total messages');
@@ -1834,11 +2019,27 @@ class _AiChatScreenState extends State<AiChatScreen>
             }
           } else {}
         }
-        // Analyze user characteristics if we've reached the threshold
-        if (_messageCountSinceLastAnalysis >= _analysisThreshold &&
-            _currentProfileId != null) {
-          _analyzeUserCharacteristics(history);
-          _messageCountSinceLastAnalysis = 0;
+        if (_userTurnsSinceLastMemoryReview >= _memoryReviewThreshold &&
+            _currentProfileId != null &&
+            conversationId != null &&
+            subscriptionService.isPremium) {
+          final memoryMessages = history
+              .where((entry) =>
+                  (entry['role'] == 'user' || entry['role'] == 'assistant') &&
+                  entry['content'] is String)
+              .map((entry) => <String, String>{
+                    'role': entry['role'] as String,
+                    'content': entry['content'] as String,
+                  })
+              .toList(growable: true)
+            ..add({'role': 'assistant', 'content': aiText});
+          unawaited(PersonalMemoryService().learnFromConversation(
+            source: MemoryLearningSource.chat,
+            sourceId: conversationId.toString(),
+            profileId: _currentProfileId!,
+            messages: memoryMessages,
+          ));
+          _userTurnsSinceLastMemoryReview = 0;
         }
       } else {
         // Cancel timers on null response
@@ -2334,14 +2535,104 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
   }
 
+  Future<void> _decidePendingAction(AgentActionDecision decision) async {
+    final proposal = _pendingActionProposal;
+    if (proposal == null || _pendingActionBusy) return;
+    setState(() => _pendingActionBusy = true);
+    try {
+      final channel =
+          _isVoiceInputMode ? AgentActionOrigin.voice : AgentActionOrigin.text;
+      final isAutomation = proposal.actionType.startsWith('automations_');
+      final result = isAutomation
+          ? await _automationService.decide(
+              proposal: proposal,
+              decision: decision,
+              channel: channel,
+            )
+          : await context.read<ReminderProvider>().decide(
+                proposal,
+                decision,
+                channel: channel,
+              );
+      if (!mounted) return;
+      if (decision == AgentActionDecision.approved &&
+          proposal.actionType == 'reminders_create' &&
+          result?.isSuccess == true) {
+        await context.read<PushNotificationProvider>().enable();
+        if (!mounted) return;
+      }
+      setState(() {
+        _pendingActionProposal = null;
+        _pendingActionBusy = false;
+      });
+      await _appendAssistantActionMessage(
+        isAutomation
+            ? automationActionDecisionMessage(
+                proposal: proposal,
+                decision: decision,
+                result: result,
+              )
+            : reminderActionDecisionMessage(
+                proposal: proposal,
+                decision: decision,
+                result: result,
+              ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _pendingActionBusy = false);
+      debugPrint('[ChatScreen] Action decision failed: $error');
+      await _appendAssistantActionMessage(
+        proposal.actionType.startsWith('automations_')
+            ? 'I couldn’t finish that Automation action. Please try again.'
+            : 'I couldn’t finish that reminder action. Please try again.',
+      );
+    }
+  }
+
+  Future<void> _appendAssistantActionMessage(String text) async {
+    if (!mounted) return;
+    final conversationId =
+        context.read<ConversationProvider>().selectedConversation?.id;
+    final timestamp = DateTime.now().toIso8601String();
+    final message = ChatMessage(
+      message: text,
+      isUserMessage: false,
+      timestamp: timestamp,
+      profileId: _currentProfileId,
+      conversationId: conversationId,
+    );
+
+    setState(() => _messages.add(message));
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scrollToBottom(animated: true);
+    });
+
+    try {
+      final messageId = await _databaseService.insertChatMessage(message);
+      if (!mounted) return;
+      setState(() {
+        final index = _messages.indexWhere(
+          (candidate) =>
+              !candidate.isUserMessage &&
+              candidate.id == null &&
+              candidate.timestamp == timestamp,
+        );
+        if (index != -1) {
+          _messages[index] = message.copyWith(id: messageId);
+        }
+      });
+    } catch (error) {
+      debugPrint('[ChatScreen] Could not persist action reply: $error');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ShowCaseWidget(
       onFinish: () async {
         // Mark showcase as completed so it won't show again
         await FeatureShowcaseService.markShowcaseShown();
-        _showcaseCompleted = true;
-        // print('🎉 Feature showcase completed!');
       },
       onStart: (index, key) {
         // print('🎯 [Showcase] Started step ${(index ?? 0) + 1} with key: $key');
@@ -2352,8 +2643,6 @@ class _AiChatScreenState extends State<AiChatScreen>
       enableAutoScroll: false,
       disableBarrierInteraction: false,
       builder: (context) {
-        // Store the context that has access to ShowCaseWidget
-        _showcaseContext = context;
         return Consumer<ConversationProvider>(
           builder: (context, conversationProvider, child) {
             final selectedConversation =
@@ -2430,13 +2719,13 @@ class _AiChatScreenState extends State<AiChatScreen>
             return Scaffold(
               drawer: ConversationDrawer(profileId: _currentProfileId),
               appBar: AppBar(
-                title: BrandedAppTitle(
-                  onTap: () {
-                    // Optional: Navigate to subscription screen when tapped
-                    Navigator.pushNamed(context, '/subscription');
-                  },
-                ),
+                toolbarHeight: 50,
+                title: const BrandedAppTitle(),
                 centerTitle: true,
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(1),
+                  child: Divider(color: context.howaiColors.divider),
+                ),
                 leading: Builder(
                   builder: (context) => Consumer<SettingsProvider>(
                     builder: (context, settings, child) {
@@ -2484,21 +2773,15 @@ class _AiChatScreenState extends State<AiChatScreen>
                       displayMessages.isEmpty))
                     Consumer<SettingsProvider>(
                       builder: (context, settings, child) {
-                        return IconButton(
-                          icon: Icon(
-                            Icons.post_add,
-                            size: settings.getScaledFontSize(24),
-                          ),
+                        return NewConversationButton(
+                          iconSize: settings.getScaledFontSize(22),
                           onPressed: () {
-                            // Clear current conversation selection and unfocus any text fields
                             FocusScope.of(context).unfocus();
                             final conversationProvider =
                                 Provider.of<ConversationProvider>(context,
                                     listen: false);
                             conversationProvider.clearSelection();
                           },
-                          tooltip:
-                              AppLocalizations.of(context)!.newConversation,
                         );
                       },
                     ),
@@ -2513,20 +2796,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                   color: Theme.of(context).scaffoldBackgroundColor,
                   child: SafeArea(
                     bottom: true,
-                    maintainBottomViewPadding: true,
+                    maintainBottomViewPadding: false,
                     child: Column(
                       children: [
-                        // Subscription banner
-                        SubscriptionBanner(),
-
                         // Chat messages list
                         Expanded(
                           child: _isLoading
                               ? const Center(
-                                  child: CircularProgressIndicator(
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                        Color(0xFF8E6CFF)),
-                                  ),
+                                  child: CircularProgressIndicator(),
                                 )
                               : Stack(
                                   children: [
@@ -2557,13 +2834,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                                               )
                                             : ListView.builder(
                                                 controller: _scrollController,
+                                                keyboardDismissBehavior:
+                                                    ScrollViewKeyboardDismissBehavior
+                                                        .onDrag,
                                                 padding: EdgeInsets.fromLTRB(
                                                   16,
                                                   20,
                                                   16,
-                                                  _isVoiceInputMode
-                                                      ? 100
-                                                      : 80, // More padding for voice mode
+                                                  20,
                                                 ),
                                                 itemCount:
                                                     displayMessages.length,
@@ -2622,6 +2900,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                     messageKey: messageKey,
                                                     forcePlainText:
                                                         isStreamingRow,
+                                                    isStreaming: isStreamingRow,
                                                     selectionMode:
                                                         _selectionMode,
                                                     selectedMessages:
@@ -2823,6 +3102,21 @@ class _AiChatScreenState extends State<AiChatScreen>
 
                         // Horizontal action cards removed - features accessible via + button menu
 
+                        if (_pendingActionProposal != null)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: ActionApprovalCard(
+                              proposal: _pendingActionProposal!,
+                              isBusy: _pendingActionBusy || _isSending,
+                              onApprove: () => _decidePendingAction(
+                                AgentActionDecision.approved,
+                              ),
+                              onReject: () => _decidePendingAction(
+                                AgentActionDecision.rejected,
+                              ),
+                            ),
+                          ),
+
                         // Chat input area (with attachments)
                         ChatInputWidget(
                           textController: _textController,
@@ -2897,13 +3191,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                             _showTranslationDialog();
                           },
                           onSpeakCall: _startElevenLabsCall,
-                          forceDeepResearch: _forceDeepResearch,
-                          onDeepResearchToggle: (enabled) {
+                          thinkingLevel: _thinkingLevel,
+                          onThinkingLevelChanged: (level) {
                             setState(() {
-                              _forceDeepResearch = enabled;
+                              _thinkingLevel = level;
                             });
                           },
-                          deepResearchKey: _deepResearchKey,
                           quickActionsKey: _quickActionsKey,
                           speakKey: _speakButtonKey,
                           onQuickAction: (prompt) {
@@ -3433,17 +3726,16 @@ class _AiChatScreenState extends State<AiChatScreen>
     );
   }
 
-  Future<String> _injectKnowledgeContextIfEligible({
-    required String message,
+  Future<String?> _buildKnowledgeContextIfEligible({
     required String userPrompt,
     required SubscriptionService subscriptionService,
   }) async {
     if (!subscriptionService.isPremium) {
-      return message;
+      return null;
     }
 
     if (_currentProfileId == null) {
-      return message;
+      return null;
     }
 
     try {
@@ -3455,14 +3747,14 @@ class _AiChatScreenState extends State<AiChatScreen>
       );
 
       if (knowledgeContext.isEmpty) {
-        return message;
+        return null;
       }
 
-      return '$knowledgeContext\n\nUser request: $message';
+      return knowledgeContext;
     } on PremiumRequiredException {
-      return message;
+      return null;
     } catch (_) {
-      return message;
+      return null;
     }
   }
 
@@ -4568,27 +4860,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     _audioRecorderService.cancelRecording();
   }
 
-  Future<void> _analyzeUserCharacteristics(
-      List<Map<String, String>> history) async {
-    if (_currentProfileId == null) return;
-
-    try {
-      final characteristics = await _openAIService.analyzeUserCharacteristics(
-        history: history,
-        userName: _currentProfileName ?? 'User',
-      );
-
-      if (characteristics.isNotEmpty) {
-        final profileProvider =
-            Provider.of<ProfileProvider>(context, listen: false);
-        await profileProvider.updateProfileCharacteristics(
-            _currentProfileId!, characteristics);
-      } else {}
-    } catch (e) {
-      //debug
-    }
-  }
-
   // Image picking methods replaced with service calls
   Future<void> _pickImages({bool forPdf = false}) async {
     _isSelectingForPdf = forPdf;
@@ -4868,6 +5139,8 @@ class _AiChatScreenState extends State<AiChatScreen>
       // Clear messages before loading new ones to prevent mixing
       setState(() {
         _messages = [];
+        _pendingActionProposal = null;
+        _pendingActionBusy = false;
       });
 
       // Always force a reload when the conversation changes
@@ -5429,6 +5702,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           builder: (context, settings, child) {
             final screenWidth = MediaQuery.of(context).size.width;
             final isCompactPhone = screenWidth < 390;
+            final colors = context.howaiColors;
 
             return Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -5439,7 +5713,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(24),
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF1C1C1E),
+                    color: colors.textPrimary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -5448,12 +5722,26 @@ class _AiChatScreenState extends State<AiChatScreen>
                   AppLocalizations.of(context)!.chatLandingSubtitle,
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(16),
-                    color: Colors.grey.shade600,
+                    color: colors.textSecondary,
                     height: 1.4,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: [
+                    _LandingCapabilityButton(
+                      icon: Icons.voice_chat_rounded,
+                      label:
+                          AppLocalizations.of(context)!.voiceCallFeatureTitle,
+                      onTap: () => _startElevenLabsCall(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 560),
                   child: Column(
@@ -5465,7 +5753,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                             : AppLocalizations.of(context)!.chatLandingTipFull,
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(13),
-                          color: Colors.grey.shade600,
+                          color: colors.textTertiary,
                           height: 1.35,
                         ),
                         textAlign: TextAlign.center,
@@ -5824,10 +6112,12 @@ class _AiChatScreenState extends State<AiChatScreen>
   ///
   /// Opens the full-screen call UI. When the call ends with a transcript,
   /// navigates to the new conversation.
-  void _startElevenLabsCall() async {
+  void _startElevenLabsCall({bool initialVisionEnabled = false}) async {
     final result = await Navigator.of(context).push<int?>(
       MaterialPageRoute(
-        builder: (context) => const ElevenLabsCallScreen(),
+        builder: (context) => ElevenLabsCallScreen(
+          initialVisionEnabled: initialVisionEnabled,
+        ),
         fullscreenDialog: true,
       ),
     );
@@ -6777,6 +7067,55 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
           ),
         );
       },
+    );
+  }
+}
+
+class _LandingCapabilityButton extends StatelessWidget {
+  const _LandingCapabilityButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.howaiColors;
+    return Semantics(
+      button: true,
+      label: label,
+      child: Material(
+        color: colors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: colors.divider),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 18, color: colors.accent),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: colors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

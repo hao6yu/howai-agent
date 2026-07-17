@@ -7,9 +7,11 @@ import 'package:showcaseview/showcaseview.dart';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:haogpt/generated/app_localizations.dart';
+import '../models/thinking_level.dart';
 import '../providers/settings_provider.dart';
 import '../services/file_service.dart';
 import '../services/subscription_service.dart';
+import '../core/theme/howai_theme.dart';
 
 class ChatInputWidget extends StatefulWidget {
   final TextEditingController textController;
@@ -56,12 +58,11 @@ class ChatInputWidget extends StatefulWidget {
   // Add callback for ElevenLabs voice call
   final VoidCallback? onSpeakCall;
 
-  // Deep research/thinking mode toggle parameters
-  final bool forceDeepResearch;
-  final Function(bool) onDeepResearchToggle;
+  // Paid GPT-5.6 reasoning control.
+  final ThinkingLevel thinkingLevel;
+  final ValueChanged<ThinkingLevel> onThinkingLevelChanged;
 
   // Showcase keys for feature highlighting
-  final GlobalKey? deepResearchKey;
   final GlobalKey? quickActionsKey;
   final GlobalKey? speakKey;
 
@@ -106,9 +107,8 @@ class ChatInputWidget extends StatefulWidget {
     this.onShowImageGenerationDialog,
     this.onShowTranslationDialog,
     this.onSpeakCall,
-    required this.forceDeepResearch,
-    required this.onDeepResearchToggle,
-    this.deepResearchKey,
+    required this.thinkingLevel,
+    required this.onThinkingLevelChanged,
     this.quickActionsKey,
     this.speakKey,
   });
@@ -118,7 +118,6 @@ class ChatInputWidget extends StatefulWidget {
 }
 
 class _ChatInputWidgetState extends State<ChatInputWidget> {
-  static const bool _useAdaptiveActionDensity = true;
   bool _isMenuExpanded = false;
 
   @override
@@ -177,13 +176,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     widget.onSendMessage(text, imagesToSend, filesToSend);
   }
 
-  // Helper method to close/hide keyboard
-  void _closeKeyboard() {
-    FocusScope.of(context).unfocus();
-  }
-
   @override
   Widget build(BuildContext context) {
+    final colors = context.howaiColors;
     final orientation = MediaQuery.of(context).orientation;
     final isLandscape = orientation == Orientation.landscape;
     final screenWidth = MediaQuery.of(context).size.width;
@@ -192,21 +187,22 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
         : screenWidth;
     final isTablet = shortestSide >= 600;
     final isPhoneLandscape = !isTablet && isLandscape;
+    final isIdleComposer = !widget.textInputFocusNode.hasFocus &&
+        !widget.isVoiceInputMode &&
+        widget.textController.text.trim().isEmpty &&
+        widget.pendingImages.isEmpty &&
+        widget.pendingFiles.isEmpty;
 
-    // Use smaller padding for phone landscape to save space
-    final verticalPadding = isPhoneLandscape ? 6.0 : 12.0;
+    // Keep the composer compact; the parent SafeArea already provides the
+    // required iPhone home-indicator clearance.
+    final verticalPadding =
+        isPhoneLandscape ? 4.0 : (isIdleComposer ? 6.0 : 8.0);
     final horizontalPadding = isPhoneLandscape ? 12.0 : 16.0;
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            spreadRadius: 1,
-            blurRadius: 10,
-          ),
-        ],
+        color: colors.canvas,
+        border: Border(top: BorderSide(color: colors.divider)),
       ),
       padding: EdgeInsets.fromLTRB(horizontalPadding, verticalPadding,
           horizontalPadding, verticalPadding),
@@ -223,29 +219,12 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
           // File attachments area
           if (widget.pendingFiles.isNotEmpty) _buildFileAttachmentsArea(),
 
-          // Text input area - Now at the top like ChatGPT
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade600
-                    : Colors.grey.shade300,
-              ),
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade800
-                  : Colors.white,
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: widget.isVoiceInputMode
-                ? _buildVoiceInputButton()
-                : _buildTextInputField(),
-          ),
+          if (widget.thinkingLevel != ThinkingLevel.auto)
+            _buildThinkingLevelChip(),
 
-          SizedBox(height: isPhoneLandscape ? 4 : 8),
-
-          // Action buttons row - Below text input like ChatGPT
-          _buildActionButtonsRow(isPhoneLandscape),
+          // One adaptive composer surface: tools on the left, text or
+          // push-to-talk in the middle, and voice/send on the right.
+          _buildAdaptiveComposer(isPhoneLandscape),
         ],
       ),
     );
@@ -453,11 +432,13 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     );
   }
 
-  Widget _buildVoiceInputButton() {
+  Widget _buildVoiceInputButton({bool compact = false}) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
         // Calculate scaled dimensions - minimum 60, scaled based on font size
-        final scaledHeight = math.max(60.0, settings.getScaledFontSize(60));
+        final scaledHeight = compact
+            ? math.max(44.0, settings.getScaledFontSize(44))
+            : math.max(60.0, settings.getScaledFontSize(60));
         final scaledIconSize = settings.getScaledFontSize(20);
         final scaledSpacing = settings.getScaledFontSize(8);
         final scaledPadding = settings.getScaledFontSize(12);
@@ -482,35 +463,37 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
             child: Container(
               height: scaledHeight,
               width: double.infinity,
-              decoration: BoxDecoration(
-                color: widget.isRecording
-                    ? Colors.red.shade50
-                    : Colors.grey.shade100,
-                gradient: widget.isRecording
-                    ? null
-                    : LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white,
-                          Colors.grey.shade100,
-                        ],
+              decoration: compact
+                  ? null
+                  : BoxDecoration(
+                      color: widget.isRecording
+                          ? Colors.red.shade50
+                          : Colors.grey.shade100,
+                      gradient: widget.isRecording
+                          ? null
+                          : LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.white,
+                                Colors.grey.shade100,
+                              ],
+                            ),
+                      borderRadius: BorderRadius.circular(scaledBorderRadius),
+                      border: Border.all(
+                        color: widget.isRecording
+                            ? Colors.red
+                            : const Color(0xFF0078D4).withOpacity(0.3),
+                        width: widget.isRecording ? 1.5 : 1,
                       ),
-                borderRadius: BorderRadius.circular(scaledBorderRadius),
-                border: Border.all(
-                  color: widget.isRecording
-                      ? Colors.red
-                      : const Color(0xFF0078D4).withOpacity(0.3),
-                  width: widget.isRecording ? 1.5 : 1,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 2,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
               child: Ink(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(scaledBorderRadius),
@@ -540,7 +523,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       ),
 
                     // Cancel indicator
-                    if (widget.isShowingCancelHint)
+                    if (widget.isShowingCancelHint && !compact)
                       Positioned(
                         top: 0,
                         child: Container(
@@ -607,7 +590,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                               ),
                             ],
                           ),
-                          if (!widget.isRecording)
+                          if (!widget.isRecording && !compact)
                             Text(
                               AppLocalizations.of(context)!.pressAndHoldToSpeak,
                               style: TextStyle(
@@ -675,6 +658,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   Widget _buildTextInputField() {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
+        final colors = context.howaiColors;
         return Focus(
           onKeyEvent: (FocusNode node, KeyEvent event) {
             if (event is KeyDownEvent &&
@@ -698,20 +682,28 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
             maxLines: 5,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(16),
+              color: colors.textPrimary,
             ),
             decoration: InputDecoration(
               hintText: AppLocalizations.of(context)!.chatInputHint,
               hintStyle: TextStyle(
                 fontSize: settings.getScaledFontSize(14),
-                color: Colors.grey.shade600,
+                color: colors.textTertiary,
               ),
+              filled: false,
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
               isDense: true,
-              contentPadding: EdgeInsets.zero,
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
             ),
             textCapitalization: TextCapitalization.sentences,
             keyboardType: TextInputType.multiline,
             textInputAction: TextInputAction.send,
+            onTapOutside: (_) => widget.textInputFocusNode.unfocus(),
             onSubmitted: (value) {
               _sendMessage();
             },
@@ -724,374 +716,255 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     );
   }
 
-  Widget _buildActionButtonsRow(bool isPhoneLandscape) {
+  Widget _buildAdaptiveComposer(bool isPhoneLandscape) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            // Check if we're in a narrow layout (keyboard is showing or small screen)
-            final isNarrow = constraints.maxWidth < 280;
-            final buttonSpacing = settings.getScaledFontSize(
-                isNarrow ? 4.0 : (isPhoneLandscape ? 8 : 12));
+        final hasDraft = widget.textController.text.trim().isNotEmpty ||
+            widget.pendingImages.isNotEmpty ||
+            widget.pendingFiles.isNotEmpty;
+        final isIdleCollapsed = !isPhoneLandscape &&
+            !widget.textInputFocusNode.hasFocus &&
+            !widget.isVoiceInputMode &&
+            !hasDraft;
+        final buttonSize = settings
+            .getScaledFontSize(
+              isPhoneLandscape
+                  ? 38
+                  : isIdleCollapsed
+                      ? 40
+                      : 42,
+            )
+            .clamp(38.0, 52.0)
+            .toDouble();
+        final canSend = hasDraft && !widget.isSending;
 
-            // Adjust button size based on available width and font scale
-            final buttonSize = settings.getScaledFontSize(
-                isNarrow ? 32.0 : (isPhoneLandscape ? 32.0 : 40.0));
-            final sendButtonSize = settings.getScaledFontSize(
-                isNarrow ? 32.0 : (isPhoneLandscape ? 32.0 : 40.0));
-            final sendIconSize = settings.getScaledFontSize(
-                isNarrow ? 14.0 : (isPhoneLandscape ? 16.0 : 20.0));
-            final hasDraft = widget.textController.text.trim().isNotEmpty ||
-                widget.pendingImages.isNotEmpty ||
-                widget.pendingFiles.isNotEmpty;
-            final isComposingText =
-                !widget.isVoiceInputMode && widget.textInputFocusNode.hasFocus;
-            // Keep the deep research entry point stable. Hiding it on focus
-            // makes the control appear/disappear unpredictably, especially for
-            // free users who can never keep it "enabled".
-            const showDeepResearchButton = true;
-            final showInputModeToggle = !_useAdaptiveActionDensity
-                ? true
-                : (!isComposingText || !hasDraft);
-            final showSpeakButton = widget.onSpeakCall != null &&
-                (!_useAdaptiveActionDensity || !isComposingText || !hasDraft);
-            final showKeyboardHideButton =
-                !widget.isVoiceInputMode && widget.textInputFocusNode.hasFocus;
-            final showSendButton = hasDraft;
-
-            final trailingActions = <Widget>[];
-            if (showInputModeToggle) {
-              trailingActions.add(
-                _buildActionButton(
-                  icon: widget.isVoiceInputMode
-                      ? Icons.keyboard_alt_outlined
-                      : Icons.settings_voice,
-                  onTap: widget.onToggleInputMode,
-                  tooltip: widget.isVoiceInputMode
-                      ? AppLocalizations.of(context)!.switchToKeyboard
-                      : AppLocalizations.of(context)!.switchToVoiceInput,
-                  isPhoneLandscape: isPhoneLandscape,
-                  size: buttonSize,
-                ),
-              );
-            }
-            if (showSpeakButton) {
-              final speakButton = _buildSpeakButton(
-                onTap: widget.onSpeakCall!,
-                isPhoneLandscape: isPhoneLandscape,
-                buttonSize: buttonSize,
-              );
-              trailingActions.add(
-                widget.speakKey == null
-                    ? speakButton
-                    : Showcase(
-                        key: widget.speakKey!,
-                        title: AppLocalizations.of(context)!.speakButtonLabel,
-                        description:
-                            AppLocalizations.of(context)!.voiceCallFeatureDesc,
-                        targetBorderRadius:
-                            BorderRadius.circular(buttonSize / 2),
-                        tooltipBackgroundColor: const Color(0xFF0078D4),
-                        textColor: Colors.white,
-                        descTextStyle: const TextStyle(
-                          fontSize: 14,
-                          color: Colors.white,
-                          height: 1.4,
-                        ),
-                        titleTextStyle: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                        child: speakButton,
-                      ),
-              );
-            }
-            if (showKeyboardHideButton) {
-              trailingActions.add(
-                SizedBox(
-                  width: sendButtonSize,
-                  height: sendButtonSize,
-                  child: _buildActionButton(
-                    icon: Icons.keyboard_hide,
-                    onTap: _closeKeyboard,
-                    tooltip: AppLocalizations.of(context)!.hideKeyboard,
-                    isPhoneLandscape: isPhoneLandscape,
-                    size: buttonSize,
-                  ),
-                ),
-              );
-            }
-            if (showSendButton) {
-              trailingActions.add(
-                AnimatedBuilder(
-                  animation: widget.sendButtonController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: 1.0 + (widget.sendButtonController.value * 0.1),
-                      child: Container(
-                        width: sendButtonSize,
-                        height: sendButtonSize,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF0078D4),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: Icon(Icons.send_rounded, size: sendIconSize),
-                          color: Colors.white,
-                          padding: EdgeInsets.zero,
-                          onPressed: _sendMessage,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              );
-            }
-
-            return SizedBox(
-              height: isNarrow ? 36 : (isPhoneLandscape ? 36 : 48),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Left side buttons - More actions and deep research toggle
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Plus button for features menu
-                      () {
-                        final button = _buildActionButton(
-                          icon: _isMenuExpanded ? Icons.close : Icons.add,
-                          onTap: () {
-                            setState(() {
-                              _isMenuExpanded = !_isMenuExpanded;
-                            });
-                            if (_isMenuExpanded) {
-                              _showFeaturesMenu();
-                            }
-                          },
-                          tooltip: AppLocalizations.of(context)!.quickActions,
-                          isPhoneLandscape: isPhoneLandscape,
-                          size: buttonSize,
-                        );
-
-                        // Wrap with Showcase if key is provided
-                        if (widget.quickActionsKey != null) {
-                          return Showcase(
-                            key: widget.quickActionsKey!,
-                            title: AppLocalizations.of(context)!
-                                .featureShowcaseQuickActionsTitle,
-                            description: AppLocalizations.of(context)!
-                                .featureShowcaseQuickActionsDesc,
-                            targetBorderRadius: BorderRadius.circular(8),
-                            tooltipBackgroundColor: const Color(0xFFEF4444),
-                            textColor: Colors.white,
-                            descTextStyle: const TextStyle(
-                              fontSize: 14,
-                              color: Colors.white,
-                              height: 1.4,
-                            ),
-                            titleTextStyle: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                            child: button,
-                          );
-                        }
-                        return button;
-                      }(),
-
-                      if (showDeepResearchButton) ...[
-                        SizedBox(width: buttonSpacing.toDouble()),
-                        Consumer<SubscriptionService>(
-                          builder: (context, subscriptionService, child) {
-                            final canUseDeepResearch =
-                                subscriptionService.isPremium; // Premium only
-                            final isEnabled =
-                                widget.forceDeepResearch && canUseDeepResearch;
-
-                            final button = _buildDeepResearchButton(
-                              isEnabled: isEnabled,
-                              canUseDeepResearch: canUseDeepResearch,
-                              onTap: () {
-                                if (canUseDeepResearch) {
-                                  widget.onDeepResearchToggle(
-                                      !widget.forceDeepResearch);
-                                } else {
-                                  _showDeepResearchUpgradeDialog();
-                                }
-                              },
-                              isPhoneLandscape: isPhoneLandscape,
-                              size: buttonSize,
-                            );
-
-                            // Wrap with Showcase if key is provided
-                            if (widget.deepResearchKey != null) {
-                              return Showcase(
-                                key: widget.deepResearchKey!,
-                                title: AppLocalizations.of(context)!
-                                    .featureShowcaseDeepResearchTitle,
-                                description: AppLocalizations.of(context)!
-                                    .featureShowcaseDeepResearchDesc,
-                                targetBorderRadius: BorderRadius.circular(8),
-                                tooltipBackgroundColor: const Color(0xFF8E6CFF),
-                                textColor: Colors.white,
-                                descTextStyle: const TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white,
-                                  height: 1.4,
-                                ),
-                                titleTextStyle: const TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                                child: button,
-                              );
-                            }
-                            return button;
-                          },
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  // Right side - adaptive core actions
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children:
-                        _withSpacing(trailingActions, buttonSpacing.toDouble()),
-                  ),
-                ],
-              ),
-            );
+        Widget toolsButton = _buildComposerControl(
+          icon: _isMenuExpanded ? Icons.close : Icons.add,
+          onTap: () {
+            setState(() => _isMenuExpanded = true);
+            _showFeaturesMenu();
           },
+          tooltip: AppLocalizations.of(context)!.quickActions,
+          size: buttonSize,
+        );
+        if (widget.quickActionsKey != null) {
+          toolsButton = Showcase(
+            key: widget.quickActionsKey!,
+            title:
+                AppLocalizations.of(context)!.featureShowcaseQuickActionsTitle,
+            description:
+                AppLocalizations.of(context)!.featureShowcaseQuickActionsDesc,
+            child: toolsButton,
+          );
+        }
+
+        Widget trailingControl;
+        if (widget.isVoiceInputMode) {
+          trailingControl = _buildComposerControl(
+            icon: Icons.keyboard_alt_outlined,
+            onTap: widget.onToggleInputMode,
+            tooltip: AppLocalizations.of(context)!.switchToKeyboard,
+            size: buttonSize,
+          );
+        } else if (hasDraft) {
+          trailingControl = AnimatedBuilder(
+            animation: widget.sendButtonController,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: 1.0 + (widget.sendButtonController.value * 0.1),
+                child: _buildComposerControl(
+                  icon: Icons.arrow_upward_rounded,
+                  onTap: canSend ? _sendMessage : null,
+                  tooltip: AppLocalizations.of(context)!.send,
+                  size: buttonSize,
+                  isPrimary: canSend,
+                ),
+              );
+            },
+          );
+        } else {
+          final dictationControl = _buildComposerControl(
+            icon: Icons.mic_none_rounded,
+            onTap: widget.onToggleInputMode,
+            tooltip: AppLocalizations.of(context)!.voiceInput,
+            size: buttonSize,
+          );
+          Widget voiceAgentControl = _buildComposerControl(
+            icon: Icons.graphic_eq_rounded,
+            onTap: widget.onSpeakCall ?? widget.onToggleInputMode,
+            tooltip: AppLocalizations.of(context)!.speakButtonTooltip,
+            size: buttonSize,
+          );
+          if (widget.speakKey != null) {
+            voiceAgentControl = Showcase(
+              key: widget.speakKey!,
+              title: AppLocalizations.of(context)!.speakButtonLabel,
+              description: AppLocalizations.of(context)!.voiceCallFeatureDesc,
+              child: voiceAgentControl,
+            );
+          }
+          trailingControl = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              dictationControl,
+              const SizedBox(width: 2),
+              voiceAgentControl,
+            ],
+          );
+        }
+
+        final colors = context.howaiColors;
+        final composer = Container(
+          key: const ValueKey<String>('adaptive_composer'),
+          constraints: BoxConstraints(
+            minHeight: isIdleCollapsed ? 44 : buttonSize + 8,
+          ),
+          padding: EdgeInsets.all(isIdleCollapsed ? 2 : 4),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colors.divider),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              toolsButton,
+              const SizedBox(width: 4),
+              Expanded(
+                child: widget.isVoiceInputMode
+                    ? _buildVoiceInputButton(compact: true)
+                    : _buildTextInputField(),
+              ),
+              const SizedBox(width: 4),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 160),
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                child: KeyedSubtree(
+                  key: ValueKey<String>(
+                    widget.isVoiceInputMode
+                        ? 'keyboard'
+                        : hasDraft
+                            ? 'send'
+                            : 'voice-actions',
+                  ),
+                  child: trailingControl,
+                ),
+              ),
+            ],
+          ),
+        );
+        return AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.textInputFocusNode.hasFocus
+                ? 0
+                : isIdleCollapsed
+                    ? 18
+                    : 12,
+          ),
+          child: composer,
         );
       },
     );
   }
 
-  List<Widget> _withSpacing(List<Widget> items, double spacing) {
-    if (items.isEmpty) return const [];
-    final children = <Widget>[];
-    for (int i = 0; i < items.length; i++) {
-      children.add(items[i]);
-      if (i < items.length - 1) {
-        children.add(SizedBox(width: spacing));
-      }
-    }
-    return children;
+  Widget _buildThinkingLevelChip() {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: InputChip(
+          visualDensity: const VisualDensity(horizontal: -3, vertical: -4),
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          labelPadding: const EdgeInsets.only(left: 2),
+          avatar: Icon(
+            Icons.psychology_outlined,
+            size: 15,
+            color: colorScheme.primary,
+          ),
+          label: Text(
+            _thinkingLevelLabel(widget.thinkingLevel),
+            style: Theme.of(context).textTheme.labelMedium,
+          ),
+          onDeleted: () => widget.onThinkingLevelChanged(ThinkingLevel.auto),
+          deleteIcon: const Icon(Icons.close, size: 15),
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.7),
+          ),
+          backgroundColor:
+              colorScheme.secondaryContainer.withValues(alpha: 0.45),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(9),
+          ),
+        ),
+      ),
+    );
   }
 
-  // Helper method to build action buttons with consistent style
-  Widget _buildActionButton({
+  Widget _buildComposerControl({
     required IconData icon,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
     required String tooltip,
-    Color? iconColor,
-    bool isPhoneLandscape = false,
-    double? size,
+    required double size,
+    bool isPrimary = false,
   }) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
-        final scaledButtonSize =
-            size ?? settings.getScaledFontSize(isPhoneLandscape ? 32.0 : 40.0);
-        final scaledIconSize =
-            settings.getScaledFontSize(isPhoneLandscape ? 18.0 : 22.0);
-        final scaledBorderRadius = settings.getScaledFontSize(4);
+    final colors = context.howaiColors;
+    final enabled = onTap != null;
 
-        return Container(
-          width: scaledButtonSize,
-          height: scaledButtonSize,
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade700
-                : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(scaledBorderRadius),
-          ),
-          child: Tooltip(
-            message: tooltip,
+    if (!isPrimary) {
+      return Semantics(
+        button: true,
+        enabled: enabled,
+        label: tooltip,
+        child: Tooltip(
+          message: tooltip,
+          child: SizedBox(
+            width: size,
+            height: size,
             child: Material(
-              color: Colors.transparent,
+              type: MaterialType.transparency,
               child: InkWell(
-                borderRadius: BorderRadius.circular(scaledBorderRadius),
                 onTap: onTap,
+                borderRadius: BorderRadius.circular(8),
                 child: Center(
                   child: Icon(
                     icon,
-                    color: iconColor ??
-                        (Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white70
-                            : const Color(0xFF0078D4)),
-                    size: scaledIconSize,
+                    size: size * 0.52,
+                    color: enabled ? colors.textPrimary : colors.textTertiary,
                   ),
                 ),
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    }
 
-  /// Build the "Speak" button for ElevenLabs voice calls.
-  /// Styled to match the rest of action controls (same corner profile).
-  Widget _buildSpeakButton({
-    required VoidCallback onTap,
-    required bool isPhoneLandscape,
-    required double buttonSize,
-  }) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
-        final scaledIconSize =
-            settings.getScaledFontSize(isPhoneLandscape ? 16.0 : 18.0);
-        final scaledFontSize =
-            settings.getScaledFontSize(isPhoneLandscape ? 12.0 : 14.0);
-        final scaledPadding =
-            settings.getScaledFontSize(isPhoneLandscape ? 8.0 : 12.0);
-        final scaledBorderRadius = settings.getScaledFontSize(4);
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-
-        return Tooltip(
-          message: AppLocalizations.of(context)!.speakButtonTooltip,
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(scaledBorderRadius),
-              onTap: onTap,
-              child: Container(
-                height: buttonSize,
-                padding: EdgeInsets.symmetric(horizontal: scaledPadding),
-                decoration: BoxDecoration(
-                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(scaledBorderRadius),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.graphic_eq_rounded,
-                      size: scaledIconSize,
-                      color: isDark ? Colors.white70 : const Color(0xFF0078D4),
-                    ),
-                    SizedBox(width: settings.getScaledFontSize(4)),
-                    Text(
-                      AppLocalizations.of(context)!.speakButtonLabel,
-                      style: TextStyle(
-                        fontSize: scaledFontSize,
-                        fontWeight: FontWeight.w600,
-                        color:
-                            isDark ? Colors.white70 : const Color(0xFF0078D4),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: tooltip,
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: IconButton(
+          onPressed: onTap,
+          tooltip: tooltip,
+          style: IconButton.styleFrom(
+            backgroundColor: colors.textPrimary,
+            foregroundColor: colors.canvas,
+            disabledBackgroundColor: colors.surfaceStrong,
+            disabledForegroundColor: colors.textTertiary,
+            shape: const CircleBorder(),
+            padding: EdgeInsets.zero,
           ),
-        );
-      },
+          icon: Icon(icon, size: size * 0.52),
+        ),
+      ),
     );
   }
 
@@ -1263,238 +1136,275 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
 
   // Show features menu as a bottom sheet with ChatGPT-like styling
   void _showFeaturesMenu() {
+    final hostContext = context;
     showModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
+      backgroundColor: context.howaiColors.canvas,
       isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+      ),
       builder: (BuildContext context) {
         return Consumer<SettingsProvider>(
           builder: (context, settings, child) {
+            final colors = context.howaiColors;
             return Container(
+              key: const ValueKey<String>('quick_actions_sheet'),
               decoration: BoxDecoration(
-                color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
+                color: colors.canvas,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(22),
+                  topRight: Radius.circular(22),
                 ),
               ),
               child: SafeArea(
+                top: false,
                 child: Padding(
-                  padding: EdgeInsets.fromLTRB(0, 8, 0, 8),
+                  padding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Handle bar
-                      Center(
-                        child: Container(
-                          width: 36,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade600
-                                    : Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(2),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          AppLocalizations.of(context)!.quickActions,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: settings.getScaledFontSize(18),
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: -0.2,
                           ),
                         ),
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
 
                       // Primary attachment options - ChatGPT style
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: Consumer<SubscriptionService>(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Container(
+                          key: const ValueKey<String>(
+                              'attachment_actions_group'),
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            color: colors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: colors.divider),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Consumer<SubscriptionService>(
+                                  builder:
+                                      (context, subscriptionService, child) {
+                                    final isPremium =
+                                        subscriptionService.isPremium;
+                                    final canUse = isPremium ||
+                                        subscriptionService.canUseImageAnalysis;
+
+                                    return _buildPrimaryAttachmentOption(
+                                      icon: Icons.photo_camera,
+                                      label: AppLocalizations.of(context)!
+                                          .quickActionAskFromPhoto,
+                                      isPremium: !isPremium,
+                                      canUse: canUse,
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                        setState(() {
+                                          _isMenuExpanded = false;
+                                        });
+                                        if (canUse) {
+                                          widget.onShowAttachmentOptions(false);
+                                        } else {
+                                          _showUpgradeDialog(hostContext);
+                                        }
+                                      },
+                                    );
+                                  },
+                                ),
+                              ),
+                              _buildActionDivider(vertical: true),
+                              Expanded(
+                                child: _buildPrimaryAttachmentOption(
+                                  icon: Icons.folder,
+                                  label: AppLocalizations.of(context)!
+                                      .quickActionAskFromFile,
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    setState(() {
+                                      _isMenuExpanded = false;
+                                    });
+                                    widget.onShowFileUploadOptions();
+                                  },
+                                ),
+                              ),
+                              _buildActionDivider(vertical: true),
+                              Expanded(
+                                child: _buildPrimaryAttachmentOption(
+                                  icon: Icons.picture_as_pdf,
+                                  label: AppLocalizations.of(context)!
+                                      .quickActionScanToPdf,
+                                  onTap: () {
+                                    Navigator.pop(context);
+                                    setState(() {
+                                      _isMenuExpanded = false;
+                                    });
+                                    widget.onShowAttachmentOptions(true);
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Feature options - Single column ChatGPT style
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Container(
+                          key: const ValueKey<String>('feature_actions_group'),
+                          clipBehavior: Clip.antiAlias,
+                          decoration: BoxDecoration(
+                            color: colors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: colors.divider),
+                          ),
+                          child: Column(
+                            children: [
+                              // GPT-5.6 thinking level
+                              Consumer<SubscriptionService>(
                                 builder: (context, subscriptionService, child) {
-                                  final remaining = subscriptionService
-                                      .remainingImageAnalysis;
+                                  final canChooseThinking =
+                                      subscriptionService.isPremium;
+
+                                  return _buildChatGPTStyleOption(
+                                    icon: Icons.psychology,
+                                    title: AppLocalizations.of(context)!
+                                        .thinkingLevel,
+                                    subtitle: _thinkingLevelLabel(
+                                        widget.thinkingLevel),
+                                    isPremium: !subscriptionService.isPremium,
+                                    canUse: canChooseThinking,
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      setState(() {
+                                        _isMenuExpanded = false;
+                                      });
+                                      if (canChooseThinking) {
+                                        _showThinkingLevelMenu();
+                                      } else {
+                                        _showUpgradeDialog(hostContext);
+                                      }
+                                    },
+                                  );
+                                },
+                              ),
+                              _buildActionDivider(),
+
+                              _buildChatGPTStyleOption(
+                                icon: Icons.mic_none_rounded,
+                                title: AppLocalizations.of(context)!.voiceInput,
+                                subtitle: AppLocalizations.of(context)!
+                                    .voiceInputDesc,
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  setState(() => _isMenuExpanded = false);
+                                  if (!widget.isVoiceInputMode) {
+                                    widget.onToggleInputMode();
+                                  }
+                                },
+                              ),
+                              _buildActionDivider(),
+
+                              // Image Generation
+                              Consumer<SubscriptionService>(
+                                builder: (context, subscriptionService, child) {
                                   final isPremium =
                                       subscriptionService.isPremium;
                                   final canUse = isPremium ||
-                                      subscriptionService.canUseImageAnalysis;
+                                      subscriptionService.canUseImageGeneration;
 
-                                  return _buildPrimaryAttachmentOption(
-                                    icon: Icons.photo_camera,
-                                    label: AppLocalizations.of(context)!
-                                        .quickActionAskFromPhoto,
-                                    isPremium: true,
+                                  return _buildChatGPTStyleOption(
+                                    icon: Icons.brush,
+                                    title: AppLocalizations.of(context)!
+                                        .quickActionGenerateImage,
+                                    subtitle: null,
+                                    isPremium: !isPremium,
                                     canUse: canUse,
                                     onTap: () {
                                       Navigator.pop(context);
                                       setState(() {
                                         _isMenuExpanded = false;
                                       });
-                                      if (canUse) {
-                                        widget.onShowAttachmentOptions(false);
-                                      } else {
-                                        _showUpgradeDialog(context);
+                                      if (canUse &&
+                                          widget.onShowImageGenerationDialog !=
+                                              null) {
+                                        widget.onShowImageGenerationDialog!();
+                                      } else if (!canUse) {
+                                        _showUpgradeDialog(hostContext);
                                       }
                                     },
                                   );
                                 },
                               ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: _buildPrimaryAttachmentOption(
-                                icon: Icons.folder,
-                                label: AppLocalizations.of(context)!
-                                    .quickActionAskFromFile,
+                              _buildActionDivider(),
+
+                              // Translation
+                              _buildChatGPTStyleOption(
+                                icon: Icons.translate,
+                                title: AppLocalizations.of(context)!.translate,
+                                subtitle: AppLocalizations.of(context)!
+                                    .quickActionTranslateSubtitle,
                                 onTap: () {
                                   Navigator.pop(context);
                                   setState(() {
                                     _isMenuExpanded = false;
                                   });
-                                  widget.onShowFileUploadOptions();
+                                  if (widget.onShowTranslationDialog != null) {
+                                    widget.onShowTranslationDialog!();
+                                  }
                                 },
                               ),
-                            ),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: _buildPrimaryAttachmentOption(
-                                icon: Icons.picture_as_pdf,
-                                label: AppLocalizations.of(context)!
-                                    .quickActionScanToPdf,
-                                onTap: () {
-                                  Navigator.pop(context);
-                                  setState(() {
-                                    _isMenuExpanded = false;
-                                  });
-                                  widget.onShowAttachmentOptions(true);
+                              _buildActionDivider(),
+
+                              // Places Explorer
+                              Consumer<SubscriptionService>(
+                                builder: (context, subscriptionService, child) {
+                                  final isPremium =
+                                      subscriptionService.isPremium;
+                                  final canUse = isPremium ||
+                                      subscriptionService.canUsePlacesExplorer;
+
+                                  return _buildChatGPTStyleOption(
+                                    icon: Icons.explore,
+                                    title: AppLocalizations.of(context)!
+                                        .quickActionFindPlaces,
+                                    subtitle: null,
+                                    isPremium: !isPremium,
+                                    canUse: canUse,
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      setState(() {
+                                        _isMenuExpanded = false;
+                                      });
+                                      if (canUse &&
+                                          widget.onLocationDiscovery != null) {
+                                        widget.onLocationDiscovery!();
+                                      } else if (!canUse) {
+                                        _showUpgradeDialog(hostContext);
+                                      }
+                                    },
+                                  );
                                 },
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
 
-                      SizedBox(height: 12),
-
-                      // Feature options - Single column ChatGPT style
-                      Container(
-                        padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Column(
-                          children: [
-                            // Deep Research Mode
-                            Consumer<SubscriptionService>(
-                              builder: (context, subscriptionService, child) {
-                                final canUseDeepResearch =
-                                    subscriptionService.isPremium;
-                                final isEnabled = widget.forceDeepResearch &&
-                                    canUseDeepResearch;
-
-                                return _buildChatGPTStyleOption(
-                                  icon: Icons.psychology,
-                                  title: AppLocalizations.of(context)!
-                                      .deepResearchUpgradeTitle,
-                                  subtitle: isEnabled
-                                      ? AppLocalizations.of(context)!.active
-                                      : null,
-                                  isPremium: true,
-                                  canUse: canUseDeepResearch,
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    setState(() {
-                                      _isMenuExpanded = false;
-                                    });
-                                    if (canUseDeepResearch) {
-                                      widget.onDeepResearchToggle(
-                                          !widget.forceDeepResearch);
-                                    } else {
-                                      _showDeepResearchUpgradeDialog();
-                                    }
-                                  },
-                                );
-                              },
-                            ),
-
-                            // Image Generation
-                            Consumer<SubscriptionService>(
-                              builder: (context, subscriptionService, child) {
-                                final remaining = subscriptionService
-                                    .remainingImageGenerations;
-                                final isPremium = subscriptionService.isPremium;
-                                final canUse = isPremium ||
-                                    subscriptionService.canUseImageGeneration;
-
-                                return _buildChatGPTStyleOption(
-                                  icon: Icons.brush,
-                                  title: AppLocalizations.of(context)!
-                                      .quickActionGenerateImage,
-                                  subtitle: null,
-                                  isPremium: true,
-                                  canUse: canUse,
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    setState(() {
-                                      _isMenuExpanded = false;
-                                    });
-                                    if (canUse &&
-                                        widget.onShowImageGenerationDialog !=
-                                            null) {
-                                      widget.onShowImageGenerationDialog!();
-                                    } else if (!canUse) {
-                                      _showUpgradeDialog(context);
-                                    }
-                                  },
-                                );
-                              },
-                            ),
-
-                            // Translation
-                            _buildChatGPTStyleOption(
-                              icon: Icons.translate,
-                              title: AppLocalizations.of(context)!.translate,
-                              subtitle: AppLocalizations.of(context)!
-                                  .quickActionTranslateSubtitle,
-                              onTap: () {
-                                Navigator.pop(context);
-                                setState(() {
-                                  _isMenuExpanded = false;
-                                });
-                                if (widget.onShowTranslationDialog != null) {
-                                  widget.onShowTranslationDialog!();
-                                }
-                              },
-                            ),
-
-                            // Places Explorer
-                            Consumer<SubscriptionService>(
-                              builder: (context, subscriptionService, child) {
-                                final remaining =
-                                    subscriptionService.remainingPlacesExplorer;
-                                final isPremium = subscriptionService.isPremium;
-                                final canUse = isPremium ||
-                                    subscriptionService.canUsePlacesExplorer;
-
-                                return _buildChatGPTStyleOption(
-                                  icon: Icons.explore,
-                                  title: AppLocalizations.of(context)!
-                                      .quickActionFindPlaces,
-                                  subtitle: null,
-                                  isPremium: true,
-                                  canUse: canUse,
-                                  onTap: () {
-                                    Navigator.pop(context);
-                                    setState(() {
-                                      _isMenuExpanded = false;
-                                    });
-                                    if (canUse &&
-                                        widget.onLocationDiscovery != null) {
-                                      widget.onLocationDiscovery!();
-                                    } else if (!canUse) {
-                                      _showUpgradeDialog(context);
-                                    }
-                                  },
-                                );
-                              },
-                            ),
-
-                            // Presentation Maker removed - feature deprecated
-                          ],
+                              // Presentation Maker removed - feature deprecated
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -1524,94 +1434,58 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        final screenWidth = MediaQuery.of(context).size.width;
-        final isCompactWidth = screenWidth < 390;
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: canUse ? onTap : null,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              height: 62,
-              padding: EdgeInsets.symmetric(vertical: 4, horizontal: 6),
-              decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? (canUse ? Colors.grey.shade800 : Colors.grey.shade700)
-                    : (canUse ? Colors.grey.shade50 : Colors.grey.shade100),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? (canUse ? Colors.grey.shade600 : Colors.grey.shade500)
-                      : (canUse ? Colors.grey.shade200 : Colors.grey.shade300),
-                ),
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Main content
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? (canUse
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade600)
-                              : (canUse ? Colors.white : Colors.grey.shade200),
-                          borderRadius: BorderRadius.circular(7),
-                          boxShadow: canUse
-                              ? [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 2,
-                                    offset: Offset(0, 1),
-                                  ),
-                                ]
-                              : null,
-                        ),
-                        child: Icon(
-                          icon,
-                          size: 14,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? (canUse ? Colors.white70 : Colors.grey.shade400)
-                              : (canUse
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade500),
+        final colors = context.howaiColors;
+        return Semantics(
+          button: true,
+          label: label,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              child: SizedBox(
+                height: 82,
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              icon,
+                              size: 22,
+                              color: canUse
+                                  ? colors.textPrimary
+                                  : colors.textTertiary,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              subtitle != null ? '$label · $subtitle' : label,
+                              style: TextStyle(
+                                fontSize: settings.getScaledFontSize(11.5),
+                                fontWeight: FontWeight.w500,
+                                color: canUse
+                                    ? colors.textSecondary
+                                    : colors.textTertiary,
+                                height: 1.15,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: 4),
-                      // Combined title and subtitle in one line
-                      Text(
-                        subtitle != null ? '$label - $subtitle' : label,
-                        style: TextStyle(
-                          fontSize: settings
-                              .getScaledFontSize(isCompactWidth ? 9 : 10),
-                          fontWeight: FontWeight.w500,
-                          color: Theme.of(context).brightness == Brightness.dark
-                              ? (canUse ? Colors.white70 : Colors.grey.shade400)
-                              : (canUse
-                                  ? Colors.grey.shade700
-                                  : Colors.grey.shade500),
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-
-                  // PRO badge positioned at top right corner of the card
-                  if (isPremium)
-                    Positioned(
-                      top: 3,
-                      right: 3,
-                      child: _buildPremiumBadge(fontSize: 7),
                     ),
-                ],
+                    if (isPremium)
+                      PositionedDirectional(
+                        top: 7,
+                        end: 7,
+                        child: _buildPremiumBadge(fontSize: 7.5),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1631,118 +1505,84 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   }) {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
-        return Padding(
-          padding: EdgeInsets.only(bottom: 2),
+        final colors = context.howaiColors;
+        return Semantics(
+          button: true,
+          label: title,
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: canUse ? onTap : null,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                padding: EdgeInsets.symmetric(vertical: 8, horizontal: 14),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? (canUse ? Colors.grey.shade800 : Colors.grey.shade700)
-                      : (canUse ? Colors.white : Colors.grey.shade50),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey.shade700
-                        : Colors.grey.shade200,
-                    width: 0.8,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    // Icon container
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? (canUse
-                                ? Colors.grey.shade700
-                                : Colors.grey.shade600)
-                            : (canUse
-                                ? Colors.grey.shade100
-                                : Colors.grey.shade200),
-                        borderRadius: BorderRadius.circular(6),
+              onTap: onTap,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 58),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 28,
+                        child: Icon(
+                          icon,
+                          size: 21,
+                          color: canUse
+                              ? colors.textSecondary
+                              : colors.textTertiary,
+                        ),
                       ),
-                      child: Icon(
-                        icon,
-                        size: 16,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? (canUse ? Colors.white70 : Colors.grey.shade400)
-                            : (canUse
-                                ? Colors.grey.shade700
-                                : Colors.grey.shade500),
-                      ),
-                    ),
-                    SizedBox(width: 12),
-
-                    // Text content
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                title,
-                                style: TextStyle(
-                                  fontSize: settings.getScaledFontSize(14),
-                                  fontWeight: FontWeight.w600,
-                                  color: Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? (canUse
-                                          ? Colors.white
-                                          : Colors.grey.shade400)
-                                      : (canUse
-                                          ? Colors.black87
-                                          : Colors.grey.shade600),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    title,
+                                    style: TextStyle(
+                                      fontSize: settings.getScaledFontSize(15),
+                                      fontWeight: FontWeight.w600,
+                                      color: canUse
+                                          ? colors.textPrimary
+                                          : colors.textSecondary,
+                                      height: 1.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
-                                maxLines: 1,
+                                if (isPremium) ...[
+                                  const SizedBox(width: 7),
+                                  _buildPremiumBadge(fontSize: 8),
+                                ],
+                              ],
+                            ),
+                            if (subtitle != null) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                subtitle,
+                                style: TextStyle(
+                                  fontSize: settings.getScaledFontSize(12.5),
+                                  color: colors.textSecondary,
+                                  height: 1.25,
+                                ),
+                                maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              if (isPremium) ...[
-                                SizedBox(width: 8),
-                                _buildPremiumBadge(fontSize: 8),
-                              ],
                             ],
-                          ),
-                          if (subtitle != null) ...[
-                            SizedBox(height: 2),
-                            Text(
-                              subtitle,
-                              style: TextStyle(
-                                fontSize: settings.getScaledFontSize(12),
-                                color: Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? (canUse
-                                        ? Colors.grey.shade400
-                                        : Colors.grey.shade500)
-                                    : (canUse
-                                        ? Colors.grey.shade600
-                                        : Colors.grey.shade500),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
                           ],
-                        ],
+                        ),
                       ),
-                    ),
-
-                    // Arrow indicator
-                    if (canUse)
+                      const SizedBox(width: 8),
                       Icon(
-                        Icons.arrow_forward_ios,
-                        size: 16,
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey.shade500
-                            : Colors.grey.shade400,
+                        Icons.chevron_right_rounded,
+                        size: 20,
+                        color: colors.textTertiary,
                       ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1752,87 +1592,15 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     );
   }
 
-  Widget _buildFeatureOption({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required Color color,
-    required VoidCallback onTap,
-    bool isPremium = false,
-    bool isDisabled = false,
-  }) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
-        return Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: isDisabled ? null : onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade200),
-                borderRadius: BorderRadius.circular(12),
-                color: isDisabled ? Colors.grey.shade50 : Colors.white,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: isDisabled
-                          ? Colors.grey.shade300
-                          : color.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        Icon(
-                          icon,
-                          size: 20,
-                          color: isDisabled ? Colors.grey.shade500 : color,
-                        ),
-                        if (isPremium)
-                          Positioned(
-                            top: 1,
-                            right: 1,
-                            child: _buildPremiumBadge(fontSize: 7),
-                          ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: settings.getScaledFontSize(13),
-                      fontWeight: FontWeight.w600,
-                      color: isDisabled ? Colors.grey.shade600 : Colors.black87,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: settings.getScaledFontSize(11),
-                      color: isDisabled
-                          ? Colors.grey.shade500
-                          : Colors.grey.shade600,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
+  Widget _buildActionDivider({bool vertical = false}) {
+    final colors = context.howaiColors;
+    if (vertical) {
+      return Container(width: 1, height: 52, color: colors.divider);
+    }
+    return Container(
+      height: 1,
+      margin: const EdgeInsetsDirectional.only(start: 54),
+      color: colors.divider,
     );
   }
 
@@ -1966,24 +1734,26 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     bool compact = true,
   }) {
     final text = AppLocalizations.of(context)!.premiumBadge;
+    final colors = context.howaiColors;
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: compact ? 4 : 6,
         vertical: compact ? 1 : 2,
       ),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+        color: colors.accentSoft,
+        borderRadius: BorderRadius.circular(compact ? 5 : 7),
+        border: Border.all(
+          color: colors.accent.withValues(alpha: 0.28),
         ),
-        borderRadius: BorderRadius.circular(compact ? 4 : 6),
       ),
       child: Text(
         text,
         style: TextStyle(
           fontSize: fontSize,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-          letterSpacing: compact ? 0.3 : 0.6,
+          fontWeight: FontWeight.w700,
+          color: colors.accent,
+          letterSpacing: compact ? 0.2 : 0.4,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -1991,133 +1761,79 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
     );
   }
 
-  Widget _buildDeepResearchButton({
-    required bool isEnabled,
-    required bool canUseDeepResearch,
-    required VoidCallback onTap,
-    required bool isPhoneLandscape,
-    required double size,
-  }) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
-        final scaledButtonSize = size;
-        final scaledIconSize =
-            settings.getScaledFontSize(isPhoneLandscape ? 18.0 : 22.0);
-        final scaledBorderRadius = settings.getScaledFontSize(4);
-
-        return Container(
-          width: scaledButtonSize,
-          height: scaledButtonSize,
-          decoration: BoxDecoration(
-            color: isEnabled
-                ? const Color(0xFF0078D4).withOpacity(0.1)
-                : Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade700
-                    : Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(scaledBorderRadius),
-            border: isEnabled
-                ? Border.all(color: const Color(0xFF0078D4), width: 1)
-                : null,
-          ),
-          child: Tooltip(
-            message: canUseDeepResearch
-                ? (isEnabled
-                    ? 'Disable deep research mode'
-                    : 'Enable deep research mode (gpt-5.2 reasoning)')
-                : 'Deep research (Premium only)',
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(scaledBorderRadius),
-                onTap: onTap,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    Icon(
-                      Icons.psychology,
-                      color: isEnabled
-                          ? const Color(0xFF0078D4)
-                          : Theme.of(context).brightness == Brightness.dark
-                              ? Colors.white70
-                              : const Color(0xFF0078D4),
-                      size: scaledIconSize,
-                    ),
-                    // Premium indicator for free users
-                    if (!canUseDeepResearch)
-                      Positioned(
-                        right: 2,
-                        top: 2,
-                        child: Container(
-                          width: 8,
-                          height: 8,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                            ),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+  String _thinkingLevelLabel(ThinkingLevel level) {
+    final l10n = AppLocalizations.of(context)!;
+    return switch (level) {
+      ThinkingLevel.auto => l10n.thinkingAuto,
+      ThinkingLevel.fast => l10n.thinkingFast,
+      ThinkingLevel.balanced => l10n.thinkingBalanced,
+      ThinkingLevel.deep => l10n.thinkingDeep,
+    };
   }
 
-  void _showDeepResearchUpgradeDialog() {
-    showDialog(
+  void _showThinkingLevelMenu() {
+    showModalBottomSheet<void>(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(
-            AppLocalizations.of(context)!.deepResearchUpgradeTitle,
-            style: TextStyle(
-              fontSize: Theme.of(context).textTheme.titleLarge?.fontSize,
-              fontWeight: FontWeight.bold,
+      showDragHandle: true,
+      builder: (sheetContext) {
+        final l10n = AppLocalizations.of(sheetContext)!;
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.thinkingLevel,
+                  style: Theme.of(sheetContext).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  l10n.thinkingLevelNote,
+                  style: Theme.of(sheetContext).textTheme.bodyMedium?.copyWith(
+                        color:
+                            Theme.of(sheetContext).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                for (final level in ThinkingLevel.values)
+                  ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: Icon(_thinkingLevelIcon(level)),
+                    title: Text(_thinkingLevelLabel(level)),
+                    subtitle: level == ThinkingLevel.auto
+                        ? Text(l10n.recommended)
+                        : null,
+                    trailing: widget.thinkingLevel == level
+                        ? Icon(
+                            Icons.check_rounded,
+                            color: Theme.of(sheetContext).colorScheme.primary,
+                          )
+                        : null,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    onTap: () {
+                      widget.onThinkingLevelChanged(level);
+                      Navigator.pop(sheetContext);
+                    },
+                  ),
+              ],
             ),
           ),
-          content: Text(
-            AppLocalizations.of(context)!.deepResearchUpgradeDesc,
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          actions: [
-            TextButton(
-              child: Text(
-                AppLocalizations.of(context)!.maybeLater,
-                style: TextStyle(
-                  fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0078D4),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                AppLocalizations.of(context)!.upgradeNow,
-                style: TextStyle(
-                  fontSize: Theme.of(context).textTheme.bodyMedium?.fontSize,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.pushNamed(context, '/subscription');
-              },
-            ),
-          ],
         );
       },
     );
   }
+
+  IconData _thinkingLevelIcon(ThinkingLevel level) => switch (level) {
+        ThinkingLevel.auto => Icons.auto_awesome_outlined,
+        ThinkingLevel.fast => Icons.bolt_outlined,
+        ThinkingLevel.balanced => Icons.tune_rounded,
+        ThinkingLevel.deep => Icons.psychology_outlined,
+      };
 }

@@ -14,8 +14,14 @@ class SupabaseService {
   // Get current user
   User? get currentUser => _client.auth.currentUser;
 
-  // Check if user is authenticated
-  bool get isAuthenticated => currentUser != null;
+  // Anonymous users are real Supabase sessions used for secure proxy access,
+  // but they should not be treated as cloud-sync accounts.
+  bool get hasSession => currentUser != null;
+  bool get isAnonymous => currentUser?.isAnonymous ?? false;
+  bool get hasSyncAccount => hasSession && !isAnonymous;
+
+  // Check if user has a recoverable account for cloud sync.
+  bool get isAuthenticated => hasSyncAccount;
 
   // Listen to auth state changes
   Stream<AuthState> get authStateChanges => _client.auth.onAuthStateChange;
@@ -56,6 +62,18 @@ class SupabaseService {
     }
   }
 
+  // Create an anonymous session for local/accountless app usage.
+  Future<AuthResponse> signInAnonymously() async {
+    try {
+      final response = await _client.auth.signInAnonymously();
+      debugPrint('[SupabaseService] Anonymous sign in successful');
+      return response;
+    } catch (e) {
+      debugPrint('[SupabaseService] Anonymous sign in error: $e');
+      rethrow;
+    }
+  }
+
   // Sign in with Google using Supabase OAuth (web-based flow)
   Future<AuthResponse> signInWithGoogle() async {
     try {
@@ -67,6 +85,10 @@ class SupabaseService {
         redirectTo: kIsWeb ? null : 'com.hyu.haogpt://login-callback',
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
+
+      if (!result) {
+        throw StateError('Could not open the Google sign-in page.');
+      }
 
       // The OAuth flow was initiated successfully
       // The actual authentication happens in the external browser
@@ -90,9 +112,8 @@ class SupabaseService {
       // For web: Use the web app URL
       // Note: Apple requires HTTPS URLs in Apple Developer Console, but Supabase
       // will accept the custom scheme and handle the OAuth callback server-side
-      final String redirectUrl = kIsWeb
-          ? 'https://chat.howai.io'
-          : 'com.hyu.haogpt://login-callback';
+      final String redirectUrl =
+          kIsWeb ? 'https://chat.howai.io' : 'com.hyu.haogpt://login-callback';
 
       final result = await _client.auth.signInWithOAuth(
         OAuthProvider.apple,
@@ -100,9 +121,14 @@ class SupabaseService {
         authScreenLaunchMode: LaunchMode.externalApplication,
       );
 
+      if (!result) {
+        throw StateError('Could not open the Apple sign-in page.');
+      }
+
       // The OAuth flow was initiated successfully
       // Supabase will handle the HTTPS callback from Apple, then redirect to our deep link
-      debugPrint('[SupabaseService] Apple OAuth flow initiated with redirect: $redirectUrl, result: $result');
+      debugPrint(
+          '[SupabaseService] Apple OAuth flow initiated with redirect: $redirectUrl, result: $result');
 
       // Return a response indicating the flow was started
       // The actual auth state will be updated via the auth state listener
@@ -158,7 +184,11 @@ class SupabaseService {
   // Get user profile from profiles table
   Future<Map<String, dynamic>?> getUserProfile(String userId) async {
     try {
-      final response = await _client.from('profiles').select().eq('id', userId).maybeSingle();
+      final response = await _client
+          .from('profiles')
+          .select()
+          .eq('id', userId)
+          .maybeSingle();
       return response;
     } catch (e) {
       debugPrint('[SupabaseService] Get user profile error: $e');
@@ -174,10 +204,18 @@ class SupabaseService {
     String? avatarUrl,
   }) async {
     try {
+      final normalizedName = name?.replaceAll(RegExp(r'\s+'), ' ').trim();
+      final hasKnownName = normalizedName != null &&
+          normalizedName.isNotEmpty &&
+          normalizedName.toLowerCase() != 'user';
       final data = {
         'id': userId,
         if (email != null) 'email': email,
-        if (name != null) 'name': name,
+        if (hasKnownName) 'name': normalizedName,
+        if (hasKnownName) 'name_status': 'known',
+        if (hasKnownName) 'name_source': 'user',
+        if (hasKnownName)
+          'name_prompted_at': DateTime.now().toUtc().toIso8601String(),
         if (avatarUrl != null) 'avatar_url': avatarUrl,
         'updated_at': DateTime.now().toIso8601String(),
       };

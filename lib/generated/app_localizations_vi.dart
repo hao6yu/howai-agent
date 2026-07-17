@@ -350,7 +350,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get continuousUpdatesDesc => 'Tính năng mới và cải tiến liên tục!';
 
   @override
-  String get privacyBanner => 'Dữ liệu của bạn ở lại trên thiết bị. Không theo dõi. Không quảng cáo. Bạn luôn kiểm soát được.';
+  String get privacyBanner => 'Bạn luôn kiểm soát dữ liệu của mình. Yêu cầu AI và các tính năng đồng bộ được bật được xử lý an toàn qua dịch vụ HowAI. Không quảng cáo.';
 
   @override
   String get subscriptionDetailsTitle => 'Chi tiết Đăng ký';
@@ -475,7 +475,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get instructionsSection7Line3 => '• Xem phân tích AI trong phần Cài đặt > Phân tích AI.';
 
   @override
-  String get instructionsSection7Line4 => '• Tất cả phân tích được thực hiện trên thiết bị vì quyền riêng tư của bạn—không có dữ liệu nào rời khỏi thiết bị.';
+  String get instructionsSection7Line4 => '• Các tính năng AI có thể xử lý nội dung an toàn qua dịch vụ Supabase và OpenAI của HowAI. Quản lý cá nhân hóa trong cài đặt Bộ nhớ.';
 
   @override
   String get instructionsSection7Line5 => '• Bạn có thể xóa dữ liệu này bất cứ lúc nào trong Cài đặt.';
@@ -805,7 +805,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Đã hiểu';
 
   @override
-  String get chatInputHint => 'Hỏi bất cứ điều gì để bắt đầu...';
+  String get chatInputHint => 'Hỏi HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get adjustSliderTextSize => 'Điều chỉnh thanh trượt bên dưới để thay đổi kích thước văn bản';
 
   @override
-  String get textSizeChangeNote => 'Nếu bật, kích thước văn bản trong trò chuyện và Khoảnh khắc sẽ được thay đổi. Nếu bạn có câu hỏi hoặc phản hồi, vui lòng liên hệ Đội ngũ WeChat.';
+  String get textSizeChangeNote => 'Dùng thanh trượt để xem trước văn bản trong HowAI.';
 
   @override
   String get resetToDefaultButton => 'Đặt lại về Mặc định';
@@ -2525,6 +2525,53 @@ class AppLocalizationsVi extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'Chỉnh sửa, ghim, vô hiệu hóa hoặc xóa các mục bất kỳ lúc nào từ một nơi.';
 
   @override
+  String get knowledgeHubSettingsTitle => 'Bộ nhớ và cá nhân hóa';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'Chọn thời điểm HowAI có thể sử dụng hoặc học thông tin lâu dài. Bí mật và thông tin nhạy cảm không được tự động lưu.';
+
+  @override
+  String get knowledgeHubPersonalization => 'Dùng bộ nhớ trong câu trả lời';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'Dùng các mục Trung tâm kiến thức đang hoạt động để cá nhân hóa trò chuyện và giọng nói.';
+
+  @override
+  String get knowledgeHubLearnChats => 'Học từ các cuộc trò chuyện dài';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'Xem lại thông tin hữu ích do người dùng nêu sau các cuộc trò chuyện có ý nghĩa.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'Học sau cuộc gọi thoại';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'Xem lại các cuộc gọi có ít nhất năm lượt người dùng để tìm thông tin lâu dài.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'Lưu cài đặt';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'Đã lưu cài đặt bộ nhớ.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'Ký ức được đề xuất ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'Xem lại thông tin HowAI suy ra trước khi sử dụng.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'Thêm';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'Bỏ qua';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'Không thể cập nhật ký ức được đề xuất.';
+
+  @override
   String get knowledgeHubUpgradeToPremium => 'Nâng cấp lên Premium';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get chatLandingTitle => 'Tôi có thể giúp gì cho bạn?';
 
   @override
-  String get chatLandingSubtitle => 'Nhập hoặc gửi giọng nói. Tôi sẽ xử lý phần còn lại.';
+  String get chatLandingSubtitle => 'Nhập, nói hoặc cho tôi xem những gì bạn thấy.';
 
   @override
   String get chatLandingTipCompact => 'Mẹo: Nhấn + để dùng ảnh, tệp, PDF và công cụ hình ảnh.';
@@ -2858,7 +2905,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'Premium giúp mọi thứ trở nên khả thi';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'Giọng nói & hình ảnh';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
@@ -2980,14 +3027,35 @@ class AppLocalizationsVi extends AppLocalizations {
   String get speakButtonTooltip => 'Bắt đầu cuộc gọi giọng nói';
 
   @override
-  String get back => 'Back';
+  String get back => 'Quay lại';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'Trình đơn';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'Không có giọng nói nào khả dụng trên thiết bị này';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Bộ nhớ';
+
+  @override
+  String get research => 'Nghiên cứu';
+
+  @override
+  String get thinkingLevel => 'Mức suy luận';
+
+  @override
+  String get thinkingAuto => 'Tự động';
+
+  @override
+  String get thinkingFast => 'Nhanh';
+
+  @override
+  String get thinkingBalanced => 'Cân bằng';
+
+  @override
+  String get thinkingDeep => 'Sâu';
+
+  @override
+  String get thinkingLevelNote => 'Mức cao hơn mất nhiều thời gian và dùng nhiều token suy luận hơn.';
 }

@@ -66,10 +66,10 @@ After applying these fixes, you can build normally:
 
 ```bash
 # For simulator
-flutter run
+scripts/run-configured.sh
 
 # For device
-flutter run --release
+scripts/run-configured.sh --release
 ```
 
 ## If Issue Persists
@@ -97,7 +97,6 @@ To avoid this issue in the future:
 
 ## Status
 ✅ Fixed - Ready to build for iOS
-
 
 
 

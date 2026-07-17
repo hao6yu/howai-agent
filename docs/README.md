@@ -1,29 +1,39 @@
 # HowAI
 
+Release runbooks:
+
+- [M3 Actions beta](M3_ACTIONS_BETA_RUNBOOK.md)
+- [M4 Notification beta](M4_NOTIFICATION_BETA_RUNBOOK.md)
+- [M4.1 UI refinement and M4.5 Automations](M4_1_UI_AND_M4_5_AUTOMATIONS.md)
+- [M4.1 interface audit](M4_1_UI_AUDIT.md)
+- [M4.6 Places and Maps refactor](M4_6_PLACES_MAPS_REFACTOR.md)
+- [M7 release candidate](M7_RELEASE_CANDIDATE_RUNBOOK.md)
+
 ## Environment Variables
 
-This app uses environment variables to configure various services including OpenAI API. Create a `.env` file in the root directory with the following variables:
+This app uses build-time variables for public client configuration. Create a
+local `.env` file in the root directory and pass it with
+`--dart-define-from-file=.env`.
 
 ```
-# OpenAI API Key
-OPENAI_API_KEY=your_openai_api_key_here
+# OpenAI proxy
+OPENAI_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/openai-proxy
+OPENAI_CHAT_MODEL=howai-chat
+OPENAI_CHAT_MINI_MODEL=howai-chat-mini
 
-# OpenAI Models
-OPENAI_CHAT_MODEL=gpt-4.1
-OPENAI_CHAT_MINI_MODEL=gpt-3.5-turbo-0125
-OPENAI_REALTIME_MODEL=gpt-4o-realtime-preview-2024-12-17
-
-# ElevenLabs API Key
-ELEVENLABS_API_KEY=your_elevenlabs_api_key_here
+# ElevenLabs proxy
+ELEVENLABS_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/elevenlabs-proxy
 ```
 
 ### Description of variables:
 
-- `OPENAI_API_KEY`: Your OpenAI API key
-- `OPENAI_CHAT_MODEL`: Model used for generating stories and longer content (default: gpt-4.1)
-- `OPENAI_CHAT_MINI_MODEL`: Model used for chat and shorter generation tasks (default: gpt-3.5-turbo-0125)
-- `OPENAI_REALTIME_MODEL`: Model used for realtime voice conversations (default: gpt-4o-realtime-preview-2024-12-17)
-- `ELEVENLABS_API_KEY`: Your ElevenLabs API key for text-to-speech
+- `OPENAI_PROXY_BASE_URL`: Supabase Edge Function URL for OpenAI requests.
+- `OPENAI_CHAT_MODEL`: Proxy model alias for premium chat.
+- `OPENAI_CHAT_MINI_MODEL`: Proxy model alias for lighter chat.
+- `ELEVENLABS_PROXY_BASE_URL`: Supabase Edge Function URL for ElevenLabs requests.
+
+Do not put `OPENAI_API_KEY` or `ELEVENLABS_API_KEY` in production mobile
+builds. Keep those values in Supabase secrets.
 
 You can refer to the `env.example` file in the root directory for a template.
 
@@ -36,4 +46,4 @@ You can refer to the `env.example` file in the root directory for a template.
 1. Clone this repository
 2. Create `.env` file with the configuration above
 3. Run `flutter pub get` to install dependencies
-4. Run `flutter run` to start the app
+4. Run `scripts/run-configured.sh` to start the app

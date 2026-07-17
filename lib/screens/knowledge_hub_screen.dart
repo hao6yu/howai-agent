@@ -12,7 +12,9 @@ import '../services/database_service.dart';
 import '../services/file_service.dart';
 import '../services/knowledge_hub_service.dart';
 import '../services/knowledge_source_service.dart';
+import '../services/personal_memory_service.dart';
 import '../services/subscription_service.dart';
+import '../core/theme/howai_theme.dart';
 
 class KnowledgeHubScreen extends StatefulWidget {
   const KnowledgeHubScreen({super.key});
@@ -30,9 +32,11 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   final KnowledgeSourceService _knowledgeSourceService =
       KnowledgeSourceService();
   final DatabaseService _databaseService = DatabaseService();
+  final PersonalMemoryService _personalMemoryService = PersonalMemoryService();
 
   bool _isLoading = false;
   List<KnowledgeItem> _items = [];
+  List<CloudMemorySuggestion> _suggestions = [];
   MemoryType? _filterType;
   bool _showPinnedOnly = false;
   String _searchQuery = '';
@@ -104,6 +108,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
         setState(() {
           _isLoading = false;
           _items = [];
+          _suggestions = [];
         });
       }
       return;
@@ -122,12 +127,16 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     });
 
     try {
-      final items = await _knowledgeHubService.getKnowledgeItemsForProfile(
-        profileId,
-      );
+      final results = await Future.wait([
+        _knowledgeHubService.getKnowledgeItemsForProfile(profileId),
+        _personalMemoryService.getSuggestedMemories(),
+      ]);
+      final items = results[0] as List<KnowledgeItem>;
+      final suggestions = results[1] as List<CloudMemorySuggestion>;
       if (!mounted) return;
       setState(() {
         _items = items;
+        _suggestions = suggestions;
       });
     } catch (_) {
       // Silence noisy load errors here; entry/access handling already informs user.
@@ -138,6 +147,107 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _showMemorySettings() async {
+    var preferences = await _personalMemoryService.getPreferences();
+    if (!mounted) return;
+    final updated = await showDialog<MemoryPreferences>(
+      context: context,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final l10n = AppLocalizations.of(context)!;
+            return AlertDialog(
+              title: Text(l10n.knowledgeHubSettingsTitle),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(l10n.knowledgeHubSettingsDescription),
+                    const SizedBox(height: 12),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(l10n.knowledgeHubPersonalization),
+                      subtitle: Text(l10n.knowledgeHubPersonalizationDesc),
+                      value: preferences.personalizationEnabled,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          preferences = preferences.copyWith(
+                            personalizationEnabled: value,
+                          );
+                        });
+                      },
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(l10n.knowledgeHubLearnChats),
+                      subtitle: Text(l10n.knowledgeHubLearnChatsDesc),
+                      value: preferences.learnFromChats,
+                      onChanged: preferences.personalizationEnabled
+                          ? (value) {
+                              setDialogState(() {
+                                preferences = preferences.copyWith(
+                                  learnFromChats: value,
+                                );
+                              });
+                            }
+                          : null,
+                    ),
+                    SwitchListTile.adaptive(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(l10n.knowledgeHubLearnVoice),
+                      subtitle: Text(l10n.knowledgeHubLearnVoiceDesc),
+                      value: preferences.learnFromVoice,
+                      onChanged: preferences.personalizationEnabled
+                          ? (value) {
+                              setDialogState(() {
+                                preferences = preferences.copyWith(
+                                  learnFromVoice: value,
+                                );
+                              });
+                            }
+                          : null,
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(),
+                  child:
+                      Text(MaterialLocalizations.of(context).cancelButtonLabel),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(preferences),
+                  child: Text(l10n.knowledgeHubSettingsSave),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (updated == null) return;
+    try {
+      await _personalMemoryService.updatePreferences(updated);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text(AppLocalizations.of(context)!.knowledgeHubSettingsSaved),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text(AppLocalizations.of(context)!.knowledgeHubSnackUpdateFailed),
+        ),
+      );
     }
   }
 
@@ -155,6 +265,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       initialLinkedMessage = await _pickRecentMessageForMemory();
       if (initialLinkedMessage == null) return;
     }
+    if (!mounted) return;
 
     final created = await _showItemEditorDialog(
       title: AppLocalizations.of(context)!.knowledgeHubNewMemoryTitle,
@@ -225,6 +336,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
       profileId,
       knowledgeItemId: item.id,
     );
+    if (!mounted) return;
 
     final updatedDraft = await _showItemEditorDialog(
       title: AppLocalizations.of(context)!.knowledgeHubEditMemoryTitle,
@@ -352,6 +464,32 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
         SnackBar(
             content: Text(
                 AppLocalizations.of(context)!.knowledgeHubSnackDeleteFailed)),
+      );
+    }
+  }
+
+  Future<void> _reviewSuggestion(
+    CloudMemorySuggestion suggestion, {
+    required bool accept,
+  }) async {
+    final profileId =
+        Provider.of<ProfileProvider>(context, listen: false).selectedProfileId;
+    if (profileId == null) return;
+    try {
+      await _personalMemoryService.reviewSuggestion(
+        suggestion: suggestion,
+        profileId: profileId,
+        accept: accept,
+      );
+      await _loadItems();
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            AppLocalizations.of(context)!.knowledgeHubSuggestionReviewFailed,
+          ),
+        ),
       );
     }
   }
@@ -1036,20 +1174,25 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   }
 
   Widget _buildPremiumBlockedView(SettingsProvider settings) {
+    final colors = context.howaiColors;
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 28),
-          const Icon(Icons.auto_stories_outlined,
-              size: 62, color: Color(0xFF0078D4)),
+          Icon(
+            Icons.auto_stories_outlined,
+            size: 48,
+            color: colors.textSecondary,
+          ),
           const SizedBox(height: 14),
           Text(
             AppLocalizations.of(context)!.knowledgeHubPremiumBlockedTitle,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(20),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w600,
+              color: colors.textPrimary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -1059,6 +1202,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
             style: TextStyle(
               fontSize: settings.getScaledFontSize(14),
               height: 1.4,
+              color: colors.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -1090,9 +1234,9 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                 AppLocalizations.of(context)!.knowledgeHubFeatureControlDesc,
           ),
           const SizedBox(height: 20),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pushNamed(context, '/subscription'),
-            style: ElevatedButton.styleFrom(
+            style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
             child: Text(
@@ -1109,23 +1253,18 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     required String title,
     required String description,
   }) {
+    final colors = context.howaiColors;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey.shade900
-            : Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? Colors.grey.shade700
-              : Colors.grey.shade300,
-        ),
+        border: Border.all(color: colors.divider),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: const Color(0xFF0078D4), size: 22),
+          Icon(icon, color: colors.textSecondary, size: 22),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -1135,7 +1274,8 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   title,
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(15),
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
+                    color: colors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -1144,6 +1284,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(13),
                     height: 1.35,
+                    color: colors.textSecondary,
                   ),
                 ),
               ],
@@ -1155,126 +1296,83 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
   }
 
   Widget _buildPremiumEmptyState(SettingsProvider settings) {
+    final colors = context.howaiColors;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 110),
+      padding: const EdgeInsets.fromLTRB(24, 24, 24, 110),
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade900
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade700
-                  : Colors.grey.shade300,
-            ),
+        Icon(
+          Icons.auto_stories_outlined,
+          color: colors.textSecondary,
+          size: 28,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          AppLocalizations.of(context)!.knowledgeHubWhatIsTitle,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: settings.getScaledFontSize(20),
+            fontWeight: FontWeight.w600,
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Icon(Icons.auto_stories_outlined,
-                  color: Color(0xFF0078D4), size: 24),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      AppLocalizations.of(context)!.knowledgeHubWhatIsTitle,
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(16),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      AppLocalizations.of(context)!.knowledgeHubWhatIsDesc,
-                      style: TextStyle(
-                        fontSize: settings.getScaledFontSize(13),
-                        height: 1.35,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          AppLocalizations.of(context)!.knowledgeHubWhatIsDesc,
+          style: TextStyle(
+            color: colors.textSecondary,
+            fontSize: settings.getScaledFontSize(14),
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 28),
+        Text(
+          AppLocalizations.of(context)!.knowledgeHubHowToStartTitle,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: settings.getScaledFontSize(16),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 12),
+        _buildStep(
+          settings,
+          number: '1',
+          text: AppLocalizations.of(context)!.knowledgeHubStep1,
+        ),
+        _buildStep(
+          settings,
+          number: '2',
+          text: AppLocalizations.of(context)!.knowledgeHubStep2,
+        ),
+        _buildStep(
+          settings,
+          number: '3',
+          text: AppLocalizations.of(context)!.knowledgeHubStep3,
+        ),
+        _buildStep(
+          settings,
+          number: '4',
+          text: AppLocalizations.of(context)!.knowledgeHubStep4,
+        ),
+        const SizedBox(height: 20),
+        Text(
+          AppLocalizations.of(context)!.knowledgeHubExampleTitle,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: settings.getScaledFontSize(16),
+            fontWeight: FontWeight.w600,
           ),
         ),
         const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.all(16),
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade900
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade700
-                  : Colors.grey.shade300,
-            ),
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: colors.divider),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                AppLocalizations.of(context)!.knowledgeHubHowToStartTitle,
-                style: TextStyle(
-                  fontSize: settings.getScaledFontSize(16),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _buildStep(
-                settings,
-                number: '1',
-                text: AppLocalizations.of(context)!.knowledgeHubStep1,
-              ),
-              _buildStep(
-                settings,
-                number: '2',
-                text: AppLocalizations.of(context)!.knowledgeHubStep2,
-              ),
-              _buildStep(
-                settings,
-                number: '3',
-                text: AppLocalizations.of(context)!.knowledgeHubStep3,
-              ),
-              _buildStep(
-                settings,
-                number: '4',
-                text: AppLocalizations.of(context)!.knowledgeHubStep4,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade900
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade700
-                  : Colors.grey.shade300,
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                AppLocalizations.of(context)!.knowledgeHubExampleTitle,
-                style: TextStyle(
-                  fontSize: settings.getScaledFontSize(16),
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const SizedBox(height: 10),
               _buildExampleMemory(
                 settings,
                 title: AppLocalizations.of(context)!
@@ -1282,14 +1380,14 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
                 content: AppLocalizations.of(context)!
                     .knowledgeHubExamplePreferenceContent,
               ),
-              const SizedBox(height: 8),
+              Divider(height: 1, indent: 12, color: colors.divider),
               _buildExampleMemory(
                 settings,
                 title: AppLocalizations.of(context)!.knowledgeHubMemoryTypeGoal,
                 content: AppLocalizations.of(context)!
                     .knowledgeHubExampleGoalContent,
               ),
-              const SizedBox(height: 8),
+              Divider(height: 1, indent: 12, color: colors.divider),
               _buildExampleMemory(
                 settings,
                 title: AppLocalizations.of(context)!
@@ -1309,23 +1407,24 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     required String number,
     required String text,
   }) {
+    final colors = context.howaiColors;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 20,
-            height: 20,
+            width: 22,
+            height: 22,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: const Color(0xFF0078D4),
+              color: colors.surfaceStrong,
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               number,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: colors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
               ),
@@ -1336,6 +1435,7 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
             child: Text(
               text,
               style: TextStyle(
+                color: colors.textSecondary,
                 fontSize: settings.getScaledFontSize(13),
                 height: 1.3,
               ),
@@ -1351,35 +1451,33 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     required String title,
     required String content,
   }) {
-    return Container(
+    final colors = context.howaiColors;
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? Colors.grey.shade800
-            : Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: settings.getScaledFontSize(12),
-              fontWeight: FontWeight.w700,
-              color: const Color(0xFF0078D4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: settings.getScaledFontSize(12),
+                fontWeight: FontWeight.w600,
+                color: colors.accent,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            content,
-            style: TextStyle(
-              fontSize: settings.getScaledFontSize(13),
-              height: 1.3,
+            const SizedBox(height: 4),
+            Text(
+              content,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: settings.getScaledFontSize(13),
+                height: 1.3,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1618,6 +1716,97 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
     );
   }
 
+  Widget _buildSuggestedMemoriesSection(SettingsProvider settings) {
+    if (_suggestions.isEmpty) return const SizedBox.shrink();
+    final colors = context.howaiColors;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+      child: Container(
+        decoration: BoxDecoration(
+          color: colors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colors.divider),
+        ),
+        child: ExpansionTile(
+          initiallyExpanded: true,
+          shape: const Border(),
+          collapsedShape: const Border(),
+          leading: Icon(Icons.auto_awesome_outlined, color: colors.accent),
+          title: Text(
+            AppLocalizations.of(context)!
+                .knowledgeHubSuggestedTitle(_suggestions.length),
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(15),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: Text(
+            AppLocalizations.of(context)!.knowledgeHubSuggestedDescription,
+            style: TextStyle(
+              fontSize: settings.getScaledFontSize(12),
+              color: colors.textSecondary,
+            ),
+          ),
+          children: _suggestions.map((suggestion) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colors.divider),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 8, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        suggestion.title,
+                        style: TextStyle(
+                          fontSize: settings.getScaledFontSize(14),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        suggestion.content,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          height: 1.35,
+                          fontSize: settings.getScaledFontSize(13),
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () =>
+                                _reviewSuggestion(suggestion, accept: false),
+                            child: Text(AppLocalizations.of(context)!
+                                .knowledgeHubSuggestionDismiss),
+                          ),
+                          FilledButton.tonal(
+                            onPressed: () =>
+                                _reviewSuggestion(suggestion, accept: true),
+                            child: Text(AppLocalizations.of(context)!
+                                .knowledgeHubSuggestionAdd),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(growable: false),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = Provider.of<SettingsProvider>(context);
@@ -1629,6 +1818,12 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
         title: Text(AppLocalizations.of(context)!.knowledgeHubTitle),
         actions: [
           if (subscriptionService.isPremium)
+            IconButton(
+              icon: const Icon(Icons.tune),
+              tooltip: AppLocalizations.of(context)!.knowledgeHubSettingsTitle,
+              onPressed: _showMemorySettings,
+            ),
+          if (subscriptionService.isPremium && _items.isNotEmpty)
             IconButton(
               icon: Stack(
                 clipBehavior: Clip.none,
@@ -1655,106 +1850,117 @@ class _KnowledgeHubScreenState extends State<KnowledgeHubScreen> {
               onRefresh: _loadItems,
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
-                  : _items.isEmpty
+                  : _items.isEmpty && _suggestions.isEmpty
                       ? _buildPremiumEmptyState(settings)
                       : Column(
                           children: [
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-                              child: Column(
-                                children: [
-                                  TextField(
-                                    controller: _searchController,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _searchQuery = value;
-                                      });
-                                    },
-                                    decoration: InputDecoration(
-                                      hintText: AppLocalizations.of(context)!
-                                          .knowledgeHubSearchHint,
-                                      prefixIcon: const Icon(Icons.search),
-                                      suffixIcon: _searchQuery.isNotEmpty
-                                          ? IconButton(
-                                              icon: const Icon(Icons.close),
-                                              onPressed: () {
-                                                _searchController.clear();
-                                                setState(() {
-                                                  _searchQuery = '';
-                                                });
-                                              },
-                                            )
-                                          : null,
-                                      isDense: true,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                  ),
-                                  if (_filterType != null || _showPinnedOnly)
-                                    Padding(
-                                      padding: const EdgeInsets.only(top: 8),
-                                      child: Wrap(
-                                        spacing: 8,
-                                        runSpacing: 8,
-                                        children: [
-                                          if (_showPinnedOnly)
-                                            InputChip(
-                                              label: Text(
-                                                  AppLocalizations.of(context)!
-                                                      .knowledgeHubPinnedOnly),
-                                              onDeleted: () {
-                                                setState(() {
-                                                  _showPinnedOnly = false;
-                                                });
-                                              },
-                                            ),
-                                          if (_filterType != null)
-                                            InputChip(
-                                              label: Text(_memoryTypeLabel(
-                                                  _filterType!)),
-                                              onDeleted: () {
-                                                setState(() {
-                                                  _filterType = null;
-                                                });
-                                              },
-                                            ),
-                                        ],
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              child: visibleItems.isEmpty
-                                  ? ListView(
-                                      physics:
-                                          const AlwaysScrollableScrollPhysics(),
-                                      padding: const EdgeInsets.fromLTRB(
-                                          16, 24, 16, 100),
-                                      children: [
-                                        Center(
-                                          child: Text(
-                                            AppLocalizations.of(context)!
-                                                .knowledgeHubNoMatches,
-                                          ),
-                                        ),
-                                      ],
-                                    )
-                                  : ListView.separated(
-                                      physics:
-                                          const AlwaysScrollableScrollPhysics(),
-                                      itemCount: visibleItems.length,
-                                      separatorBuilder: (_, __) =>
-                                          const SizedBox(height: 8),
-                                      padding: const EdgeInsets.fromLTRB(
-                                          12, 0, 12, 90),
-                                      itemBuilder: (context, index) {
-                                        final item = visibleItems[index];
-                                        return _buildMemoryRow(item);
+                            _buildSuggestedMemoriesSection(settings),
+                            if (_items.isNotEmpty)
+                              Padding(
+                                padding:
+                                    const EdgeInsets.fromLTRB(12, 10, 12, 8),
+                                child: Column(
+                                  children: [
+                                    TextField(
+                                      controller: _searchController,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _searchQuery = value;
+                                        });
                                       },
+                                      decoration: InputDecoration(
+                                        hintText: AppLocalizations.of(context)!
+                                            .knowledgeHubSearchHint,
+                                        prefixIcon: const Icon(Icons.search),
+                                        suffixIcon: _searchQuery.isNotEmpty
+                                            ? IconButton(
+                                                icon: const Icon(Icons.close),
+                                                onPressed: () {
+                                                  _searchController.clear();
+                                                  setState(() {
+                                                    _searchQuery = '';
+                                                  });
+                                                },
+                                              )
+                                            : null,
+                                        isDense: true,
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                      ),
                                     ),
-                            ),
+                                    if (_filterType != null || _showPinnedOnly)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        child: Wrap(
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            if (_showPinnedOnly)
+                                              InputChip(
+                                                label: Text(AppLocalizations.of(
+                                                        context)!
+                                                    .knowledgeHubPinnedOnly),
+                                                onDeleted: () {
+                                                  setState(() {
+                                                    _showPinnedOnly = false;
+                                                  });
+                                                },
+                                              ),
+                                            if (_filterType != null)
+                                              InputChip(
+                                                label: Text(_memoryTypeLabel(
+                                                    _filterType!)),
+                                                onDeleted: () {
+                                                  setState(() {
+                                                    _filterType = null;
+                                                  });
+                                                },
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            if (_items.isNotEmpty)
+                              Expanded(
+                                child: visibleItems.isEmpty
+                                    ? ListView(
+                                        physics:
+                                            const AlwaysScrollableScrollPhysics(),
+                                        padding: const EdgeInsets.fromLTRB(
+                                            16, 24, 16, 100),
+                                        children: [
+                                          Center(
+                                            child: Text(
+                                              AppLocalizations.of(context)!
+                                                  .knowledgeHubNoMatches,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : ListView.separated(
+                                        physics:
+                                            const AlwaysScrollableScrollPhysics(),
+                                        itemCount: visibleItems.length,
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(height: 8),
+                                        padding: const EdgeInsets.fromLTRB(
+                                            12, 0, 12, 90),
+                                        itemBuilder: (context, index) {
+                                          final item = visibleItems[index];
+                                          return _buildMemoryRow(item);
+                                        },
+                                      ),
+                              )
+                            else
+                              const Expanded(
+                                child: SingleChildScrollView(
+                                  physics: AlwaysScrollableScrollPhysics(),
+                                ),
+                              ),
                           ],
                         ),
             )

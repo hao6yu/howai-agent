@@ -350,7 +350,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get continuousUpdatesDesc => '항상 새로운 기능과 개선 사항 제공!';
 
   @override
-  String get privacyBanner => '데이터는 기기에 유지됩니다. 추적 없음. 광고 없음. 사용자가 항상 제어합니다.';
+  String get privacyBanner => '데이터는 사용자가 직접 관리합니다. AI 요청과 활성화된 동기화 기능은 HowAI 서비스를 통해 안전하게 처리됩니다. 광고는 없습니다.';
 
   @override
   String get subscriptionDetailsTitle => '구독 세부 정보';
@@ -475,7 +475,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get instructionsSection7Line3 => '• 설정 > AI 인사이트 섹션에서 AI가 생성한 인사이트를 확인하세요.';
 
   @override
-  String get instructionsSection7Line4 => '• 개인정보 보호를 위해 모든 분석은 기기에서 이루어집니다—어떤 데이터도 기기를 떠나지 않습니다.';
+  String get instructionsSection7Line4 => '• AI 기능은 HowAI의 Supabase 및 OpenAI 서비스를 통해 콘텐츠를 안전하게 처리할 수 있습니다. 개인 설정은 메모리 설정에서 관리하세요.';
 
   @override
   String get instructionsSection7Line5 => '• 설정에서 언제든지 이 데이터를 지울 수 있습니다.';
@@ -805,7 +805,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get voiceInputTipsGotIt => '알겠습니다';
 
   @override
-  String get chatInputHint => '무엇이든 물어보고 대화를 시작하세요...';
+  String get chatInputHint => 'HowAI에게 물어보기';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get adjustSliderTextSize => '아래 슬라이더를 조정하여 텍스트 크기를 변경하세요';
 
   @override
-  String get textSizeChangeNote => '활성화하면 채팅 및 모먼트의 텍스트 크기가 변경됩니다. 질문이나 피드백이 있으시면 WeChat 팀에 문의하세요.';
+  String get textSizeChangeNote => '슬라이더로 HowAI 전체의 텍스트를 미리 확인하세요.';
 
   @override
   String get resetToDefaultButton => '기본값으로 재설정';
@@ -2525,6 +2525,53 @@ class AppLocalizationsKo extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => '한 곳에서 언제든지 항목을 편집, 고정, 비활성화 또는 삭제할 수 있습니다.';
 
   @override
+  String get knowledgeHubSettingsTitle => '메모리 및 개인화';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'HowAI가 장기 정보를 사용하거나 학습할 시점을 선택하세요. 비밀 및 민감한 정보는 자동으로 저장되지 않습니다.';
+
+  @override
+  String get knowledgeHubPersonalization => '응답에 메모리 사용';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => '활성 지식 허브 항목을 사용하여 채팅과 음성을 개인화합니다.';
+
+  @override
+  String get knowledgeHubLearnChats => '긴 채팅에서 학습';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => '의미 있는 대화 후 사용자가 말한 유용한 정보를 검토합니다.';
+
+  @override
+  String get knowledgeHubLearnVoice => '음성 통화 후 학습';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => '사용자 발언이 5회 이상인 통화에서 장기 정보를 검토합니다.';
+
+  @override
+  String get knowledgeHubSettingsSave => '설정 저장';
+
+  @override
+  String get knowledgeHubSettingsSaved => '메모리 설정이 저장되었습니다.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return '제안된 메모리 ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'HowAI가 추론한 정보를 사용하기 전에 검토하세요.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => '추가';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => '삭제';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => '제안된 메모리를 업데이트할 수 없습니다.';
+
+  @override
   String get knowledgeHubUpgradeToPremium => '프리미엄으로 업그레이드';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatLandingTitle => '무엇을 도와드릴까요?';
 
   @override
-  String get chatLandingSubtitle => '입력하거나 음성으로 보내세요. 나머지는 제가 처리할게요.';
+  String get chatLandingSubtitle => '입력하거나 말하거나 보고 있는 것을 보여 주세요.';
 
   @override
   String get chatLandingTipCompact => '팁: +를 눌러 사진, 파일, PDF, 이미지 도구를 사용하세요.';
@@ -2858,7 +2905,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get premiumBannerSubtitle5 => '프리미엄으로 모든 것이 가능해집니다';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => '음성 및 비전';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
@@ -2980,14 +3027,35 @@ class AppLocalizationsKo extends AppLocalizations {
   String get speakButtonTooltip => '음성 통화 시작';
 
   @override
-  String get back => 'Back';
+  String get back => '뒤로';
 
   @override
-  String get menu => 'Menu';
+  String get menu => '메뉴';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => '이 기기에서 사용할 수 있는 음성이 없습니다';
 
   @override
-  String get memory => 'Memory';
+  String get memory => '메모리';
+
+  @override
+  String get research => '리서치';
+
+  @override
+  String get thinkingLevel => '사고 수준';
+
+  @override
+  String get thinkingAuto => '자동';
+
+  @override
+  String get thinkingFast => '빠르게';
+
+  @override
+  String get thinkingBalanced => '균형';
+
+  @override
+  String get thinkingDeep => '깊게';
+
+  @override
+  String get thinkingLevelNote => '높은 수준일수록 더 오래 걸리고 더 많은 추론 토큰을 사용합니다.';
 }

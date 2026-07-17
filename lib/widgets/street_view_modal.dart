@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:haogpt/generated/app_localizations.dart';
+import '../config/app_config.dart';
 import '../providers/settings_provider.dart';
 import '../services/location_service.dart';
 
@@ -75,7 +75,7 @@ class _StreetViewModalState extends State<StreetViewModal> {
   String _buildStreetViewUrl() {
     final lat = widget.place.latitude;
     final lng = widget.place.longitude;
-    final apiKey = dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+    final apiKey = AppConfig.googleMapsApiKey;
 
     // print('[Street View Modal] Building URL for: ${widget.place.name}');
     // print('[Street View Modal] Location: $lat, $lng');
@@ -443,6 +443,7 @@ void showStreetViewModal(BuildContext context, PlaceResult place) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
+    showDragHandle: false,
     backgroundColor: Colors.transparent,
     enableDrag: true,
     isDismissible: true,

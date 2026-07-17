@@ -14,31 +14,39 @@ This guide explains how to run OpenAI requests through your Supabase Edge Functi
    - `https://<project-ref>.supabase.co/functions/v1/openai-proxy/v1/responses`
    - `https://<project-ref>.supabase.co/functions/v1/openai-proxy/v1/audio/transcriptions`
 2. App includes:
-   - `X-HowAI-Proxy-Token` (shared token)
-   - `X-HowAI-Timestamp` (request time)
-3. Edge Function verifies token/time, then forwards request to OpenAI with server-side key.
+   - `Authorization: Bearer <supabase-access-token>`
+   - `apikey: <supabase-anon-key>`
+3. Edge Function verifies the Supabase user, applies request limits, logs usage, then forwards request to OpenAI with the server-side key.
 4. Response returns back to app.
 
 ## One-time prerequisites
 
 - Supabase CLI installed and logged in.
 - Access to your Supabase project.
+- Anonymous sign-ins enabled in Supabase Dashboard:
+  - Authentication → Sign In / Providers → Anonymous Sign-Ins.
 
 ## 1) Set Supabase function secrets
 
 Run in your repo root:
 
 ```bash
-supabase secrets set OPENAI_API_KEY=sk-... PROXY_SHARED_TOKEN=your-long-random-token
+supabase secrets set OPENAI_API_KEY=sk-...
 ```
 
 Notes:
 - `OPENAI_API_KEY` is your real OpenAI key (server only).
-- `PROXY_SHARED_TOKEN` is a random app-to-proxy token. Use a long random string (32+ chars).
+- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` are available automatically to hosted Supabase Edge Functions.
+- Optional tuning secrets: `OPENAI_PROXY_CHAT_MODEL`, `OPENAI_PROXY_CHAT_MINI_MODEL`, `OPENAI_PROXY_MAX_REQUESTS_PER_HOUR`, `OPENAI_PROXY_ANON_MAX_REQUESTS_PER_DAY`, `OPENAI_PROXY_MAX_OUTPUT_TOKENS`, and `OPENAI_PROXY_ALLOWED_MODELS`.
 
-## 2) Deploy edge function
+The proxy always allows the two server-configured alias targets. Set
+`OPENAI_PROXY_ALLOWED_MODELS` only when you intentionally want to allow extra
+real model names from the client.
+
+## 2) Apply database migration and deploy edge function
 
 ```bash
+supabase db push
 supabase functions deploy openai-proxy
 ```
 
@@ -48,13 +56,29 @@ After deploy, your function base URL is:
 https://<project-ref>.supabase.co/functions/v1/openai-proxy
 ```
 
-## 3) Configure app `.env`
+## 3) Configure app build values
 
-Set these in your local app `.env`:
+Set these in your local `.env`. Build and run through
+`scripts/with-public-mobile-config.sh` or `scripts/run-configured.sh`, which
+exclude provider credentials from the compiled app:
 
 ```env
 OPENAI_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/openai-proxy
-OPENAI_PROXY_TOKEN=your-long-random-token
+OPENAI_CHAT_MODEL=howai-chat
+OPENAI_CHAT_MINI_MODEL=howai-chat-mini
+```
+
+`.env` is not bundled as a Flutter asset. Do not pass `OPENAI_API_KEY` or other
+server secrets into production mobile builds; keep them in Supabase secrets.
+
+`howai-chat` and `howai-chat-mini` are model aliases resolved by the proxy. To
+change models later without rebuilding the app:
+
+```bash
+supabase secrets set \
+  OPENAI_PROXY_CHAT_MODEL=gpt-5.2 \
+  OPENAI_PROXY_CHAT_MINI_MODEL=gpt-5-nano
+supabase functions deploy openai-proxy
 ```
 
 ## 4) Validate with curl
@@ -63,8 +87,8 @@ OPENAI_PROXY_TOKEN=your-long-random-token
 curl -i \
   -X POST "https://<project-ref>.supabase.co/functions/v1/openai-proxy/v1/responses" \
   -H "Content-Type: application/json" \
-  -H "X-HowAI-Proxy-Token: your-long-random-token" \
-  -H "X-HowAI-Timestamp: $(date +%s)" \
+  -H "Authorization: Bearer <supabase-access-token>" \
+  -H "apikey: <supabase-anon-key>" \
   -d '{"model":"gpt-5-nano","input":[{"role":"user","content":"Say hi"}]}'
 ```
 
@@ -79,15 +103,14 @@ Expected:
 
 ## Troubleshooting
 
-### 401 Invalid proxy token
-- `OPENAI_PROXY_TOKEN` in app does not match `PROXY_SHARED_TOKEN` in Supabase secrets.
-
-### 401 Invalid or missing timestamp
-- Ensure app/proxy request includes `X-HowAI-Timestamp`.
-- Ensure your local clock is roughly correct.
+### 401 Authentication required
+- User is not signed in, or the app did not send a valid Supabase access token.
 
 ### 500 OPENAI_API_KEY is not configured on proxy
 - `OPENAI_API_KEY` secret was not set or was set in wrong project.
+
+### 500 Supabase proxy auth/logging secrets are not configured
+- The function is not running in the expected Supabase project environment, or service role secrets are unavailable.
 
 ### 404 Unsupported endpoint
 - Use exact paths:
@@ -97,8 +120,11 @@ Expected:
 ### 413 Payload too large
 - Request body exceeded proxy limit.
 
+### 429 Hourly request limit exceeded
+- User exceeded `OPENAI_PROXY_MAX_REQUESTS_PER_HOUR`, or an anonymous/local-mode user exceeded `OPENAI_PROXY_ANON_MAX_REQUESTS_PER_DAY`.
+
 ## Production recommendation
 
 - In production mobile builds, do not include direct `OPENAI_API_KEY`.
-- Use proxy mode only (`OPENAI_PROXY_BASE_URL` + `OPENAI_PROXY_TOKEN`).
-
+- Use proxy mode only (`OPENAI_PROXY_BASE_URL`) with authenticated Supabase users.
+- "Continue without account" uses a Supabase anonymous session. This is still local-only in the app: cloud sync stays disabled until the user signs in with email, Google, or Apple.

@@ -1,11 +1,11 @@
 import 'dart:io';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'dart:convert';
 import 'package:just_audio/just_audio.dart';
 import 'dart:math';
+import '../config/app_config.dart';
 
 class ElevenLabsService {
   static const String _baseUrl = 'https://api.elevenlabs.io/v1';
@@ -23,12 +23,12 @@ class ElevenLabsService {
 
   // Initialize with env variables or direct values
   static Future<void> initialize({String? apiKey, String? voiceId}) async {
-    _apiKey = apiKey ?? dotenv.env['ELEVENLABS_API_KEY'];
+    _apiKey = apiKey ?? AppConfig.elevenLabsApiKey;
 
     // Fallback for testing - WARNING: Remove in production
     if (_apiKey == null || _apiKey!.isEmpty) {
       _apiKey = 'YOUR_ELEVENLABS_API_KEY_HERE'; // Replace with your actual API key if needed
-      print('Warning: Using fallback ElevenLabs API key. Please set ELEVENLABS_API_KEY in .env file.');
+      print('Warning: Using fallback ElevenLabs API key. Configure ELEVENLABS_API_KEY at build time.');
     }
 
     if (voiceId != null) {

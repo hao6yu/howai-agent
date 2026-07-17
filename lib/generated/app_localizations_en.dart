@@ -350,7 +350,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get continuousUpdatesDesc => 'New features and improvements all the time!';
 
   @override
-  String get privacyBanner => 'Your data stays on your device. No tracking. No ads. You\'re always in control.';
+  String get privacyBanner => 'Your data stays under your control. AI requests and enabled sync features are processed securely through HowAI services. No ads.';
 
   @override
   String get subscriptionDetailsTitle => 'Subscription Details';
@@ -475,7 +475,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get instructionsSection7Line3 => '• View your AI-generated insights in the Settings > AI Insights section.';
 
   @override
-  String get instructionsSection7Line4 => '• All analysis is done on-device for your privacy—no data leaves your device.';
+  String get instructionsSection7Line4 => '• AI features may securely process content through HowAI\'s Supabase and OpenAI services. Manage personalization in Memory settings.';
 
   @override
   String get instructionsSection7Line5 => '• You can clear this data at any time in Settings.';
@@ -805,7 +805,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Got it';
 
   @override
-  String get chatInputHint => 'Ask me anything to start our conversation...';
+  String get chatInputHint => 'Ask HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adjustSliderTextSize => 'Adjust the slider below to change text size';
 
   @override
-  String get textSizeChangeNote => 'If enabled, text size in chats and Moments will be changed. If you have any questions or feedback, please contact the WeChat Team.';
+  String get textSizeChangeNote => 'Use the slider to preview text throughout HowAI.';
 
   @override
   String get resetToDefaultButton => 'Reset to Default';
@@ -2525,6 +2525,53 @@ class AppLocalizationsEn extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'Edit, pin, disable, or delete items any time from one place.';
 
   @override
+  String get knowledgeHubSettingsTitle => 'Memory & personalization';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'Choose when HowAI can use or learn durable details. Secrets and sensitive details are not saved automatically.';
+
+  @override
+  String get knowledgeHubPersonalization => 'Use memory in responses';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'Use active Knowledge Hub items to personalize chat and voice.';
+
+  @override
+  String get knowledgeHubLearnChats => 'Learn from longer chats';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'Review useful user-stated details after meaningful conversations.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'Learn after voice calls';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'Review calls with at least five user turns for durable details.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'Save settings';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'Memory settings saved.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'Suggested memories ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'Review details HowAI inferred before they are used.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'Add';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'Dismiss';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'Couldn\'t update that suggested memory.';
+
+  @override
   String get knowledgeHubUpgradeToPremium => 'Upgrade to Pro';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatLandingTitle => 'What can I help you with?';
 
   @override
-  String get chatLandingSubtitle => 'Type or send voice. I\'ll handle the rest.';
+  String get chatLandingSubtitle => 'Type, talk, or show me what you see.';
 
   @override
   String get chatLandingTipCompact => 'Tip: Tap + for photos, files, PDF, and image tools.';
@@ -2858,7 +2905,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'Pro makes everything possible';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'Voice & vision';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
@@ -2990,4 +3037,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get memory => 'Memory';
+
+  @override
+  String get research => 'Research';
+
+  @override
+  String get thinkingLevel => 'Thinking level';
+
+  @override
+  String get thinkingAuto => 'Auto';
+
+  @override
+  String get thinkingFast => 'Fast';
+
+  @override
+  String get thinkingBalanced => 'Balanced';
+
+  @override
+  String get thinkingDeep => 'Deep';
+
+  @override
+  String get thinkingLevelNote => 'Higher levels take longer and use more reasoning tokens.';
 }

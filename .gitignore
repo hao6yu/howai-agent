@@ -47,6 +47,8 @@ app.*.map.json
 **/ios/.symlinks/
 **/ios/Flutter/Flutter.framework
 **/ios/Flutter/Flutter.podspec
+**/ios/Flutter/ephemeral/
+**/xcshareddata/swiftpm/
 ios/Flutter/Generated.xcconfig
 ios/Flutter/flutter_export_environment.sh
 **/macos/Pods/
@@ -64,6 +66,9 @@ coverage/
 # Test outputs
 test-results/
 
+# Supabase local project metadata
+supabase/.temp/
+
 # Firebase
 firebase-debug.log
 .firebase/
@@ -76,11 +81,6 @@ firebase-debug.log
 
 # Generated localization missing files (temporary)
 lib/l10n/missing/
-
-# Web build
-/haogpt-web/node_modules/
-/haogpt-web/.env
-/haogpt-web/dist/
 
 # Android local properties (contains API keys)
 android/local.properties

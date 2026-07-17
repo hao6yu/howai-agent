@@ -28,6 +28,31 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<false/>
+		<key>UISceneConfigurations</key>
+		<dict>
+			<key>UIWindowSceneSessionRoleApplication</key>
+			<array>
+				<dict>
+					<key>UISceneClassName</key>
+					<string>UIWindowScene</string>
+					<key>UISceneConfigurationName</key>
+					<string>flutter</string>
+					<key>UISceneDelegateClassName</key>
+					<string>FlutterSceneDelegate</string>
+					<key>UISceneStoryboardFile</key>
+					<string>Main</string>
+				</dict>
+			</array>
+		</dict>
+	</dict>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -50,17 +75,17 @@
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>This app needs speech recognition permission to understand your voice inputs.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>This app uses the camera to let you take and send photos in chat.</string>
+	<string>This app uses the camera when you choose to show HowAI what you see in chat or a voice conversation.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>This app needs access to your photo library to let you select and send images in chat.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>This app saves images to your photo library when you choose to download them.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>This app needs location access to find restaurants, hotels, and places of interest near you.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs location access to find restaurants, hotels, and places of interest near you.</string>
 	<key>GOOGLE_MAPS_API_KEY</key>
 	<string>$(GOOGLE_MAPS_API_KEY)</string>
+	<key>DART_DEFINES</key>
+	<string>$(DART_DEFINES)</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

@@ -18,6 +18,8 @@ class KnowledgeItem {
   final int profileId;
   final int? conversationId;
   final int? sourceMessageId;
+  final String? cloudId;
+  final String sourceType;
   final String title;
   final String content;
   final MemoryType memoryType;
@@ -32,6 +34,8 @@ class KnowledgeItem {
     required this.profileId,
     this.conversationId,
     this.sourceMessageId,
+    this.cloudId,
+    this.sourceType = 'manual',
     required this.title,
     required this.content,
     required this.memoryType,
@@ -48,6 +52,8 @@ class KnowledgeItem {
       'profile_id': profileId,
       'conversation_id': conversationId,
       'source_message_id': sourceMessageId,
+      'cloud_id': cloudId,
+      'source_type': sourceType,
       'title': title,
       'content': content,
       'memory_type': memoryType.name,
@@ -76,6 +82,8 @@ class KnowledgeItem {
       profileId: map['profile_id'] as int,
       conversationId: map['conversation_id'] as int?,
       sourceMessageId: map['source_message_id'] as int?,
+      cloudId: map['cloud_id'] as String?,
+      sourceType: (map['source_type'] as String?) ?? 'manual',
       title: (map['title'] as String?) ?? '',
       content: (map['content'] as String?) ?? '',
       memoryType: memoryType,
@@ -94,6 +102,8 @@ class KnowledgeItem {
     int? profileId,
     int? conversationId,
     int? sourceMessageId,
+    String? cloudId,
+    String? sourceType,
     String? title,
     String? content,
     MemoryType? memoryType,
@@ -108,6 +118,8 @@ class KnowledgeItem {
       profileId: profileId ?? this.profileId,
       conversationId: conversationId ?? this.conversationId,
       sourceMessageId: sourceMessageId ?? this.sourceMessageId,
+      cloudId: cloudId ?? this.cloudId,
+      sourceType: sourceType ?? this.sourceType,
       title: title ?? this.title,
       content: content ?? this.content,
       memoryType: memoryType ?? this.memoryType,

@@ -350,7 +350,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get continuousUpdatesDesc => '常に新機能と改善を提供！';
 
   @override
-  String get privacyBanner => 'あなたのデータはデバイスに保存されます。トラッキングなし。広告なし。常に自分でコントロールできます。';
+  String get privacyBanner => 'データはいつでもご自身で管理できます。AIリクエストと有効にした同期機能は、HowAIのサービスを通じて安全に処理されます。広告はありません。';
 
   @override
   String get subscriptionDetailsTitle => 'サブスクリプション詳細';
@@ -475,7 +475,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get instructionsSection7Line3 => '• 設定 > AI分析セクションでAIが生成した分析を確認できます。';
 
   @override
-  String get instructionsSection7Line4 => '• すべての分析はプライバシーのためデバイス上で行われ—データがデバイスから出ることはありません。';
+  String get instructionsSection7Line4 => '• AI機能はHowAIのSupabaseおよびOpenAIサービスを通じてコンテンツを安全に処理する場合があります。パーソナライズはメモリ設定で管理できます。';
 
   @override
   String get instructionsSection7Line5 => '• 設定でいつでもこのデータを消去できます。';
@@ -805,7 +805,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get voiceInputTipsGotIt => '了解';
 
   @override
-  String get chatInputHint => '何でも聞いて会話を始めましょう...';
+  String get chatInputHint => 'HowAIに質問';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get adjustSliderTextSize => '下のスライダーを調整してテキストサイズを変更';
 
   @override
-  String get textSizeChangeNote => '有効にすると、チャットとモーメントのテキストサイズが変更されます。質問やコメントがある場合は、WeChatチームにお問い合わせください。';
+  String get textSizeChangeNote => 'スライダーでHowAI全体のテキストをプレビューできます。';
 
   @override
   String get resetToDefaultButton => 'デフォルトにリセット';
@@ -2525,6 +2525,53 @@ class AppLocalizationsJa extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'いつでも 1 か所からアイテムを編集、固定、無効化、または削除できます。';
 
   @override
+  String get knowledgeHubSettingsTitle => 'メモリとパーソナライズ';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'HowAI が長期的な情報を使用または学習できるタイミングを選択します。秘密や機密情報は自動的に保存されません。';
+
+  @override
+  String get knowledgeHubPersonalization => '回答でメモリを使用';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => '有効なナレッジハブ項目を使ってチャットと音声をパーソナライズします。';
+
+  @override
+  String get knowledgeHubLearnChats => '長いチャットから学習';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => '有意義な会話の後、ユーザーが述べた有用な情報を確認します。';
+
+  @override
+  String get knowledgeHubLearnVoice => '音声通話後に学習';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'ユーザーの発言が5回以上ある通話から長期的な情報を確認します。';
+
+  @override
+  String get knowledgeHubSettingsSave => '設定を保存';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'メモリ設定を保存しました。';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return '提案されたメモリ（$count）';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'HowAI が推測した情報を使用する前に確認します。';
+
+  @override
+  String get knowledgeHubSuggestionAdd => '追加';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => '却下';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => '提案されたメモリを更新できませんでした。';
+
+  @override
   String get knowledgeHubUpgradeToPremium => 'プレミアムにアップグレード';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get chatLandingTitle => '何をお手伝いできますか？';
 
   @override
-  String get chatLandingSubtitle => '入力または音声で送信してください。あとは私が対応します。';
+  String get chatLandingSubtitle => '入力するか、話しかけるか、見ているものを見せてください。';
 
   @override
   String get chatLandingTipCompact => 'ヒント: + をタップして写真、ファイル、PDF、画像ツールを使えます。';
@@ -2858,7 +2905,7 @@ class AppLocalizationsJa extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'プレミアムですべてがもっと便利に';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => '音声とビジョン';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
@@ -2980,14 +3027,35 @@ class AppLocalizationsJa extends AppLocalizations {
   String get speakButtonTooltip => '音声通話を開始';
 
   @override
-  String get back => 'Back';
+  String get back => '戻る';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'メニュー';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'このデバイスで利用できる音声がありません';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'メモリ';
+
+  @override
+  String get research => 'リサーチ';
+
+  @override
+  String get thinkingLevel => '思考レベル';
+
+  @override
+  String get thinkingAuto => '自動';
+
+  @override
+  String get thinkingFast => '高速';
+
+  @override
+  String get thinkingBalanced => 'バランス';
+
+  @override
+  String get thinkingDeep => '深く';
+
+  @override
+  String get thinkingLevelNote => '高いレベルほど時間がかかり、推論トークンを多く使用します。';
 }

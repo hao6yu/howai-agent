@@ -1,16 +1,24 @@
+import 'dart:async';
+import 'dart:ui';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'config/app_config.dart';
 import 'providers/profile_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/conversation_provider.dart';
 import 'providers/ai_personality_provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/reminder_provider.dart';
+import 'providers/push_notification_provider.dart';
 import 'screens/ai_chat_screen.dart';
 import 'services/elevenlabs_service.dart';
 import 'services/openai_service.dart';
@@ -22,23 +30,66 @@ import 'screens/settings_screen.dart';
 import 'screens/instructions_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/knowledge_hub_screen.dart';
+import 'features/actions/presentation/actions_workspace_screen.dart';
+import 'firebase_options.dart';
+import 'services/push_notification_service.dart';
+import 'core/theme/howai_theme.dart';
 
-void main() async {
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  //// print('====== HowAI APP STARTED ======');
+  await runZonedGuarded(
+    _bootstrap,
+    (error, stack) async {
+      debugPrint('Unhandled startup error: $error');
+      if (Firebase.apps.isNotEmpty) {
+        await FirebaseCrashlytics.instance.recordError(
+          error,
+          stack,
+          fatal: true,
+        );
+      }
+    },
+  );
+}
 
-  // Load environment variables
-  await dotenv.load(fileName: ".env");
-
+Future<void> _bootstrap() async {
   // Initialize Supabase with deep link handling
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    url: AppConfig.supabaseUrl,
+    anonKey: AppConfig.supabaseAnonKey,
     authOptions: const FlutterAuthClientOptions(
       authFlowType: AuthFlowType.pkce,
     ),
   );
+
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    await FirebaseCrashlytics.instance
+        .setCrashlyticsCollectionEnabled(!kDebugMode);
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+    await PushNotificationService.instance.initialize(
+      navigatorKey: rootNavigatorKey,
+    );
+  } catch (error, stack) {
+    debugPrint('Push notification initialization is unavailable: $error');
+    if (Firebase.apps.isNotEmpty) {
+      await FirebaseCrashlytics.instance.recordError(
+        error,
+        stack,
+        reason: 'Firebase or push notification initialization failed',
+      );
+    }
+  }
 
   // Check database integrity and repair if needed
   try {
@@ -84,10 +135,15 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SubscriptionService()),
         ChangeNotifierProvider(create: (_) => ConversationProvider()),
         ChangeNotifierProvider(create: (_) => AIPersonalityProvider()),
+        ChangeNotifierProvider(create: (_) => ReminderProvider()),
+        ChangeNotifierProvider(create: (_) => PushNotificationProvider()),
       ],
       child: const HowAIMainApp(),
     ),
   );
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    PushNotificationService.instance.flushPendingNavigation();
+  });
 }
 
 class HowAIMainApp extends StatelessWidget {
@@ -107,136 +163,12 @@ class HowAIMainApp extends StatelessWidget {
           }
         }
         return MaterialApp(
+          navigatorKey: rootNavigatorKey,
           title: 'HowAI',
           debugShowCheckedModeBanner: false,
           themeMode: settings.themeMode,
-          theme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF0078D4),
-              brightness: Brightness.light,
-            ),
-            scaffoldBackgroundColor: const Color(0xFFF7F7F7),
-            appBarTheme: AppBarTheme(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black87,
-              elevation: 0,
-              iconTheme: const IconThemeData(color: Color(0xFF0078D4)),
-              titleTextStyle: TextStyle(
-                color: Colors.black87,
-                fontWeight: FontWeight.bold,
-                fontSize: settings.getScaledFontSize(20),
-                fontFamily: 'Roboto',
-              ),
-            ),
-            textTheme: GoogleFonts.robotoTextTheme().copyWith(
-              bodyLarge:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(16)),
-              bodyMedium:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
-              bodySmall:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(12)),
-              headlineLarge:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(32)),
-              headlineMedium:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(28)),
-              headlineSmall:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(24)),
-              titleLarge:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(22)),
-              titleMedium:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(16)),
-              titleSmall:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
-              labelLarge:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(14)),
-              labelMedium:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(12)),
-              labelSmall:
-                  GoogleFonts.roboto(fontSize: settings.getScaledFontSize(11)),
-            ),
-            useMaterial3: true,
-          ),
-          darkTheme: ThemeData(
-            colorScheme: ColorScheme.fromSeed(
-              seedColor: const Color(0xFF0078D4),
-              brightness: Brightness.dark,
-            ),
-            scaffoldBackgroundColor: const Color(0xFF1C1C1E),
-            appBarTheme: AppBarTheme(
-              backgroundColor: const Color(0xFF2C2C2E),
-              foregroundColor: Colors.white,
-              elevation: 0,
-              iconTheme: const IconThemeData(color: Color(0xFF0078D4)),
-              titleTextStyle: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: settings.getScaledFontSize(20),
-                fontFamily: 'Roboto',
-              ),
-            ),
-            cardTheme: const CardThemeData(
-              color: Color(0xFF2C2C2E),
-              elevation: 0,
-            ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: Color(0xFF2C2C2E),
-            ),
-            bottomSheetTheme: const BottomSheetThemeData(
-              backgroundColor: Color(0xFF2C2C2E),
-            ),
-            textTheme: GoogleFonts.robotoTextTheme(ThemeData.dark().textTheme)
-                .copyWith(
-              bodyLarge: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(16),
-                color: Colors.white,
-              ),
-              bodyMedium: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(14),
-                color: Colors.white,
-              ),
-              bodySmall: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(12),
-                color: Colors.white70,
-              ),
-              headlineLarge: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(32),
-                color: Colors.white,
-              ),
-              headlineMedium: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(28),
-                color: Colors.white,
-              ),
-              headlineSmall: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(24),
-                color: Colors.white,
-              ),
-              titleLarge: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(22),
-                color: Colors.white,
-              ),
-              titleMedium: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(16),
-                color: Colors.white,
-              ),
-              titleSmall: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(14),
-                color: Colors.white,
-              ),
-              labelLarge: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(14),
-                color: Colors.white,
-              ),
-              labelMedium: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(12),
-                color: Colors.white70,
-              ),
-              labelSmall: GoogleFonts.roboto(
-                fontSize: settings.getScaledFontSize(11),
-                color: Colors.white70,
-              ),
-            ),
-            useMaterial3: true,
-          ),
+          theme: HowAITheme.light(fontScale: settings.fontSizeScale),
+          darkTheme: HowAITheme.dark(fontScale: settings.fontSizeScale),
           locale: locale,
           localizationsDelegates: const [
             AppLocalizations.delegate,
@@ -271,6 +203,9 @@ class HowAIMainApp extends StatelessWidget {
             '/settings': (context) =>
                 SettingsScreen(onBack: () => Navigator.pop(context)),
             '/knowledge-hub': (context) => const KnowledgeHubScreen(),
+            '/actions': (context) => ActionsWorkspaceScreen(
+                  onCreateInChat: () => Navigator.of(context).pop(),
+                ),
           },
         );
       },
@@ -308,48 +243,24 @@ class AuthGate extends StatelessWidget {
   }
 }
 
-class MainTabScaffold extends StatefulWidget {
+class MainTabScaffold extends StatelessWidget {
   const MainTabScaffold({super.key});
 
-  @override
-  State<MainTabScaffold> createState() => _MainTabScaffoldState();
-}
-
-class _MainTabScaffoldState extends State<MainTabScaffold> {
-  // Default to chat screen - no tab switching needed
-  Widget _currentScreen = const AiChatScreen();
-
-  void _navigateToGuide() {
-    setState(() {
-      _currentScreen = InstructionsScreen(onBack: _navigateToChat);
-    });
-  }
-
-  void _navigateToChat() {
-    setState(() {
-      _currentScreen = const AiChatScreen();
-    });
+  void _navigateToGuide(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => InstructionsScreen(
+          onBack: () => Navigator.of(context).pop(),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // No bottom navigation bar - full screen for content
-      body: _buildScreenWithNavigation(),
+    return AiChatScreenWithNavigation(
+      onNavigateToGuide: () => _navigateToGuide(context),
     );
-  }
-
-  Widget _buildScreenWithNavigation() {
-    // Pass navigation callbacks to the chat screen if it's currently active
-    if (_currentScreen is AiChatScreen) {
-      return AiChatScreenWithNavigation(
-        onNavigateToGuide: _navigateToGuide,
-      );
-    }
-
-    // For non-chat screens, just show the screen directly
-    // The CustomAppBar will handle the back button functionality
-    return _currentScreen;
   }
 }
 

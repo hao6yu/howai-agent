@@ -1,14 +1,17 @@
 import 'dart:io';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'dart:convert';
 import 'package:just_audio/just_audio.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/app_config.dart';
 
 class ElevenLabsService {
-  static const String _baseUrl = 'https://api.elevenlabs.io/v1';
+  static String _baseUrl = 'https://api.elevenlabs.io/v1';
   static String? _apiKey;
+  static String? _proxyBaseUrl;
+  static String? _supabaseAnonKey;
   static String _voiceId = '9BWtsMINqrJLrRacOk9x'; // Default voice (Aria)
 
   // Available voice options
@@ -25,18 +28,66 @@ class ElevenLabsService {
 
   // Initialize with env variables or direct values
   static Future<void> initialize({String? apiKey, String? voiceId}) async {
-    _apiKey = apiKey ?? dotenv.env['ELEVENLABS_API_KEY'];
+    _apiKey = apiKey ?? AppConfig.elevenLabsApiKey;
+    _proxyBaseUrl = AppConfig.elevenLabsProxyBaseUrl.trim();
+    _supabaseAnonKey = AppConfig.supabaseAnonKey.trim();
 
-    // Fallback for testing - WARNING: Remove in production
-    if (_apiKey == null || _apiKey!.isEmpty) {
-      _apiKey =
-          'YOUR_ELEVENLABS_API_KEY_HERE'; // Replace with your actual API key if needed
-      // print('Warning: Using fallback ElevenLabs API key. Please set ELEVENLABS_API_KEY in .env file.');
+    if (_proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty) {
+      final normalized = _proxyBaseUrl!.replaceFirst(RegExp(r'/+$'), '');
+      _baseUrl = '$normalized/v1';
     }
 
     if (voiceId != null) {
       _voiceId = voiceId;
     }
+  }
+
+  static bool get _isUsingProxy =>
+      _proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty;
+  static bool get _hasApiKey => _apiKey != null && _apiKey!.isNotEmpty;
+  static bool get _isConfigured => _isUsingProxy || _hasApiKey;
+
+  static Future<Map<String, String>> _buildHeaders({
+    required String accept,
+    bool includeJsonContentType = false,
+  }) async {
+    final headers = <String, String>{'Accept': accept};
+    if (includeJsonContentType) {
+      headers['Content-Type'] = 'application/json';
+    }
+
+    if (_isUsingProxy) {
+      final accessToken = await _getSupabaseAccessToken();
+      if (accessToken != null && accessToken.isNotEmpty) {
+        headers['Authorization'] = 'Bearer $accessToken';
+      }
+      if (_supabaseAnonKey != null && _supabaseAnonKey!.isNotEmpty) {
+        headers['apikey'] = _supabaseAnonKey!;
+      }
+    } else if (_hasApiKey) {
+      headers['xi-api-key'] = _apiKey!;
+    }
+
+    return headers;
+  }
+
+  static Future<String?> _getSupabaseAccessToken() async {
+    final auth = Supabase.instance.client.auth;
+    var session = auth.currentSession;
+    if (session == null) {
+      return null;
+    }
+
+    if (session.isExpired) {
+      try {
+        final refreshed = await auth.refreshSession();
+        session = refreshed.session ?? auth.currentSession;
+      } catch (_) {
+        return session?.accessToken;
+      }
+    }
+
+    return session?.accessToken;
   }
 
   // Get the local directory for storing audio files
@@ -80,7 +131,7 @@ class ElevenLabsService {
 
   // Get available voices from ElevenLabs
   Future<List<Map<String, dynamic>>?> getVoices() async {
-    if (_apiKey == null) {
+    if (!_isConfigured) {
       // print('Error: ElevenLabs API key not found');
       return null;
     }
@@ -88,10 +139,7 @@ class ElevenLabsService {
     try {
       final response = await http.get(
         Uri.parse('$_baseUrl/voices'),
-        headers: {
-          'Accept': 'application/json',
-          'xi-api-key': _apiKey!,
-        },
+        headers: await _buildHeaders(accept: 'application/json'),
       );
 
       if (response.statusCode == 200) {
@@ -139,7 +187,7 @@ class ElevenLabsService {
 
     try {
       // Check if API key is available
-      if (_apiKey == null || _apiKey == 'YOUR_ELEVENLABS_API_KEY_HERE') {
+      if (!_isConfigured) {
         // print('⚠️ ElevenLabsService: No valid API key available. Creating placeholder file.');
 
         // Create placeholder file so the app doesn't keep trying to generate
@@ -163,15 +211,12 @@ class ElevenLabsService {
       // print('  - Stability: 0.35');
       // print('  - Similarity boost: 1.00');
 
-      final stopwatch = Stopwatch()..start();
-
       final response = await http.post(
         Uri.parse('$_baseUrl/text-to-speech/$effectiveVoiceId'),
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': _apiKey!,
-        },
+        headers: await _buildHeaders(
+          accept: 'audio/mpeg',
+          includeJsonContentType: true,
+        ),
         body: jsonEncode({
           'text': text,
           'model_id': 'eleven_multilingual_v2',
@@ -184,7 +229,6 @@ class ElevenLabsService {
         }),
       );
 
-      final elapsed = stopwatch.elapsedMilliseconds;
       // print('Response received in ${elapsed}ms');
 
       if (response.statusCode == 200) {
@@ -308,7 +352,7 @@ class ElevenLabsService {
       // print('ElevenLabsService: Generating audio with timestamps for story $storyId with voice $effectiveVoiceId');
 
       // Check if API key is available
-      if (_apiKey == null || _apiKey == 'YOUR_ELEVENLABS_API_KEY_HERE') {
+      if (!_isConfigured) {
         // print('ElevenLabsService: No valid API key available. Creating placeholder files with mock timestamps.');
 
         // Create placeholder files so the app doesn't keep trying to generate
@@ -333,11 +377,10 @@ class ElevenLabsService {
       // print('ElevenLabsService: Calling /with-timestamps endpoint');
       final response = await http.post(
         Uri.parse('$_baseUrl/text-to-speech/$effectiveVoiceId/with-timestamps'),
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'xi-api-key': _apiKey!,
-        },
+        headers: await _buildHeaders(
+          accept: 'application/json',
+          includeJsonContentType: true,
+        ),
         body: jsonEncode({
           'text': text,
           'model_id': 'eleven_multilingual_v2',
@@ -579,7 +622,7 @@ class ElevenLabsService {
 
     try {
       // Check if API key is available
-      if (_apiKey == null || _apiKey == 'YOUR_ELEVENLABS_API_KEY_HERE') {
+      if (!_isConfigured) {
         // print('⚠️ ElevenLabsService: No valid API key available. Creating placeholder file.');
 
         // Create placeholder file so the app doesn't keep trying to generate
@@ -609,8 +652,6 @@ class ElevenLabsService {
         // print('  - Using default voice settings');
       }
 
-      final stopwatch = Stopwatch()..start();
-
       // Set default voice settings if none provided
       final Map<String, dynamic> effectiveSettings = {
         'stability': 0.35,
@@ -626,11 +667,10 @@ class ElevenLabsService {
 
       final response = await http.post(
         Uri.parse('$_baseUrl/text-to-speech/$effectiveVoiceId'),
-        headers: {
-          'Accept': 'audio/mpeg',
-          'Content-Type': 'application/json',
-          'xi-api-key': _apiKey!,
-        },
+        headers: await _buildHeaders(
+          accept: 'audio/mpeg',
+          includeJsonContentType: true,
+        ),
         body: jsonEncode({
           'text': text,
           'model_id': 'eleven_multilingual_v2',
@@ -638,7 +678,6 @@ class ElevenLabsService {
         }),
       );
 
-      final elapsed = stopwatch.elapsedMilliseconds;
       // print('Response received in ${elapsed}ms');
 
       if (response.statusCode == 200) {

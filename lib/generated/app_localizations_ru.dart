@@ -350,7 +350,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get continuousUpdatesDesc => 'Новые функции и улучшения всё время!';
 
   @override
-  String get privacyBanner => 'Ваши данные остаются на вашем устройстве. Без отслеживания. Без рекламы. Вы всегда контролируете.';
+  String get privacyBanner => 'Вы сохраняете контроль над своими данными. Запросы ИИ и включённые функции синхронизации безопасно обрабатываются через сервисы HowAI. Без рекламы.';
 
   @override
   String get subscriptionDetailsTitle => 'Детали подписки';
@@ -475,7 +475,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get instructionsSection7Line3 => '• Просматривайте ваши ИИ-сгенерированные инсайты в разделе Настройки > Аналитика ИИ.';
 
   @override
-  String get instructionsSection7Line4 => '• Весь анализ выполняется на устройстве для вашей конфиденциальности—никакие данные не покидают ваше устройство.';
+  String get instructionsSection7Line4 => '• Функции ИИ могут безопасно обрабатывать содержимое через сервисы Supabase и OpenAI от HowAI. Управляйте персонализацией в настройках памяти.';
 
   @override
   String get instructionsSection7Line5 => '• Вы можете очистить эти данные в любое время в Настройках.';
@@ -805,7 +805,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Понятно';
 
   @override
-  String get chatInputHint => 'Спросите что угодно, чтобы начать...';
+  String get chatInputHint => 'Спросите HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get adjustSliderTextSize => 'Adjust the slider below to change text size';
 
   @override
-  String get textSizeChangeNote => 'If enabled, text size in chats and Moments will be changed. If you have any questions or feedback, please contact the WeChat Team.';
+  String get textSizeChangeNote => 'Используйте ползунок для предпросмотра текста в HowAI.';
 
   @override
   String get resetToDefaultButton => 'Reset to Default';
@@ -2525,6 +2525,53 @@ class AppLocalizationsRu extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'Редактируйте, закрепляйте, отключайте или удаляйте элементы в любое время из одного места.';
 
   @override
+  String get knowledgeHubSettingsTitle => 'Память и персонализация';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'Выберите, когда HowAI может использовать или запоминать долгосрочные сведения. Секреты и конфиденциальные данные не сохраняются автоматически.';
+
+  @override
+  String get knowledgeHubPersonalization => 'Использовать память в ответах';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'Используйте активные элементы Центра знаний для персонализации чата и голоса.';
+
+  @override
+  String get knowledgeHubLearnChats => 'Учиться из длинных чатов';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'Проверяйте полезные сведения, сообщённые пользователем после содержательных разговоров.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'Учиться после голосовых звонков';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'Проверяйте звонки, где пользователь говорил не менее пяти раз, на наличие долгосрочных сведений.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'Сохранить настройки';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'Настройки памяти сохранены.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'Предложенные воспоминания ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'Проверьте сведения, которые HowAI вывел, прежде чем они будут использованы.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'Добавить';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'Отклонить';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'Не удалось обновить предложенное воспоминание.';
+
+  @override
   String get knowledgeHubUpgradeToPremium => 'Обновите до Премиум';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chatLandingTitle => 'Чем я могу помочь?';
 
   @override
-  String get chatLandingSubtitle => 'Печатайте или отправляйте голосом. Остальное я сделаю сам.';
+  String get chatLandingSubtitle => 'Напишите, скажите или покажите мне, что вы видите.';
 
   @override
   String get chatLandingTipCompact => 'Совет: нажмите + для фото, файлов, PDF и инструментов изображений.';
@@ -2858,7 +2905,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'С Premium возможно всё';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'Голос и зрение';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
@@ -2980,14 +3027,35 @@ class AppLocalizationsRu extends AppLocalizations {
   String get speakButtonTooltip => 'Начать голосовой звонок';
 
   @override
-  String get back => 'Back';
+  String get back => 'Назад';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'Меню';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'На этом устройстве нет доступных голосов';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Память';
+
+  @override
+  String get research => 'Исследование';
+
+  @override
+  String get thinkingLevel => 'Уровень рассуждения';
+
+  @override
+  String get thinkingAuto => 'Авто';
+
+  @override
+  String get thinkingFast => 'Быстро';
+
+  @override
+  String get thinkingBalanced => 'Сбалансированно';
+
+  @override
+  String get thinkingDeep => 'Глубоко';
+
+  @override
+  String get thinkingLevelNote => 'Более высокие уровни работают дольше и используют больше токенов рассуждения.';
 }

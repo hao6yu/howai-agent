@@ -350,7 +350,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get continuousUpdatesDesc => 'Fitur baru dan peningkatan sepanjang waktu!';
 
   @override
-  String get privacyBanner => 'Data Anda tetap di perangkat Anda. Tanpa pelacakan. Tanpa iklan. Anda selalu memegang kendali.';
+  String get privacyBanner => 'Data Anda tetap dalam kendali Anda. Permintaan AI dan fitur sinkronisasi yang diaktifkan diproses dengan aman melalui layanan HowAI. Tanpa iklan.';
 
   @override
   String get subscriptionDetailsTitle => 'Detail Langganan';
@@ -475,7 +475,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get instructionsSection7Line3 => '• Lihat wawasan yang dihasilkan AI di bagian Pengaturan > Wawasan AI.';
 
   @override
-  String get instructionsSection7Line4 => '• Semua analisis dilakukan di perangkat untuk privasi Anda—tidak ada data yang meninggalkan perangkat Anda.';
+  String get instructionsSection7Line4 => '• Fitur AI dapat memproses konten dengan aman melalui layanan Supabase dan OpenAI milik HowAI. Kelola personalisasi di pengaturan Memori.';
 
   @override
   String get instructionsSection7Line5 => '• Anda dapat menghapus data ini kapan saja di Pengaturan.';
@@ -805,7 +805,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Mengerti';
 
   @override
-  String get chatInputHint => 'Tanyakan apa saja untuk memulai...';
+  String get chatInputHint => 'Tanya HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get adjustSliderTextSize => 'Sesuaikan slider di bawah untuk mengubah ukuran teks';
 
   @override
-  String get textSizeChangeNote => 'Jika diaktifkan, ukuran teks dalam obrolan dan Momen akan diubah. Jika Anda memiliki pertanyaan atau umpan balik, silakan hubungi Tim WeChat.';
+  String get textSizeChangeNote => 'Gunakan penggeser untuk melihat pratinjau teks di HowAI.';
 
   @override
   String get resetToDefaultButton => 'Reset ke Default';
@@ -2525,6 +2525,53 @@ class AppLocalizationsId extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'Edit, sematkan, nonaktifkan, atau hapus item kapan saja dari satu tempat.';
 
   @override
+  String get knowledgeHubSettingsTitle => 'Memori & personalisasi';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'Pilih kapan HowAI boleh menggunakan atau mempelajari detail jangka panjang. Rahasia dan detail sensitif tidak disimpan secara otomatis.';
+
+  @override
+  String get knowledgeHubPersonalization => 'Gunakan memori dalam respons';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'Gunakan item Pusat Pengetahuan aktif untuk mempersonalisasi chat dan suara.';
+
+  @override
+  String get knowledgeHubLearnChats => 'Belajar dari chat yang lebih panjang';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'Tinjau detail berguna yang dinyatakan pengguna setelah percakapan bermakna.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'Belajar setelah panggilan suara';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'Tinjau panggilan dengan sedikitnya lima giliran pengguna untuk menemukan detail jangka panjang.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'Simpan pengaturan';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'Pengaturan memori disimpan.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'Memori yang disarankan ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'Tinjau detail yang disimpulkan HowAI sebelum digunakan.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'Tambah';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'Abaikan';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'Memori yang disarankan tidak dapat diperbarui.';
+
+  @override
   String get knowledgeHubUpgradeToPremium => 'Tingkatkan ke Premium';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get chatLandingTitle => 'Apa yang bisa saya bantu?';
 
   @override
-  String get chatLandingSubtitle => 'Ketik atau kirim suara. Saya yang tangani sisanya.';
+  String get chatLandingSubtitle => 'Ketik, bicara, atau tunjukkan apa yang Anda lihat.';
 
   @override
   String get chatLandingTipCompact => 'Tip: Ketuk + untuk foto, file, PDF, dan alat gambar.';
@@ -2858,7 +2905,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'Premium membuat semuanya mungkin';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'Suara & visi';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
@@ -2980,14 +3027,35 @@ class AppLocalizationsId extends AppLocalizations {
   String get speakButtonTooltip => 'Mulai panggilan suara';
 
   @override
-  String get back => 'Back';
+  String get back => 'Kembali';
 
   @override
   String get menu => 'Menu';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'Tidak ada suara yang tersedia di perangkat ini';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Memori';
+
+  @override
+  String get research => 'Riset';
+
+  @override
+  String get thinkingLevel => 'Tingkat pemikiran';
+
+  @override
+  String get thinkingAuto => 'Otomatis';
+
+  @override
+  String get thinkingFast => 'Cepat';
+
+  @override
+  String get thinkingBalanced => 'Seimbang';
+
+  @override
+  String get thinkingDeep => 'Mendalam';
+
+  @override
+  String get thinkingLevelNote => 'Tingkat yang lebih tinggi memerlukan waktu dan token penalaran lebih banyak.';
 }

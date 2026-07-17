@@ -350,7 +350,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get continuousUpdatesDesc => 'हर समय नई सुविधाएँ और सुधार!';
 
   @override
-  String get privacyBanner => 'आपका डेटा आपके डिवाइस पर ही रहता है। कोई ट्रैकिंग नहीं। कोई विज्ञापन नहीं। आप हमेशा नियंत्रण में रहते हैं।';
+  String get privacyBanner => 'आपके डेटा का नियंत्रण आपके पास रहता है। AI अनुरोध और चालू सिंक सुविधाएँ HowAI सेवाओं के माध्यम से सुरक्षित रूप से संसाधित होती हैं। कोई विज्ञापन नहीं।';
 
   @override
   String get subscriptionDetailsTitle => 'सदस्यता विवरण';
@@ -475,7 +475,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get instructionsSection7Line3 => '• सेटिंग्स > AI अंतर्दृष्टि अनुभाग में अपनी AI-जनित अंतर्दृष्टि देखें।';
 
   @override
-  String get instructionsSection7Line4 => '• आपकी गोपनीयता के लिए सभी विश्लेषण डिवाइस पर किया जाता है—कोई डेटा आपके डिवाइस से बाहर नहीं जाता।';
+  String get instructionsSection7Line4 => '• AI सुविधाएँ HowAI की Supabase और OpenAI सेवाओं के माध्यम से सामग्री को सुरक्षित रूप से संसाधित कर सकती हैं। निजीकरण को Memory सेटिंग्स में प्रबंधित करें।';
 
   @override
   String get instructionsSection7Line5 => '• आप इस डेटा को सेटिंग्स में कभी भी साफ कर सकते हैं।';
@@ -805,7 +805,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get voiceInputTipsGotIt => 'समझ गया';
 
   @override
-  String get chatInputHint => 'बातचीत शुरू करने के लिए कुछ भी पूछें...';
+  String get chatInputHint => 'HowAI से पूछें';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get adjustSliderTextSize => 'टेक्स्ट साइज़ बदलने के लिए नीचे स्लाइडर को समायोजित करें';
 
   @override
-  String get textSizeChangeNote => 'सक्षम होने पर, चैट और Moments में टेक्स्ट साइज़ बदल जाएगा। यदि आपके कोई प्रश्न या प्रतिक्रिया है, तो कृपया WeChat टीम से संपर्क करें।';
+  String get textSizeChangeNote => 'HowAI में टेक्स्ट का पूर्वावलोकन करने के लिए स्लाइडर का उपयोग करें।';
 
   @override
   String get resetToDefaultButton => 'डिफ़ॉल्ट पर रीसेट करें';
@@ -2525,6 +2525,53 @@ class AppLocalizationsHi extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'किसी भी समय एक ही स्थान से आइटम संपादित करें, पिन करें, अक्षम करें या हटाएं।';
 
   @override
+  String get knowledgeHubSettingsTitle => 'मेमोरी और वैयक्तिकरण';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'चुनें कि HowAI स्थायी जानकारी का उपयोग या उसे कब सीख सकता है। गोपनीय और संवेदनशील जानकारी अपने आप सहेजी नहीं जाती।';
+
+  @override
+  String get knowledgeHubPersonalization => 'जवाबों में मेमोरी का उपयोग करें';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'चैट और वॉइस को व्यक्तिगत बनाने के लिए सक्रिय नॉलेज हब आइटम का उपयोग करें।';
+
+  @override
+  String get knowledgeHubLearnChats => 'लंबी चैट से सीखें';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'सार्थक बातचीत के बाद उपयोगकर्ता द्वारा बताई गई उपयोगी जानकारी की समीक्षा करें।';
+
+  @override
+  String get knowledgeHubLearnVoice => 'वॉइस कॉल के बाद सीखें';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'स्थायी जानकारी के लिए कम से कम पाँच उपयोगकर्ता टर्न वाली कॉल की समीक्षा करें।';
+
+  @override
+  String get knowledgeHubSettingsSave => 'सेटिंग सहेजें';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'मेमोरी सेटिंग सहेजी गईं।';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'सुझाई गई मेमोरी ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'HowAI द्वारा अनुमानित जानकारी का उपयोग होने से पहले उसकी समीक्षा करें।';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'जोड़ें';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'खारिज करें';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'उस सुझाई गई मेमोरी को अपडेट नहीं किया जा सका।';
+
+  @override
   String get knowledgeHubUpgradeToPremium => 'प्रीमियम में अपग्रेड करें';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chatLandingTitle => 'मैं आपकी कैसे मदद कर सकता हूँ?';
 
   @override
-  String get chatLandingSubtitle => 'टाइप करें या आवाज भेजें। बाकी मैं संभाल लूंगा।';
+  String get chatLandingSubtitle => 'लिखें, बोलें या मुझे दिखाएँ कि आप क्या देख रहे हैं।';
 
   @override
   String get chatLandingTipCompact => 'टिप: फ़ोटो, फाइलें, PDF और इमेज टूल्स के लिए + दबाएं।';
@@ -2858,7 +2905,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'प्रीमियम सब कुछ संभव बनाता है';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'आवाज़ और विज़न';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
@@ -2980,14 +3027,35 @@ class AppLocalizationsHi extends AppLocalizations {
   String get speakButtonTooltip => 'वॉइस कॉल शुरू करें';
 
   @override
-  String get back => 'Back';
+  String get back => 'वापस';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'मेन्यू';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'इस डिवाइस पर कोई आवाज़ उपलब्ध नहीं है';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'मेमोरी';
+
+  @override
+  String get research => 'शोध';
+
+  @override
+  String get thinkingLevel => 'सोचने का स्तर';
+
+  @override
+  String get thinkingAuto => 'अपने आप';
+
+  @override
+  String get thinkingFast => 'तेज़';
+
+  @override
+  String get thinkingBalanced => 'संतुलित';
+
+  @override
+  String get thinkingDeep => 'गहरा';
+
+  @override
+  String get thinkingLevelNote => 'ऊँचे स्तरों में अधिक समय और अधिक रीजनिंग टोकन लगते हैं।';
 }

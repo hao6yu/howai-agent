@@ -53,9 +53,9 @@ lib/
 ├── services/       # Business logic and APIs
 ├── utils/          # Helper functions
 └── widgets/        # Reusable UI components
-
-haogpt-web/         # Web deployment (Docker)
 ```
+
+The web client is maintained in a separate repository.
 
 ## Getting Started
 
@@ -63,7 +63,7 @@ haogpt-web/         # Web deployment (Docker)
 
 - Flutter SDK 3.0+
 - Dart SDK
-- API keys for: OpenAI, ElevenLabs, Google Maps, Supabase
+- Public mobile configuration for Supabase, Google Maps, and provider proxies
 
 ### Setup
 
@@ -72,13 +72,11 @@ haogpt-web/         # Web deployment (Docker)
    git clone https://github.com/hao6yu/howai-agent.git
    cd howai-agent
    ```
-2. Copy `env.example` to `.env` and fill in API keys:
+2. Copy `env.example` to `.env` for local build-time configuration:
    ```
-   OPENAI_API_KEY=sk-...
-   # Optional in production: route through your backend proxy
-   OPENAI_PROXY_BASE_URL=https://your-proxy.example.com
-   OPENAI_PROXY_TOKEN=...
-   ELEVENLABS_API_KEY=...
+   # OpenAI is always routed through the Supabase Edge Function proxy.
+   OPENAI_PROXY_BASE_URL=https://your-project.supabase.co/functions/v1/openai-proxy
+   ELEVENLABS_PROXY_BASE_URL=https://your-project.supabase.co/functions/v1/elevenlabs-proxy
    GOOGLE_MAPS_API_KEY=...
    SUPABASE_URL=https://...
    SUPABASE_ANON_KEY=...
@@ -93,38 +91,79 @@ haogpt-web/         # Web deployment (Docker)
    ```
 5. Run the app:
    ```bash
-   flutter run
+   scripts/run-configured.sh
    ```
+
+   Pass normal Flutter run arguments through the wrapper, for example
+   `scripts/run-configured.sh -d <device-id>`.
+
+`.env` is intentionally not bundled as a Flutter asset. Values passed with
+`--dart-define` are still visible in a compiled mobile app. The configured
+runner filters the file through an explicit public-value allowlist. Keep
+provider credentials, especially `OPENAI_API_KEY`, in Supabase secrets.
 
 ### Optional: OpenAI Proxy (Recommended for Production)
 
 Use the included Supabase Edge Function proxy to keep OpenAI keys off-device:
 
-1. Deploy function:
+1. Enable anonymous sign-ins in Supabase Dashboard:
+   `Authentication` → `Sign In / Providers` → `Anonymous Sign-Ins`.
+2. Deploy function:
    ```bash
    supabase functions deploy openai-proxy
    ```
-2. Set function secrets:
+3. Set function secrets:
    ```bash
-   supabase secrets set OPENAI_API_KEY=sk-... PROXY_SHARED_TOKEN=your-shared-token
+   supabase secrets set OPENAI_API_KEY=sk-...
    ```
-3. Configure mobile app `.env`:
+4. Configure mobile app build config:
    ```bash
    OPENAI_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/openai-proxy
-   OPENAI_PROXY_TOKEN=your-shared-token
    ```
+
+Model names can now be changed server-side with Supabase secrets:
+
+```bash
+supabase secrets set \
+  OPENAI_PROXY_CHAT_MODEL=gpt-5.6-sol \
+  OPENAI_PROXY_CHAT_MINI_MODEL=gpt-5-nano
+supabase functions deploy openai-proxy
+```
+
+### Optional: ElevenLabs Proxy (Recommended for Production)
+
+Use the included Supabase Edge Function proxy to keep ElevenLabs keys off-device:
+
+```bash
+supabase db push
+supabase secrets set ELEVENLABS_API_KEY=sk_...
+supabase functions deploy elevenlabs-proxy
+```
+
+Configure mobile app build config:
+
+```bash
+ELEVENLABS_PROXY_BASE_URL=https://<project-ref>.supabase.co/functions/v1/elevenlabs-proxy
+```
 
 ### Building
 
 ```bash
 # iOS
-flutter build ios --release
+scripts/with-public-mobile-config.sh flutter build ios --release
 
 # Android
-flutter build apk --release
+scripts/with-public-mobile-config.sh flutter build apk --release
+```
 
-# Web (see haogpt-web/README.md)
-cd haogpt-web && docker build -t haogpt-web .
+For a physical iPhone build that must launch from the Home Screen, install the
+release app above. A Flutter debug app installed without an attached
+`flutter run` or Xcode session is terminated by iOS at launch.
+
+```bash
+xcrun devicectl device install app \
+  --device <device-id> \
+  build/ios/iphoneos/Runner.app
 ```
 
 ## Screens

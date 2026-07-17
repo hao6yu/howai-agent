@@ -350,7 +350,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get continuousUpdatesDesc => 'Her zaman yeni özellikler ve iyileştirmeler!';
 
   @override
-  String get privacyBanner => 'Verileriniz cihazınızda kalır. İzleme yok. Reklam yok. Her zaman kontrol sizde.';
+  String get privacyBanner => 'Verilerinizin kontrolü sizde kalır. Yapay zekâ istekleri ve etkinleştirilmiş eşitleme özellikleri HowAI hizmetleri üzerinden güvenle işlenir. Reklam yok.';
 
   @override
   String get subscriptionDetailsTitle => 'Abonelik Detayları';
@@ -475,7 +475,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get instructionsSection7Line3 => '• Yapay zeka tarafından oluşturulan içgörülerinizi Ayarlar > Yapay Zeka İçgörüleri bölümünde görüntüleyin.';
 
   @override
-  String get instructionsSection7Line4 => '• Tüm analizler gizliliğiniz için cihaz üzerinde yapılır—hiçbir veri cihazınızdan çıkmaz.';
+  String get instructionsSection7Line4 => '• Yapay zekâ özellikleri içeriği HowAI\'nin Supabase ve OpenAI hizmetleri üzerinden güvenle işleyebilir. Kişiselleştirmeyi Bellek ayarlarından yönetin.';
 
   @override
   String get instructionsSection7Line5 => '• Bu verileri istediğiniz zaman Ayarlar\'dan temizleyebilirsiniz.';
@@ -805,7 +805,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Anladım';
 
   @override
-  String get chatInputHint => 'Başlamak için bana bir şey sorun...';
+  String get chatInputHint => 'HowAI\'a sor';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get adjustSliderTextSize => 'Metin boyutunu değiştirmek için aşağıdaki kaydırıcıyı ayarlayın';
 
   @override
-  String get textSizeChangeNote => 'Etkinleştirildiğinde, sohbetlerdeki ve Anlık Görüntülerdeki metin boyutu değiştirilecektir. Sorularınız veya geri bildiriminiz varsa, lütfen WeChat Ekibiyle iletişime geçin.';
+  String get textSizeChangeNote => 'HowAI genelindeki metni önizlemek için kaydırıcıyı kullanın.';
 
   @override
   String get resetToDefaultButton => 'Varsayılana Sıfırla';
@@ -2525,6 +2525,53 @@ class AppLocalizationsTr extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'Öğeleri istediğiniz zaman tek bir yerden düzenleyin, sabitleyin, devre dışı bırakın veya silin.';
 
   @override
+  String get knowledgeHubSettingsTitle => 'Hafıza ve kişiselleştirme';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'HowAI’ın kalıcı ayrıntıları ne zaman kullanabileceğini veya öğrenebileceğini seçin. Sırlar ve hassas ayrıntılar otomatik olarak kaydedilmez.';
+
+  @override
+  String get knowledgeHubPersonalization => 'Yanıtlarda hafızayı kullan';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'Sohbeti ve sesi kişiselleştirmek için etkin Bilgi Merkezi öğelerini kullanın.';
+
+  @override
+  String get knowledgeHubLearnChats => 'Uzun sohbetlerden öğren';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'Anlamlı konuşmalardan sonra kullanıcının belirttiği yararlı ayrıntıları inceleyin.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'Sesli aramalardan sonra öğren';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'Kalıcı ayrıntılar için en az beş kullanıcı sırası içeren aramaları inceleyin.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'Ayarları kaydet';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'Hafıza ayarları kaydedildi.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'Önerilen anılar ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'HowAI’ın çıkardığı ayrıntıları kullanılmadan önce inceleyin.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'Ekle';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'Reddet';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'Önerilen anı güncellenemedi.';
+
+  @override
   String get knowledgeHubUpgradeToPremium => 'Premium\'a Yükselt';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatLandingTitle => 'Size nasıl yardımcı olabilirim?';
 
   @override
-  String get chatLandingSubtitle => 'Yazın veya ses gönderin. Gerisini ben hallederim.';
+  String get chatLandingSubtitle => 'Yazın, konuşun veya ne gördüğünüzü bana gösterin.';
 
   @override
   String get chatLandingTipCompact => 'İpucu: Fotoğraflar, dosyalar, PDF ve görsel araçları için + simgesine dokunun.';
@@ -2858,7 +2905,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'Premium her şeyi mümkün kılar';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'Ses ve görüntü';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
@@ -2980,14 +3027,35 @@ class AppLocalizationsTr extends AppLocalizations {
   String get speakButtonTooltip => 'Sesli aramayı başlat';
 
   @override
-  String get back => 'Back';
+  String get back => 'Geri';
 
   @override
-  String get menu => 'Menu';
+  String get menu => 'Menü';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'Bu cihazda kullanılabilir ses yok';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Hafıza';
+
+  @override
+  String get research => 'Araştırma';
+
+  @override
+  String get thinkingLevel => 'Düşünme düzeyi';
+
+  @override
+  String get thinkingAuto => 'Otomatik';
+
+  @override
+  String get thinkingFast => 'Hızlı';
+
+  @override
+  String get thinkingBalanced => 'Dengeli';
+
+  @override
+  String get thinkingDeep => 'Derin';
+
+  @override
+  String get thinkingLevelNote => 'Daha yüksek düzeyler daha uzun sürer ve daha fazla akıl yürütme belirteci kullanır.';
 }

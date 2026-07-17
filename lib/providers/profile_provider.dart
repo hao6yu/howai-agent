@@ -3,6 +3,7 @@ import '../models/profile.dart';
 import '../services/database_service.dart';
 import '../services/supabase_service.dart';
 import '../services/image_service.dart';
+import '../services/profile_name_service.dart';
 
 class ProfileProvider extends ChangeNotifier {
   final DatabaseService _db = DatabaseService();
@@ -47,32 +48,34 @@ class ProfileProvider extends ChangeNotifier {
     if (index != -1) {
       _profiles[index] = profile;
       notifyListeners();
-      
+
       // Sync to Supabase in background
       _syncProfileToSupabase(profile);
     }
   }
 
-  Future<void> updateProfileCharacteristics(int id, Map<String, dynamic> characteristics) async {
+  Future<void> updateProfileCharacteristics(
+      int id, Map<String, dynamic> characteristics) async {
     final profile = _profiles.firstWhere((p) => p.id == id);
     final updatedProfile = profile.copyWith(
       characteristics: characteristics,
     );
     await _db.updateProfile(updatedProfile);
     await loadProfiles();
-    
+
     // Sync characteristics to Supabase in background
     _syncProfileToSupabase(updatedProfile);
   }
 
-  Future<void> updateProfilePreferences(int id, Map<String, dynamic> preferences) async {
+  Future<void> updateProfilePreferences(
+      int id, Map<String, dynamic> preferences) async {
     final profile = _profiles.firstWhere((p) => p.id == id);
     final updatedProfile = profile.copyWith(
       preferences: preferences,
     );
     await _db.updateProfile(updatedProfile);
     await loadProfiles();
-    
+
     // Sync preferences to Supabase in background
     _syncProfileToSupabase(updatedProfile);
   }
@@ -107,57 +110,65 @@ class ProfileProvider extends ChangeNotifier {
     Future.microtask(() async {
       try {
         final supabase = SupabaseService();
-        
+
         if (!supabase.isAuthenticated) {
-          debugPrint('[ProfileProvider] Not authenticated, skipping profile sync');
+          debugPrint(
+              '[ProfileProvider] Not authenticated, skipping profile sync');
           return;
         }
 
         final userId = supabase.currentUser!.id;
-        
+
         // Upload avatar if it's a local file
         String? avatarUrl;
-        if (profile.avatarPath != null && !profile.avatarPath!.startsWith('http')) {
-          avatarUrl = await ImageService.uploadImageToSupabase(profile.avatarPath!);
+        if (profile.avatarPath != null &&
+            !profile.avatarPath!.startsWith('http')) {
+          avatarUrl =
+              await ImageService.uploadImageToSupabase(profile.avatarPath!);
         } else {
           avatarUrl = profile.avatarPath;
         }
-        
+
         // Sync basic profile info to 'profiles' table
-        final profileData = {
+        final preferredName =
+            ProfileNameService.normalizeDisplayName(profile.name);
+        final profileData = <String, dynamic>{
           'id': userId,
-          'name': profile.name,
+          if (preferredName != null) ...{
+            'name': preferredName,
+            'name_status': 'known',
+            'name_source': 'user',
+            'name_prompted_at': DateTime.now().toUtc().toIso8601String(),
+          },
           'avatar_url': avatarUrl,
           'updated_at': DateTime.now().toIso8601String(),
         };
 
-        await supabase.client
-            .from('profiles')
-            .upsert(profileData);
-        
+        await supabase.client.from('profiles').upsert(profileData);
+
         debugPrint('[ProfileProvider] Basic profile synced to Supabase');
-        
+
         // Sync characteristics/AI insights to 'user_profiles' table
         await _syncCharacteristicsToSupabase(profile, userId);
-        
       } catch (e) {
         debugPrint('[ProfileProvider] Error syncing profile (silent): $e');
         // Silent failure - profile still works locally
       }
     });
   }
-  
+
   /// Sync characteristics/AI insights to user_profiles table
-  Future<void> _syncCharacteristicsToSupabase(Profile profile, String userId) async {
+  Future<void> _syncCharacteristicsToSupabase(
+      Profile profile, String userId) async {
     try {
       final supabase = SupabaseService();
       final characteristics = profile.characteristics;
-      
+
       if (characteristics.isEmpty) {
         debugPrint('[ProfileProvider] No characteristics to sync');
         return;
       }
-      
+
       // Map local characteristics to user_profiles table columns
       final userProfileData = {
         'user_id': userId,
@@ -170,15 +181,17 @@ class ProfileProvider extends ChangeNotifier {
         'preferences': profile.preferences,
         'updated_at': DateTime.now().toIso8601String(),
       };
-      
+
       // Upsert to user_profiles table (insert or update based on user_id)
       await supabase.client
           .from('user_profiles')
           .upsert(userProfileData, onConflict: 'user_id');
-      
-      debugPrint('[ProfileProvider] Characteristics synced to user_profiles table');
+
+      debugPrint(
+          '[ProfileProvider] Characteristics synced to user_profiles table');
     } catch (e) {
-      debugPrint('[ProfileProvider] Error syncing characteristics (silent): $e');
+      debugPrint(
+          '[ProfileProvider] Error syncing characteristics (silent): $e');
       // Silent failure - characteristics still work locally
     }
   }
@@ -187,47 +200,50 @@ class ProfileProvider extends ChangeNotifier {
   Future<void> loadProfileFromSupabase() async {
     try {
       final supabase = SupabaseService();
-      
+
       if (!supabase.isAuthenticated) {
-        debugPrint('[ProfileProvider] Not authenticated, skipping profile load');
+        debugPrint(
+            '[ProfileProvider] Not authenticated, skipping profile load');
         return;
       }
 
       final userId = supabase.currentUser!.id;
-      
+
       // Load basic profile from 'profiles' table
       final profileResponse = await supabase.client
           .from('profiles')
           .select()
           .eq('id', userId)
           .maybeSingle();
-      
+
       String? name;
       String? avatarUrl;
-      
+
       if (profileResponse != null) {
         name = profileResponse['name'] as String?;
         avatarUrl = profileResponse['avatar_url'] as String?;
         debugPrint('[ProfileProvider] Loaded basic profile: name=$name');
       }
-      
+
       // Load characteristics/AI insights from 'user_profiles' table
       final userProfileResponse = await supabase.client
           .from('user_profiles')
           .select()
           .eq('user_id', userId)
           .maybeSingle();
-      
+
       Map<String, dynamic> characteristics = {};
       Map<String, dynamic> preferences = {};
-      
+
       if (userProfileResponse != null) {
         // Map user_profiles columns back to local characteristics format
         final communicationStyle = userProfileResponse['communication_style'];
         final topicInterests = userProfileResponse['topic_interests'];
-        final charData = userProfileResponse['characteristics'] as Map<String, dynamic>?;
-        final prefsData = userProfileResponse['preferences'] as Map<String, dynamic>?;
-        
+        final charData =
+            userProfileResponse['characteristics'] as Map<String, dynamic>?;
+        final prefsData =
+            userProfileResponse['preferences'] as Map<String, dynamic>?;
+
         if (communicationStyle != null) {
           characteristics['communication_style'] = communicationStyle;
         }
@@ -245,43 +261,48 @@ class ProfileProvider extends ChangeNotifier {
         if (prefsData != null) {
           preferences = prefsData;
         }
-        
-        debugPrint('[ProfileProvider] Loaded characteristics from user_profiles: ${characteristics.keys.toList()}');
+
+        debugPrint(
+            '[ProfileProvider] Loaded characteristics from user_profiles: ${characteristics.keys.toList()}');
       }
-      
+
       // Update local profile if we have data
       if (_profiles.isNotEmpty) {
         final currentProfile = _profiles.first;
-        
+
         // Only update if we have new data from cloud
-        final hasCloudData = name != null || 
-                             avatarUrl != null || 
-                             characteristics.isNotEmpty || 
-                             preferences.isNotEmpty;
-        
+        final hasCloudData = name != null ||
+            avatarUrl != null ||
+            characteristics.isNotEmpty ||
+            preferences.isNotEmpty;
+
         if (hasCloudData) {
           // Merge cloud characteristics with local (cloud takes precedence)
-          final mergedCharacteristics = Map<String, dynamic>.from(currentProfile.characteristics);
+          final mergedCharacteristics =
+              Map<String, dynamic>.from(currentProfile.characteristics);
           mergedCharacteristics.addAll(characteristics);
-          
-          final mergedPreferences = Map<String, dynamic>.from(currentProfile.preferences);
+
+          final mergedPreferences =
+              Map<String, dynamic>.from(currentProfile.preferences);
           mergedPreferences.addAll(preferences);
-          
+
           final updatedProfile = currentProfile.copyWith(
             name: name ?? currentProfile.name,
             avatarPath: avatarUrl ?? currentProfile.avatarPath,
             characteristics: mergedCharacteristics,
             preferences: mergedPreferences,
           );
-          
+
           await _db.updateProfile(updatedProfile);
           await loadProfiles();
-          
-          debugPrint('[ProfileProvider] Profile synced from Supabase successfully');
+
+          debugPrint(
+              '[ProfileProvider] Profile synced from Supabase successfully');
         }
       }
     } catch (e) {
-      debugPrint('[ProfileProvider] Error loading profile from Supabase (silent): $e');
+      debugPrint(
+          '[ProfileProvider] Error loading profile from Supabase (silent): $e');
       // Silent failure - use local profile
     }
   }

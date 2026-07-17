@@ -4,6 +4,7 @@ import '../services/supabase_service.dart';
 import '../services/migration_service.dart';
 import '../services/sync_service.dart';
 import '../services/subscription_service.dart';
+import '../services/push_notification_service.dart';
 import 'profile_provider.dart';
 import 'dart:async';
 
@@ -13,7 +14,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
   StreamSubscription<AuthState>? _authSubscription;
-  
+
   // Flag to indicate sync has completed and UI should refresh
   bool _syncCompleted = false;
 
@@ -24,11 +25,13 @@ class AuthProvider extends ChangeNotifier {
   // Getters
   User? get user => _user;
   bool get isAuthenticated => _user != null;
+  bool get isAnonymous => _user?.isAnonymous ?? false;
+  bool get hasSyncAccount => isAuthenticated && !isAnonymous;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  bool get isLocalMode => !isAuthenticated;
+  bool get isLocalMode => !hasSyncAccount;
   bool get syncCompleted => _syncCompleted;
-  
+
   // Reset the sync completed flag after UI has handled it
   void resetSyncCompletedFlag() {
     _syncCompleted = false;
@@ -39,17 +42,22 @@ class AuthProvider extends ChangeNotifier {
     _user = _supabaseService.currentUser;
     _isLoading = false;
 
-    debugPrint('[AuthProvider] Initializing with user: ${_user?.email ?? "none"}');
+    debugPrint(
+        '[AuthProvider] Initializing with user: ${_user?.email ?? "none"}');
 
     // Listen to auth state changes
     _authSubscription = _supabaseService.authStateChanges.listen((authState) {
       final previousUser = _user;
       _user = authState.session?.user;
 
-      debugPrint('[AuthProvider] Auth state changed - Previous: ${previousUser?.email ?? "none"}, Current: ${_user?.email ?? "none"}');
+      debugPrint(
+          '[AuthProvider] Auth state changed - Previous: ${previousUser?.email ?? "none"}, Current: ${_user?.email ?? "none"}');
 
-      // If user just logged in (was null, now has value), trigger post-auth tasks
-      if (previousUser == null && _user != null) {
+      // If user just logged into a recoverable account, trigger sync tasks.
+      // Anonymous sessions are intentionally local-only.
+      if (_user != null &&
+          !_user!.isAnonymous &&
+          (previousUser == null || previousUser.isAnonymous)) {
         debugPrint('[AuthProvider] User logged in, triggering post-auth tasks');
         _triggerPostAuthTasks();
       }
@@ -144,6 +152,33 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Start local/accountless mode with an anonymous Supabase session.
+  Future<bool> signInAnonymously() async {
+    try {
+      _errorMessage = null;
+      _isLoading = true;
+      notifyListeners();
+
+      final response = await _supabaseService.signInAnonymously();
+
+      if (response.user != null) {
+        _user = response.user;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    } catch (e) {
+      _errorMessage = _getErrorMessage(e);
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Sign in with Google
   Future<bool> signInWithGoogle() async {
     try {
@@ -202,6 +237,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signOut() async {
     try {
       _errorMessage = null;
+      await PushNotificationService.instance.unregisterCurrentDevice();
       await _supabaseService.signOut();
       _user = null;
       notifyListeners();
@@ -275,7 +311,13 @@ class AuthProvider extends ChangeNotifier {
           return 'Please confirm your email address';
         case 'User already registered':
           return 'An account with this email already exists';
+        case 'anonymous_provider_disabled':
+        case 'Anonymous sign-ins are disabled':
+          return 'Local mode is not enabled yet. Please try signing in.';
         default:
+          if (error.message.toLowerCase().contains('anonymous')) {
+            return 'Local mode is not enabled yet. Please try signing in.';
+          }
           return error.message;
       }
     }
@@ -287,6 +329,12 @@ class AuthProvider extends ChangeNotifier {
     // Run in background, don't await
     Future.microtask(() async {
       try {
+        if (_user?.isAnonymous ?? true) {
+          debugPrint(
+              '[AuthProvider] Anonymous session active, skipping cloud sync tasks');
+          return;
+        }
+
         // Check if migration is needed
         final migrationService = MigrationService();
         if (await migrationService.needsMigration()) {
@@ -301,7 +349,7 @@ class AuthProvider extends ChangeNotifier {
         // Sync subscription status to Supabase
         final subscriptionService = SubscriptionService();
         await subscriptionService.syncCurrentSubscriptionToSupabase();
-        
+
         // Load user profile and AI insights from Supabase (cross-device sync)
         debugPrint('[AuthProvider] Loading profile from Supabase...');
         final profileProvider = ProfileProvider();
@@ -309,11 +357,11 @@ class AuthProvider extends ChangeNotifier {
         await profileProvider.loadProfileFromSupabase(); // Then sync from cloud
 
         debugPrint('[AuthProvider] Post-auth tasks completed');
-        
+
         // Signal that sync is complete - UI should refresh
         _syncCompleted = true;
         notifyListeners();
-        
+
         debugPrint('[AuthProvider] Notified UI to refresh after sync');
       } catch (e) {
         debugPrint('[AuthProvider] Error in post-auth tasks (silent): $e');

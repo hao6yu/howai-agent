@@ -43,7 +43,8 @@ class _SubscriptionBannerState extends State<SubscriptionBanner> {
     );
   }
 
-  Widget _buildCreativeUpgradeBanner(BuildContext context, SubscriptionService subscriptionService) {
+  Widget _buildCreativeUpgradeBanner(
+      BuildContext context, SubscriptionService subscriptionService) {
     // Rotate between different creative messages with improved readability
     final l10n = AppLocalizations.of(context)!;
     final messages = [
@@ -58,28 +59,40 @@ class _SubscriptionBannerState extends State<SubscriptionBanner> {
         'emoji': '✨',
         'title': l10n.premiumBannerTitle2,
         'subtitle': l10n.premiumBannerSubtitle2,
-        'gradient': [Color(0xFFe91e63), Color(0xFF9c27b0)], // Improved contrast with darker colors
+        'gradient': [
+          Color(0xFFe91e63),
+          Color(0xFF9c27b0)
+        ], // Improved contrast with darker colors
         'buttonTextColor': Color(0xFFe91e63),
       },
       {
         'emoji': '🎯',
         'title': l10n.premiumBannerTitle3,
         'subtitle': l10n.premiumBannerSubtitle3,
-        'gradient': [Color(0xFF2196f3), Color(0xFF00bcd4)], // Better blue contrast
+        'gradient': [
+          Color(0xFF2196f3),
+          Color(0xFF00bcd4)
+        ], // Better blue contrast
         'buttonTextColor': Color(0xFF2196f3),
       },
       {
         'emoji': '💎',
         'title': l10n.premiumBannerTitle4,
         'subtitle': l10n.premiumBannerSubtitle4,
-        'gradient': [Color(0xFF4caf50), Color(0xFF009688)], // Better green contrast
+        'gradient': [
+          Color(0xFF4caf50),
+          Color(0xFF009688)
+        ], // Better green contrast
         'buttonTextColor': Color(0xFF4caf50),
       },
       {
         'emoji': '🌟',
         'title': l10n.premiumBannerTitle5,
         'subtitle': l10n.premiumBannerSubtitle5,
-        'gradient': [Color(0xFFff9800), Color(0xFFf57c00)], // Replaced yellow with orange for better contrast
+        'gradient': [
+          Color(0xFFff9800),
+          Color(0xFFf57c00)
+        ], // Replaced yellow with orange for better contrast
         'buttonTextColor': Color(0xFFff9800),
       },
     ];
@@ -116,7 +129,8 @@ class _SubscriptionBannerState extends State<SubscriptionBanner> {
                   },
               borderRadius: BorderRadius.circular(16),
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 40, 8), // Add more right padding for close button
+                padding: const EdgeInsets.fromLTRB(
+                    12, 8, 40, 8), // Add more right padding for close button
                 child: Row(
                   children: [
                     Container(
@@ -131,7 +145,8 @@ class _SubscriptionBannerState extends State<SubscriptionBanner> {
                           builder: (context, settings, child) {
                             return Text(
                               message['emoji'] as String,
-                              style: TextStyle(fontSize: settings.getScaledFontSize(18)),
+                              style: TextStyle(
+                                  fontSize: settings.getScaledFontSize(18)),
                             );
                           },
                         ),
@@ -187,7 +202,8 @@ class _SubscriptionBannerState extends State<SubscriptionBanner> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
@@ -370,92 +386,32 @@ class BrandedAppTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    return Consumer<SubscriptionService>(
-      builder: (context, subscriptionService, child) {
-        return Consumer<SettingsProvider>(
-          builder: (context, settings, child) {
-            return Consumer2<ProfileProvider, AIPersonalityProvider>(
-              builder: (context, profileProvider, aiPersonalityProvider, child) {
-                // Get AI name from current profile's AI personality
-                String aiName = 'HowAI'; // Default fallback
+    return Consumer<SettingsProvider>(
+      builder: (context, settings, child) {
+        return Consumer2<ProfileProvider, AIPersonalityProvider>(
+          builder: (context, profileProvider, aiPersonalityProvider, child) {
+            var aiName = 'HowAI';
+            if (profileProvider.selectedProfileId != null) {
+              final personality =
+                  aiPersonalityProvider.getPersonalityForProfile(
+                profileProvider.selectedProfileId!,
+              );
+              if (personality != null && personality.aiName.isNotEmpty) {
+                aiName = personality.aiName;
+              }
+            }
 
-                if (profileProvider.selectedProfileId != null) {
-                  final personality = aiPersonalityProvider.getPersonalityForProfile(profileProvider.selectedProfileId!);
-                  if (personality != null && personality.aiName.isNotEmpty) {
-                    aiName = personality.aiName;
-                  }
-                }
-                final badgeLabel = subscriptionService.isPremium ? l10n.premium : l10n.free;
-                final titleStyle = TextStyle(
-                  fontSize: settings.getScaledFontSize(20),
+            return GestureDetector(
+              onTap: onTap,
+              child: Text(
+                aiName,
+                style: TextStyle(
+                  fontSize: settings.getScaledFontSize(18),
                   fontWeight: FontWeight.w600,
-                );
-                final titlePainter = TextPainter(
-                  text: TextSpan(text: aiName, style: titleStyle),
-                  textDirection: Directionality.of(context),
-                  textScaler: MediaQuery.textScalerOf(context),
-                  maxLines: 1,
-                )..layout();
-                final titleWidth = titlePainter.width;
-
-                return GestureDetector(
-                  onTap: onTap,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    alignment: Alignment.center,
-                    children: [
-                      Text(
-                        aiName,
-                        style: titleStyle,
-                        textAlign: TextAlign.center,
-                      ),
-                      Positioned(
-                        top: -settings.getScaledFontSize(9),
-                        left: (titleWidth / 1.2),
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: settings.getScaledFontSize(3),
-                            vertical: settings.getScaledFontSize(1.5),
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: subscriptionService.isPremium
-                                ? LinearGradient(
-                                    colors: [
-                                      const Color(0xFF0078D4),
-                                      const Color(0xFF106ebe),
-                                    ],
-                                  )
-                                : LinearGradient(
-                                    colors: [
-                                      Colors.orange.shade400,
-                                      Colors.orange.shade600,
-                                    ],
-                                  ),
-                            borderRadius: BorderRadius.circular(settings.getScaledFontSize(4)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.15),
-                                blurRadius: settings.getScaledFontSize(3),
-                                offset: Offset(0, settings.getScaledFontSize(0.8)),
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            badgeLabel,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: settings.getScaledFontSize(8),
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             );
           },
         );

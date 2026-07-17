@@ -4,7 +4,7 @@ import AVFoundation
 import GoogleMaps
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, FlutterPluginRegistrant {
   var audioEngine: AVAudioEngine?
   var eventSink: FlutterEventSink?
 
@@ -12,33 +12,21 @@ import GoogleMaps
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
-    // Initialize Google Maps with API key - Multiple fallback methods for reliability
+    // Initialize Google Maps with API key from build settings or Flutter dart-defines.
     var apiKey: String? = nil
     var keySource = ""
     
-    // Method 1: Try Info.plist configuration (secure, from build settings)
     if let plistKey = Bundle.main.object(forInfoDictionaryKey: "GOOGLE_MAPS_API_KEY") as? String,
        !plistKey.isEmpty && !plistKey.contains("$(") {
       apiKey = plistKey
-      keySource = "Info.plist (secure)"
+      keySource = "Info.plist"
     }
-    
-    // Method 2: Try reading .env file from bundle (if included in build)
-    else if let envPath = Bundle.main.path(forResource: ".env", ofType: nil),
-            let envContent = try? String(contentsOfFile: envPath),
-            let envKey = envContent.components(separatedBy: .newlines)
-              .first(where: { $0.hasPrefix("GOOGLE_MAPS_API_KEY=") })?
-              .components(separatedBy: "=").dropFirst().joined(separator: "=")
-              .trimmingCharacters(in: .whitespacesAndNewlines),
-            !envKey.isEmpty {
-      apiKey = envKey
-      keySource = ".env file"
-    }
-    
-    // Method 3: Hardcoded fallback (for guaranteed functionality)
-    else {
-      apiKey = "YOUR_GOOGLE_MAPS_API_KEY"
-      keySource = "hardcoded fallback"
+
+    if apiKey == nil,
+       let dartDefineKey = Self.dartDefineValue(for: "GOOGLE_MAPS_API_KEY"),
+       !dartDefineKey.isEmpty {
+      apiKey = dartDefineKey
+      keySource = "DART_DEFINES"
     }
     
     // Initialize Google Maps
@@ -52,33 +40,84 @@ import GoogleMaps
       print("❌ Map functionality will not work")
     }
     
-    GeneratedPluginRegistrant.register(with: self)
-
-    let controller : FlutterViewController = window?.rootViewController as! FlutterViewController
-
-    let eventChannel = FlutterEventChannel(name: "native_audio_stream_events", binaryMessenger: controller.binaryMessenger)
-    eventChannel.setStreamHandler(self)
-
-    let methodChannel = FlutterMethodChannel(name: "native_audio_stream", binaryMessenger: controller.binaryMessenger)
-    methodChannel.setMethodCallHandler { [weak self] (call, result) in
-        if call.method == "start" {
-            let args = call.arguments as? [String: Any]
-            let sampleRate = args?["sampleRate"] as? Double ?? 16000
-            self?.startAudioStream(sampleRate: sampleRate)
-            result(nil)
-        } else if call.method == "stop" {
-            self?.stopAudioStream()
-            result(nil)
-        } else {
-            result(FlutterMethodNotImplemented)
-        }
-    }
+    pluginRegistrant = self
 
     AVAudioSession.sharedInstance().requestRecordPermission { granted in
         print("Native mic permission granted: \(granted)")
     }
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  func register(with registry: FlutterPluginRegistry) {
+    GeneratedPluginRegistrant.register(with: registry)
+
+    if let pushRegistrar = registry.registrar(forPlugin: "HowAIPushRegistration") {
+      let pushChannel = FlutterMethodChannel(
+        name: "howai/push_notifications",
+        binaryMessenger: pushRegistrar.messenger()
+      )
+      pushChannel.setMethodCallHandler { call, result in
+        guard call.method == "register" else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        DispatchQueue.main.async {
+          UIApplication.shared.registerForRemoteNotifications()
+          result(nil)
+        }
+      }
+    }
+
+    guard let registrar = registry.registrar(forPlugin: "NativeAudioStream") else {
+      return
+    }
+
+    let eventChannel = FlutterEventChannel(
+      name: "native_audio_stream_events",
+      binaryMessenger: registrar.messenger()
+    )
+    eventChannel.setStreamHandler(self)
+
+    let methodChannel = FlutterMethodChannel(
+      name: "native_audio_stream",
+      binaryMessenger: registrar.messenger()
+    )
+    methodChannel.setMethodCallHandler { [weak self] (call, result) in
+      if call.method == "start" {
+        let args = call.arguments as? [String: Any]
+        let sampleRate = args?["sampleRate"] as? Double ?? 16000
+        self?.startAudioStream(sampleRate: sampleRate)
+        result(nil)
+      } else if call.method == "stop" {
+        self?.stopAudioStream()
+        result(nil)
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private static func dartDefineValue(for key: String) -> String? {
+    guard let rawDefines = Bundle.main.object(forInfoDictionaryKey: "DART_DEFINES") as? String,
+          !rawDefines.isEmpty,
+          !rawDefines.contains("$(") else {
+      return nil
+    }
+
+    for encodedDefine in rawDefines.split(separator: ",") {
+      guard let data = Data(base64Encoded: String(encodedDefine)),
+            let decoded = String(data: data, encoding: .utf8) else {
+        continue
+      }
+
+      let parts = decoded.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+      if parts.count == 2 && parts[0] == key {
+        return String(parts[1])
+      }
+    }
+
+    return nil
   }
 
   func startAudioStream(sampleRate: Double) {

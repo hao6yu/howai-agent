@@ -1,5 +1,6 @@
 import '../models/knowledge_item.dart';
 import 'database_service.dart';
+import 'personal_memory_service.dart';
 import 'subscription_service.dart';
 
 class PremiumRequiredException implements Exception {
@@ -26,6 +27,7 @@ class KnowledgeHubService {
   KnowledgeHubService._internal();
 
   final DatabaseService _databaseService = DatabaseService();
+  final PersonalMemoryService _personalMemoryService = PersonalMemoryService();
   final SubscriptionService _subscriptionService = SubscriptionService();
 
   bool get isPremiumAvailable => _subscriptionService.isPremium;
@@ -82,7 +84,10 @@ class KnowledgeHubService {
     );
 
     final id = await _databaseService.insertKnowledgeItem(item);
-    return item.copyWith(id: id);
+    var created = item.copyWith(id: id);
+    created = await _personalMemoryService.syncManualMemory(created);
+    await _databaseService.updateKnowledgeItem(created);
+    return created;
   }
 
   Future<List<KnowledgeItem>> getKnowledgeItemsForProfile(
@@ -92,6 +97,7 @@ class KnowledgeHubService {
     MemoryType? memoryType,
   }) async {
     _ensurePremiumAccess();
+    await _personalMemoryService.syncActiveMemoriesToLocal(profileId);
 
     return _databaseService.getKnowledgeItemsForProfile(
       profileId,
@@ -114,22 +120,26 @@ class KnowledgeHubService {
     }
 
     final updated = item.copyWith(updatedAt: DateTime.now().toIso8601String());
-    final rows = await _databaseService.updateKnowledgeItem(updated);
+    final synced = await _personalMemoryService.syncManualMemory(updated);
+    final rows = await _databaseService.updateKnowledgeItem(synced);
     if (rows <= 0) {
       return null;
     }
 
-    return _databaseService.getKnowledgeItemById(updated.id!);
+    return _databaseService.getKnowledgeItemById(synced.id!);
   }
 
   Future<bool> deleteKnowledgeItem(int id) async {
     _ensurePremiumAccess();
+    final item = await _databaseService.getKnowledgeItemById(id);
+    await _personalMemoryService.deleteCloudMemory(item?.cloudId);
     final rows = await _databaseService.deleteKnowledgeItem(id);
     return rows > 0;
   }
 
   Future<int> clearKnowledgeItemsForProfile(int profileId) async {
     _ensurePremiumAccess();
+    await _personalMemoryService.clearCloudMemories();
     return _databaseService.clearKnowledgeItemsForProfile(profileId);
   }
 
@@ -139,6 +149,14 @@ class KnowledgeHubService {
     int maxItems = 5,
   }) async {
     _ensurePremiumAccess();
+    await _personalMemoryService.syncActiveMemoriesToLocal(profileId);
+
+    // Authenticated requests receive the same memories from the server-owned
+    // prompt policy. Keep this local path only as a signed-out/offline fallback
+    // so the model does not see duplicated personal context.
+    if (_personalMemoryService.hasCloudPersonalization) {
+      return '';
+    }
 
     final items = await _databaseService.getKnowledgeItemsForProfile(
       profileId,

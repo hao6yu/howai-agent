@@ -350,7 +350,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get continuousUpdatesDesc => 'Nouvelles fonctionnalités et améliorations en permanence !';
 
   @override
-  String get privacyBanner => 'Vos données restent sur votre appareil. Pas de suivi. Pas de publicités. Vous gardez toujours le contrôle.';
+  String get privacyBanner => 'Vous gardez le contrôle de vos données. Les requêtes IA et les fonctions de synchronisation activées sont traitées de manière sécurisée via les services HowAI. Sans publicité.';
 
   @override
   String get subscriptionDetailsTitle => 'Détails de l\'abonnement';
@@ -475,7 +475,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get instructionsSection7Line3 => '• Consultez vos analyses générées par l\'IA dans la section Paramètres > Analyses IA.';
 
   @override
-  String get instructionsSection7Line4 => '• Toute l\'analyse est effectuée sur l\'appareil pour votre confidentialité—aucune donnée ne quitte votre appareil.';
+  String get instructionsSection7Line4 => '• Les fonctions d’IA peuvent traiter du contenu de manière sécurisée via les services Supabase et OpenAI de HowAI. Gérez la personnalisation dans les réglages de Mémoire.';
 
   @override
   String get instructionsSection7Line5 => '• Vous pouvez effacer ces données à tout moment dans les Paramètres.';
@@ -805,7 +805,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get voiceInputTipsGotIt => 'Compris';
 
   @override
-  String get chatInputHint => 'Demandez-moi n\'importe quoi pour commencer...';
+  String get chatInputHint => 'Demandez à HowAI';
 
   @override
   String get appBarTitleHao => 'HowAI';
@@ -2041,7 +2041,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get adjustSliderTextSize => 'Ajustez le curseur ci-dessous pour changer la taille du texte';
 
   @override
-  String get textSizeChangeNote => 'Si activé, la taille du texte dans les chats et Moments sera modifiée. Si vous avez des questions ou commentaires, veuillez contacter l\'équipe WeChat.';
+  String get textSizeChangeNote => 'Utilisez le curseur pour prévisualiser le texte dans HowAI.';
 
   @override
   String get resetToDefaultButton => 'Rétablir par Défaut';
@@ -2525,6 +2525,53 @@ class AppLocalizationsFr extends AppLocalizations {
   String get knowledgeHubFeatureControlDesc => 'Modifiez, épinglez, désactivez ou supprimez des éléments à tout moment à partir d\'un seul endroit.';
 
   @override
+  String get knowledgeHubSettingsTitle => 'Mémoire et personnalisation';
+
+  @override
+  String get knowledgeHubSettingsDescription => 'Choisissez quand HowAI peut utiliser ou apprendre des informations durables. Les secrets et données sensibles ne sont pas enregistrés automatiquement.';
+
+  @override
+  String get knowledgeHubPersonalization => 'Utiliser la mémoire dans les réponses';
+
+  @override
+  String get knowledgeHubPersonalizationDesc => 'Utilisez les éléments actifs du Centre de connaissances pour personnaliser le chat et la voix.';
+
+  @override
+  String get knowledgeHubLearnChats => 'Apprendre des conversations longues';
+
+  @override
+  String get knowledgeHubLearnChatsDesc => 'Examinez les informations utiles données par l’utilisateur après des conversations importantes.';
+
+  @override
+  String get knowledgeHubLearnVoice => 'Apprendre après les appels vocaux';
+
+  @override
+  String get knowledgeHubLearnVoiceDesc => 'Examinez les appels comprenant au moins cinq interventions de l’utilisateur pour trouver des informations durables.';
+
+  @override
+  String get knowledgeHubSettingsSave => 'Enregistrer les réglages';
+
+  @override
+  String get knowledgeHubSettingsSaved => 'Réglages de mémoire enregistrés.';
+
+  @override
+  String knowledgeHubSuggestedTitle(int count) {
+    return 'Souvenirs suggérés ($count)';
+  }
+
+  @override
+  String get knowledgeHubSuggestedDescription => 'Examinez les informations déduites par HowAI avant leur utilisation.';
+
+  @override
+  String get knowledgeHubSuggestionAdd => 'Ajouter';
+
+  @override
+  String get knowledgeHubSuggestionDismiss => 'Ignorer';
+
+  @override
+  String get knowledgeHubSuggestionReviewFailed => 'Impossible de mettre à jour ce souvenir suggéré.';
+
+  @override
   String get knowledgeHubUpgradeToPremium => 'Passer à Premium';
 
   @override
@@ -2819,7 +2866,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get chatLandingTitle => 'Comment puis-je vous aider ?';
 
   @override
-  String get chatLandingSubtitle => 'Écrivez ou envoyez votre voix. Je m’occupe du reste.';
+  String get chatLandingSubtitle => 'Écrivez, parlez ou montrez-moi ce que vous voyez.';
 
   @override
   String get chatLandingTipCompact => 'Astuce : appuyez sur + pour les photos, fichiers, PDF et outils d’image.';
@@ -2858,7 +2905,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'Premium rend tout possible';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'Voix et vision';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';
@@ -2980,14 +3027,35 @@ class AppLocalizationsFr extends AppLocalizations {
   String get speakButtonTooltip => 'Démarrer un appel vocal';
 
   @override
-  String get back => 'Back';
+  String get back => 'Retour';
 
   @override
   String get menu => 'Menu';
 
   @override
-  String get voiceNoVoicesAvailable => 'No voices available on this device';
+  String get voiceNoVoicesAvailable => 'Aucune voix n’est disponible sur cet appareil';
 
   @override
-  String get memory => 'Memory';
+  String get memory => 'Mémoire';
+
+  @override
+  String get research => 'Recherche';
+
+  @override
+  String get thinkingLevel => 'Niveau de réflexion';
+
+  @override
+  String get thinkingAuto => 'Automatique';
+
+  @override
+  String get thinkingFast => 'Rapide';
+
+  @override
+  String get thinkingBalanced => 'Équilibré';
+
+  @override
+  String get thinkingDeep => 'Approfondi';
+
+  @override
+  String get thinkingLevelNote => 'Les niveaux supérieurs prennent plus de temps et utilisent plus de jetons de raisonnement.';
 }

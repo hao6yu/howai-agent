@@ -9,6 +9,10 @@ import '../services/database_service.dart';
 import '../services/subscription_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import '../core/theme/howai_theme.dart';
+import 'new_conversation_button.dart';
+
+enum _ConversationAction { pin, rename, archive, restore, delete }
 
 class ConversationDrawer extends StatefulWidget {
   final int? profileId;
@@ -22,18 +26,14 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
   final TextEditingController _searchController = TextEditingController();
   final DatabaseService _databaseService = DatabaseService();
   String _searchQuery = '';
+  Set<int> _messageMatchIds = <int>{};
+  int _searchGeneration = 0;
 
   @override
   void initState() {
     super.initState();
-    // Ensure keyboard is dismissed when drawer opens, but with slight delay
-    // to prevent conflicts with the text field focus
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(Duration(milliseconds: 100), () {
-        if (mounted) {
-          FocusManager.instance.primaryFocus?.unfocus();
-        }
-      });
+      if (mounted) FocusManager.instance.primaryFocus?.unfocus();
     });
   }
 
@@ -45,14 +45,15 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.howaiColors;
     return ClipRRect(
       borderRadius: const BorderRadius.only(
         topRight: Radius.circular(1),
         bottomRight: Radius.circular(1),
       ),
       child: Drawer(
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-        elevation: 4.0,
+        backgroundColor: colors.canvas,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.only(
             topRight: Radius.circular(1),
@@ -62,15 +63,15 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
         child: Consumer<ConversationProvider>(
           builder: (context, provider, _) {
             final allConversations = provider.conversations;
+            final allArchivedConversations = provider.archivedConversations;
 
-            // Filter conversations based on search query
+            // Search titles and local message content.
             final filteredConversations = _searchQuery.isEmpty
                 ? allConversations
-                : allConversations
-                    .where((c) => c.title
-                        .toLowerCase()
-                        .contains(_searchQuery.toLowerCase()))
-                    .toList();
+                : allConversations.where(_matchesSearch).toList();
+            final filteredArchivedConversations = _searchQuery.isEmpty
+                ? allArchivedConversations
+                : allArchivedConversations.where(_matchesSearch).toList();
 
             final pinned =
                 filteredConversations.where((c) => c.isPinned).toList();
@@ -91,13 +92,10 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                       // Search bar
                       Expanded(
                         child: Container(
-                          height: 50,
+                          height: 44,
                           decoration: BoxDecoration(
-                            color:
-                                Theme.of(context).brightness == Brightness.dark
-                                    ? Colors.grey.shade800
-                                    : Color(0xFFF2F2F2),
-                            borderRadius: BorderRadius.circular(12),
+                            color: colors.surface,
+                            borderRadius: BorderRadius.circular(10),
                           ),
                           child: TextField(
                             controller: _searchController,
@@ -111,41 +109,24 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                             decoration: InputDecoration(
                               hintText: AppLocalizations.of(context)!
                                   .searchConversations,
-                              hintStyle: TextStyle(color: Colors.grey.shade600),
+                              hintStyle: TextStyle(color: colors.textTertiary),
                               prefixIcon: Icon(Icons.search,
-                                  color: Colors.grey.shade600),
+                                  color: colors.textSecondary),
+                              filled: false,
                               border: InputBorder.none,
                               contentPadding:
                                   const EdgeInsets.symmetric(vertical: 12),
                             ),
-                            onChanged: (value) {
-                              setState(() {
-                                _searchQuery = value;
-                              });
-                            },
+                            onChanged: _onSearchChanged,
                           ),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      // New chat button
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
-                          borderRadius: BorderRadius.circular(8),
-                          border:
-                              Border.all(color: Color(0xFF0078D4), width: 1),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.post_add,
-                              color: Color(0xFF0078D4)),
-                          tooltip:
-                              AppLocalizations.of(context)!.newConversation,
-                          onPressed: () {
-                            // Clear selection and close drawer
-                            provider.clearSelection();
-                            Navigator.pop(context);
-                          },
-                        ),
+                      NewConversationButton(
+                        onPressed: () {
+                          provider.clearSelection();
+                          Navigator.pop(context);
+                        },
                       ),
                     ],
                   ),
@@ -165,17 +146,18 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                               AppLocalizations.of(context)!.pinnedSection),
                           ...pinned.map(
                               (c) => _conversationTile(context, provider, c)),
-                          const Divider(
-                              height: 24,
-                              color: Colors.grey,
-                              indent: 16,
-                              endIndent: 16),
+                          Divider(
+                            height: 24,
+                            color: colors.divider,
+                            indent: 16,
+                            endIndent: 16,
+                          ),
                         ],
 
-                        // Main conversations section
-                        _sectionHeader(
-                            AppLocalizations.of(context)!.chatsSection),
-                        if (others.isEmpty && _searchQuery.isEmpty)
+                        // Main conversations section, grouped by recency.
+                        if (filteredConversations.isEmpty &&
+                            filteredArchivedConversations.isEmpty &&
+                            _searchQuery.isEmpty)
                           Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Text(
@@ -184,7 +166,9 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                               textAlign: TextAlign.center,
                             ),
                           )
-                        else if (others.isEmpty && _searchQuery.isNotEmpty)
+                        else if (filteredConversations.isEmpty &&
+                            filteredArchivedConversations.isEmpty &&
+                            _searchQuery.isNotEmpty)
                           Padding(
                             padding: const EdgeInsets.all(16.0),
                             child: Text(
@@ -194,16 +178,39 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                               textAlign: TextAlign.center,
                             ),
                           )
-                        else
-                          ...others.map(
-                              (c) => _conversationTile(context, provider, c)),
+                        else if (others.isNotEmpty)
+                          ..._buildRecencySections(context, provider, others),
+
+                        if (filteredArchivedConversations.isNotEmpty) ...[
+                          const Divider(
+                            height: 24,
+                            indent: 16,
+                            endIndent: 16,
+                          ),
+                          ExpansionTile(
+                            leading: const Icon(Icons.archive_outlined),
+                            title: Text(
+                              'Archived (${filteredArchivedConversations.length})',
+                            ),
+                            children: filteredArchivedConversations
+                                .map(
+                                  (conversation) => _conversationTile(
+                                    context,
+                                    provider,
+                                    conversation,
+                                    isArchived: true,
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ),
 
                 // Settings section at bottom
-                _buildKnowledgeHubSection(),
+                _buildWorkspaceNavigation(),
                 _buildSettingsSection(),
               ],
             );
@@ -213,19 +220,94 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
     );
   }
 
-  Widget _sectionHeader(String title) {
+  Future<void> _onSearchChanged(String value) async {
+    final generation = ++_searchGeneration;
+    setState(() => _searchQuery = value);
+
+    final matches = await _databaseService.searchConversationMessageIds(
+      value,
+      profileId: widget.profileId,
+    );
+    if (!mounted || generation != _searchGeneration) return;
+    setState(() => _messageMatchIds = matches);
+  }
+
+  bool _matchesSearch(Conversation conversation) {
+    final query = _searchQuery.trim().toLowerCase();
+    if (query.isEmpty) return true;
+    return conversation.title.toLowerCase().contains(query) ||
+        (conversation.id != null && _messageMatchIds.contains(conversation.id));
+  }
+
+  List<Widget> _buildRecencySections(
+    BuildContext context,
+    ConversationProvider provider,
+    List<Conversation> conversations,
+  ) {
+    final now = DateTime.now();
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final groups = <String, List<Conversation>>{
+      'Today': [],
+      'Previous 7 days': [],
+      'Previous 30 days': [],
+      'Older': [],
+    };
+
+    for (final conversation in conversations) {
+      final age = startOfToday.difference(
+        DateTime(
+          conversation.updatedAt.year,
+          conversation.updatedAt.month,
+          conversation.updatedAt.day,
+        ),
+      );
+      if (age.inDays <= 0) {
+        groups['Today']!.add(conversation);
+      } else if (age.inDays < 7) {
+        groups['Previous 7 days']!.add(conversation);
+      } else if (age.inDays < 30) {
+        groups['Previous 30 days']!.add(conversation);
+      } else {
+        groups['Older']!.add(conversation);
+      }
+    }
+
+    final visibleGroups = groups.entries
+        .where((entry) => entry.value.isNotEmpty)
+        .toList(growable: false);
+    return [
+      for (var index = 0; index < visibleGroups.length; index++) ...[
+        _sectionHeader(
+          visibleGroups[index].key,
+          separatedFromPrevious: index > 0,
+        ),
+        ...visibleGroups[index].value.map(
+              (conversation) =>
+                  _conversationTile(context, provider, conversation),
+            ),
+      ],
+    ];
+  }
+
+  Widget _sectionHeader(
+    String title, {
+    bool separatedFromPrevious = false,
+  }) {
+    final colors = context.howaiColors;
     return Align(
       alignment: Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.only(left: 16.0, bottom: 8.0),
+        padding: EdgeInsets.only(
+          left: 16,
+          top: separatedFromPrevious ? 18 : 0,
+          bottom: 8,
+        ),
         child: Text(
           title,
           style: TextStyle(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.white
-                : Colors.grey.shade800,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+            color: colors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -243,7 +325,12 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
   }
 
   Widget _conversationTile(
-      BuildContext context, ConversationProvider provider, Conversation c) {
+    BuildContext context,
+    ConversationProvider provider,
+    Conversation c, {
+    bool isArchived = false,
+  }) {
+    final colors = context.howaiColors;
     final isSelected = provider.selectedConversation?.id == c.id;
 
     return ListTile(
@@ -263,52 +350,192 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
-        'Created ${_timeAgo(context, c.createdAt)}',
+        'Updated ${_timeAgo(context, c.updatedAt)}',
         style: TextStyle(
-          color: Colors.grey.shade600,
+          color: colors.textTertiary,
           fontSize: 12,
         ),
       ),
       selected: isSelected,
-      selectedTileColor: Theme.of(context).brightness == Brightness.dark
-          ? Colors.blue.shade900.withOpacity(0.3)
-          : Colors.blue.shade50,
-      trailing: IconButton(
-        icon: Icon(
-          c.isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-          color: c.isPinned ? Color(0xFF0078D4) : Colors.grey.shade600,
-          size: 20,
-        ),
-        onPressed: () => provider.pinConversation(c, !c.isPinned),
+      selectedTileColor: colors.surface,
+      trailing: PopupMenuButton<_ConversationAction>(
+        tooltip: 'Conversation actions',
+        onSelected: (action) =>
+            _handleConversationAction(context, provider, c, action),
+        itemBuilder: (context) => [
+          if (!isArchived)
+            PopupMenuItem(
+              value: _ConversationAction.pin,
+              child: _menuAction(
+                c.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                c.isPinned ? 'Unpin' : 'Pin',
+              ),
+            ),
+          if (!isArchived)
+            PopupMenuItem(
+              value: _ConversationAction.rename,
+              child: _menuAction(Icons.edit_outlined, 'Rename'),
+            ),
+          PopupMenuItem(
+            value: isArchived
+                ? _ConversationAction.restore
+                : _ConversationAction.archive,
+            child: _menuAction(
+              isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+              isArchived ? 'Restore' : 'Archive',
+            ),
+          ),
+          PopupMenuItem(
+            value: _ConversationAction.delete,
+            child: _menuAction(
+              Icons.delete_outline,
+              AppLocalizations.of(context)!.delete,
+              color: Theme.of(context).colorScheme.error,
+            ),
+          ),
+        ],
       ),
-      onTap: () {
-        provider.selectConversation(c);
-        Navigator.pop(context);
-      },
+      onTap: isArchived
+          ? null
+          : () {
+              provider.selectConversation(c);
+              Navigator.pop(context);
+            },
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
       ),
     );
   }
 
+  Widget _menuAction(IconData icon, String label, {Color? color}) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 12),
+        Text(label, style: TextStyle(color: color)),
+      ],
+    );
+  }
+
+  Future<void> _handleConversationAction(
+    BuildContext context,
+    ConversationProvider provider,
+    Conversation conversation,
+    _ConversationAction action,
+  ) async {
+    switch (action) {
+      case _ConversationAction.pin:
+        await provider.pinConversation(conversation, !conversation.isPinned);
+        break;
+      case _ConversationAction.rename:
+        await _showRenameDialog(context, provider, conversation);
+        break;
+      case _ConversationAction.archive:
+        await provider.archiveConversation(conversation);
+        break;
+      case _ConversationAction.restore:
+        await provider.restoreConversation(conversation);
+        break;
+      case _ConversationAction.delete:
+        await _confirmDelete(context, provider, conversation);
+        break;
+    }
+  }
+
+  Future<void> _showRenameDialog(
+    BuildContext context,
+    ConversationProvider provider,
+    Conversation conversation,
+  ) async {
+    final controller = TextEditingController(text: conversation.title);
+    final title = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Rename conversation'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 100,
+          textCapitalization: TextCapitalization.sentences,
+          onSubmitted: (value) => Navigator.pop(dialogContext, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text(AppLocalizations.of(context)!.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: Text(AppLocalizations.of(context)!.save),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (title == null || title.trim().isEmpty) return;
+    await provider.updateConversationTitle(
+      conversationId: conversation.id!,
+      title: title,
+      profileId: conversation.profileId,
+    );
+  }
+
+  Future<void> _confirmDelete(
+    BuildContext context,
+    ConversationProvider provider,
+    Conversation conversation,
+  ) async {
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Delete conversation?'),
+            content: Text(
+              '“${_getDisplayTitle(conversation)}” and its messages will be permanently deleted.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext, false),
+                child: Text(AppLocalizations.of(context)!.cancel),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.error,
+                ),
+                onPressed: () => Navigator.pop(dialogContext, true),
+                child: Text(AppLocalizations.of(context)!.delete),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (!confirmed) return;
+
+    final deleted = await provider.deleteConversation(conversation);
+    if (!context.mounted || deleted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppLocalizations.of(context)!.somethingWentWrong)),
+    );
+  }
+
   String _timeAgo(BuildContext context, DateTime dateTime) {
+    final l10n = AppLocalizations.of(context)!;
     final now = DateTime.now();
     final difference = now.difference(dateTime);
 
     if (difference.inDays > 365) {
       final years = (difference.inDays / 365).floor();
-      return '$years ${years == 1 ? 'year' : 'years'} ago';
+      return l10n.yearAgo(years);
     } else if (difference.inDays > 30) {
       final months = (difference.inDays / 30).floor();
-      return '$months ${months == 1 ? 'month' : 'months'} ago';
+      return l10n.monthAgo(months);
     } else if (difference.inDays > 0) {
-      return '${difference.inDays} ${difference.inDays == 1 ? 'day' : 'days'} ago';
+      return l10n.dayAgo(difference.inDays);
     } else if (difference.inHours > 0) {
-      return '${difference.inHours} ${difference.inHours == 1 ? 'hour' : 'hours'} ago';
+      return l10n.hourAgo(difference.inHours);
     } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} ${difference.inMinutes == 1 ? 'minute' : 'minutes'} ago';
+      return l10n.minuteAgo(difference.inMinutes);
     } else {
-      return 'just now';
+      return l10n.justNow;
     }
   }
 
@@ -333,8 +560,9 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
   }
 
   Widget _buildSettingsSection() {
-    return Consumer<ProfileProvider>(
-      builder: (context, profileProvider, child) {
+    return Consumer2<ProfileProvider, SubscriptionService>(
+      builder: (context, profileProvider, subscriptionService, child) {
+        final colors = context.howaiColors;
         final selectedProfile = profileProvider.profiles.firstWhere(
           (p) => p.id == profileProvider.selectedProfileId,
           orElse: () => Profile(
@@ -349,13 +577,11 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
             : selectedProfile.name;
 
         final settingsRow = Container(
-          margin: const EdgeInsets.only(bottom: 20.0),
+          margin: const EdgeInsets.only(top: 4, bottom: 8),
           decoration: BoxDecoration(
             border: Border(
               top: BorderSide(
-                color: Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade700
-                    : Colors.grey.shade300,
+                color: colors.divider,
                 width: 1,
               ),
             ),
@@ -378,28 +604,9 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                     height: 40,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        colors: Theme.of(context).brightness == Brightness.dark
-                            ? [
-                                const Color(0xFF1E3A5F).withOpacity(
-                                    0.8), // More visible dark blue for dark mode
-                                const Color(0xFF2C5282).withOpacity(
-                                    0.6), // More visible dark blue for dark mode
-                              ]
-                            : [
-                                const Color(0xFF0078D4).withOpacity(
-                                    0.1), // Original for light mode
-                                const Color(0xFF0078D4).withOpacity(
-                                    0.05), // Original for light mode
-                              ],
-                      ),
+                      color: colors.surface,
                       border: Border.all(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? const Color(0xFF2C5282).withOpacity(
-                                0.8) // More visible border for dark mode
-                            : const Color(0xFF0078D4)
-                                .withOpacity(0.3), // Original for light mode
-                        width: 2,
+                        color: colors.divider,
                       ),
                     ),
                     child: FutureBuilder<String?>(
@@ -419,11 +626,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white // White text for dark mode
-                                  : const Color(
-                                      0xFF0078D4), // Blue text for light mode
+                              color: colors.textPrimary,
                             ),
                           ),
                         );
@@ -434,25 +637,34 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
 
                   // User Name
                   Expanded(
-                    child: Text(
-                      displayName,
-                      style: TextStyle(
-                        color: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.white
-                            : Colors.grey.shade800,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          displayName,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          subscriptionService.isPremium ? 'Pro' : 'Free',
+                          style: TextStyle(
+                            color: colors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
 
                   // Settings Icon
                   Icon(
-                    Icons.settings,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.grey.shade400
-                        : Colors.grey.shade600,
+                    Icons.settings_outlined,
+                    color: colors.textSecondary,
                     size: 20,
                   ),
                 ],
@@ -466,58 +678,115 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
     );
   }
 
-  Widget _buildKnowledgeHubSection() {
-    return Consumer<SubscriptionService>(
-      builder: (context, subscriptionService, _) {
-        return Container(
-          margin: const EdgeInsets.fromLTRB(10, 0, 10, 8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark
-                ? Colors.grey.shade800
-                : Colors.blue.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade700
-                  : Colors.blue.shade100,
-            ),
-          ),
-          child: ListTile(
-            leading: Icon(
-              Icons.auto_stories_outlined,
-              color: const Color(0xFF0078D4),
-            ),
-            title: Text(AppLocalizations.of(context)!.knowledgeHubTitle),
-            subtitle: Text(
-              subscriptionService.isPremium
-                  ? AppLocalizations.of(context)!.knowledgeHubManageSavedMemory
-                  : AppLocalizations.of(context)!.premiumFeature,
-            ),
-            trailing: !subscriptionService.isPremium
-                ? Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.amber.shade100,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      'PRO',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.amber.shade900,
-                      ),
-                    ),
-                  )
-                : const Icon(Icons.chevron_right),
+  Widget _buildWorkspaceNavigation() {
+    final colors = context.howaiColors;
+    return Container(
+      key: const ValueKey<String>('drawer_workspace_navigation'),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildWorkspaceDestination(
+            icon: Icons.checklist_rounded,
+            label: 'Automations',
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, '/knowledge-hub');
+              Navigator.pushNamed(context, '/actions');
             },
           ),
-        );
-      },
+          Container(
+            height: 1,
+            margin: const EdgeInsetsDirectional.only(start: 48),
+            color: colors.divider,
+          ),
+          Consumer<SubscriptionService>(
+            builder: (context, subscriptionService, _) {
+              return _buildWorkspaceDestination(
+                icon: Icons.auto_stories_outlined,
+                label: AppLocalizations.of(context)!.knowledgeHubTitle,
+                showProBadge: !subscriptionService.isPremium,
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamed(context, '/knowledge-hub');
+                },
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWorkspaceDestination({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool showProBadge = false,
+  }) {
+    final colors = context.howaiColors;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 44),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              children: [
+                Icon(icon, size: 20, color: colors.textSecondary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+                if (showProBadge) ...[
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: colors.accentSoft,
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(
+                        color: colors.accent.withValues(alpha: 0.28),
+                      ),
+                    ),
+                    child: Text(
+                      AppLocalizations.of(context)!.premiumBadge,
+                      style: TextStyle(
+                        color: colors.accent,
+                        fontSize: 8,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: colors.textTertiary,
+                  size: 18,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

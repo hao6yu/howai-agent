@@ -8,6 +8,7 @@ import '../services/audio_service.dart';
 import '../services/elevenlabs_service.dart';
 import '../services/device_tts_service.dart';
 import '../widgets/custom_back_button.dart';
+import '../core/theme/howai_theme.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
@@ -517,18 +518,13 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
     SettingsProvider settings,
     SubscriptionService subscriptionService,
   ) {
-    final isPremium = subscriptionService.isPremium;
+    final colors = context.howaiColors;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isPremium
-              ? const Color(0xFF0078D4).withOpacity(0.25)
-              : Colors.grey.withOpacity(0.25),
-        ),
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,10 +533,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
             AppLocalizations.of(context)!.voicePlaybackHowItWorksTitle,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(15),
-              fontWeight: FontWeight.w700,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : const Color(0xFF1A1A1A),
+              fontWeight: FontWeight.w600,
+              color: colors.textPrimary,
             ),
           ),
           const SizedBox(height: 10),
@@ -548,9 +542,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
             AppLocalizations.of(context)!.voicePlaybackHowItWorksFree,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(13),
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade300
-                  : Colors.grey.shade700,
+              color: colors.textSecondary,
             ),
           ),
           const SizedBox(height: 6),
@@ -558,9 +550,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
             AppLocalizations.of(context)!.voicePlaybackHowItWorksPremium,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(13),
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade300
-                  : Colors.grey.shade700,
+              color: colors.textSecondary,
             ),
           ),
           const SizedBox(height: 6),
@@ -568,9 +558,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
             AppLocalizations.of(context)!.voicePlaybackHowItWorksTrySample,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(13),
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade300
-                  : Colors.grey.shade700,
+              color: colors.textSecondary,
             ),
           ),
           const SizedBox(height: 6),
@@ -578,9 +566,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
             AppLocalizations.of(context)!.voicePlaybackHowItWorksSpeedNote,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(13),
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey.shade300
-                  : Colors.grey.shade700,
+              color: colors.textSecondary,
             ),
           ),
         ],
@@ -589,6 +575,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
   }
 
   Widget _buildDeviceTTSSection(SettingsProvider settings) {
+    final colors = context.howaiColors;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -596,15 +583,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
             children: [
@@ -612,19 +592,15 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    SizedBox(
+                      width: 28,
                       child: Icon(
                         Icons.phone_android_rounded,
-                        color: Colors.green,
+                        color: colors.textSecondary,
                         size: settings.getScaledFontSize(20),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -634,10 +610,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(16),
                               fontWeight: FontWeight.w600,
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.white
-                                  : const Color(0xFF1A1A1A),
+                              color: colors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -646,10 +619,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                                 .voiceDeviceTtsDescription,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.grey.shade400
-                                  : Colors.grey.shade600,
+                              color: colors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -657,15 +627,13 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: Colors.green.withOpacity(0.3)),
+                              color: colors.surfaceStrong,
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               AppLocalizations.of(context)!.free,
                               style: TextStyle(
-                                color: Colors.green.shade700,
+                                color: colors.textSecondary,
                                 fontSize: settings.getScaledFontSize(12),
                                 fontWeight: FontWeight.w600,
                               ),
@@ -680,7 +648,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                         _isPreviewingSystemVoice
                             ? Icons.stop_circle_outlined
                             : Icons.play_circle_outline,
-                        color: Colors.green,
+                        color: colors.textSecondary,
                         size: settings.getScaledFontSize(26),
                       ),
                       tooltip: _isPreviewingSystemVoice
@@ -875,10 +843,9 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                     children: [
                       Icon(
                         Icons.voice_over_off_rounded,
-                        color:
-                            Theme.of(context).brightness == Brightness.dark
-                                ? Colors.grey.shade500
-                                : Colors.grey.shade400,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade500
+                            : Colors.grey.shade400,
                         size: settings.getScaledFontSize(20),
                       ),
                       const SizedBox(width: 12),
@@ -887,9 +854,10 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                           AppLocalizations.of(context)!.voiceNoVoicesAvailable,
                           style: TextStyle(
                             fontSize: settings.getScaledFontSize(14),
-                            color: Theme.of(context).brightness == Brightness.dark
-                                ? Colors.grey.shade400
-                                : Colors.grey.shade600,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade600,
                           ),
                         ),
                       ),
@@ -994,6 +962,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
   Widget _buildElevenLabsSection(
       SettingsProvider settings, SubscriptionService subscriptionService) {
     final isPremium = subscriptionService.isPremium;
+    final colors = context.howaiColors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1002,15 +971,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
         const SizedBox(height: 12),
         Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            color: colors.surface,
+            borderRadius: BorderRadius.circular(14),
           ),
           child: Column(
             children: [
@@ -1019,22 +981,15 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: isPremium
-                            ? const Color(0xFF0078D4).withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                    SizedBox(
+                      width: 28,
                       child: Icon(
-                        Icons.workspace_premium_rounded,
-                        color:
-                            isPremium ? const Color(0xFF0078D4) : Colors.grey,
-                        size: settings.getScaledFontSize(22),
+                        Icons.graphic_eq_rounded,
+                        color: colors.textSecondary,
+                        size: settings.getScaledFontSize(21),
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1046,14 +1001,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                               fontSize: settings.getScaledFontSize(16),
                               fontWeight: FontWeight.w600,
                               color: isPremium
-                                  ? (Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.white
-                                      : const Color(0xFF1A1A1A))
-                                  : (Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.grey.shade400
-                                      : Colors.grey.shade600),
+                                  ? colors.textPrimary
+                                  : colors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -1062,10 +1011,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                                 .voicePremiumElevenLabsDesc,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
-                              color: Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.grey.shade400
-                                  : Colors.grey.shade600,
+                              color: colors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -1073,14 +1019,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: isPremium
-                                  ? const Color(0xFF0078D4).withOpacity(0.1)
-                                  : Colors.orange.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                  color: isPremium
-                                      ? const Color(0xFF0078D4).withOpacity(0.3)
-                                      : Colors.orange.withOpacity(0.3)),
+                              color: colors.surfaceStrong,
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               isPremium
@@ -1089,8 +1029,8 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
                                       .premiumRequired,
                               style: TextStyle(
                                 color: isPremium
-                                    ? const Color(0xFF0078D4)
-                                    : Colors.orange.shade700,
+                                    ? colors.textSecondary
+                                    : colors.warning,
                                 fontSize: settings.getScaledFontSize(12),
                                 fontWeight: FontWeight.w600,
                               ),
@@ -1423,9 +1363,7 @@ class _VoiceSettingsScreenState extends State<VoiceSettingsScreen> {
             style: TextStyle(
               fontSize: settings.getScaledFontSize(16),
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.white
-                  : const Color(0xFF1A1A1A),
+              color: context.howaiColors.textPrimary,
             ),
           ),
         );

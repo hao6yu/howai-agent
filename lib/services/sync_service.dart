@@ -38,6 +38,62 @@ class SyncService {
   String? get lastError => _lastError;
   bool get isAuthenticated => _supabase.isAuthenticated;
 
+  /// Pull one server-owned conversation and all of its messages immediately.
+  /// Used by notification deep links so the destination exists locally before
+  /// the chat screen is selected.
+  Future<int?> syncConversationByUuid(String conversationUuid) async {
+    if (!_supabase.isAuthenticated || conversationUuid.trim().isEmpty) {
+      return null;
+    }
+    try {
+      final userId = _supabase.currentUser!.id;
+      final dynamic response = await _supabase.client
+          .from('conversations')
+          .select()
+          .eq('id', conversationUuid)
+          .eq('user_id', userId)
+          .maybeSingle();
+      if (response == null) return null;
+      final convData = Map<String, dynamic>.from(response as Map);
+      final title = convData['title'] as String? ?? 'Automation';
+      final isPinned = convData['is_pinned'] as bool? ?? false;
+      final archivedAt = convData['archived_at'] == null
+          ? null
+          : DateTime.parse(convData['archived_at'] as String);
+      final createdAt = DateTime.parse(convData['created_at'] as String);
+      final updatedAt = DateTime.parse(convData['updated_at'] as String);
+
+      var localId = _idMapping.getConversationLocalId(conversationUuid);
+      final localData =
+          localId == null ? null : await _database.getConversation(localId);
+      if (localId == null || localData == null) {
+        final conversation = Conversation(
+          title: title,
+          isPinned: isPinned,
+          createdAt: createdAt,
+          updatedAt: updatedAt,
+          archivedAt: archivedAt,
+          profileId: 1,
+        );
+        localId = await _database.insertConversation(conversation.toMap());
+        await _idMapping.storeConversationMapping(localId, conversationUuid);
+      } else {
+        await _database.updateConversation({
+          'id': localId,
+          'title': title,
+          'is_pinned': isPinned ? 1 : 0,
+          'archived_at': archivedAt?.toIso8601String(),
+          'updated_at': updatedAt.toIso8601String(),
+        });
+      }
+      await _syncConversationMessages(conversationUuid, localId);
+      return localId;
+    } catch (error) {
+      debugPrint('[SyncService] Notification conversation sync failed: $error');
+      return null;
+    }
+  }
+
   /// Initialize sync service
   Future<void> initialize() async {
     await _idMapping.initialize();
@@ -77,23 +133,27 @@ class SyncService {
       for (final entry in groups.entries) {
         final conversations = entry.value;
         if (conversations.length > 1) {
-          debugPrint('[SyncService] Found ${conversations.length} local duplicates for: ${entry.key}');
+          debugPrint(
+              '[SyncService] Found ${conversations.length} local duplicates for: ${entry.key}');
 
           // Sort by ID (keep the highest/most recent)
-          conversations.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
+          conversations
+              .sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
 
           // Delete all but the last one
           for (int i = 0; i < conversations.length - 1; i++) {
             final convId = conversations[i]['id'] as int;
             await _database.deleteConversation(convId);
             deletedCount++;
-            debugPrint('[SyncService] Deleted local duplicate conversation: id=$convId');
+            debugPrint(
+                '[SyncService] Deleted local duplicate conversation: id=$convId');
           }
         }
       }
 
       if (deletedCount > 0) {
-        debugPrint('[SyncService] Deleted $deletedCount local duplicate conversations');
+        debugPrint(
+            '[SyncService] Deleted $deletedCount local duplicate conversations');
       }
 
       // STEP 2: Clean up cloud duplicates
@@ -103,7 +163,8 @@ class SyncService {
 
       // STEP 3: Clear all mappings and let sync rebuild them
       await _idMapping.clearAllMappings();
-      debugPrint('[SyncService] Cleared all mappings - will be rebuilt on next sync');
+      debugPrint(
+          '[SyncService] Cleared all mappings - will be rebuilt on next sync');
     } catch (e) {
       debugPrint('[SyncService] Error during duplicate cleanup (silent): $e');
       // Don't throw - this is a best-effort cleanup
@@ -116,7 +177,11 @@ class SyncService {
       final userId = _supabase.currentUser!.id;
 
       // Fetch all conversations from Supabase
-      final response = await _supabase.client.from('conversations').select().eq('user_id', userId).order('created_at', ascending: true);
+      final response = await _supabase.client
+          .from('conversations')
+          .select()
+          .eq('user_id', userId)
+          .order('created_at', ascending: true);
 
       final conversations = response as List<dynamic>;
 
@@ -134,7 +199,8 @@ class SyncService {
       for (final entry in cloudGroups.entries) {
         final convs = entry.value;
         if (convs.length > 1) {
-          debugPrint('[SyncService] Found ${convs.length} cloud duplicates for: ${entry.key}');
+          debugPrint(
+              '[SyncService] Found ${convs.length} cloud duplicates for: ${entry.key}');
 
           // Sort by created_at (keep the oldest/first one)
           convs.sort((a, b) {
@@ -146,15 +212,20 @@ class SyncService {
           // Delete all but the first one
           for (int i = 1; i < convs.length; i++) {
             final uuid = convs[i]['id'] as String;
-            await _supabase.client.from('conversations').delete().eq('id', uuid);
+            await _supabase.client
+                .from('conversations')
+                .delete()
+                .eq('id', uuid);
             cloudDeletedCount++;
-            debugPrint('[SyncService] Deleted cloud duplicate conversation: uuid=$uuid');
+            debugPrint(
+                '[SyncService] Deleted cloud duplicate conversation: uuid=$uuid');
           }
         }
       }
 
       if (cloudDeletedCount > 0) {
-        debugPrint('[SyncService] Deleted $cloudDeletedCount cloud duplicate conversations');
+        debugPrint(
+            '[SyncService] Deleted $cloudDeletedCount cloud duplicate conversations');
       } else {
         debugPrint('[SyncService] No cloud duplicates found');
       }
@@ -208,7 +279,8 @@ class SyncService {
 
       debugPrint('[SyncService] Watching conversation: $conversationUuid');
     } catch (e) {
-      debugPrint('[SyncService] Error setting up real-time listener (silent): $e');
+      debugPrint(
+          '[SyncService] Error setting up real-time listener (silent): $e');
     }
   }
 
@@ -229,9 +301,11 @@ class SyncService {
       }
 
       // Get local conversation ID
-      final localConversationId = _idMapping.getConversationLocalId(conversationUuid);
+      final localConversationId =
+          _idMapping.getConversationLocalId(conversationUuid);
       if (localConversationId == null) {
-        debugPrint('[SyncService] No local conversation found for UUID: $conversationUuid');
+        debugPrint(
+            '[SyncService] No local conversation found for UUID: $conversationUuid');
         return;
       }
 
@@ -302,7 +376,8 @@ class SyncService {
       if (_retryCount < _maxRetries) {
         _retryCount++;
         final delay = _retryDelay * _retryCount;
-        debugPrint('[SyncService] Scheduling retry $_retryCount/$_maxRetries in ${delay.inSeconds}s');
+        debugPrint(
+            '[SyncService] Scheduling retry $_retryCount/$_maxRetries in ${delay.inSeconds}s');
 
         Future.delayed(delay, () {
           if (_supabase.isAuthenticated && !_isSyncing) {
@@ -310,7 +385,8 @@ class SyncService {
           }
         });
       } else {
-        debugPrint('[SyncService] Max retries reached, will try again on next sync cycle');
+        debugPrint(
+            '[SyncService] Max retries reached, will try again on next sync cycle');
         _retryCount = 0; // Reset for next cycle
       }
     } finally {
@@ -347,7 +423,12 @@ class SyncService {
       final userId = _supabase.currentUser!.id;
 
       // Fetch conversations from Supabase
-      final response = await _supabase.client.from('conversations').select().eq('user_id', userId).order('updated_at', ascending: false).limit(50); // Sync most recent 50 conversations
+      final response = await _supabase.client
+          .from('conversations')
+          .select()
+          .eq('user_id', userId)
+          .order('updated_at', ascending: false)
+          .limit(50); // Sync most recent 50 conversations
 
       final conversations = response as List<dynamic>;
 
@@ -355,6 +436,9 @@ class SyncService {
         final uuid = convData['id'] as String;
         final title = convData['title'] as String?;
         final isPinned = convData['is_pinned'] as bool? ?? false;
+        final archivedAt = convData['archived_at'] == null
+            ? null
+            : DateTime.parse(convData['archived_at'] as String);
         final createdAt = DateTime.parse(convData['created_at'] as String);
         final updatedAt = DateTime.parse(convData['updated_at'] as String);
 
@@ -363,19 +447,24 @@ class SyncService {
 
         if (localId == null) {
           // No mapping exists - check if conversation already exists by title/timestamp to prevent duplicates
-          final existingConversations = await _database.getConversations(profileId: 1);
+          final existingConversations = await _database.getConversations(
+            profileId: 1,
+            includeArchived: true,
+          );
           final possibleDuplicate = existingConversations.where((conv) {
             final convCreatedAt = DateTime.parse(conv['created_at'] as String);
             final convTitle = conv['title'] as String?;
             // Match by title and created_at timestamp (within 1 second tolerance)
-            return convTitle == title && convCreatedAt.difference(createdAt).abs().inSeconds <= 1;
+            return convTitle == title &&
+                convCreatedAt.difference(createdAt).abs().inSeconds <= 1;
           }).firstOrNull;
 
           if (possibleDuplicate != null) {
             // Found existing conversation without mapping - just create the mapping
             localId = possibleDuplicate['id'] as int;
             await _idMapping.storeConversationMapping(localId, uuid);
-            debugPrint('[SyncService] Found existing conversation without mapping, created mapping: localId=$localId, uuid=$uuid');
+            debugPrint(
+                '[SyncService] Found existing conversation without mapping, created mapping: localId=$localId, uuid=$uuid');
 
             // Sync messages for this conversation
             await _syncConversationMessages(uuid, localId);
@@ -386,12 +475,14 @@ class SyncService {
               isPinned: isPinned,
               createdAt: createdAt,
               updatedAt: updatedAt,
+              archivedAt: archivedAt,
               profileId: 1, // Default profile
             );
 
             localId = await _database.insertConversation(conv.toMap());
             await _idMapping.storeConversationMapping(localId, uuid);
-            debugPrint('[SyncService] Created new conversation: localId=$localId, uuid=$uuid');
+            debugPrint(
+                '[SyncService] Created new conversation: localId=$localId, uuid=$uuid');
 
             // Sync messages for this conversation
             await _syncConversationMessages(uuid, localId);
@@ -403,12 +494,14 @@ class SyncService {
           if (localConv == null) {
             // Mapping exists but conversation was deleted locally
             // Recreate the conversation from cloud
-            debugPrint('[SyncService] Conversation mapping exists but local data deleted, recreating from cloud');
+            debugPrint(
+                '[SyncService] Conversation mapping exists but local data deleted, recreating from cloud');
             final conv = Conversation(
               title: title ?? 'Conversation',
               isPinned: isPinned,
               createdAt: createdAt,
               updatedAt: updatedAt,
+              archivedAt: archivedAt,
               profileId: 1, // Default profile
             );
 
@@ -419,21 +512,25 @@ class SyncService {
             await _syncConversationMessages(uuid, localId);
           } else {
             // Conversation exists - update with last-write-wins strategy
-            final localUpdatedAt = DateTime.parse(localConv['updated_at'] as String);
+            final localUpdatedAt =
+                DateTime.parse(localConv['updated_at'] as String);
 
             // Last-write-wins: Compare timestamps
             if (updatedAt.isAfter(localUpdatedAt)) {
               // Remote is newer, update local
-              debugPrint('[SyncService] Resolving conflict: Remote wins (remote: $updatedAt, local: $localUpdatedAt)');
+              debugPrint(
+                  '[SyncService] Resolving conflict: Remote wins (remote: $updatedAt, local: $localUpdatedAt)');
               await _database.updateConversation({
                 'id': localId,
                 'title': title,
                 'is_pinned': isPinned ? 1 : 0,
+                'archived_at': archivedAt?.toIso8601String(),
                 'updated_at': updatedAt.toIso8601String(),
               });
             } else if (localUpdatedAt.isAfter(updatedAt)) {
               // Local is newer, push to remote
-              debugPrint('[SyncService] Resolving conflict: Local wins (local: $localUpdatedAt, remote: $updatedAt)');
+              debugPrint(
+                  '[SyncService] Resolving conflict: Local wins (local: $localUpdatedAt, remote: $updatedAt)');
               await _pushConversationToRemote(localId, uuid, localConv);
             }
             // If timestamps are equal, no action needed
@@ -451,24 +548,33 @@ class SyncService {
   }
 
   /// Push local conversation changes to remote
-  Future<void> _pushConversationToRemote(int localId, String uuid, Map<String, dynamic> localConv) async {
+  Future<void> _pushConversationToRemote(
+      int localId, String uuid, Map<String, dynamic> localConv) async {
     try {
       await _supabase.client.from('conversations').update({
         'title': localConv['title'],
         'is_pinned': localConv['is_pinned'] == 1,
+        'archived_at': localConv['archived_at'],
         'updated_at': localConv['updated_at'],
       }).eq('id', uuid);
     } catch (e) {
-      debugPrint('[SyncService] Error pushing conversation to remote (silent): $e');
+      debugPrint(
+          '[SyncService] Error pushing conversation to remote (silent): $e');
     }
   }
 
   /// Sync messages for a specific conversation
-  Future<void> _syncConversationMessages(String conversationUuid, int localConversationId) async {
+  Future<void> _syncConversationMessages(
+      String conversationUuid, int localConversationId) async {
     if (!_supabase.isAuthenticated) return;
 
     try {
-      final response = await _supabase.client.from('messages').select().eq('conversation_id', conversationUuid).order('created_at', ascending: true).limit(100); // Sync last 100 messages
+      final response = await _supabase.client
+          .from('messages')
+          .select()
+          .eq('conversation_id', conversationUuid)
+          .order('created_at', ascending: true)
+          .limit(100); // Sync last 100 messages
 
       final messages = response as List<dynamic>;
 
@@ -503,8 +609,8 @@ class SyncService {
   /// Upload a conversation to Supabase
   Future<String?> uploadConversation(Conversation conversation) async {
     if (!_supabase.isAuthenticated) {
-      // Queue for later sync
-      _queueOperation('conversation', 'create', conversation.toMap());
+      debugPrint(
+          '[SyncService] Skipping conversation upload in local/anonymous mode');
       return null;
     }
 
@@ -512,7 +618,12 @@ class SyncService {
       final userId = _supabase.currentUser!.id;
 
       // VALIDATION: Check if a conversation with same title and created_at already exists in cloud
-      final existingResponse = await _supabase.client.from('conversations').select().eq('user_id', userId).eq('title', conversation.title).limit(10);
+      final existingResponse = await _supabase.client
+          .from('conversations')
+          .select()
+          .eq('user_id', userId)
+          .eq('title', conversation.title)
+          .limit(10);
 
       final existing = existingResponse as List<dynamic>;
 
@@ -524,7 +635,8 @@ class SyncService {
         if (diff.inSeconds <= 1) {
           // Found duplicate - don't upload, just create mapping
           final uuid = conv['id'] as String;
-          debugPrint('[SyncService] Prevented duplicate upload - conversation already exists in cloud: uuid=$uuid');
+          debugPrint(
+              '[SyncService] Prevented duplicate upload - conversation already exists in cloud: uuid=$uuid');
 
           if (conversation.id != null) {
             await _idMapping.storeConversationMapping(conversation.id!, uuid);
@@ -539,11 +651,16 @@ class SyncService {
         'user_id': userId,
         'title': conversation.title,
         'is_pinned': conversation.isPinned,
+        'archived_at': conversation.archivedAt?.toIso8601String(),
         'created_at': conversation.createdAt.toIso8601String(),
         'updated_at': conversation.updatedAt.toIso8601String(),
       };
 
-      final response = await _supabase.client.from('conversations').insert(data).select().single();
+      final response = await _supabase.client
+          .from('conversations')
+          .insert(data)
+          .select()
+          .single();
 
       final uuid = response['id'] as String;
 
@@ -552,7 +669,8 @@ class SyncService {
         await _idMapping.storeConversationMapping(conversation.id!, uuid);
       }
 
-      debugPrint('[SyncService] Uploaded new conversation to cloud: uuid=$uuid');
+      debugPrint(
+          '[SyncService] Uploaded new conversation to cloud: uuid=$uuid');
       return uuid;
     } catch (e) {
       debugPrint('[SyncService] Error uploading conversation (silent): $e');
@@ -561,17 +679,69 @@ class SyncService {
     }
   }
 
+  Future<void> updateConversation(Conversation conversation) async {
+    if (!_supabase.isAuthenticated || conversation.id == null) return;
+
+    try {
+      final uuid = _idMapping.getConversationUUID(conversation.id!);
+      if (uuid == null) {
+        await uploadConversation(conversation);
+        return;
+      }
+
+      final userId = _supabase.currentUser!.id;
+      await _supabase.client
+          .from('conversations')
+          .update({
+            'title': conversation.title,
+            'is_pinned': conversation.isPinned,
+            'archived_at': conversation.archivedAt?.toIso8601String(),
+            'updated_at': conversation.updatedAt.toIso8601String(),
+          })
+          .eq('id', uuid)
+          .eq('user_id', userId);
+    } catch (error) {
+      // Local state remains authoritative while offline. The normal periodic
+      // last-write-wins sync will retry this newer conversation later.
+      debugPrint(
+          '[SyncService] Conversation update queued by timestamp: $error');
+    }
+  }
+
+  Future<bool> deleteConversation(Conversation conversation) async {
+    if (!_supabase.isAuthenticated || conversation.id == null) return true;
+
+    final uuid = _idMapping.getConversationUUID(conversation.id!);
+    if (uuid == null) return true;
+
+    try {
+      final userId = _supabase.currentUser!.id;
+      await _supabase.client
+          .from('conversations')
+          .delete()
+          .eq('id', uuid)
+          .eq('user_id', userId);
+      await _idMapping.removeConversationMapping(conversation.id!);
+      return true;
+    } catch (error) {
+      debugPrint('[SyncService] Conversation delete failed: $error');
+      return false;
+    }
+  }
+
   /// Upload a message to Supabase
   Future<String?> uploadMessage(ChatMessage message) async {
     if (!_supabase.isAuthenticated) {
-      // Queue for later sync
-      _queueOperation('message', 'create', message.toMap());
+      debugPrint(
+          '[SyncService] Skipping message upload in local/anonymous mode');
       return null;
     }
 
     try {
       // Get conversation UUID
-      final conversationUuid = message.conversationId != null ? _idMapping.getConversationUUID(message.conversationId!) : null;
+      final conversationUuid = message.conversationId != null
+          ? _idMapping.getConversationUUID(message.conversationId!)
+          : null;
 
       if (conversationUuid == null) {
         debugPrint('[SyncService] No conversation UUID found for message');
@@ -586,7 +756,11 @@ class SyncService {
         'created_at': message.timestamp,
       };
 
-      final response = await _supabase.client.from('messages').insert(data).select().single();
+      final response = await _supabase.client
+          .from('messages')
+          .insert(data)
+          .select()
+          .single();
 
       final uuid = response['id'] as String;
 
@@ -604,7 +778,8 @@ class SyncService {
   }
 
   /// Queue an operation for later sync
-  void _queueOperation(String type, String operation, Map<String, dynamic> data) {
+  void _queueOperation(
+      String type, String operation, Map<String, dynamic> data) {
     _syncQueue.add({
       'type': type,
       'operation': operation,
@@ -612,14 +787,16 @@ class SyncService {
       'timestamp': DateTime.now().toIso8601String(),
     });
 
-    debugPrint('[SyncService] Queued $operation $type operation (${_syncQueue.length} in queue)');
+    debugPrint(
+        '[SyncService] Queued $operation $type operation (${_syncQueue.length} in queue)');
   }
 
   /// Process queued sync operations
   Future<void> _processSyncQueue() async {
     if (_syncQueue.isEmpty || !_supabase.isAuthenticated) return;
 
-    debugPrint('[SyncService] Processing ${_syncQueue.length} queued operations');
+    debugPrint(
+        '[SyncService] Processing ${_syncQueue.length} queued operations');
 
     final toProcess = List.from(_syncQueue);
     _syncQueue.clear();
@@ -638,7 +815,8 @@ class SyncService {
           await uploadMessage(msg);
         }
       } catch (e) {
-        debugPrint('[SyncService] Error processing queued operation (silent): $e');
+        debugPrint(
+            '[SyncService] Error processing queued operation (silent): $e');
         // Re-queue failed operation
         _syncQueue.add(operation);
       }

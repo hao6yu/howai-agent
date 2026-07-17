@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../config/app_config.dart';
 
 class LocationService {
   static final LocationService _instance = LocationService._internal();
@@ -13,8 +13,9 @@ class LocationService {
   String? _currentAddress;
   bool _locationPermissionGranted = false;
 
-  // Google Places API key from .env
-  String? get _googleApiKey => dotenv.env['GOOGLE_PLACES_API_KEY'];
+  String? get _googleApiKey => AppConfig.googlePlacesApiKey.isEmpty
+      ? null
+      : AppConfig.googlePlacesApiKey;
 
   // Check and request location permissions
   Future<bool> checkLocationPermission() async {
@@ -145,7 +146,7 @@ class LocationService {
 
     if (_googleApiKey == null || _googleApiKey!.isEmpty) {
       // print('[LocationService] Google Places API key not found');
-      // print('[LocationService] Available env keys: ${dotenv.env.keys.where((k) => k.contains('GOOGLE')).join(', ')}');
+      // print('[LocationService] Google Places API key not configured');
       return [];
     }
 
@@ -196,7 +197,7 @@ class LocationService {
         if (data['places'] != null) {
           List<PlaceResult> places = [];
           for (var result in data['places']) {
-            places.add(PlaceResult.fromNewApiJson(result, searchPosition!));
+            places.add(PlaceResult.fromNewApiJson(result, searchPosition));
           }
 
           // Sort by rating and distance

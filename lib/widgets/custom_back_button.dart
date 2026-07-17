@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 
+import '../core/theme/howai_theme.dart';
+
 class CustomBackButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final Color? color;
@@ -17,8 +19,8 @@ class CustomBackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       icon: Icon(
-        Icons.arrow_back,
-        color: color ?? const Color(0xFF0078D4),
+        Icons.arrow_back_ios_new_rounded,
+        color: color ?? context.howaiColors.textPrimary,
         size: size,
       ),
       onPressed: onPressed ?? () => Navigator.of(context).pop(),
@@ -44,10 +46,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.onBack,
     this.showBackButton = true,
-    this.centerTitle = false,
+    this.centerTitle = true,
     this.backgroundColor,
     this.foregroundColor,
-    this.elevation = 0.5,
+    this.elevation = 0,
   }) : super(key: key);
 
   @override
@@ -58,17 +60,17 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         style: TextStyle(
           fontWeight: FontWeight.w600,
           letterSpacing: -0.5,
-          color: foregroundColor ?? Theme.of(context).textTheme.titleLarge?.color ?? Colors.black87,
+          color: foregroundColor ?? context.howaiColors.textPrimary,
         ),
       ),
       centerTitle: centerTitle,
-      backgroundColor: backgroundColor ?? Theme.of(context).appBarTheme.backgroundColor,
-      foregroundColor: foregroundColor ?? Theme.of(context).appBarTheme.foregroundColor,
+      backgroundColor: backgroundColor ?? context.howaiColors.canvas,
+      foregroundColor: foregroundColor ?? context.howaiColors.textPrimary,
       elevation: elevation,
       leading: showBackButton
           ? CustomBackButton(
               onPressed: onBack,
-              color: foregroundColor ?? const Color(0xFF0078D4),
+              color: foregroundColor ?? context.howaiColors.textPrimary,
             )
           : null,
       actions: actions,

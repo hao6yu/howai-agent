@@ -2869,9 +2869,6 @@ class AppLocalizationsHi extends AppLocalizations {
   String get chatLandingSubtitle => 'लिखें, बोलें या मुझे दिखाएँ कि आप क्या देख रहे हैं।';
 
   @override
-  String get chatLandingLiveVision => 'लाइव विज़न';
-
-  @override
   String get chatLandingTipCompact => 'टिप: फ़ोटो, फाइलें, PDF और इमेज टूल्स के लिए + दबाएं।';
 
   @override
@@ -2908,7 +2905,7 @@ class AppLocalizationsHi extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'प्रीमियम सब कुछ संभव बनाता है';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'आवाज़ और विज़न';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';

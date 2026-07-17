@@ -2869,9 +2869,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatLandingSubtitle => '输入、说话，或让我看看你眼前的内容。';
 
   @override
-  String get chatLandingLiveVision => '实时视觉';
-
-  @override
   String get chatLandingTipCompact => '提示：点按 + 可使用照片、文件、PDF 和图像工具。';
 
   @override
@@ -2908,7 +2905,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get premiumBannerSubtitle5 => '高级版让一切成为可能';
 
   @override
-  String get voiceCallFeatureTitle => 'AI语音通话';
+  String get voiceCallFeatureTitle => '语音与视觉';
 
   @override
   String get voiceCallFeatureDesc => '与AI进行实时自然对话';
@@ -5928,9 +5925,6 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get chatLandingSubtitle => '輸入、說話，或讓我看看你眼前的內容。';
 
   @override
-  String get chatLandingLiveVision => '即時視覺';
-
-  @override
   String get chatLandingTipCompact => '提示：點擊 + 可使用照片、檔案、PDF 與圖片工具。';
 
   @override
@@ -5967,7 +5961,7 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
   String get premiumBannerSubtitle5 => '進階版讓一切成為可能';
 
   @override
-  String get voiceCallFeatureTitle => 'AI 語音通話';
+  String get voiceCallFeatureTitle => '語音與視覺';
 
   @override
   String get voiceCallFeatureDesc => '與 AI 進行即時自然對話';

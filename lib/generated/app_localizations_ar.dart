@@ -2869,9 +2869,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get chatLandingSubtitle => 'اكتب أو تحدث أو أرني ما تراه.';
 
   @override
-  String get chatLandingLiveVision => 'رؤية مباشرة';
-
-  @override
   String get chatLandingTipCompact => 'نصيحة: اضغط + لاستخدام الصور والملفات وPDF وأدوات الصور.';
 
   @override
@@ -2908,7 +2905,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'بريميوم يجعل كل شيء ممكنًا';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'الصوت والرؤية';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';

@@ -2869,9 +2869,6 @@ class AppLocalizationsKo extends AppLocalizations {
   String get chatLandingSubtitle => '입력하거나 말하거나 보고 있는 것을 보여 주세요.';
 
   @override
-  String get chatLandingLiveVision => '라이브 비전';
-
-  @override
   String get chatLandingTipCompact => '팁: +를 눌러 사진, 파일, PDF, 이미지 도구를 사용하세요.';
 
   @override
@@ -2908,7 +2905,7 @@ class AppLocalizationsKo extends AppLocalizations {
   String get premiumBannerSubtitle5 => '프리미엄으로 모든 것이 가능해집니다';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => '음성 및 비전';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';

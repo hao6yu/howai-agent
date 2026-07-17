@@ -5677,18 +5677,10 @@ class _AiChatScreenState extends State<AiChatScreen>
                   runSpacing: 10,
                   children: [
                     _LandingCapabilityButton(
-                      icon: Icons.graphic_eq_rounded,
+                      icon: Icons.voice_chat_rounded,
                       label:
                           AppLocalizations.of(context)!.voiceCallFeatureTitle,
                       onTap: () => _startElevenLabsCall(),
-                    ),
-                    _LandingCapabilityButton(
-                      icon: Icons.videocam_outlined,
-                      label:
-                          AppLocalizations.of(context)!.chatLandingLiveVision,
-                      onTap: () => _startElevenLabsCall(
-                        initialVisionEnabled: true,
-                      ),
                     ),
                   ],
                 ),

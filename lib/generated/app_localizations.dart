@@ -5693,12 +5693,6 @@ abstract class AppLocalizations {
   /// **'Type, talk, or show me what you see.'**
   String get chatLandingSubtitle;
 
-  /// No description provided for @chatLandingLiveVision.
-  ///
-  /// In en, this message translates to:
-  /// **'Live vision'**
-  String get chatLandingLiveVision;
-
   /// No description provided for @chatLandingTipCompact.
   ///
   /// In en, this message translates to:
@@ -5774,7 +5768,7 @@ abstract class AppLocalizations {
   /// No description provided for @voiceCallFeatureTitle.
   ///
   /// In en, this message translates to:
-  /// **'AI Voice Calls'**
+  /// **'Voice & vision'**
   String get voiceCallFeatureTitle;
 
   /// No description provided for @voiceCallFeatureDesc.

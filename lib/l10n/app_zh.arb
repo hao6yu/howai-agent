@@ -912,7 +912,6 @@
   "knowledgeHubManageSavedMemory": "管理已保存记忆",
   "chatLandingTitle": "我可以帮你做什么？",
   "chatLandingSubtitle": "输入、说话，或让我看看你眼前的内容。",
-  "chatLandingLiveVision": "实时视觉",
   "chatLandingTipCompact": "提示：点按 + 可使用照片、文件、PDF 和图像工具。",
   "chatLandingTipFull": "提示：点按 + 可使用照片、文件、扫描转 PDF、翻译和图像生成。",
   "premiumBannerTitle1": "解锁你的全部潜力",
@@ -1002,7 +1001,7 @@
       }
     }
   },
-  "voiceCallFeatureTitle": "AI语音通话",
+  "voiceCallFeatureTitle": "语音与视觉",
   "voiceCallFeatureDesc": "与AI进行实时自然对话",
   "voiceCallFreeLimit": "免费版：{perCall}分钟/通话，{daily}分钟/天",
   "@voiceCallFreeLimit": {

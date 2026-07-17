@@ -2869,9 +2869,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get chatLandingSubtitle => 'Напишите, скажите или покажите мне, что вы видите.';
 
   @override
-  String get chatLandingLiveVision => 'Живое зрение';
-
-  @override
   String get chatLandingTipCompact => 'Совет: нажмите + для фото, файлов, PDF и инструментов изображений.';
 
   @override
@@ -2908,7 +2905,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'С Premium возможно всё';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'Голос и зрение';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';

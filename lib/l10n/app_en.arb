@@ -1039,7 +1039,6 @@
   "knowledgeHubManageSavedMemory": "Manage saved memory",
   "chatLandingTitle": "What can I help you with?",
   "chatLandingSubtitle": "Type, talk, or show me what you see.",
-  "chatLandingLiveVision": "Live vision",
   "chatLandingTipCompact": "Tip: Tap + for photos, files, PDF, and image tools.",
   "chatLandingTipFull": "Tip: Tap + to use photos, files, scan to PDF, translation, and image generation.",
   "premiumBannerTitle1": "Unlock your full potential",
@@ -1095,7 +1094,7 @@
       }
     }
   },
-  "voiceCallFeatureTitle": "AI Voice Calls",
+  "voiceCallFeatureTitle": "Voice & vision",
   "voiceCallFeatureDesc": "Talk naturally with AI in real-time",
   "voiceCallFreeLimit": "Free: {perCall} min/call, {daily} min/day",
   "@voiceCallFreeLimit": {

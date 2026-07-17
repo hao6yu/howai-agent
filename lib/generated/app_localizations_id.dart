@@ -2869,9 +2869,6 @@ class AppLocalizationsId extends AppLocalizations {
   String get chatLandingSubtitle => 'Ketik, bicara, atau tunjukkan apa yang Anda lihat.';
 
   @override
-  String get chatLandingLiveVision => 'Visi langsung';
-
-  @override
   String get chatLandingTipCompact => 'Tip: Ketuk + untuk foto, file, PDF, dan alat gambar.';
 
   @override
@@ -2908,7 +2905,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'Premium membuat semuanya mungkin';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'Suara & visi';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';

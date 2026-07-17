@@ -2869,9 +2869,6 @@ class AppLocalizationsTr extends AppLocalizations {
   String get chatLandingSubtitle => 'Yazın, konuşun veya ne gördüğünüzü bana gösterin.';
 
   @override
-  String get chatLandingLiveVision => 'Canlı görüş';
-
-  @override
   String get chatLandingTipCompact => 'İpucu: Fotoğraflar, dosyalar, PDF ve görsel araçları için + simgesine dokunun.';
 
   @override
@@ -2908,7 +2905,7 @@ class AppLocalizationsTr extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'Premium her şeyi mümkün kılar';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'Ses ve görüntü';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';

@@ -2869,9 +2869,6 @@ class AppLocalizationsVi extends AppLocalizations {
   String get chatLandingSubtitle => 'Nhập, nói hoặc cho tôi xem những gì bạn thấy.';
 
   @override
-  String get chatLandingLiveVision => 'Thị giác trực tiếp';
-
-  @override
   String get chatLandingTipCompact => 'Mẹo: Nhấn + để dùng ảnh, tệp, PDF và công cụ hình ảnh.';
 
   @override
@@ -2908,7 +2905,7 @@ class AppLocalizationsVi extends AppLocalizations {
   String get premiumBannerSubtitle5 => 'Premium giúp mọi thứ trở nên khả thi';
 
   @override
-  String get voiceCallFeatureTitle => 'AI Voice Calls';
+  String get voiceCallFeatureTitle => 'Giọng nói & hình ảnh';
 
   @override
   String get voiceCallFeatureDesc => 'Talk naturally with AI in real-time';

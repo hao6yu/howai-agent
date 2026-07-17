@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { isStoredEntitlementActive } from "../_shared/entitlement-status.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -303,7 +304,7 @@ Deno.serve(async (req: Request) => {
   const now = new Date().toISOString();
   const { data: entitlement, error: entitlementError } = await supabaseAdmin
     .from("app_entitlements")
-    .select("tier,expires_at")
+    .select("tier,source,expires_at")
     .eq("user_id", user.id)
     .maybeSingle();
   if (entitlementError) {
@@ -313,8 +314,7 @@ Deno.serve(async (req: Request) => {
       reason: "entitlement_unavailable",
     }, origin);
   }
-  const hasPaidEntitlement = entitlement?.tier === "paid" &&
-    (entitlement.expires_at == null || entitlement.expires_at > now);
+  const hasPaidEntitlement = isStoredEntitlementActive(entitlement);
   if (!hasPaidEntitlement) {
     return jsonResponse(200, {
       processed: false,

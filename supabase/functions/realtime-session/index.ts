@@ -24,6 +24,7 @@ import {
   type HowAiPersonalContext,
   renderHowAiUserContext,
 } from "../_shared/howai-prompt-policy.ts";
+import { isStoredEntitlementActive } from "../_shared/entitlement-status.ts";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
 const OPENAI_SAFETY_IDENTIFIER_SALT =
@@ -120,16 +121,12 @@ async function trustedEntitlement(
   }
   const { data, error } = await supabaseAdmin!
     .from("app_entitlements")
-    .select("tier,expires_at,model_policy_canary")
+    .select("tier,source,expires_at,model_policy_canary")
     .eq("user_id", user.id)
     .maybeSingle();
   if (error) throw new Error(`entitlement_lookup_failed:${error.message}`);
 
-  const expiry = typeof data?.expires_at === "string"
-    ? Date.parse(data.expires_at)
-    : null;
-  const paid = data?.tier === "paid" &&
-    (expiry == null || expiry > Date.now());
+  const paid = isStoredEntitlementActive(data);
   return {
     cohort: paid ? "paid" : "free",
     internalCanary: data?.model_policy_canary === true,

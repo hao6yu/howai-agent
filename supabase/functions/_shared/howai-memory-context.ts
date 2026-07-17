@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import type { HowAiPersonalContext } from "./howai-prompt-policy.ts";
+import { isStoredEntitlementActive } from "./entitlement-status.ts";
 
 type MemoryRow = Readonly<{
   memory_type: string;
@@ -41,7 +42,7 @@ export async function loadHowAiPersonalContext(
       .order("updated_at", { ascending: false })
       .limit(8),
     admin.from("app_entitlements")
-      .select("tier,expires_at")
+      .select("tier,source,expires_at")
       .eq("user_id", userId)
       .maybeSingle(),
   ]);
@@ -78,8 +79,7 @@ export async function loadHowAiPersonalContext(
   const memories = (memoriesResult.data ?? []) as MemoryRow[];
   const entitlement = entitlementResult.data;
   const hasPaidPersonalization = !entitlementResult.error &&
-    entitlement?.tier === "paid" &&
-    (entitlement.expires_at == null || entitlement.expires_at > now);
+    isStoredEntitlementActive(entitlement);
   return {
     displayName: profileResult.data?.name ?? null,
     profileSummary: hasPaidPersonalization

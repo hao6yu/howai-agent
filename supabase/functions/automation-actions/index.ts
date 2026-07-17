@@ -6,6 +6,7 @@ import {
   normalizeAutomationCreate,
 } from "../_shared/automation-contracts.ts";
 import { ReminderValidationError } from "../_shared/reminder-recurrence.ts";
+import { isStoredEntitlementActive } from "../_shared/entitlement-status.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -637,12 +638,10 @@ async function automationCapability(
         "automation_market_data",
       ).maybeSingle(),
       supabaseAdmin!.from("app_entitlements").select(
-        "tier,expires_at,model_policy_canary",
+        "tier,source,expires_at,model_policy_canary",
       ).eq("user_id", userId).maybeSingle(),
     ]);
-  const paid = entitlement?.tier === "paid" &&
-    (!entitlement.expires_at ||
-      new Date(entitlement.expires_at).getTime() > Date.now());
+  const paid = isStoredEntitlementActive(entitlement);
   const canary = entitlement?.model_policy_canary === true;
   const rollout = flagEnabledForUser(flag, canary);
   const marketRollout = flagEnabledForUser(marketFlag, canary);

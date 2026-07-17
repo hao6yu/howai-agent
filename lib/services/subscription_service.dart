@@ -7,11 +7,12 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_storekit/store_kit_2_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_config.dart';
+import 'subscription_entitlement_policy.dart';
 import 'supabase_service.dart';
 
-// Bypass subscription validation in debug builds so developers with real
-// No automatic bypass — use the debug toggle in Settings to test premium.
+// No automatic bypass—use the debug-only toggle in Settings to test premium.
 const bool kBypassSubscriptionForDebug = false;
 
 @visibleForTesting
@@ -34,10 +35,12 @@ enum SubscriptionTier {
 class _TrustedServerEntitlement {
   final bool active;
   final DateTime? expiresAt;
+  final String? source;
 
   const _TrustedServerEntitlement({
     required this.active,
     required this.expiresAt,
+    required this.source,
   });
 
   int? get cacheValidUntilMs {
@@ -214,9 +217,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   static const String _isSubscribedKey = 'isSubscribed';
   static const String _subscriptionValidUntilMsKey =
       'subscription_valid_until_ms';
-  // Used for Google Play cache expiry estimation and fallback heuristic
-  static const int _subscriptionCycleDays = 31;
-  static const int _subscriptionGraceDays = 7;
+  static const String _subscriptionCacheUserIdKey =
+      'subscription_cache_user_id';
   static const int _defaultValidatedCacheHours = 24;
   // Minimum interval between full platform store checks (app-resume throttle)
   static const Duration _minCheckInterval = Duration(hours: 1);
@@ -337,6 +339,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     await prefs.setString('subscriptionTier', 'free');
     await prefs.remove('debug_override_premium');
     await prefs.remove(_subscriptionValidUntilMsKey);
+    await prefs.remove(_subscriptionCacheUserIdKey);
 
     notifyListeners();
   }
@@ -346,6 +349,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   // ---------------------------------------------------------------------------
 
   late StreamSubscription<List<PurchaseDetails>> _subscription;
+  StreamSubscription<AuthState>? _authSubscription;
   final InAppPurchase _inAppPurchase = InAppPurchase.instance;
 
   bool _isSubscribed = false;
@@ -371,12 +375,14 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  bool _isRestoringPurchases = false;
   bool _foundSubscriptionDuringRestore = false;
 
   // Throttle: tracks when the last full platform check completed
   DateTime? _lastFullCheckTime;
-  bool _isCheckingStatus = false;
+  Future<bool>? _activeStatusCheck;
+  String? _activeStatusCheckUserId;
+  String? _lastKnownEntitlementUserId;
+  int _identityGeneration = 0;
 
   // Get real subscription status (without debug override)
   bool get _realSubscriptionStatus =>
@@ -493,6 +499,10 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
       await _loadDebugOverride();
       await _loadUsageStats();
+      _lastKnownEntitlementUserId = _currentEntitlementUserId;
+      _authSubscription = _supabase.authStateChanges.listen((authState) {
+        unawaited(_handleAuthStateChange(authState.session?.user));
+      });
 
       final Stream<List<PurchaseDetails>> purchaseUpdated =
           _inAppPurchase.purchaseStream;
@@ -514,7 +524,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
       // Reconcile again after startup so a restored auth session can recover
       // server-granted access even if StoreKit has no readable transaction.
-      _loadSubscriptionFromSupabase();
+      unawaited(_loadSubscriptionFromSupabase());
     } catch (e) {
       _errorMessage = "Initialization error: $e";
     } finally {
@@ -774,6 +784,68 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   // Subscription status check — uses platform-native APIs
   // ---------------------------------------------------------------------------
 
+  String? get _currentEntitlementUserId {
+    final user = _supabase.currentUser;
+    if (user == null || user.isAnonymous) return null;
+    return user.id;
+  }
+
+  Future<void> _handleAuthStateChange(User? user) async {
+    final userId = user == null || user.isAnonymous ? null : user.id;
+    if (userId == _lastKnownEntitlementUserId) return;
+
+    _lastKnownEntitlementUserId = userId;
+    _identityGeneration++;
+    _lastFullCheckTime = null;
+
+    // Downgrade in memory before any async work so a newly signed-in free
+    // account can never see the previous account's Pro controls.
+    _isSubscribed = false;
+    _subscriptionTier = SubscriptionTier.free;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await _applyResolvedSubscription(
+      active: false,
+      expectedUserId: userId,
+      generation: _identityGeneration,
+      prefs: prefs,
+    );
+    if (userId != null) {
+      await checkSubscriptionStatus();
+    }
+  }
+
+  Future<void> _applyResolvedSubscription({
+    required bool active,
+    required String? expectedUserId,
+    required int generation,
+    required SharedPreferences prefs,
+  }) async {
+    if (generation != _identityGeneration ||
+        _currentEntitlementUserId != expectedUserId) {
+      debugPrint(
+          '[SubscriptionService] Ignoring stale entitlement result after account change');
+      return;
+    }
+
+    final previousStatus = _isSubscribed;
+    _isSubscribed = active;
+    _subscriptionTier =
+        active ? SubscriptionTier.premium : SubscriptionTier.free;
+
+    // These legacy values are display/debug mirrors only. They are never read
+    // as authorization and are cleared on every account transition.
+    await prefs.setBool(_isSubscribedKey, active);
+    await prefs.setString('subscriptionTier', active ? 'premium' : 'free');
+
+    if (previousStatus != active) {
+      debugPrint(
+          '[SubscriptionService] Subscription status changed: $previousStatus -> $active');
+    }
+    notifyListeners();
+  }
+
   /// Full platform-store check. Use [checkSubscriptionStatusThrottled] from
   /// app-resume to avoid hitting the store on every foreground event.
   Future<bool> checkSubscriptionStatus() async {
@@ -783,78 +855,126 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       return true;
     }
 
-    // Prevent overlapping checks
-    if (_isCheckingStatus) {
-      return _isSubscribed;
-    }
-    _isCheckingStatus = true;
-
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final previousStatus = _isSubscribed;
-
-      // Start from clean state — guilty until proven innocent.
-      bool hasActiveSubscription = false;
-
-      // Ask both trusted sources. StoreKit/Play supports offline ownership and
-      // fresh purchases; app_entitlements supports account-linked access and
-      // server-managed grants. A positive result from either source grants the
-      // UI tier. Server failures never revoke valid local access.
-      if (Platform.isIOS) {
-        hasActiveSubscription = await _verifyViaStoreKit2();
-      } else if (Platform.isAndroid) {
-        hasActiveSubscription = await _verifyViaGooglePlay();
-      }
-
-      // Offline fallback: use cached entitlement if platform check returned false
-      if (!hasActiveSubscription) {
-        hasActiveSubscription = await _hasCachedValidatedEntitlement(prefs);
-        if (hasActiveSubscription) {
-          debugPrint(
-              '[SubscriptionService] Using cached entitlement (offline/error fallback)');
-        }
-      }
-
-      final serverEntitlement = await _fetchTrustedServerEntitlement();
-      if (serverEntitlement?.active == true) {
-        hasActiveSubscription = true;
-        await _setValidatedEntitlementCache(
-          prefs,
-          expiresAtMs: serverEntitlement!.cacheValidUntilMs,
-        );
-      }
-
-      _isSubscribed = hasActiveSubscription;
-      _subscriptionTier = hasActiveSubscription
-          ? SubscriptionTier.premium
-          : SubscriptionTier.free;
-      await prefs.setBool(_isSubscribedKey, hasActiveSubscription);
-      await prefs.setString(
-          'subscriptionTier', hasActiveSubscription ? 'premium' : 'free');
-
-      if (previousStatus != _isSubscribed) {
-        debugPrint(
-            '[SubscriptionService] Subscription status changed: $previousStatus -> $_isSubscribed');
-      }
-
-      _lastFullCheckTime = DateTime.now();
-      notifyListeners();
-      return _isSubscribed;
-    } catch (e) {
-      debugPrint(
-          '[SubscriptionService] Error checking subscription status: $e');
+    final userId = _currentEntitlementUserId;
+    if (userId != _lastKnownEntitlementUserId) {
+      _lastKnownEntitlementUserId = userId;
+      _identityGeneration++;
+      _lastFullCheckTime = null;
       _isSubscribed = false;
       _subscriptionTier = SubscriptionTier.free;
       notifyListeners();
-      return false;
+    }
+    final existingCheck = _activeStatusCheck;
+    if (existingCheck != null && _activeStatusCheckUserId == userId) {
+      return existingCheck;
+    }
+    final generation = _identityGeneration;
+    final check = _checkSubscriptionStatusForUser(userId, generation);
+    _activeStatusCheck = check;
+    _activeStatusCheckUserId = userId;
+    try {
+      return await check;
     } finally {
-      _isCheckingStatus = false;
+      if (identical(_activeStatusCheck, check)) {
+        _activeStatusCheck = null;
+        _activeStatusCheckUserId = null;
+      }
+    }
+  }
+
+  Future<bool> _checkSubscriptionStatusForUser(
+    String? userId,
+    int generation,
+  ) async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Store purchases belong to a signed-in HowAI account. Anonymous or signed
+    // out sessions must never inherit the device owner's App Store status.
+    if (userId == null) {
+      await _applyResolvedSubscription(
+        active: false,
+        expectedUserId: null,
+        generation: generation,
+        prefs: prefs,
+      );
+      return false;
+    }
+
+    try {
+      _TrustedServerEntitlement? entitlement =
+          await _fetchTrustedServerEntitlement(expectedUserId: userId);
+
+      // Refresh store-backed entitlements through the server. StoreKit/Play is
+      // evidence, not authorization: the server enforces account ownership.
+      final shouldRefreshStore = entitlement?.active != true ||
+          entitlement?.source == 'app_store' ||
+          entitlement?.source == 'play_store';
+      if (shouldRefreshStore) {
+        final refreshed = Platform.isIOS
+            ? await _syncVerifiedAppleEntitlement(expectedUserId: userId)
+            : Platform.isAndroid
+                ? await _syncVerifiedGoogleEntitlement(expectedUserId: userId)
+                : null;
+        entitlement = refreshed ?? entitlement;
+      }
+
+      if (entitlement != null) {
+        if (entitlement.active) {
+          await _setValidatedEntitlementCache(
+            prefs,
+            userId: userId,
+            expiresAtMs: entitlement.cacheValidUntilMs,
+          );
+        } else {
+          await _clearValidatedEntitlementCache(prefs);
+        }
+        await _applyResolvedSubscription(
+          active: entitlement.active,
+          expectedUserId: userId,
+          generation: generation,
+          prefs: prefs,
+        );
+        _lastFullCheckTime = DateTime.now();
+        return entitlement.active;
+      }
+
+      // A short, server-created, account-bound cache keeps verified subscribers
+      // working during a temporary outage without crossing account boundaries.
+      final cached =
+          await _hasCachedValidatedEntitlement(prefs, userId: userId);
+      if (cached) {
+        debugPrint(
+            '[SubscriptionService] Using user-bound offline entitlement cache');
+      }
+      await _applyResolvedSubscription(
+        active: cached,
+        expectedUserId: userId,
+        generation: generation,
+        prefs: prefs,
+      );
+      _lastFullCheckTime = DateTime.now();
+      return cached;
+    } catch (e) {
+      debugPrint(
+          '[SubscriptionService] Error checking subscription status: $e');
+      final cached =
+          await _hasCachedValidatedEntitlement(prefs, userId: userId);
+      await _applyResolvedSubscription(
+        active: cached,
+        expectedUserId: userId,
+        generation: generation,
+        prefs: prefs,
+      );
+      return cached;
     }
   }
 
   /// Throttled variant — skips the platform store query if the last full check
   /// was less than [_minCheckInterval] ago. Used by app-resume lifecycle.
   Future<bool> checkSubscriptionStatusThrottled() async {
+    if (_lastKnownEntitlementUserId != _currentEntitlementUserId) {
+      return checkSubscriptionStatus();
+    }
     if (_lastFullCheckTime != null &&
         DateTime.now().difference(_lastFullCheckTime!) < _minCheckInterval) {
       debugPrint('[SubscriptionService] Subscription check throttled '
@@ -865,183 +985,53 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   }
 
   // ---------------------------------------------------------------------------
-  // iOS: StoreKit 2 verification via SK2Transaction.transactions()
-  // ---------------------------------------------------------------------------
-
-  Future<bool> _verifyViaStoreKit2() async {
-    try {
-      debugPrint('[SubscriptionService] SK2: Querying transactions...');
-      final transactions = await SK2Transaction.transactions();
-      debugPrint(
-          '[SubscriptionService] SK2: Found ${transactions.length} transactions');
-
-      DateTime? latestExpiry;
-
-      for (final t in transactions) {
-        // Check all subscription product IDs (monthly + yearly)
-        if (!_allSubscriptionIds.contains(t.productId)) continue;
-
-        if (t.expirationDate == null) {
-          debugPrint(
-              '[SubscriptionService] SK2: Transaction has no expirationDate, skipping');
-          continue;
-        }
-
-        final expDate = _parseStoreKitDate(t.expirationDate);
-        if (expDate == null) {
-          debugPrint(
-              '[SubscriptionService] SK2: Could not parse expirationDate');
-          continue;
-        }
-
-        // Track the latest expiration across all transactions
-        if (latestExpiry == null || expDate.isAfter(latestExpiry)) {
-          latestExpiry = expDate;
-        }
-      }
-
-      // Server verification is additive: local StoreKit remains the source for
-      // the UI, while the signed JWS establishes the trusted backend tier.
-      unawaited(_syncVerifiedAppleEntitlement(transactions: transactions));
-
-      final prefs = await SharedPreferences.getInstance();
-
-      if (latestExpiry != null && latestExpiry.isAfter(DateTime.now())) {
-        debugPrint(
-            '[SubscriptionService] SK2: Active subscription, expires $latestExpiry');
-        await _setValidatedEntitlementCache(prefs,
-            expiresAtMs: latestExpiry.millisecondsSinceEpoch);
-        return true;
-      }
-
-      if (latestExpiry != null) {
-        debugPrint(
-            '[SubscriptionService] SK2: Subscription expired on $latestExpiry');
-      } else {
-        debugPrint(
-            '[SubscriptionService] SK2: No subscription transactions found');
-      }
-      await _clearValidatedEntitlementCache(prefs);
-      return false;
-    } catch (e) {
-      debugPrint('[SubscriptionService] SK2 verification error: $e');
-      return false; // Caller falls back to cached entitlement
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Android: Google Play Billing verification via queryPastPurchases()
-  // ---------------------------------------------------------------------------
-
-  Future<bool> _verifyViaGooglePlay() async {
-    try {
-      debugPrint(
-          '[SubscriptionService] Google Play: Querying past purchases...');
-      final androidAddition = _inAppPurchase
-          .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
-
-      // queryPastPurchases calls BillingClient.queryPurchases for both
-      // inapp and subs. Google Play only returns currently active purchases.
-      final result = await androidAddition.queryPastPurchases();
-
-      if (result.error != null) {
-        debugPrint(
-            '[SubscriptionService] Google Play query error: ${result.error}');
-      }
-
-      for (final purchase in result.pastPurchases) {
-        if (!_allSubscriptionIds.contains(purchase.productID)) continue;
-
-        final billingPurchase = purchase.billingClientPurchase;
-
-        // Google only returns this purchase if it's currently active
-        debugPrint(
-            '[SubscriptionService] Google Play: Active subscription found '
-            '(autoRenewing=${billingPurchase.isAutoRenewing})');
-
-        // Cache entitlement — estimate expiry from now + cycle + grace.
-        final expMs = DateTime.now().millisecondsSinceEpoch +
-            const Duration(
-                    days: _subscriptionCycleDays + _subscriptionGraceDays)
-                .inMilliseconds;
-        final prefs = await SharedPreferences.getInstance();
-        await _setValidatedEntitlementCache(prefs, expiresAtMs: expMs);
-        return true;
-      }
-
-      debugPrint(
-          '[SubscriptionService] Google Play: No active subscription found');
-      final prefs = await SharedPreferences.getInstance();
-      await _clearValidatedEntitlementCache(prefs);
-      return false;
-    } catch (e) {
-      debugPrint('[SubscriptionService] Google Play verification error: $e');
-      return false; // Caller falls back to cached entitlement
-    }
-  }
-
-  // ---------------------------------------------------------------------------
   // Entitlement cache (offline fallback)
   // ---------------------------------------------------------------------------
 
-  Future<bool> _hasCachedValidatedEntitlement(SharedPreferences prefs) async {
+  Future<bool> _hasCachedValidatedEntitlement(
+    SharedPreferences prefs, {
+    required String userId,
+  }) async {
+    final cachedUserId = prefs.getString(_subscriptionCacheUserIdKey);
     final validUntilMs = prefs.getInt(_subscriptionValidUntilMsKey);
-    if (validUntilMs == null) return false;
-    return DateTime.now().millisecondsSinceEpoch < validUntilMs;
+    final active = isUserBoundEntitlementCacheActive(
+      currentUserId: userId,
+      cachedUserId: cachedUserId,
+      validUntilMs: validUntilMs,
+      nowMs: DateTime.now().millisecondsSinceEpoch,
+    );
+    if (!active && cachedUserId != null && cachedUserId != userId) {
+      await _clearValidatedEntitlementCache(prefs);
+    }
+    return active;
   }
 
-  Future<void> _setValidatedEntitlementCache(SharedPreferences prefs,
-      {int? expiresAtMs}) async {
-    final fallbackValidUntil = DateTime.now()
-        .add(const Duration(hours: _defaultValidatedCacheHours))
-        .millisecondsSinceEpoch;
+  Future<void> _setValidatedEntitlementCache(
+    SharedPreferences prefs, {
+    required String userId,
+    int? expiresAtMs,
+  }) async {
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final validUntil = boundedEntitlementCacheExpiry(
+      nowMs: nowMs,
+      maximumOfflineAgeMs:
+          const Duration(hours: _defaultValidatedCacheHours).inMilliseconds,
+      entitlementExpiresAtMs: expiresAtMs,
+    );
+    if (validUntil <= nowMs) {
+      await _clearValidatedEntitlementCache(prefs);
+      return;
+    }
+    await prefs.setString(_subscriptionCacheUserIdKey, userId);
     await prefs.setInt(
       _subscriptionValidUntilMsKey,
-      expiresAtMs ?? fallbackValidUntil,
+      validUntil,
     );
   }
 
   Future<void> _clearValidatedEntitlementCache(SharedPreferences prefs) async {
     await prefs.remove(_subscriptionValidUntilMsKey);
-  }
-
-  /// Background call to replace the 24h fallback cache with the real expiry
-  /// from the platform store. Called after a fresh purchase is trusted.
-  void _updateCacheWithRealExpiry() {
-    Future<void> doUpdate() async {
-      try {
-        if (Platform.isIOS) {
-          await _verifyViaStoreKit2();
-        } else if (Platform.isAndroid) {
-          await _verifyViaGooglePlay();
-        }
-      } catch (e) {
-        debugPrint(
-            '[SubscriptionService] Background cache update failed (non-fatal): $e');
-      }
-    }
-
-    doUpdate();
-  }
-
-  // ---------------------------------------------------------------------------
-  // Last-resort fallback: transaction date heuristic (unknown platforms only)
-  // ---------------------------------------------------------------------------
-
-  bool _isLikelyActiveByTransactionDate(PurchaseDetails purchaseDetails) {
-    final transactionDateRaw = purchaseDetails.transactionDate;
-    if (transactionDateRaw == null || transactionDateRaw.isEmpty) return false;
-
-    final transactionMs = int.tryParse(transactionDateRaw);
-    if (transactionMs == null) return false;
-
-    final transactionTime =
-        DateTime.fromMillisecondsSinceEpoch(transactionMs, isUtc: true)
-            .toLocal();
-    final daysSinceTransaction =
-        DateTime.now().difference(transactionTime).inDays;
-    final activeWindowDays = _subscriptionCycleDays + _subscriptionGraceDays;
-    return daysSinceTransaction <= activeWindowDays;
+    await prefs.remove(_subscriptionCacheUserIdKey);
   }
 
   // ---------------------------------------------------------------------------
@@ -1051,7 +1041,6 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<bool> restorePurchases() async {
     try {
       debugPrint('[SubscriptionService] Restoring purchases...');
-      _isRestoringPurchases = true;
       _foundSubscriptionDuringRestore = false;
 
       await _inAppPurchase.restorePurchases();
@@ -1062,8 +1051,6 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     } catch (e) {
       debugPrint('[SubscriptionService] Error restoring purchases: $e');
       return false;
-    } finally {
-      _isRestoringPurchases = false;
     }
   }
 
@@ -1144,59 +1131,59 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   Future<void> _handleSubscriptionPurchase(
       PurchaseDetails purchaseDetails) async {
     try {
-      // If StoreKit returns a restored-but-expired transaction during a buy
-      // attempt (not a manual restore), do NOT overwrite the current subscription
-      // state — the user may have another active subscription (e.g. monthly) that
-      // SK2 verification for this specific product won't see. Just show an error.
-      final isExpiredRestoreDuringBuy =
-          purchaseDetails.status == PurchaseStatus.restored &&
-              !_isRestoringPurchases;
-
-      if (isExpiredRestoreDuringBuy) {
-        final isEntitled =
-            await _validateSubscriptionEntitlement(purchaseDetails);
-        if (!isEntitled) {
-          _errorMessage =
-              'Your previous subscription has expired. Please re-subscribe via the App Store subscription management.';
-          debugPrint(
-              '[SubscriptionService] Restored expired transaction — leaving current subscription state unchanged');
-          notifyListeners();
-          return;
-        }
-        // If somehow the restored transaction IS valid (e.g. renewed), fall through
+      final userId = _currentEntitlementUserId;
+      final prefs = await SharedPreferences.getInstance();
+      if (userId == null) {
+        await _applyResolvedSubscription(
+          active: false,
+          expectedUserId: null,
+          generation: _identityGeneration,
+          prefs: prefs,
+        );
+        _errorMessage =
+            'Sign in to a HowAI account before purchasing or restoring Pro.';
+        notifyListeners();
+        return;
       }
 
-      final isEntitled =
-          await _validateSubscriptionEntitlement(purchaseDetails);
-
-      _isSubscribed = isEntitled;
-      _subscriptionTier =
-          isEntitled ? SubscriptionTier.premium : SubscriptionTier.free;
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_isSubscribedKey, isEntitled);
-      await prefs.setString(
-          'subscriptionTier', isEntitled ? 'premium' : 'free');
+      final entitlement = Platform.isIOS
+          ? await _syncVerifiedAppleEntitlement(expectedUserId: userId)
+          : Platform.isAndroid
+              ? await _syncVerifiedGoogleEntitlement(
+                  expectedUserId: userId,
+                  purchase: purchaseDetails,
+                )
+              : null;
+      final isEntitled = entitlement?.active == true;
 
       if (isEntitled) {
-        if (purchaseDetails.status == PurchaseStatus.purchased) {
-          // Immediate 24h cache so the user isn't blocked
-          await _setValidatedEntitlementCache(prefs);
-          // Fire-and-forget: update cache with real expiry from platform API
-          _updateCacheWithRealExpiry();
-        }
+        await _setValidatedEntitlementCache(
+          prefs,
+          userId: userId,
+          expiresAtMs: entitlement!.cacheValidUntilMs,
+        );
+        await _applyResolvedSubscription(
+          active: true,
+          expectedUserId: userId,
+          generation: _identityGeneration,
+          prefs: prefs,
+        );
         _foundSubscriptionDuringRestore = true;
-
-        // Sync to Supabase (silent, non-blocking)
-        _syncSubscriptionToSupabase(purchaseDetails);
-        unawaited(_syncVerifiedAppleEntitlement());
-
         _errorMessage = null;
-        debugPrint('[SubscriptionService] Subscription entitlement confirmed');
+        debugPrint(
+            '[SubscriptionService] Server-verified subscription entitlement confirmed');
       } else {
         await _clearValidatedEntitlementCache(prefs);
-        _errorMessage = null;
-        debugPrint('[SubscriptionService] Subscription entitlement not active');
+        await _applyResolvedSubscription(
+          active: false,
+          expectedUserId: userId,
+          generation: _identityGeneration,
+          prefs: prefs,
+        );
+        _errorMessage =
+            'The store purchase could not be verified for this HowAI account.';
+        debugPrint(
+            '[SubscriptionService] Purchase was not granted without server verification');
       }
 
       notifyListeners();
@@ -1207,126 +1194,28 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     }
   }
 
-  Future<bool> _validateSubscriptionEntitlement(
-      PurchaseDetails purchaseDetails) async {
-    // Fresh purchase (not a restore): trusted immediately — Apple/Google
-    // already validated it.
-    if (purchaseDetails.status == PurchaseStatus.purchased &&
-        !_isRestoringPurchases) {
-      return true;
-    }
-
-    // Restored purchase: verify with platform store API to check expiry.
-    if (Platform.isIOS) {
-      return _verifyViaStoreKit2();
-    } else if (Platform.isAndroid) {
-      return _verifyViaGooglePlay();
-    }
-
-    // Unknown platform fallback
-    return _isLikelyActiveByTransactionDate(purchaseDetails);
-  }
-
   // ---------------------------------------------------------------------------
   // Supabase sync
   // ---------------------------------------------------------------------------
-
-  void _syncSubscriptionToSupabase(PurchaseDetails purchaseDetails) {
-    Future.microtask(() async {
-      try {
-        if (!_supabase.isAuthenticated) return;
-
-        final userId = _supabase.currentUser!.id;
-        final platform = Platform.isIOS ? 'ios' : 'android';
-
-        final existing = await _supabase.client
-            .from('subscription_status')
-            .select()
-            .eq('user_id', userId)
-            .eq('platform', platform)
-            .maybeSingle();
-
-        final data = {
-          'user_id': userId,
-          'platform': platform,
-          'subscription_type': 'premium',
-          'is_active': true,
-          'purchase_token':
-              purchaseDetails.verificationData.serverVerificationData,
-          'updated_at': DateTime.now().toIso8601String(),
-        };
-
-        if (existing != null) {
-          await _supabase.client
-              .from('subscription_status')
-              .update(data)
-              .eq('user_id', userId)
-              .eq('platform', platform);
-        } else {
-          await _supabase.client.from('subscription_status').insert(data);
-        }
-
-        debugPrint(
-            '[SubscriptionService] Subscription status synced to Supabase');
-      } catch (e) {
-        debugPrint(
-            '[SubscriptionService] Error syncing subscription (silent): $e');
-      }
-    });
-  }
 
   Future<void> syncCurrentSubscriptionToSupabase() async {
     try {
       if (!_supabase.isAuthenticated) return;
 
-      // The server-owned entitlement is authoritative for signed-in accounts.
-      // Refresh it before mirroring the legacy informational status row.
-      await _refreshSubscriptionFromTrustedServer();
-
-      final userId = _supabase.currentUser!.id;
-      final platform = Platform.isIOS ? 'ios' : 'android';
-
-      final existing = await _supabase.client
-          .from('subscription_status')
-          .select()
-          .eq('user_id', userId)
-          .eq('platform', platform)
-          .maybeSingle();
-
-      final data = {
-        'user_id': userId,
-        'platform': platform,
-        'subscription_type': isPremium ? 'premium' : 'free',
-        'is_active': isPremium,
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-
-      if (existing != null) {
-        await _supabase.client
-            .from('subscription_status')
-            .update(data)
-            .eq('user_id', userId)
-            .eq('platform', platform);
-      } else {
-        await _supabase.client.from('subscription_status').insert(data);
-      }
-
-      debugPrint(
-          '[SubscriptionService] Current subscription status synced to Supabase (isPremium: $isPremium)');
-
+      // app_entitlements is the only authorization source. The legacy
+      // subscription_status table is intentionally no longer client-writable.
+      await checkSubscriptionStatus();
       await syncUsageStatsToSupabase();
-
-      // Existing subscribers are bootstrapped from StoreKit 2 transaction
-      // history after sign-in; no new purchase or manual restore is required.
-      await _syncVerifiedAppleEntitlement();
     } catch (e) {
       debugPrint(
           '[SubscriptionService] Error syncing current subscription (silent): $e');
     }
   }
 
-  Future<_TrustedServerEntitlement?> _fetchTrustedServerEntitlement() async {
-    if (!_supabase.isAuthenticated) return null;
+  Future<_TrustedServerEntitlement?> _fetchTrustedServerEntitlement({
+    required String expectedUserId,
+  }) async {
+    if (_currentEntitlementUserId != expectedUserId) return null;
 
     try {
       final response = await _supabase.client.functions.invoke(
@@ -1342,38 +1231,32 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       final expiresAt = expiresAtRaw is String
           ? DateTime.tryParse(expiresAtRaw)?.toLocal()
           : null;
+      if (_currentEntitlementUserId != expectedUserId) return null;
       return _TrustedServerEntitlement(
         active: active,
         expiresAt: expiresAt,
+        source: entitlement['source'] is String
+            ? entitlement['source'] as String
+            : null,
       );
     } catch (e) {
       debugPrint(
-          '[SubscriptionService] Trusted entitlement refresh failed (using store/cache): $e');
+          '[SubscriptionService] Trusted entitlement refresh failed (using user-bound cache): $e');
       return null;
     }
   }
 
   Future<void> _refreshSubscriptionFromTrustedServer() async {
-    final entitlement = await _fetchTrustedServerEntitlement();
-    if (entitlement?.active != true) return;
-
-    _isSubscribed = true;
-    _subscriptionTier = SubscriptionTier.premium;
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_isSubscribedKey, true);
-    await prefs.setString('subscriptionTier', 'premium');
-    await _setValidatedEntitlementCache(
-      prefs,
-      expiresAtMs: entitlement!.cacheValidUntilMs,
-    );
-    notifyListeners();
+    await checkSubscriptionStatus();
   }
 
-  Future<void> _syncVerifiedAppleEntitlement({
+  Future<_TrustedServerEntitlement?> _syncVerifiedAppleEntitlement({
     List<SK2Transaction>? transactions,
+    required String expectedUserId,
   }) async {
-    if (!Platform.isIOS || !_supabase.isAuthenticated) return;
+    if (!Platform.isIOS || _currentEntitlementUserId != expectedUserId) {
+      return null;
+    }
 
     try {
       final availableTransactions =
@@ -1383,7 +1266,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       if (signedTransaction.isEmpty) {
         debugPrint(
             '[SubscriptionService] No signed StoreKit 2 transaction available for server verification');
-        return;
+        return null;
       }
 
       final response = await _supabase.client.functions.invoke(
@@ -1393,13 +1276,94 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
       final data = response.data;
       final entitlement = data is Map ? data['entitlement'] : null;
-      final active = entitlement is Map ? entitlement['active'] : null;
+      if (entitlement is! Map || _currentEntitlementUserId != expectedUserId) {
+        return null;
+      }
+      final active = entitlement['active'] == true;
+      final expiresAtRaw = entitlement['expires_at'];
+      final expiresAt = expiresAtRaw is String
+          ? DateTime.tryParse(expiresAtRaw)?.toLocal()
+          : null;
       debugPrint(
           '[SubscriptionService] Server-verified Apple entitlement synced (active: $active)');
+      return _TrustedServerEntitlement(
+        active: active,
+        expiresAt: expiresAt,
+        source: 'app_store',
+      );
     } catch (e) {
-      // Local StoreKit access remains unchanged if Apple or Supabase is down.
       debugPrint(
           '[SubscriptionService] Server Apple entitlement sync failed (silent): $e');
+      return null;
+    }
+  }
+
+  Future<_TrustedServerEntitlement?> _syncVerifiedGoogleEntitlement({
+    required String expectedUserId,
+    PurchaseDetails? purchase,
+  }) async {
+    if (!Platform.isAndroid || _currentEntitlementUserId != expectedUserId) {
+      return null;
+    }
+
+    try {
+      final purchases = <PurchaseDetails>[];
+      if (purchase != null) purchases.add(purchase);
+      if (purchases.isEmpty) {
+        final addition = _inAppPurchase
+            .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+        final result = await addition.queryPastPurchases();
+        if (result.error != null) {
+          debugPrint(
+              '[SubscriptionService] Google Play query failed: ${result.error}');
+          return null;
+        }
+        purchases.addAll(result.pastPurchases);
+      }
+
+      _TrustedServerEntitlement? inactiveDecision;
+      for (final candidate in purchases) {
+        if (!_allSubscriptionIds.contains(candidate.productID)) continue;
+        final token = candidate.verificationData.serverVerificationData.trim();
+        if (token.isEmpty) continue;
+
+        final response = await _supabase.client.functions.invoke(
+          'verify-google-entitlement',
+          body: {
+            'purchase_token': token,
+            'product_id': candidate.productID,
+          },
+        ).timeout(const Duration(seconds: 15));
+        final data = response.data;
+        final entitlement = data is Map ? data['entitlement'] : null;
+        if (entitlement is! Map ||
+            _currentEntitlementUserId != expectedUserId) {
+          continue;
+        }
+        final active = entitlement['active'] == true;
+        final expiresAtRaw = entitlement['expires_at'];
+        final expiresAt = expiresAtRaw is String
+            ? DateTime.tryParse(expiresAtRaw)?.toLocal()
+            : null;
+        final decision = _TrustedServerEntitlement(
+          active: active,
+          expiresAt: expiresAt,
+          source: 'play_store',
+        );
+        if (decision.active) return decision;
+        inactiveDecision ??= decision;
+      }
+
+      return inactiveDecision ??
+          _TrustedServerEntitlement(
+            active: false,
+            expiresAt: null,
+            source: 'play_store',
+          );
+    } catch (e) {
+      debugPrint(
+          '[SubscriptionService] Server Google Play entitlement sync failed: $e');
+      return null;
     }
   }
 
@@ -1637,6 +1601,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _subscription.cancel();
+    _authSubscription?.cancel();
     super.dispose();
   }
 }

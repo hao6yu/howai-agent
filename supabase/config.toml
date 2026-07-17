@@ -383,6 +383,9 @@ verify_jwt = true
 [functions.entitlement-status]
 verify_jwt = true
 
+[functions.verify-google-entitlement]
+verify_jwt = true
+
 [functions.reminder-actions]
 verify_jwt = true
 

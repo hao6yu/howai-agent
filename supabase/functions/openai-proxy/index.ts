@@ -49,6 +49,7 @@ import {
 } from "../_shared/openai-web-search.ts";
 import { loadHowAiPersonalContext } from "../_shared/howai-memory-context.ts";
 import { applyHowAiPromptPolicy } from "../_shared/howai-prompt-policy.ts";
+import { isStoredEntitlementActive } from "../_shared/entitlement-status.ts";
 
 const OPENAI_BASE_URL = "https://api.openai.com";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -875,18 +876,14 @@ async function getTrustedEntitlement(
 
   const { data, error } = await supabaseAdmin
     .from("app_entitlements")
-    .select("tier, expires_at, model_policy_canary")
+    .select("tier, source, expires_at, model_policy_canary")
     .eq("user_id", user.id)
     .maybeSingle();
   if (error) {
     throw new Error(`Verified entitlement lookup failed: ${error.message}`);
   }
 
-  const expiry = typeof data?.expires_at === "string"
-    ? Date.parse(data.expires_at)
-    : null;
-  const active = data?.tier === "paid" &&
-    (expiry == null || expiry > Date.now());
+  const active = isStoredEntitlementActive(data);
   return active
     ? {
       cohort: "paid",

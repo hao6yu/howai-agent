@@ -9,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_pptx/flutter_pptx.dart';
 import 'package:path_provider/path_provider.dart';
 import '../core/agent/chat_response_policy.dart';
+import '../core/agent/hosted_tool_policy.dart';
 import '../core/agent/reminder_action_intent.dart';
 import '../config/app_config.dart';
 import 'ai_personality_service.dart';
@@ -1129,19 +1130,13 @@ Note: Could not extract text content from this file. Please describe what you'd 
         if (_canUseProfileNameTool) {
           tools.add(ProfileNameService.toolDefinition());
         }
-        // Image generation - built-in tool (OpenAI handles DALL-E internally)
-        if (allowImageGeneration) {
-          tools.add({'type': 'image_generation'});
-        }
-
-        // Web search - built-in tool (OpenAI handles search internally)
-        if (allowWebSearch &&
-            responseProfile.profile != _HowAiResponseProfile.quick) {
-          tools.add({
-            'type': 'web_search',
-            'search_context_size': 'low',
-          });
-        }
+        tools.addAll(
+          automaticHostedTools(
+            allowImageGeneration: allowImageGeneration,
+            allowWebSearch: allowWebSearch &&
+                responseProfile.profile != _HowAiResponseProfile.quick,
+          ),
+        );
 
         // PPTX generation - only add if user wants presentations
         if (userWantsPresentations) {
@@ -1333,6 +1328,9 @@ Note: Could not extract text content from this file. Please describe what you'd 
                 if (content['type'] == 'output_text' &&
                     content['text'] != null) {
                   textContent = (textContent ?? '') + content['text'];
+                } else if (content['type'] == 'refusal' &&
+                    content['refusal'] != null) {
+                  textContent = (textContent ?? '') + content['refusal'];
                 } else if (content['type'] == 'text' &&
                     content['text'] != null) {
                   textContent = (textContent ?? '') + content['text'];
@@ -1410,12 +1408,21 @@ Note: Could not extract text content from this file. Please describe what you'd 
           }
         }
 
-        // If the model spent the first turn on tool/reasoning tokens and hit the
-        // token limit before producing message text, automatically continue using
-        // previous_response_id until we get content (bounded retries).
-        if ((textContent == null || textContent.trim().isEmpty) &&
-            responseProfile.profile == _HowAiResponseProfile.research &&
-            data['status'] == 'incomplete' &&
+        // A generated image is a complete user-visible result even if the
+        // Responses API exhausts its token budget while composing optional
+        // trailing prose. Preserve the image and replace the partial caption
+        // instead of continuing the turn (which could generate a duplicate).
+        if (data['status'] == 'incomplete' && imageUrls.isNotEmpty) {
+          _log(
+              '[OpenAIService] ✅ Recovering delivered image from incomplete response');
+          textContent = "Here's the generated image.";
+          data['status'] = 'completed';
+        }
+
+        // A Responses API token limit includes reasoning tokens. Continue any
+        // token-limited response instead of persisting a partial visible
+        // sentence as though it were complete.
+        if (data['status'] == 'incomplete' &&
             data['incomplete_details'] is Map &&
             data['incomplete_details']['reason'] == 'max_output_tokens' &&
             data['id'] != null) {
@@ -1423,24 +1430,29 @@ Note: Could not extract text content from this file. Please describe what you'd 
               '[OpenAIService] 🔁 Auto-continuing incomplete response (reason=max_output_tokens)');
 
           String previousResponseId = data['id'];
+          String accumulatedText = textContent ?? '';
           const int maxContinuationAttempts = 3;
 
           for (int attempt = 1; attempt <= maxContinuationAttempts; attempt++) {
             final continuationPayload = {
               'model': modelToUse,
               'metadata': {'howai_intent': requestIntent},
+              // Responses linked with previous_response_id do not inherit the
+              // prior request's instructions.
+              'instructions': systemPrompt,
               'previous_response_id': previousResponseId,
               'input': [
                 {
                   'role': 'user',
                   'content':
-                      'Continue from where you left off and provide the final answer directly.'
+                      'Continue from the exact next character where the previous response stopped. Output only the missing continuation, without repeating any earlier text.'
                 }
               ],
-              'max_output_tokens': 2000,
+              'max_output_tokens': 1200,
               'reasoning': {
                 'effort': responseProfile.reasoningEffort,
               },
+              'text': {'verbosity': responseProfile.verbosity},
             };
 
             final continuationResponse = await _httpPostWithTimeout(
@@ -1477,6 +1489,10 @@ Note: Could not extract text content from this file. Please describe what you'd 
                         content['text'] != null) {
                       continuationText =
                           (continuationText ?? '') + content['text'];
+                    } else if (content['type'] == 'refusal' &&
+                        content['refusal'] != null) {
+                      continuationText =
+                          (continuationText ?? '') + content['refusal'];
                     } else if (content['type'] == 'text' &&
                         content['text'] != null) {
                       continuationText =
@@ -1504,12 +1520,9 @@ Note: Could not extract text content from this file. Please describe what you'd 
               continuationText = continuationData['output_text'];
             }
 
-            if (continuationText != null &&
-                continuationText.trim().isNotEmpty) {
-              textContent = continuationText;
-              _log(
-                  '[OpenAIService] ✅ Continuation returned final text on attempt $attempt');
-              break;
+            if (continuationText != null && continuationText.isNotEmpty) {
+              accumulatedText += continuationText;
+              textContent = accumulatedText;
             }
 
             final isStillIncomplete =
@@ -1518,11 +1531,23 @@ Note: Could not extract text content from this file. Please describe what you'd 
                 continuationData['incomplete_details'] is Map
                     ? continuationData['incomplete_details']['reason']
                     : null;
+            if (continuationData['status'] == 'completed') {
+              data['status'] = 'completed';
+              _log(
+                  '[OpenAIService] ✅ Continuation completed on attempt $attempt');
+              break;
+            }
             if (!(isStillIncomplete &&
-                incompleteReason == 'max_output_tokens')) {
+                incompleteReason == 'max_output_tokens' &&
+                continuationData['id'] != null)) {
               break;
             }
           }
+        }
+
+        if (data['status'] == 'incomplete') {
+          _log('[OpenAIService] ❌ Refusing to persist an incomplete response');
+          return null;
         }
 
         // Parse text content for title extraction
@@ -2456,21 +2481,24 @@ AUTOMATIONS:
       inputMessages.add({'role': 'user', 'content': message});
     }
 
-    // Build tools list - NOTE: image_generation not included in streaming mode
-    // because OpenAI's streaming API doesn't return image results properly
-    // (stream ends before image generation completes)
+    // Expose hosted tools in automatic mode and let the model infer intent from
+    // the full conversation. The Responses API returns completed image results
+    // in the stream's response.completed event.
     List<Map<String, dynamic>> tools = [];
-    // Skip image_generation for streaming - use non-streaming generateChatResponse for images
     if (forceReminderAction) {
       tools.add(
         _reminderToolForName(forcedReminderToolName, existingReminders),
       );
-    } else if (allowWebSearch &&
-        responseProfile.profile != _HowAiResponseProfile.quick) {
-      tools.add({
-        'type': 'web_search',
-        'search_context_size': 'low',
-      });
+    } else {
+      tools.addAll(
+        automaticHostedTools(
+          // Forced search exposes only web search so `required` cannot select
+          // another hosted tool.
+          allowImageGeneration: !forceWebSearch && allowImageGeneration,
+          allowWebSearch: allowWebSearch &&
+              responseProfile.profile != _HowAiResponseProfile.quick,
+        ),
+      );
     }
     if (!forceReminderAction &&
         !forceWebSearch &&
@@ -2590,8 +2618,10 @@ AUTOMATIONS:
                   : 'Streaming response failed';
               yield StreamEvent.error(message);
               return;
-            } else if (eventType == 'response.output_text.delta') {
-              // Text delta event
+            } else if (eventType == 'response.output_text.delta' ||
+                eventType == 'response.refusal.delta') {
+              // Visible text delta event. Refusals use a separate event name
+              // but still need to render and complete atomically.
               final delta = event['delta'] as String?;
               if (delta != null && delta.isNotEmpty) {
                 if (!sawFirstDelta) {
@@ -2601,13 +2631,71 @@ AUTOMATIONS:
                 fullText += delta;
                 yield StreamEvent.textDelta(delta);
               }
-            } else if (eventType == 'response.output_text.done') {
+            } else if (eventType == 'response.output_text.done' ||
+                eventType == 'response.refusal.done') {
               // Text complete
-              final text = event['text'] as String?;
+              final text = (event['text'] ?? event['refusal'])?.toString();
               if (text != null) {
                 fullText = text;
               }
               yield StreamEvent.textDone(fullText);
+            } else if (eventType == 'response.incomplete') {
+              final response = event['response'];
+              final details =
+                  response is Map ? response['incomplete_details'] : null;
+              final reason =
+                  details is Map ? details['reason']?.toString() : null;
+
+              // The image tool can finish before the model runs out of tokens
+              // on its trailing caption. The image result is authoritative:
+              // keep it, discard the cut-off prose, and finish successfully.
+              if (response is Map && response['output'] is List) {
+                for (final item in response['output']) {
+                  if (item is! Map ||
+                      item['type'] != 'image_generation_call' ||
+                      item['result'] == null) {
+                    continue;
+                  }
+
+                  String base64Data = item['result'].toString();
+                  if (base64Data.isEmpty) continue;
+                  if (base64Data.contains('base64,')) {
+                    base64Data = base64Data.split('base64,').last;
+                  }
+                  final dataUrl = 'data:image/png;base64,$base64Data';
+                  if (!images.contains(dataUrl)) {
+                    images.add(dataUrl);
+                  }
+                }
+              }
+
+              if (images.isNotEmpty) {
+                fullText = "Here's the generated image.";
+                _log(
+                    '[OpenAIService-Stream] ✅ Recovered ${images.length} delivered image(s) from incomplete response');
+                yield StreamEvent.done(
+                  fullText: fullText,
+                  title: title,
+                  images: images,
+                  files: files.isNotEmpty ? files : null,
+                  actionToolCall: actionToolCall,
+                  profileToolCall: profileToolCall,
+                );
+                return;
+              }
+
+              _log(
+                  '[OpenAIService-Stream] ❌ Incomplete terminal event: $reason');
+              // Never persist the currently streamed prefix as a complete
+              // assistant message. The server-side primary-chat floor makes
+              // this rare; if it still happens, fail visibly so the user can
+              // retry instead of seeing a sentence cut in half.
+              yield StreamEvent.error(
+                reason == 'max_output_tokens'
+                    ? 'The response reached its output limit before it finished.'
+                    : 'The response ended before it finished.',
+              );
+              return;
             } else if (eventType == 'response.completed' ||
                 eventType == 'response.done') {
               // Response complete - parse final data
@@ -2624,6 +2712,9 @@ AUTOMATIONS:
                       if (content['type'] == 'output_text' &&
                           content['text'] != null) {
                         fullText = content['text'];
+                      } else if (content['type'] == 'refusal' &&
+                          content['refusal'] != null) {
+                        fullText = content['refusal'];
                       }
                     }
                   } else if (item['type'] == 'image_generation_call') {
@@ -3218,7 +3309,9 @@ Answer ONLY with "YES" or "NO" - nothing else.
                 : 'low';
     return _ResponseProfileConfig(
       profile: _HowAiResponseProfile.quick,
-      maxOutputTokens: 400,
+      // Responses API max_output_tokens includes reasoning tokens. The old
+      // 400-token cap could exhaust itself before a visible sentence ended.
+      maxOutputTokens: 800,
       reasoningEffort: reasoningEffort,
       verbosity: 'low',
     );

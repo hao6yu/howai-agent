@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { ResponsesSseUsageCollector } from "./openai-stream.ts";
+import {
+  ResponsesSseUsageCollector,
+  responsesUsageHasDeliveredResult,
+} from "./openai-stream.ts";
 
 const encoder = new TextEncoder();
 
@@ -25,6 +28,7 @@ test("collects usage when an SSE event is split across byte chunks", () => {
     totalTokens: 150,
     hasFinalOutput: true,
     webSearchCalls: 0,
+    imageGenerationCalls: 0,
     hasWebSearchCitations: false,
     terminalEvent: "response.completed",
   });
@@ -73,6 +77,7 @@ test("parses a final event even when no blank-line terminator arrives", () => {
     totalTokens: 5,
     hasFinalOutput: false,
     webSearchCalls: 0,
+    imageGenerationCalls: 0,
     hasWebSearchCitations: false,
     terminalEvent: "response.completed",
   });
@@ -93,6 +98,7 @@ test("captures billed usage from a failed terminal response", () => {
     totalTokens: 8,
     hasFinalOutput: false,
     webSearchCalls: 0,
+    imageGenerationCalls: 0,
     hasWebSearchCitations: false,
     terminalEvent: "response.failed",
   });
@@ -126,4 +132,66 @@ test("does not treat incomplete web-search calls as billable completions", () =>
   ));
 
   assert.equal(collector.finish()?.webSearchCalls, 0);
+});
+
+test("counts a completed image result as a final answer", () => {
+  const collector = new ResponsesSseUsageCollector();
+  collector.push(encoder.encode(
+    'data: {"type":"response.completed","response":{"id":"resp_7","output":[{"type":"image_generation_call","status":"completed","result":"aW1hZ2U="}],"usage":{"input_tokens":3,"output_tokens":1}}}\n\n',
+  ));
+
+  const usage = collector.finish();
+  assert.equal(usage?.imageGenerationCalls, 1);
+  assert.equal(usage?.hasFinalOutput, true);
+});
+
+test("counts a terminal image result even when its status still says generating", () => {
+  const collector = new ResponsesSseUsageCollector();
+  collector.push(
+    encoder.encode(
+      'data: {"type":"response.completed","response":{"id":"resp_7b","output":[{"type":"image_generation_call","status":"generating","result":"aW1hZ2U="}],"usage":{"input_tokens":3,"output_tokens":1}}}\n\n',
+    ),
+  );
+
+  assert.equal(collector.finish()?.imageGenerationCalls, 1);
+  assert.equal(collector.finish()?.hasFinalOutput, true);
+});
+
+test("does not count incomplete image generation as a completed image", () => {
+  const collector = new ResponsesSseUsageCollector();
+  collector.push(encoder.encode(
+    'data: {"type":"response.incomplete","response":{"id":"resp_8","output":[{"type":"image_generation_call","status":"in_progress"}],"usage":{"input_tokens":3,"output_tokens":0}}}\n\n',
+  ));
+
+  const usage = collector.finish();
+  assert.equal(usage?.imageGenerationCalls, 0);
+  assert.equal(usage?.hasFinalOutput, false);
+});
+
+test("recovers an output-limited terminal response with a delivered image", () => {
+  const collector = new ResponsesSseUsageCollector();
+  collector.push(encoder.encode(
+    'data: {"type":"response.incomplete","response":{"id":"resp_9","output":[{"type":"image_generation_call","status":"generating","result":"aW1hZ2U="},{"type":"message","content":[{"type":"output_text","text":"Here is your"}]}],"usage":{"input_tokens":8,"output_tokens":753}}}\n\n',
+  ));
+
+  const usage = collector.finish();
+  assert.equal(usage?.imageGenerationCalls, 1);
+  assert.equal(usage?.hasFinalOutput, true);
+  assert.equal(
+    responsesUsageHasDeliveredResult(usage, usage?.terminalEvent ?? null),
+    true,
+  );
+});
+
+test("does not recover incomplete responses without a delivered image", () => {
+  const collector = new ResponsesSseUsageCollector();
+  collector.push(encoder.encode(
+    'data: {"type":"response.incomplete","response":{"id":"resp_10","output":[{"type":"message","content":[{"type":"output_text","text":"Cut off"}]}],"usage":{"input_tokens":4,"output_tokens":800}}}\n\n',
+  ));
+
+  const usage = collector.finish();
+  assert.equal(
+    responsesUsageHasDeliveredResult(usage, usage?.terminalEvent ?? null),
+    false,
+  );
 });

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_selectionarea/flutter_markdown_selectionarea.dart';
 import 'package:provider/provider.dart';
+import 'dart:math' as math;
 import 'dart:io';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
@@ -259,6 +260,15 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
         if (constraints.maxWidth.isFinite && maxWidth > constraints.maxWidth) {
           maxWidth = constraints.maxWidth;
         }
+        final availableImageWidth = math.max(0.0, maxWidth - 24.0);
+        final imagePreviewWidth = isUserMessage
+            ? math.min(96.0, availableImageWidth)
+            : math.min(
+                screenWidth * 0.8,
+                math.min(availableImageWidth, 560.0),
+              );
+        final double? imagePreviewHeight =
+            isUserMessage ? imagePreviewWidth : null;
 
         final messageColumn = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,18 +335,23 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                         );
                                       },
                                       child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(10),
+                                        borderRadius: BorderRadius.circular(
+                                            isUserMessage ? 10 : 14),
                                         child: path.startsWith('http')
                                             ? Image.network(
                                                 path,
-                                                width: 96,
-                                                height: 96,
-                                                fit: BoxFit.cover,
+                                                width: imagePreviewWidth,
+                                                height: imagePreviewHeight,
+                                                fit: isUserMessage
+                                                    ? BoxFit.cover
+                                                    : BoxFit.contain,
                                                 errorBuilder: (context, error,
                                                     stackTrace) {
                                                   return Container(
-                                                    width: 96,
-                                                    height: 96,
+                                                    width: imagePreviewWidth,
+                                                    height:
+                                                        imagePreviewHeight ??
+                                                            imagePreviewWidth,
                                                     decoration: BoxDecoration(
                                                       color:
                                                           Colors.grey.shade200,
@@ -357,14 +372,19 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                                 ? Image.memory(
                                                     base64Decode(
                                                         path.split(',').last),
-                                                    width: 96,
-                                                    height: 96,
-                                                    fit: BoxFit.cover,
+                                                    width: imagePreviewWidth,
+                                                    height: imagePreviewHeight,
+                                                    fit: isUserMessage
+                                                        ? BoxFit.cover
+                                                        : BoxFit.contain,
                                                     errorBuilder: (context,
                                                         error, stackTrace) {
                                                       return Container(
-                                                        width: 96,
-                                                        height: 96,
+                                                        width:
+                                                            imagePreviewWidth,
+                                                        height:
+                                                            imagePreviewHeight ??
+                                                                imagePreviewWidth,
                                                         decoration:
                                                             BoxDecoration(
                                                           color: Colors
@@ -383,7 +403,10 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                                     },
                                                   )
                                                 : _buildSafeLocalImage(
-                                                    path, 96, 96),
+                                                    path,
+                                                    imagePreviewWidth,
+                                                    imagePreviewHeight,
+                                                  ),
                                       ),
                                     ))
                                 .toList(),
@@ -519,298 +542,300 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                               )
                             : SelectionArea(
                                 child: MarkdownBody(
-                                data: widget.message.message,
-                                imageBuilder: (uri, title, alt) {
-                                  // Custom image builder that handles missing local files safely and makes images clickable
-                                  if (uri.scheme.isEmpty ||
-                                      uri.scheme == 'file') {
-                                    // Local file path
-                                    final path = uri.scheme.isEmpty
-                                        ? uri.toString()
-                                        : uri.path;
-                                    final file = File(path);
+                                  data: widget.message.message,
+                                  imageBuilder: (uri, title, alt) {
+                                    // Custom image builder that handles missing local files safely and makes images clickable
+                                    if (uri.scheme.isEmpty ||
+                                        uri.scheme == 'file') {
+                                      // Local file path
+                                      final path = uri.scheme.isEmpty
+                                          ? uri.toString()
+                                          : uri.path;
+                                      final file = File(path);
 
-                                    // If file doesn't exist, return empty container (skip the image)
-                                    if (!file.existsSync()) {
-                                      return SizedBox
-                                          .shrink(); // Invisible widget that takes no space
-                                    }
+                                      // If file doesn't exist, return empty container (skip the image)
+                                      if (!file.existsSync()) {
+                                        return SizedBox
+                                            .shrink(); // Invisible widget that takes no space
+                                      }
 
-                                    // File exists, show it safely with click handler
-                                    return GestureDetector(
-                                      onTap: () {
-                                        // Show image in gallery dialog for saving
-                                        showDialog(
-                                          context: context,
-                                          barrierColor: Colors.black,
-                                          builder: (_) => ImageGalleryDialog(
-                                            imagePaths: [path],
-                                            initialIndex: 0,
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 8.0),
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.1),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
+                                      // File exists, show it safely with click handler
+                                      return GestureDetector(
+                                        onTap: () {
+                                          // Show image in gallery dialog for saving
+                                          showDialog(
+                                            context: context,
+                                            barrierColor: Colors.black,
+                                            builder: (_) => ImageGalleryDialog(
+                                              imagePaths: [path],
+                                              initialIndex: 0,
                                             ),
-                                          ],
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          child: Stack(
-                                            children: [
-                                              Image.file(
-                                                file,
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (context, error,
-                                                    stackTrace) {
-                                                  // If there's an error loading the file, also skip it
-                                                  return SizedBox.shrink();
-                                                },
-                                              ),
-                                              // Hover effect for clickable indication
-                                              Positioned(
-                                                top: 8,
-                                                right: 8,
-                                                child: Container(
-                                                  padding:
-                                                      const EdgeInsets.all(4),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.black
-                                                        .withOpacity(0.6),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12),
-                                                  ),
-                                                  child: Icon(
-                                                    Icons.zoom_in,
-                                                    color: Colors.white,
-                                                    size: 16,
-                                                  ),
-                                                ),
+                                          );
+                                        },
+                                        child: Container(
+                                          margin: const EdgeInsets.symmetric(
+                                              vertical: 8.0),
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withOpacity(0.1),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
                                               ),
                                             ],
                                           ),
-                                        ),
-                                      ),
-                                    );
-                                  } else {
-                                    // Network image - also make it clickable
-                                    final imageUrl = uri.toString();
-                                    return GestureDetector(
-                                      onTap: () {
-                                        // Show network image in gallery dialog for saving
-                                        showDialog(
-                                          context: context,
-                                          barrierColor: Colors.black,
-                                          builder: (_) => ImageGalleryDialog(
-                                            imagePaths: [imageUrl],
-                                            initialIndex: 0,
-                                          ),
-                                        );
-                                      },
-                                      child: Container(
-                                        margin: const EdgeInsets.symmetric(
-                                            vertical: 8.0),
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color:
-                                                  Colors.black.withOpacity(0.1),
-                                              blurRadius: 4,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ],
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius:
-                                              BorderRadius.circular(8),
-                                          child: Stack(
-                                            children: [
-                                              Image.network(
-                                                imageUrl,
-                                                fit: BoxFit.cover,
-                                                loadingBuilder: (context, child,
-                                                    loadingProgress) {
-                                                  if (loadingProgress == null)
-                                                    return child;
-                                                  return Container(
-                                                    height: 200,
-                                                    child: Center(
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                        value: loadingProgress
-                                                                    .expectedTotalBytes !=
-                                                                null
-                                                            ? loadingProgress
-                                                                    .cumulativeBytesLoaded /
-                                                                loadingProgress
-                                                                    .expectedTotalBytes!
-                                                            : null,
-                                                      ),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            child: Stack(
+                                              children: [
+                                                Image.file(
+                                                  file,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (context, error,
+                                                      stackTrace) {
+                                                    // If there's an error loading the file, also skip it
+                                                    return SizedBox.shrink();
+                                                  },
+                                                ),
+                                                // Hover effect for clickable indication
+                                                Positioned(
+                                                  top: 8,
+                                                  right: 8,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(4),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black
+                                                          .withOpacity(0.6),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
                                                     ),
-                                                  );
-                                                },
-                                                errorBuilder: (context, error,
-                                                    stackTrace) {
-                                                  // For network images that fail to load, also skip them
-                                                  return SizedBox.shrink();
-                                                },
-                                              ),
-                                              // Hover effect for clickable indication
-                                              Positioned(
-                                                top: 8,
-                                                right: 8,
-                                                child: Container(
-                                                  padding:
-                                                      const EdgeInsets.all(4),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.black
-                                                        .withOpacity(0.6),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                            12),
-                                                  ),
-                                                  child: Icon(
-                                                    Icons.zoom_in,
-                                                    color: Colors.white,
-                                                    size: 16,
+                                                    child: Icon(
+                                                      Icons.zoom_in,
+                                                      color: Colors.white,
+                                                      size: 16,
+                                                    ),
                                                   ),
                                                 ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      );
+                                    } else {
+                                      // Network image - also make it clickable
+                                      final imageUrl = uri.toString();
+                                      return GestureDetector(
+                                        onTap: () {
+                                          // Show network image in gallery dialog for saving
+                                          showDialog(
+                                            context: context,
+                                            barrierColor: Colors.black,
+                                            builder: (_) => ImageGalleryDialog(
+                                              imagePaths: [imageUrl],
+                                              initialIndex: 0,
+                                            ),
+                                          );
+                                        },
+                                        child: Container(
+                                          margin: const EdgeInsets.symmetric(
+                                              vertical: 8.0),
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black
+                                                    .withOpacity(0.1),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
                                               ),
                                             ],
                                           ),
+                                          child: ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                            child: Stack(
+                                              children: [
+                                                Image.network(
+                                                  imageUrl,
+                                                  fit: BoxFit.cover,
+                                                  loadingBuilder: (context,
+                                                      child, loadingProgress) {
+                                                    if (loadingProgress == null)
+                                                      return child;
+                                                    return Container(
+                                                      height: 200,
+                                                      child: Center(
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                          value: loadingProgress
+                                                                      .expectedTotalBytes !=
+                                                                  null
+                                                              ? loadingProgress
+                                                                      .cumulativeBytesLoaded /
+                                                                  loadingProgress
+                                                                      .expectedTotalBytes!
+                                                              : null,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                  errorBuilder: (context, error,
+                                                      stackTrace) {
+                                                    // For network images that fail to load, also skip them
+                                                    return SizedBox.shrink();
+                                                  },
+                                                ),
+                                                // Hover effect for clickable indication
+                                                Positioned(
+                                                  top: 8,
+                                                  right: 8,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(4),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.black
+                                                          .withOpacity(0.6),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.zoom_in,
+                                                      color: Colors.white,
+                                                      size: 16,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  }
-                                },
-                                styleSheet: MarkdownStyleSheet(
-                                  p: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontSize: settings.getScaledFontSize(14),
-                                    height: 1.4,
-                                  ),
-                                  a: TextStyle(
-                                    color: Color(0xFF0078D4),
-                                    decoration: TextDecoration.underline,
-                                    fontSize: settings.getScaledFontSize(14),
-                                  ),
-                                  em: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.grey.shade300
-                                        : Colors.grey.shade700,
-                                    fontStyle: FontStyle.italic,
-                                    fontSize: settings.getScaledFontSize(14),
-                                  ),
-                                  h1: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontSize: settings.getScaledFontSize(18),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  h2: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontSize: settings.getScaledFontSize(16),
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  h3: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontSize: settings.getScaledFontSize(15),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  code: TextStyle(
-                                    backgroundColor:
-                                        Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.grey.shade700
-                                            : Colors.grey.shade100,
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontFamily: 'monospace',
-                                    fontSize: settings.getScaledFontSize(12),
-                                  ),
-                                  codeblockDecoration: BoxDecoration(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.grey.shade700
-                                        : Colors.grey.shade100,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
+                                      );
+                                    }
+                                  },
+                                  styleSheet: MarkdownStyleSheet(
+                                    p: TextStyle(
                                       color: Theme.of(context).brightness ==
                                               Brightness.dark
-                                          ? Colors.grey.shade600
-                                          : Colors.grey.shade300,
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontSize: settings.getScaledFontSize(14),
+                                      height: 1.4,
+                                    ),
+                                    a: TextStyle(
+                                      color: Color(0xFF0078D4),
+                                      decoration: TextDecoration.underline,
+                                      fontSize: settings.getScaledFontSize(14),
+                                    ),
+                                    em: TextStyle(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.grey.shade300
+                                          : Colors.grey.shade700,
+                                      fontStyle: FontStyle.italic,
+                                      fontSize: settings.getScaledFontSize(14),
+                                    ),
+                                    h1: TextStyle(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontSize: settings.getScaledFontSize(18),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    h2: TextStyle(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontSize: settings.getScaledFontSize(16),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    h3: TextStyle(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontSize: settings.getScaledFontSize(15),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    code: TextStyle(
+                                      backgroundColor:
+                                          Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.grey.shade700
+                                              : Colors.grey.shade100,
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontFamily: 'monospace',
+                                      fontSize: settings.getScaledFontSize(12),
+                                    ),
+                                    codeblockDecoration: BoxDecoration(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.grey.shade700
+                                          : Colors.grey.shade100,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey.shade600
+                                            : Colors.grey.shade300,
+                                      ),
+                                    ),
+                                    blockquote: TextStyle(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.grey.shade300
+                                          : Colors.grey.shade700,
+                                      fontStyle: FontStyle.italic,
+                                      fontSize: settings.getScaledFontSize(14),
+                                    ),
+                                    listBullet: TextStyle(
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontSize: settings.getScaledFontSize(14),
                                     ),
                                   ),
-                                  blockquote: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.grey.shade300
-                                        : Colors.grey.shade700,
-                                    fontStyle: FontStyle.italic,
-                                    fontSize: settings.getScaledFontSize(14),
-                                  ),
-                                  listBullet: TextStyle(
-                                    color: Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.white
-                                        : Colors.black87,
-                                    fontSize: settings.getScaledFontSize(14),
-                                  ),
-                                ),
-                                onTapLink: (text, href, title) async {
-                                  if (href != null) {
-                                    if (href.endsWith('.pdf') &&
-                                        File(href).existsSync()) {
-                                      await OpenFile.open(href);
-                                    } else {
-                                      final isImage = href.endsWith('.png') ||
-                                          href.endsWith('.jpg') ||
-                                          href.endsWith('.jpeg') ||
-                                          href.endsWith('.gif') ||
-                                          href.contains('oaidalleapiprodscus');
-                                      if (isImage) {
-                                        _showSingleImagePreview(context, href);
+                                  onTapLink: (text, href, title) async {
+                                    if (href != null) {
+                                      if (href.endsWith('.pdf') &&
+                                          File(href).existsSync()) {
+                                        await OpenFile.open(href);
                                       } else {
-                                        final uri = Uri.tryParse(href);
-                                        if (uri != null &&
-                                            await canLaunchUrl(uri)) {
-                                          await launchUrl(uri,
-                                              mode: LaunchMode
-                                                  .externalApplication);
+                                        final isImage = href.endsWith('.png') ||
+                                            href.endsWith('.jpg') ||
+                                            href.endsWith('.jpeg') ||
+                                            href.endsWith('.gif') ||
+                                            href.contains(
+                                                'oaidalleapiprodscus');
+                                        if (isImage) {
+                                          _showSingleImagePreview(
+                                              context, href);
+                                        } else {
+                                          final uri = Uri.tryParse(href);
+                                          if (uri != null &&
+                                              await canLaunchUrl(uri)) {
+                                            await launchUrl(uri,
+                                                mode: LaunchMode
+                                                    .externalApplication);
+                                          }
                                         }
                                       }
                                     }
-                                  }
-                                },
-                              ),
+                                  },
+                                ),
                               ),
 
                       // Location results are now handled separately in the chat screen
@@ -1318,7 +1343,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
   void _showMessageActions(BuildContext context, ChatMessage message) {
     if (_lastTapPosition == null) return;
-    final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+    final overlay =
+        Overlay.of(context).context.findRenderObject() as RenderBox?;
     if (overlay == null) return;
 
     final l10n = AppLocalizations.of(context)!;
@@ -1385,9 +1411,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
         : actions.length == 4
             ? 286.0
             : 342.0;
-    final panelWidth = idealPanelWidth < maxPanelWidth
-        ? idealPanelWidth
-        : maxPanelWidth;
+    final panelWidth =
+        idealPanelWidth < maxPanelWidth ? idealPanelWidth : maxPanelWidth;
     const panelHeight = 70.0;
     final top = (_lastTapPosition!.dy - panelHeight - 10)
         .clamp(16.0, overlay.size.height - panelHeight - 16.0)
@@ -1561,14 +1586,15 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     }
   }
 
-  Widget _buildSafeLocalImage(String path, double width, double height) {
+  Widget _buildSafeLocalImage(String path, double width, double? height) {
     final file = File(path);
+    final fallbackHeight = height ?? width;
 
     // Check if file exists before trying to load it
     if (!file.existsSync()) {
       return Container(
         width: width,
-        height: height,
+        height: fallbackHeight,
         decoration: BoxDecoration(
           color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(8),
@@ -1599,12 +1625,12 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
       file,
       width: width,
       height: height,
-      fit: BoxFit.cover,
+      fit: height == null ? BoxFit.contain : BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
         // print('Error loading local image: $error');
         return Container(
           width: width,
-          height: height,
+          height: fallbackHeight,
           decoration: BoxDecoration(
             color: Colors.grey.shade200,
             borderRadius: BorderRadius.circular(8),

@@ -7,6 +7,7 @@ export type ResponsesUsage = Readonly<{
   totalTokens: number | null;
   hasFinalOutput: boolean;
   webSearchCalls: number;
+  imageGenerationCalls: number;
   hasWebSearchCitations: boolean;
   terminalEvent?:
     | "response.completed"
@@ -125,9 +126,27 @@ export function extractResponsesUsage(
     totalTokens,
     hasFinalOutput: responseHasFinalOutput(response.output),
     webSearchCalls: completedWebSearchCallCount(response.output),
+    imageGenerationCalls: completedImageGenerationCallCount(response.output),
     hasWebSearchCitations: responseHasWebSearchCitations(response.output),
     ...(terminalEvent ? { terminalEvent } : {}),
   };
+}
+
+/**
+ * Treat a terminal response as delivered when it completed normally, or when
+ * an output-limited response already contains a finished image result. In the
+ * latter case only the optional trailing prose is incomplete.
+ */
+export function responsesUsageHasDeliveredResult(
+  usage: ResponsesUsage | null,
+  status: string | null | undefined,
+): boolean {
+  if (!usage || !status) return false;
+  const normalizedStatus = status.startsWith("response.")
+    ? status.slice("response.".length)
+    : status;
+  return normalizedStatus === "completed" ||
+    (normalizedStatus === "incomplete" && usage.imageGenerationCalls > 0);
 }
 
 function completedWebSearchCallCount(output: unknown): number {
@@ -136,6 +155,22 @@ function completedWebSearchCallCount(output: unknown): number {
     if (!item || typeof item !== "object") return count;
     const record = item as Record<string, unknown>;
     return record.type === "web_search_call" && record.status === "completed"
+      ? count + 1
+      : count;
+  }, 0);
+}
+
+function completedImageGenerationCallCount(output: unknown): number {
+  if (!Array.isArray(output)) return 0;
+  return output.reduce((count, item) => {
+    if (!item || typeof item !== "object") return count;
+    const record = item as Record<string, unknown>;
+    // The Responses API can include the complete base64 result in the
+    // terminal response while the image-call status still reads "generating".
+    // A delivered nonempty result is the authoritative billable signal.
+    return record.type === "image_generation_call" &&
+        typeof record.result === "string" &&
+        record.result.length > 0
       ? count + 1
       : count;
   }, 0);
@@ -163,6 +198,7 @@ function responseHasWebSearchCitations(output: unknown): boolean {
 
 function responseHasFinalOutput(output: unknown): boolean {
   if (!Array.isArray(output)) return false;
+  if (completedImageGenerationCallCount(output) > 0) return true;
   return output.some((item) => {
     if (!item || typeof item !== "object") return false;
     const record = item as Record<string, unknown>;

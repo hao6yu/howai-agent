@@ -1071,29 +1071,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
   }
 
-  // Streaming mode currently skips image generation tools, so detect likely
-  // image requests and route those through non-streaming instead.
-  bool _looksLikeImageGenerationRequest(String text) {
-    final lower = text.toLowerCase().trim();
-    if (lower.isEmpty) return false;
-
-    final imageNouns = RegExp(
-      r'\b(image|picture|photo|drawing|art|artwork|illustration|logo|icon|portrait|wallpaper|banner)\b',
-    );
-    final imageVerbs = RegExp(
-      r'\b(generate|create|make|draw|paint|design|illustrate|render)\b',
-    );
-
-    if (lower.startsWith('generate an image of') ||
-        lower.startsWith('create an image of') ||
-        lower.startsWith('draw ') ||
-        lower.startsWith('make me an image of')) {
-      return true;
-    }
-
-    return imageNouns.hasMatch(lower) && imageVerbs.hasMatch(lower);
-  }
-
   Future<void> _sendMessage(String text,
       [List<XFile>? images, List<PlatformFile>? files]) async {
     if (text.trim().isEmpty &&
@@ -1446,18 +1423,13 @@ class _AiChatScreenState extends State<AiChatScreen>
               .toList(growable: false)
           : <Map<String, dynamic>>[];
 
-      // Check if streaming is enabled
-      // Image-generation style requests stay non-streaming because the
-      // streaming path does not receive the generated image result reliably.
-      final isLikelyImageGenerationRequest =
-          _looksLikeImageGenerationRequest(finalMessage);
-      final useStreaming =
-          settings.useStreaming && !isLikelyImageGenerationRequest;
+      // Hosted tools are available in both response paths. OpenAI infers
+      // whether image generation is needed from the conversation.
+      final useStreaming = settings.useStreaming;
       print(
         '[ChatScreen] Streaming decision => useStreaming=$useStreaming '
         '(settings.useStreaming=${settings.useStreaming}, '
-        'reasoningEffortOverride=$reasoningEffortOverride, '
-        'isLikelyImageGenerationRequest=$isLikelyImageGenerationRequest)',
+        'reasoningEffortOverride=$reasoningEffortOverride)',
       );
 
       Map<String, dynamic>? response;

@@ -6,7 +6,7 @@ import {
   applyWebSearchOutputGuidance,
 } from "./openai-response-profile.ts";
 
-test("quick nano chat uses minimal reasoning and strips automatic search", () => {
+test("quick image-capable nano chat uses supported reasoning and strips search", () => {
   const payload: Record<string, unknown> = {
     metadata: {
       howai_intent: "primary_chat",
@@ -27,13 +27,78 @@ test("quick nano chat uses minimal reasoning and strips automatic search", () =>
   assert.deepEqual(result, {
     profile: "quick",
     webSearchMode: "disabled",
-    reasoningEffort: "minimal",
-    maxOutputTokens: 400,
+    reasoningEffort: "low",
+    maxOutputTokens: 1_200,
   });
-  assert.deepEqual(payload.reasoning, { effort: "minimal" });
+  assert.deepEqual(payload.reasoning, { effort: "low" });
   assert.deepEqual(payload.text, { verbosity: "low" });
   assert.deepEqual(payload.tools, [{ type: "image_generation" }]);
   assert.equal("tool_choice" in payload, false);
+});
+
+test("image-capable primary chat upgrades a legacy client token cap", () => {
+  const payload: Record<string, unknown> = {
+    metadata: {
+      howai_intent: "primary_chat",
+      howai_response_profile: "quick",
+    },
+    max_output_tokens: 400,
+    tools: [{ type: "image_generation" }],
+  };
+
+  const result = applyResponseProfile(payload, "gpt-5-nano-2025-08-07");
+
+  assert.equal(result.profile, "quick");
+  assert.equal(result.maxOutputTokens, 1_200);
+  assert.equal(payload.max_output_tokens, 1_200);
+  assert.deepEqual(payload.reasoning, { effort: "low" });
+  assert.deepEqual(payload.text, { verbosity: "low" });
+});
+
+test("quick nano chat without image generation can use minimal reasoning", () => {
+  const payload: Record<string, unknown> = {
+    metadata: {
+      howai_intent: "primary_chat",
+      howai_response_profile: "quick",
+    },
+    max_output_tokens: 800,
+  };
+
+  const result = applyResponseProfile(payload, "gpt-5-nano-2025-08-07");
+
+  assert.equal(result.reasoningEffort, "minimal");
+  assert.deepEqual(payload.reasoning, { effort: "minimal" });
+});
+
+test("primary chat upgrades the legacy 400-token client cap", () => {
+  const payload: Record<string, unknown> = {
+    metadata: {
+      howai_intent: "primary_chat",
+      howai_response_profile: "standard",
+    },
+    max_output_tokens: 400,
+  };
+
+  const result = applyResponseProfile(payload, "gpt-5-nano-2025-08-07");
+
+  assert.equal(result.profile, "standard");
+  assert.equal(result.maxOutputTokens, 800);
+  assert.equal(payload.max_output_tokens, 800);
+});
+
+test("non-chat requests can retain a stricter token cap", () => {
+  const payload: Record<string, unknown> = {
+    metadata: {
+      howai_intent: "lightweight",
+      howai_response_profile: "quick",
+    },
+    max_output_tokens: 10,
+  };
+
+  const result = applyResponseProfile(payload, "gpt-5-nano-2025-08-07");
+
+  assert.equal(result.maxOutputTokens, 10);
+  assert.equal(payload.max_output_tokens, 10);
 });
 
 test("standard chat exposes current web search with automatic tool choice", () => {

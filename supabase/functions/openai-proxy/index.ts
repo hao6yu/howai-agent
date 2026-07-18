@@ -21,6 +21,7 @@ import {
   extractResponsesUsage,
   ResponsesSseUsageCollector,
   type ResponsesUsage,
+  responsesUsageHasDeliveredResult,
 } from "../_shared/openai-stream.ts";
 import {
   applyResponseProfile,
@@ -48,6 +49,17 @@ import {
   webSearchAccountedCostMicrousd,
   webSearchToolCostMicrousd,
 } from "../_shared/openai-web-search.ts";
+import {
+  applyTrialImageAvailabilityGuidance,
+  constrainTrialImageGenerationTools,
+  DEFAULT_TRIAL_IMAGE_RESERVATION_MICROUSD,
+  hasImageGenerationTool,
+  imageGenerationToolCostMicrousd,
+  removeImageGenerationTools,
+  requestCostExcludingTrialImageMicrousd,
+  shouldOfferTrialImageGeneration,
+  trialImageWeeklyQuota,
+} from "../_shared/openai-image-generation.ts";
 import {
   claimHowAiPreferredNamePrompt,
   loadHowAiPersonalContext,
@@ -200,6 +212,30 @@ const FREE_WEB_SEARCH_GLOBAL_MONTHLY_BUDGET_MICROUSD = envNumber(
 );
 const POLICY_IMAGE_GENERATION_ENABLED =
   Deno.env.get("OPENAI_PROXY_POLICY_IMAGE_GENERATION_ENABLED") === "true";
+const FREE_IMAGE_GENERATION_ENABLED =
+  Deno.env.get("OPENAI_PROXY_FREE_IMAGE_GENERATION_ENABLED") === "true";
+const ANONYMOUS_IMAGE_GENERATION_ENABLED =
+  Deno.env.get("OPENAI_PROXY_ANON_IMAGE_GENERATION_ENABLED") === "true";
+const FREE_IMAGE_GENERATIONS_PER_WEEK = envNumber(
+  "OPENAI_PROXY_FREE_IMAGE_GENERATIONS_PER_WEEK",
+  10,
+);
+const ANONYMOUS_IMAGE_GENERATIONS_PER_WEEK = envNumber(
+  "OPENAI_PROXY_ANON_IMAGE_GENERATIONS_PER_WEEK",
+  5,
+);
+const TRIAL_IMAGE_RESERVATION_MICROUSD = envNumber(
+  "OPENAI_PROXY_TRIAL_IMAGE_RESERVATION_MICROUSD",
+  DEFAULT_TRIAL_IMAGE_RESERVATION_MICROUSD,
+);
+const TRIAL_IMAGE_GLOBAL_DAILY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_TRIAL_IMAGE_GLOBAL_DAILY_BUDGET_MICROUSD",
+  10_000_000,
+);
+const TRIAL_IMAGE_GLOBAL_MONTHLY_BUDGET_MICROUSD = envNumber(
+  "OPENAI_PROXY_TRIAL_IMAGE_GLOBAL_MONTHLY_BUDGET_MICROUSD",
+  150_000_000,
+);
 const ALLOWED_MODELS = legacyModelAllowlist(
   CHAT_MODEL,
   CHAT_MINI_MODEL,
@@ -231,6 +267,14 @@ type FreeWebSearchReservation = Readonly<{
   resetAt: string | null;
 }>;
 
+type TrialImageGenerationReservation = Readonly<{
+  reserved: boolean;
+  reservationMicrousd: number;
+  quotaDenied: boolean;
+  reason: string | null;
+  resetAt: string | null;
+}>;
+
 type PolicyContext = {
   requestId: string;
   ledgerId: string;
@@ -240,6 +284,7 @@ type PolicyContext = {
   reasoningEffort: string;
   reservationMicrousd: number;
   freeWebSearch: FreeWebSearchReservation;
+  trialImageGeneration: TrialImageGenerationReservation;
 };
 
 type ReservationLimits = Readonly<{
@@ -263,6 +308,8 @@ type SanitizedResponse = {
   reasoningEffort: string;
   webSearchOffered: boolean;
   webSearchQuotaDenied: boolean;
+  imageGenerationOffered: boolean;
+  imageGenerationQuotaDenied: boolean;
   policy: PolicyContext | null;
   rollout: ModelPolicyRolloutDecision;
 };
@@ -305,6 +352,9 @@ type RequestLog = {
   web_search_calls?: number | null;
   web_search_quota_denied?: boolean;
   web_search_citations_present?: boolean | null;
+  image_generation_offered?: boolean;
+  image_generation_calls?: number | null;
+  image_generation_quota_denied?: boolean;
   error?: string | null;
 };
 
@@ -519,6 +569,19 @@ function emptyFreeWebSearchReservation(
   };
 }
 
+function emptyTrialImageGenerationReservation(
+  overrides: Partial<TrialImageGenerationReservation> = {},
+): TrialImageGenerationReservation {
+  return {
+    reserved: false,
+    reservationMicrousd: 0,
+    quotaDenied: false,
+    reason: null,
+    resetAt: null,
+    ...overrides,
+  };
+}
+
 async function sanitizeResponsesBody(
   bodyBytes: ArrayBuffer,
   user: AuthenticatedUser,
@@ -656,11 +719,22 @@ async function sanitizeResponsesBody(
           (tool as Record<string, unknown>).type === "function"
         )
         : [];
-      if (safeFunctionTools.length > 0) {
-        json.tools = safeFunctionTools;
-      } else {
-        delete json.tools;
-      }
+      const trialImageTools = shouldOfferTrialImageGeneration({
+          masterEnabled: POLICY_IMAGE_GENERATION_ENABLED,
+          anonymousEnabled: ANONYMOUS_IMAGE_GENERATION_ENABLED,
+          freeEnabled: FREE_IMAGE_GENERATION_ENABLED,
+          cohort: entitlement.cohort,
+          intent,
+        }) && Array.isArray(safeTools)
+        ? constrainTrialImageGenerationTools(
+          safeTools.filter((tool) =>
+            (tool as Record<string, unknown>).type === "image_generation"
+          ),
+        ) as unknown[]
+        : [];
+      const nonPaidTools = [...safeFunctionTools, ...trialImageTools];
+      if (nonPaidTools.length > 0) json.tools = nonPaidTools;
+      else delete json.tools;
       delete json.tool_choice;
       delete json.max_tool_calls;
       if (
@@ -686,6 +760,7 @@ async function sanitizeResponsesBody(
       reasoningEffort: decision.reasoningEffort,
       reservationMicrousd: reservation.reservationMicrousd,
       freeWebSearch: emptyFreeWebSearchReservation(),
+      trialImageGeneration: emptyTrialImageGenerationReservation(),
     };
   } else {
     const isServerSideAlias = requestedModel
@@ -727,6 +802,43 @@ async function sanitizeResponsesBody(
   });
   if (policyContext) {
     if (
+      policyContext.cohort !== "paid" &&
+      hasImageGenerationTool(json.tools)
+    ) {
+      json.max_tool_calls = 1;
+      const imageReservation = await reserveTrialImageGeneration(
+        user.id,
+        policyContext.requestId,
+        policyContext.cohort,
+      );
+      if (imageReservation.accepted) {
+        policyContext = {
+          ...policyContext,
+          trialImageGeneration: {
+            reserved: true,
+            reservationMicrousd: TRIAL_IMAGE_RESERVATION_MICROUSD,
+            quotaDenied: false,
+            reason: null,
+            resetAt: null,
+          },
+        };
+      } else {
+        removeImageGenerationTools(json);
+        appliedProfile = applyResponseProfile(json, resolvedModel, {
+          allowReasoningOverride: false,
+          requiredFunctionName,
+        });
+        policyContext = {
+          ...policyContext,
+          trialImageGeneration: emptyTrialImageGenerationReservation({
+            quotaDenied: true,
+            reason: imageReservation.reason,
+            resetAt: imageReservation.resetAt,
+          }),
+        };
+      }
+    }
+    if (
       shouldReserveFreeWebSearch({
         cohort: policyContext.cohort,
         modelRole: policyContext.modelRole,
@@ -765,6 +877,12 @@ async function sanitizeResponsesBody(
         };
       }
     }
+    if (
+      policyContext.trialImageGeneration.reserved &&
+      hasImageGenerationTool(json.tools)
+    ) {
+      json.max_tool_calls = 1;
+    }
     policyContext = {
       ...policyContext,
       reasoningEffort: appliedProfile.reasoningEffort,
@@ -794,6 +912,11 @@ async function sanitizeResponsesBody(
     );
   }
   applyHowAiPromptPolicy(json, personalContext);
+  applyTrialImageAvailabilityGuidance(
+    json,
+    policyContext?.cohort ?? null,
+    policyContext?.trialImageGeneration.quotaDenied ?? false,
+  );
   applyWebSearchOutputGuidance(json, appliedProfile.webSearchMode);
   json.model = resolvedModel;
   delete json.user;
@@ -816,6 +939,9 @@ async function sanitizeResponsesBody(
     reasoningEffort: appliedProfile.reasoningEffort,
     webSearchOffered: appliedProfile.webSearchMode !== "disabled",
     webSearchQuotaDenied: policyContext?.freeWebSearch.quotaDenied ?? false,
+    imageGenerationOffered: hasImageGenerationTool(json.tools),
+    imageGenerationQuotaDenied:
+      policyContext?.trialImageGeneration.quotaDenied ?? false,
     policy: policyContext,
     rollout,
   };
@@ -1182,6 +1308,59 @@ async function reserveFreeWebSearch(
   };
 }
 
+async function reserveTrialImageGeneration(
+  userId: string,
+  requestId: string,
+  cohort: UserCohort,
+): Promise<{
+  accepted: boolean;
+  reason: string | null;
+  resetAt: string | null;
+}> {
+  if (!supabaseAdmin || cohort === "paid") {
+    return {
+      accepted: false,
+      reason: "reservation_unavailable",
+      resetAt: null,
+    };
+  }
+
+  const { userLimit, windowSeconds } = trialImageWeeklyQuota(
+    cohort,
+    ANONYMOUS_IMAGE_GENERATIONS_PER_WEEK,
+    FREE_IMAGE_GENERATIONS_PER_WEEK,
+  );
+  const { data, error } = await supabaseAdmin.rpc(
+    "reserve_trial_image_generation",
+    {
+      p_user_id: userId,
+      p_request_id: requestId,
+      p_cohort: cohort,
+      p_reservation_microusd: TRIAL_IMAGE_RESERVATION_MICROUSD,
+      p_user_window_limit: userLimit,
+      p_user_window_seconds: windowSeconds,
+      p_global_daily_budget_microusd: TRIAL_IMAGE_GLOBAL_DAILY_BUDGET_MICROUSD,
+      p_global_monthly_budget_microusd:
+        TRIAL_IMAGE_GLOBAL_MONTHLY_BUDGET_MICROUSD,
+    },
+  );
+  if (error) {
+    console.error("Trial image-generation reservation failed", error);
+    return {
+      accepted: false,
+      reason: "reservation_unavailable",
+      resetAt: null,
+    };
+  }
+
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    accepted: row?.accepted === true,
+    reason: typeof row?.reason === "string" ? row.reason : null,
+    resetAt: typeof row?.reset_at === "string" ? row.reset_at : null,
+  };
+}
+
 async function reconcilePolicyUsage(
   policy: PolicyContext | null,
   succeeded: boolean,
@@ -1192,6 +1371,17 @@ async function reconcilePolicyUsage(
 ): Promise<void> {
   if (!policy || !supabaseAdmin) return;
   const webSearchCalls = Math.max(0, usage?.webSearchCalls ?? 0);
+  const imageGenerationCalls = Math.max(
+    0,
+    usage?.imageGenerationCalls ?? 0,
+  );
+  const aiUsageCostMicrousd = policy.trialImageGeneration.reserved
+    ? requestCostExcludingTrialImageMicrousd(
+      actualCostMicrousd,
+      imageGenerationCalls,
+      policy.trialImageGeneration.reservationMicrousd,
+    )
+    : actualCostMicrousd;
   const operations = [
     supabaseAdmin.rpc("reconcile_ai_usage_v2", {
       p_request_id: policy.requestId,
@@ -1200,8 +1390,11 @@ async function reconcilePolicyUsage(
       p_input_tokens: usage?.inputTokens ?? null,
       p_cached_input_tokens: usage?.cachedInputTokens ?? null,
       p_output_tokens: usage?.outputTokens ?? null,
-      p_tool_calls: { web_search: webSearchCalls },
-      p_actual_cost_microusd: actualCostMicrousd,
+      p_tool_calls: {
+        web_search: webSearchCalls,
+        image_generation: imageGenerationCalls,
+      },
+      p_actual_cost_microusd: aiUsageCostMicrousd,
       p_failure_code: failureCode,
     }),
   ];
@@ -1216,6 +1409,17 @@ async function reconcilePolicyUsage(
         webSearchCalls,
         policy.freeWebSearch.reservationMicrousd,
         actualCostMicrousd,
+      ),
+    }));
+  }
+  if (policy.trialImageGeneration.reserved) {
+    operations.push(supabaseAdmin.rpc("reconcile_trial_image_generation", {
+      p_request_id: policy.requestId,
+      p_succeeded: succeeded,
+      p_image_generation_calls: Math.min(1, imageGenerationCalls),
+      p_accounted_cost_microusd: imageGenerationToolCostMicrousd(
+        Math.min(1, imageGenerationCalls),
+        policy.trialImageGeneration.reservationMicrousd,
       ),
     }));
   }
@@ -1291,6 +1495,7 @@ function estimateActualCostMicrousd(
   model: string | null,
   usage: ResponsesUsage | null,
   fallback: number | null,
+  imageGenerationCostPerCallMicrousd = 0,
 ): number | null {
   if (!model || !usage) return fallback;
   if (usage.inputTokens == null || usage.outputTokens == null) return fallback;
@@ -1306,9 +1511,12 @@ function estimateActualCostMicrousd(
       : 0,
     outputTokens: usage.outputTokens,
   });
-  return estimated == null
-    ? fallback
-    : estimated + webSearchToolCostMicrousd(usage.webSearchCalls);
+  return estimated == null ? fallback : estimated +
+    webSearchToolCostMicrousd(usage.webSearchCalls) +
+    imageGenerationToolCostMicrousd(
+      usage.imageGenerationCalls,
+      imageGenerationCostPerCallMicrousd,
+    );
 }
 
 function rolloutTelemetry(
@@ -1449,19 +1657,26 @@ Deno.serve(async (req: Request) => {
         usage_ledger_id: sanitized?.policy?.ledgerId ?? null,
         web_search_offered: sanitized?.webSearchOffered ?? false,
         web_search_quota_denied: sanitized?.webSearchQuotaDenied ?? false,
+        image_generation_offered: sanitized?.imageGenerationOffered ?? false,
+        image_generation_quota_denied: sanitized?.imageGenerationQuotaDenied ??
+          false,
       });
 
       const monitoredBody = monitorStreamingBody(
         upstream.body,
         requestStartedAt,
         async (usage, firstTokenMs) => {
-          const streamSucceeded = usage?.terminalEvent === "response.completed";
+          const streamSucceeded = responsesUsageHasDeliveredResult(
+            usage,
+            usage?.terminalEvent ?? null,
+          );
           const countsAsAnswer = streamSucceeded &&
             usage?.hasFinalOutput === true;
           const actualCost = estimateActualCostMicrousd(
             usage?.model ?? model,
             usage,
             sanitized?.policy?.reservationMicrousd ?? null,
+            sanitized?.policy?.trialImageGeneration.reservationMicrousd ?? 0,
           );
           const telemetryError = !usage
             ? "stream_completed_without_terminal_usage"
@@ -1477,6 +1692,7 @@ Deno.serve(async (req: Request) => {
               output_tokens: usage?.outputTokens ?? null,
               total_tokens: usage?.totalTokens ?? null,
               web_search_calls: usage?.webSearchCalls ?? null,
+              image_generation_calls: usage?.imageGenerationCalls ?? null,
               web_search_citations_present: usage?.hasWebSearchCitations ??
                 null,
               latency_ms: Math.round(performance.now() - requestStartedAt),
@@ -1540,7 +1756,8 @@ Deno.serve(async (req: Request) => {
     }
 
     const responseSucceeded = path === "/v1/responses"
-      ? upstream.ok && responseStatus === "completed"
+      ? upstream.ok &&
+        responsesUsageHasDeliveredResult(usage, responseStatus)
       : upstream.ok;
     const countsAsAnswer = path === "/v1/responses" && responseSucceeded &&
       usage?.hasFinalOutput === true;
@@ -1554,6 +1771,7 @@ Deno.serve(async (req: Request) => {
         usage?.model ?? model,
         usage,
         upstream.ok ? sanitized?.policy?.reservationMicrousd ?? null : null,
+        sanitized?.policy?.trialImageGeneration.reservationMicrousd ?? 0,
       )
       : null;
 
@@ -1583,6 +1801,10 @@ Deno.serve(async (req: Request) => {
         web_search_calls: usage?.webSearchCalls ?? null,
         web_search_quota_denied: sanitized?.webSearchQuotaDenied ?? false,
         web_search_citations_present: usage?.hasWebSearchCitations ?? null,
+        image_generation_offered: sanitized?.imageGenerationOffered ?? false,
+        image_generation_calls: usage?.imageGenerationCalls ?? null,
+        image_generation_quota_denied: sanitized?.imageGenerationQuotaDenied ??
+          false,
         error_category: upstreamError.present || !responseSucceeded
           ? "upstream_error"
           : null,
@@ -1624,6 +1846,9 @@ Deno.serve(async (req: Request) => {
         usage_ledger_id: sanitized?.policy?.ledgerId ?? null,
         web_search_offered: sanitized?.webSearchOffered ?? false,
         web_search_quota_denied: sanitized?.webSearchQuotaDenied ?? false,
+        image_generation_offered: sanitized?.imageGenerationOffered ?? false,
+        image_generation_quota_denied: sanitized?.imageGenerationQuotaDenied ??
+          false,
         error_category: proxyErrorCategory(error),
         error: proxyErrorCategory(error),
       }),

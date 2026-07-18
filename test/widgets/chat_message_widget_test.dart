@@ -18,11 +18,13 @@ void main() {
     WidgetTester tester, {
     required bool isUserMessage,
     bool includeMemoryActions = false,
+    List<String>? imagePaths,
   }) async {
     final message = ChatMessage(
       message: isUserMessage ? 'Hello HowAI' : 'Hello! How can I help?',
       isUserMessage: isUserMessage,
       timestamp: DateTime(2026, 7, 15).toIso8601String(),
+      imagePaths: imagePaths,
     );
 
     await tester.pumpWidget(
@@ -51,8 +53,7 @@ void main() {
               isPlayingAudio: false,
               onPlayAudio: (_) {},
               onSpeakWithHighlight: (_) {},
-              onQuickSaveToKnowledgeHub:
-                  includeMemoryActions ? (_) {} : null,
+              onQuickSaveToKnowledgeHub: includeMemoryActions ? (_) {} : null,
               onSaveToKnowledgeHub: includeMemoryActions ? (_) {} : null,
             ),
           ),
@@ -103,5 +104,29 @@ void main() {
     expect(find.byIcon(Icons.bookmark_add_outlined), findsOneWidget);
     expect(find.byIcon(Icons.edit_note_outlined), findsOneWidget);
     expect(find.byIcon(Icons.delete_outline), findsOneWidget);
+  });
+
+  testWidgets('generated image preview uses 80 percent of the phone width',
+      (tester) async {
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await pumpMessage(
+      tester,
+      isUserMessage: false,
+      imagePaths: const [
+        'data:image/png;base64,'
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk'
+            'YAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+      ],
+    );
+
+    expect(find.byType(Image), findsOneWidget);
+    final preview = tester.widget<Image>(find.byType(Image));
+    expect(preview.width, 320);
+    expect(preview.height, isNull);
+    expect(preview.fit, BoxFit.contain);
   });
 }

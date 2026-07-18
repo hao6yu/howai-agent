@@ -101,7 +101,14 @@ OPENAI_PROXY_GLOBAL_DAILY_BUDGET_MICROUSD=10000000
 OPENAI_PROXY_GLOBAL_MONTHLY_BUDGET_MICROUSD=150000000
 OPENAI_PROXY_ANON_ANSWER_LIMIT=5
 OPENAI_PROXY_POLICY_WEB_SEARCH_ENABLED=false
-OPENAI_PROXY_POLICY_IMAGE_GENERATION_ENABLED=false
+OPENAI_PROXY_POLICY_IMAGE_GENERATION_ENABLED=true
+OPENAI_PROXY_FREE_IMAGE_GENERATION_ENABLED=true
+OPENAI_PROXY_ANON_IMAGE_GENERATION_ENABLED=true
+OPENAI_PROXY_FREE_IMAGE_GENERATIONS_PER_WEEK=10
+OPENAI_PROXY_ANON_IMAGE_GENERATIONS_PER_WEEK=5
+OPENAI_PROXY_TRIAL_IMAGE_RESERVATION_MICROUSD=10000
+OPENAI_PROXY_TRIAL_IMAGE_GLOBAL_DAILY_BUDGET_MICROUSD=10000000
+OPENAI_PROXY_TRIAL_IMAGE_GLOBAL_MONTHLY_BUDGET_MICROUSD=150000000
 OPENAI_PROXY_FREE_WEB_SEARCH_ENABLED=false
 OPENAI_PROXY_FREE_WEB_SEARCH_ANSWERS_PER_DAY=2
 OPENAI_PROXY_FREE_WEB_SEARCH_ANSWERS_PER_MONTH=20
@@ -111,7 +118,12 @@ OPENAI_PROXY_FREE_WEB_SEARCH_GLOBAL_MONTHLY_BUDGET_MICROUSD=10000000
 ```
 
 Paid web search and image generation remain controlled by their existing
-separate environment gates. Limited Free automatic search is triple-gated: the
+separate environment gates. Anonymous and signed-in Free image generation is
+also gated and server-quantized to one low-quality 1024x1024 result per request:
+five per rolling week for anonymous users and ten per rolling week for Free
+users. Trial image spend is reconciled in its dedicated ledger and excluded
+from the general text-chat ledger so one image cannot lock an anonymous user
+out of ordinary chat. Limited Free automatic search is triple-gated: the
 model policy must select an eligible signed-in Free Luna request,
 `OPENAI_PROXY_FREE_WEB_SEARCH_ENABLED` must be `true`, and the disabled-by-default
 `free_web_search` database flag must be in `internal` or `on` mode. The proxy

@@ -3,6 +3,31 @@ import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
 
+/// Returns the clockwise rotation needed to make a streamed camera frame
+/// upright for the current device orientation.
+///
+/// CameraX delivers Android analysis frames in sensor orientation, so those
+/// frames need the sensor/device correction. AVFoundation physically rotates
+/// iOS video-data frames before exposing them to Flutter, so applying the same
+/// correction there would rotate the image twice.
+int calculateVisionFrameRotation({
+  required bool requiresSoftwareRotation,
+  required int sensorOrientationDegrees,
+  required int deviceOrientationDegrees,
+  required bool isFrontFacing,
+}) {
+  if (!requiresSoftwareRotation) {
+    return 0;
+  }
+
+  final sensorDegrees = sensorOrientationDegrees % 360;
+  final deviceDegrees = deviceOrientationDegrees % 360;
+  if (isFrontFacing) {
+    return (sensorDegrees + deviceDegrees) % 360;
+  }
+  return (sensorDegrees - deviceDegrees + 360) % 360;
+}
+
 /// Converts one sampled camera-stream frame into a bounded JPEG suitable for
 /// OpenAI Realtime image input. This runs in a background isolate on devices.
 Uint8List encodeVisionStreamFrame(Map<String, dynamic> frame) {

@@ -1221,11 +1221,15 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       DeviceOrientation.portraitDown => 180,
       DeviceOrientation.landscapeRight => 270,
     };
-    final sensorDegrees = controller.description.sensorOrientation;
-    if (controller.description.lensDirection == CameraLensDirection.front) {
-      return (sensorDegrees + deviceDegrees) % 360;
-    }
-    return (sensorDegrees - deviceDegrees + 360) % 360;
+    return calculateVisionFrameRotation(
+      // CameraX exposes sensor-oriented YUV/NV21 planes. AVFoundation has
+      // already physically rotated the iOS BGRA pixel buffer.
+      requiresSoftwareRotation: Platform.isAndroid,
+      sensorOrientationDegrees: controller.description.sensorOrientation,
+      deviceOrientationDegrees: deviceDegrees,
+      isFrontFacing:
+          controller.description.lensDirection == CameraLensDirection.front,
+    );
   }
 
   Future<Map<String, dynamic>> _nextVisionStreamFrame(

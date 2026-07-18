@@ -1,9 +1,49 @@
 class AppConfig {
-  static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
-  static const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
+  // Supabase project URLs and publishable keys are public mobile-client
+  // configuration. Keep provider credentials and service-role keys server-side.
+  //
+  // Build-time values still take precedence, but these bundled defaults keep
+  // normal Xcode/Android Studio launches from silently creating relative
+  // `/auth/v1/...` URLs when no dart-defines were supplied.
+  static const _bundledSupabaseUrl = 'https://yjxoreszkpdealtzyvyu.supabase.co';
+  static const _bundledSupabasePublishableKey =
+      'sb_publishable_NvluG8lAmJXglB0qQRwGRg_bPzYdvDP';
 
-  static const openAIProxyBaseUrl =
+  static const _configuredSupabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  static const _configuredSupabasePublishableKey =
+      String.fromEnvironment('SUPABASE_PUBLISHABLE_KEY');
+  static const _configuredSupabaseAnonKey =
+      String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  static bool _isPlaceholder(String value) =>
+      value.isEmpty || value.startsWith('your_');
+
+  static String get supabaseUrl {
+    final configuredUrl = _configuredSupabaseUrl.trim();
+    return _isPlaceholder(configuredUrl) ? _bundledSupabaseUrl : configuredUrl;
+  }
+
+  static String get supabasePublishableKey {
+    final publishableKey = _configuredSupabasePublishableKey.trim();
+    if (!_isPlaceholder(publishableKey)) {
+      return publishableKey;
+    }
+
+    final legacyAnonKey = _configuredSupabaseAnonKey.trim();
+    if (!_isPlaceholder(legacyAnonKey)) {
+      return legacyAnonKey;
+    }
+
+    return _bundledSupabasePublishableKey;
+  }
+
+  static const _configuredOpenAIProxyBaseUrl =
       String.fromEnvironment('OPENAI_PROXY_BASE_URL');
+
+  static String get openAIProxyBaseUrl =>
+      _configuredOpenAIProxyBaseUrl.trim().isNotEmpty
+          ? _configuredOpenAIProxyBaseUrl.trim()
+          : '$supabaseUrl/functions/v1/openai-proxy';
 
   static const _openAIChatModel = String.fromEnvironment('OPENAI_CHAT_MODEL');
   static const _openAIChatMiniModel =
@@ -16,8 +56,12 @@ class AppConfig {
       : 'howai-chat-mini';
 
   static const elevenLabsApiKey = String.fromEnvironment('ELEVENLABS_API_KEY');
-  static const elevenLabsProxyBaseUrl =
+  static const _configuredElevenLabsProxyBaseUrl =
       String.fromEnvironment('ELEVENLABS_PROXY_BASE_URL');
+  static String get elevenLabsProxyBaseUrl =>
+      _configuredElevenLabsProxyBaseUrl.trim().isNotEmpty
+          ? _configuredElevenLabsProxyBaseUrl.trim()
+          : '$supabaseUrl/functions/v1/elevenlabs-proxy';
   static const elevenLabsXiApiKey = String.fromEnvironment('XI_API_KEY');
   static const elevenLabsAgentId =
       String.fromEnvironment('ELEVENLABS_AGENT_ID');
@@ -40,4 +84,23 @@ class AppConfig {
   static const googleMapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
   static const googlePlacesApiKey =
       String.fromEnvironment('GOOGLE_PLACES_API_KEY');
+
+  static void validatePublicBackendConfig() {
+    final uri = Uri.tryParse(supabaseUrl);
+    final hasValidUrl = uri != null &&
+        uri.scheme == 'https' &&
+        uri.hasAuthority &&
+        uri.host.isNotEmpty;
+    if (!hasValidUrl) {
+      throw StateError(
+        'Invalid Supabase URL. Set SUPABASE_URL to a complete HTTPS URL.',
+      );
+    }
+
+    if (supabasePublishableKey.isEmpty) {
+      throw StateError(
+        'Missing Supabase publishable key. Set SUPABASE_PUBLISHABLE_KEY.',
+      );
+    }
+  }
 }

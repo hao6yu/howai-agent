@@ -38,7 +38,7 @@ class VoiceWebSearchService {
     http.Client? httpClient,
   })  : _proxyBaseUrl = (proxyBaseUrl ?? AppConfig.openAIProxyBaseUrl).trim(),
         _supabaseAnonKey =
-            (supabaseAnonKey ?? AppConfig.supabaseAnonKey).trim(),
+            (supabaseAnonKey ?? AppConfig.supabasePublishableKey).trim(),
         _accessTokenProvider = accessTokenProvider ??
             (() => _currentAccessToken(
                   supabaseClient ?? Supabase.instance.client,

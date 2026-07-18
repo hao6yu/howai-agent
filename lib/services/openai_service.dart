@@ -673,7 +673,7 @@ class OpenAIService {
   // Initialize with public mobile proxy configuration only.
   static Future<void> initialize() async {
     _proxyBaseUrl = AppConfig.openAIProxyBaseUrl.trim();
-    _supabaseAnonKey = AppConfig.supabaseAnonKey.trim();
+    _supabaseAnonKey = AppConfig.supabasePublishableKey.trim();
 
     if (_proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty) {
       final normalized = _proxyBaseUrl!.replaceFirst(RegExp(r'/+$'), '');

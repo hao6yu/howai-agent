@@ -30,7 +30,7 @@ class ElevenLabsService {
   static Future<void> initialize({String? apiKey, String? voiceId}) async {
     _apiKey = apiKey ?? AppConfig.elevenLabsApiKey;
     _proxyBaseUrl = AppConfig.elevenLabsProxyBaseUrl.trim();
-    _supabaseAnonKey = AppConfig.supabaseAnonKey.trim();
+    _supabaseAnonKey = AppConfig.supabasePublishableKey.trim();
 
     if (_proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty) {
       final normalized = _proxyBaseUrl!.replaceFirst(RegExp(r'/+$'), '');

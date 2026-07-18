@@ -44,7 +44,7 @@ class ElevenLabsAgentService {
   })  : _proxyBaseUrl = AppConfig.elevenLabsProxyBaseUrl.trim().isEmpty
             ? null
             : AppConfig.elevenLabsProxyBaseUrl.trim(),
-        _supabaseAnonKey = AppConfig.supabaseAnonKey.trim(),
+        _supabaseAnonKey = AppConfig.supabasePublishableKey.trim(),
         _apiKey = _firstNonEmpty([
           apiKey,
           AppConfig.elevenLabsApiKey,
@@ -69,8 +69,7 @@ class ElevenLabsAgentService {
         ]) {
     if (_proxyBaseUrl != null) {
       final normalized = _proxyBaseUrl!.replaceFirst(RegExp(r'/+$'), '');
-      _signedUrlEndpoint =
-          '$normalized/v1/convai/conversation/get-signed-url';
+      _signedUrlEndpoint = '$normalized/v1/convai/conversation/get-signed-url';
     }
   }
 

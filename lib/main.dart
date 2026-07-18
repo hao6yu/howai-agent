@@ -56,10 +56,14 @@ Future<void> main() async {
 }
 
 Future<void> _bootstrap() async {
+  AppConfig.validatePublicBackendConfig();
+
   // Initialize Supabase with deep link handling
   await Supabase.initialize(
     url: AppConfig.supabaseUrl,
-    anonKey: AppConfig.supabaseAnonKey,
+    // supabase_flutter 2.x still names this parameter `anonKey`, but it
+    // accepts the modern public-client publishable key.
+    anonKey: AppConfig.supabasePublishableKey,
     authOptions: const FlutterAuthClientOptions(
       authFlowType: AuthFlowType.pkce,
     ),

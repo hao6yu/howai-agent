@@ -79,7 +79,7 @@ The web client is maintained in a separate repository.
    ELEVENLABS_PROXY_BASE_URL=https://your-project.supabase.co/functions/v1/elevenlabs-proxy
    GOOGLE_MAPS_API_KEY=...
    SUPABASE_URL=https://...
-   SUPABASE_ANON_KEY=...
+   SUPABASE_PUBLISHABLE_KEY=...
    ```
 3. Install dependencies:
    ```bash
@@ -101,6 +101,11 @@ The web client is maintained in a separate repository.
 `--dart-define` are still visible in a compiled mobile app. The configured
 runner filters the file through an explicit public-value allowlist. Keep
 provider credentials, especially `OPENAI_API_KEY`, in Supabase secrets.
+
+HowAI's project URL and publishable key are also bundled as public fallback
+configuration, so authentication continues to work when launching directly
+from Xcode or Android Studio. Dart defines can override those values for
+another Supabase project.
 
 ### Optional: OpenAI Proxy (Recommended for Production)
 

@@ -81,6 +81,28 @@ void main() {
         throwsFormatException,
       );
     });
+
+    test('accepts anonymous sessions issued by the broker', () {
+      final material = RealtimeSessionMaterial.fromJson({
+        'session_id': 'session-1',
+        'client_secret': 'ek_test',
+        'client_secret_expires_at': 1800000000,
+        'model': 'gpt-realtime-2.1',
+        'voice': 'marin',
+        'cohort': 'anonymous',
+        'max_duration_seconds': 120,
+        'turn_detection': {
+          'type': 'server_vad',
+          'threshold': 0.6,
+          'prefix_padding_ms': 300,
+          'silence_duration_ms': 450,
+        },
+      });
+
+      expect(material.cohort, 'anonymous');
+      expect(material.isPaid, isFalse);
+      expect(material.maxDurationSeconds, 120);
+    });
   });
 
   group('OpenAIRealtimeVoiceService events', () {

@@ -84,7 +84,7 @@ class RealtimeSessionMaterial {
       throw const FormatException('Invalid Realtime session limits');
     }
     final cohort = requiredString('cohort');
-    if (cohort != 'free' && cohort != 'paid') {
+    if (cohort != 'anonymous' && cohort != 'free' && cohort != 'paid') {
       throw const FormatException('Invalid Realtime session cohort');
     }
     return RealtimeSessionMaterial(

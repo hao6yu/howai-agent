@@ -16,7 +16,7 @@ Deno.test("voice preferred-name tool accepts only explicit set or decline", () =
   const tools = buildRealtimeProfileTools(true);
   assertEquals(tools.length, 1);
   assertEquals(tools[0].name, REALTIME_PROFILE_NAME_TOOL_NAME);
-  assertEquals(tools[0].strict, true);
+  assertEquals(tools[0].strict, undefined);
 
   const parameters = tools[0].parameters as Record<string, unknown>;
   const properties = parameters.properties as Record<string, unknown>;

@@ -9,7 +9,6 @@ export function buildRealtimeProfileTools(
     name: REALTIME_PROFILE_NAME_TOOL_NAME,
     description:
       "Update how the signed-in user wants HowAI to address them. Call action=set only after the user clearly identifies their own preferred name or explicitly asks to be called something. Call action=decline only when the user clearly declines to share a name or asks not to be prompted again. Never infer a name from another person, a document, an email address, or uncertain context.",
-    strict: true,
     parameters: {
       type: "object",
       additionalProperties: false,

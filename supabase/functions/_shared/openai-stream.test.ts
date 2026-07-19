@@ -183,7 +183,7 @@ test("recovers an output-limited terminal response with a delivered image", () =
   );
 });
 
-test("does not recover incomplete responses without a delivered image", () => {
+test("delivers visible text from an output-limited response", () => {
   const collector = new ResponsesSseUsageCollector();
   collector.push(encoder.encode(
     'data: {"type":"response.incomplete","response":{"id":"resp_10","output":[{"type":"message","content":[{"type":"output_text","text":"Cut off"}]}],"usage":{"input_tokens":4,"output_tokens":800}}}\n\n',
@@ -192,6 +192,6 @@ test("does not recover incomplete responses without a delivered image", () => {
   const usage = collector.finish();
   assert.equal(
     responsesUsageHasDeliveredResult(usage, usage?.terminalEvent ?? null),
-    false,
+    true,
   );
 });

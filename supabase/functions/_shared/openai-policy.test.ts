@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   applyModelPolicyControls,
+  applyOutputTokenCeiling,
   DEFAULT_MODEL_POLICY,
   estimateModelCostMicrousd,
   legacyModelAllowlist,
@@ -127,6 +128,25 @@ test("the server strips client cost-control overrides from policy requests", () 
   assert.equal(payload.max_output_tokens, 1_200);
   assert.equal("prompt_cache_key" in payload, false);
   assert.equal("prompt_cache_retention" in payload, false);
+});
+
+test("the output ceiling preserves a smaller client API request", () => {
+  const payload: Record<string, unknown> = { max_output_tokens: 800 };
+
+  const applied = applyOutputTokenCeiling(payload, 3_000);
+
+  assert.equal(applied, 800);
+  assert.equal(payload.max_output_tokens, 800);
+});
+
+test("the output ceiling supplies a safe default and normalizes integers", () => {
+  const missing: Record<string, unknown> = {};
+  const fractional: Record<string, unknown> = { max_output_tokens: 1_200.9 };
+
+  assert.equal(applyOutputTokenCeiling(missing, 3_000), 3_000);
+  assert.equal(missing.max_output_tokens, 3_000);
+  assert.equal(applyOutputTokenCeiling(fractional, 3_000), 1_200);
+  assert.equal(fractional.max_output_tokens, 1_200);
 });
 
 test("the legacy allowlist excludes new premium roles unless explicitly configured", () => {

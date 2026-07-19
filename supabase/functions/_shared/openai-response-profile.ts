@@ -6,7 +6,6 @@ export type AppliedResponseProfile = Readonly<{
   profile: ResponseProfile;
   webSearchMode: WebSearchMode;
   reasoningEffort: ReasoningEffort;
-  maxOutputTokens: number;
 }>;
 
 export type ResponseProfileOptions = Readonly<{
@@ -18,19 +17,10 @@ const WEB_SEARCH_OUTPUT_GUIDANCE = `<web_search_output_guidance>
 When web search is used, keep every inline citation immediately after the claim it supports. Do not add a separate Sources or References section because the client renders the inline citations. If the user requests an exact number of items, provide exactly that many complete items and verify the count before finishing. If fewer verified items exist, state the smaller verified count instead of claiming the requested count.
 </web_search_output_guidance>`;
 
-const PROFILE_MAX_OUTPUT_TOKENS: Readonly<Record<ResponseProfile, number>> =
-  Object.freeze({
-    quick: 800,
-    standard: 1_200,
-    research: 3_000,
-  });
-const PRIMARY_CHAT_MIN_OUTPUT_TOKENS = 800;
-const IMAGE_CAPABLE_CHAT_MIN_OUTPUT_TOKENS = 1_200;
-
 /**
- * Applies HowAI's latency and cost controls after model/tool entitlements have
- * been resolved. Client metadata is treated only as a request for a stricter
- * profile; this function always clamps output and controls tool choice.
+ * Applies HowAI's reasoning, verbosity, and tool controls after model/tool
+ * entitlements have been resolved. Output budgeting is intentionally handled
+ * once by the model policy before the request is forwarded to OpenAI.
  */
 export function applyResponseProfile(
   payload: Record<string, unknown>,
@@ -115,32 +105,6 @@ export function applyResponseProfile(
     delete payload.tool_choice;
   }
 
-  // Image-capable quick turns still use low verbosity and low reasoning, but
-  // the hosted tool can consume enough reasoning/output budget to leave its
-  // short trailing caption incomplete. Give these turns the standard token
-  // ceiling without upgrading the whole response profile.
-  const maxOutputTokens = hasImageGeneration && profile === "quick"
-    ? IMAGE_CAPABLE_CHAT_MIN_OUTPUT_TOKENS
-    : PROFILE_MAX_OUTPUT_TOKENS[profile];
-  const requestedMax = typeof payload.max_output_tokens === "number"
-    ? payload.max_output_tokens
-    : maxOutputTokens;
-  const cappedRequestedMax = Math.min(requestedMax, maxOutputTokens);
-  // max_output_tokens includes hidden reasoning as well as visible text. Older
-  // clients requested 400 tokens for some primary-chat turns, which allowed a
-  // reasoning model to terminate in the middle of the user-visible sentence.
-  // Keep lightweight/title calls strict, but give every real chat enough room
-  // to finish even when a stale client requests the old cap.
-  const primaryChatMinimum = hasImageGeneration
-    ? IMAGE_CAPABLE_CHAT_MIN_OUTPUT_TOKENS
-    : PRIMARY_CHAT_MIN_OUTPUT_TOKENS;
-  payload.max_output_tokens = metadata.howai_intent === "primary_chat"
-    ? Math.max(
-      cappedRequestedMax,
-      Math.min(primaryChatMinimum, maxOutputTokens),
-    )
-    : cappedRequestedMax;
-
   const reasoningEffort = requestedReasoningEffort ??
     reasoningFor(profile, resolvedModel, hasImageGeneration);
   payload.reasoning = { effort: reasoningEffort };
@@ -159,7 +123,6 @@ export function applyResponseProfile(
     profile,
     webSearchMode,
     reasoningEffort,
-    maxOutputTokens: payload.max_output_tokens as number,
   };
 }
 

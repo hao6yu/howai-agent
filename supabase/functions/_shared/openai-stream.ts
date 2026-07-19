@@ -134,8 +134,9 @@ export function extractResponsesUsage(
 
 /**
  * Treat a terminal response as delivered when it completed normally, or when
- * an output-limited response already contains a finished image result. In the
- * latter case only the optional trailing prose is incomplete.
+ * an output-limited response contains visible text, a refusal, or an image.
+ * The client preserves that partial visible result instead of converting an
+ * API output limit into a generic transport failure.
  */
 export function responsesUsageHasDeliveredResult(
   usage: ResponsesUsage | null,
@@ -146,7 +147,7 @@ export function responsesUsageHasDeliveredResult(
     ? status.slice("response.".length)
     : status;
   return normalizedStatus === "completed" ||
-    (normalizedStatus === "incomplete" && usage.imageGenerationCalls > 0);
+    (normalizedStatus === "incomplete" && usage.hasFinalOutput);
 }
 
 function completedWebSearchCallCount(output: unknown): number {

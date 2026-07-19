@@ -74,13 +74,25 @@ export function applyModelPolicyControls(
   delete payload.prompt_cache_key;
   delete payload.prompt_cache_retention;
 
-  const requestedMaxOutput = typeof payload.max_output_tokens === "number"
-    ? payload.max_output_tokens
-    : decision.maxOutputTokens;
-  payload.max_output_tokens = Math.min(
-    requestedMaxOutput,
-    decision.maxOutputTokens,
-  );
+  applyOutputTokenCeiling(payload, decision.maxOutputTokens);
+}
+
+/**
+ * Writes the single output budget forwarded to the OpenAI API.
+ *
+ * The client chooses its requested limit. The proxy only validates that
+ * untrusted value against the model/plan ceiling; it does not run a separate
+ * truncation layer.
+ */
+export function applyOutputTokenCeiling(
+  payload: Record<string, unknown>,
+  maximumAllowedTokens: number,
+): number {
+  const ceiling = Math.max(1, Math.floor(maximumAllowedTokens));
+  const requested = positiveIntegerOrNull(payload.max_output_tokens) ?? ceiling;
+  const applied = Math.min(requested, ceiling);
+  payload.max_output_tokens = applied;
+  return applied;
 }
 
 export function legacyModelAllowlist(
@@ -282,4 +294,11 @@ function decision(
 function nonNegativeInteger(value: number): number {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.floor(value));
+}
+
+function positiveIntegerOrNull(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 1) {
+    return null;
+  }
+  return Math.floor(value);
 }

@@ -28,15 +28,15 @@ test("quick image-capable nano chat uses supported reasoning and strips search",
     profile: "quick",
     webSearchMode: "disabled",
     reasoningEffort: "low",
-    maxOutputTokens: 1_200,
   });
+  assert.equal(payload.max_output_tokens, 3_000);
   assert.deepEqual(payload.reasoning, { effort: "low" });
   assert.deepEqual(payload.text, { verbosity: "low" });
   assert.deepEqual(payload.tools, [{ type: "image_generation" }]);
   assert.equal("tool_choice" in payload, false);
 });
 
-test("image-capable primary chat upgrades a legacy client token cap", () => {
+test("image-capable chat does not rewrite the client output budget", () => {
   const payload: Record<string, unknown> = {
     metadata: {
       howai_intent: "primary_chat",
@@ -49,8 +49,7 @@ test("image-capable primary chat upgrades a legacy client token cap", () => {
   const result = applyResponseProfile(payload, "gpt-5-nano-2025-08-07");
 
   assert.equal(result.profile, "quick");
-  assert.equal(result.maxOutputTokens, 1_200);
-  assert.equal(payload.max_output_tokens, 1_200);
+  assert.equal(payload.max_output_tokens, 400);
   assert.deepEqual(payload.reasoning, { effort: "low" });
   assert.deepEqual(payload.text, { verbosity: "low" });
 });
@@ -70,7 +69,7 @@ test("quick nano chat without image generation can use minimal reasoning", () =>
   assert.deepEqual(payload.reasoning, { effort: "minimal" });
 });
 
-test("primary chat upgrades the legacy 400-token client cap", () => {
+test("standard chat does not rewrite the client output budget", () => {
   const payload: Record<string, unknown> = {
     metadata: {
       howai_intent: "primary_chat",
@@ -82,8 +81,7 @@ test("primary chat upgrades the legacy 400-token client cap", () => {
   const result = applyResponseProfile(payload, "gpt-5-nano-2025-08-07");
 
   assert.equal(result.profile, "standard");
-  assert.equal(result.maxOutputTokens, 800);
-  assert.equal(payload.max_output_tokens, 800);
+  assert.equal(payload.max_output_tokens, 400);
 });
 
 test("non-chat requests can retain a stricter token cap", () => {
@@ -95,9 +93,8 @@ test("non-chat requests can retain a stricter token cap", () => {
     max_output_tokens: 10,
   };
 
-  const result = applyResponseProfile(payload, "gpt-5-nano-2025-08-07");
+  applyResponseProfile(payload, "gpt-5-nano-2025-08-07");
 
-  assert.equal(result.maxOutputTokens, 10);
   assert.equal(payload.max_output_tokens, 10);
 });
 
@@ -115,7 +112,7 @@ test("standard chat exposes current web search with automatic tool choice", () =
   assert.equal(result.profile, "standard");
   assert.equal(result.webSearchMode, "auto");
   assert.equal(result.reasoningEffort, "low");
-  assert.equal(result.maxOutputTokens, 1_200);
+  assert.equal("max_output_tokens" in payload, false);
   assert.equal(payload.tool_choice, "auto");
   assert.deepEqual(payload.tools, [
     { type: "function", name: "generate_pptx" },
@@ -142,7 +139,6 @@ test("forced search upgrades quick requests and guarantees the search tool", () 
     profile: "standard",
     webSearchMode: "force",
     reasoningEffort: "low",
-    maxOutputTokens: 1_200,
   });
   assert.equal(payload.tool_choice, "required");
   assert.deepEqual(payload.tools, [
@@ -169,7 +165,6 @@ test("server-authorized reminder requests expose and require only that function"
     profile: "standard",
     webSearchMode: "disabled",
     reasoningEffort: "low",
-    maxOutputTokens: 1_200,
   });
   assert.equal(payload.tool_choice, "required");
   assert.deepEqual(payload.tools, [reminderTool]);
@@ -238,7 +233,7 @@ test("research preserves stricter client caps while requesting high reasoning", 
   const result = applyResponseProfile(payload, "gpt-5.2");
 
   assert.equal(result.profile, "research");
-  assert.equal(result.maxOutputTokens, 2_400);
+  assert.equal(payload.max_output_tokens, 2_400);
   assert.deepEqual(payload.reasoning, { effort: "high" });
   assert.deepEqual(payload.text, {
     format: { type: "json_object" },
@@ -263,10 +258,38 @@ test("trusted paid GPT-5.6 requests can choose a supported reasoning level", () 
     profile: "standard",
     webSearchMode: "disabled",
     reasoningEffort: "medium",
-    maxOutputTokens: 1_200,
   });
+  assert.equal(payload.max_output_tokens, 3_000);
   assert.deepEqual(payload.reasoning, { effort: "medium" });
   assert.deepEqual(payload.text, { verbosity: "medium" });
+});
+
+test("paid standard chat leaves the API output request unchanged", () => {
+  const payload: Record<string, unknown> = {
+    metadata: {
+      howai_intent: "primary_chat",
+      howai_response_profile: "standard",
+    },
+    max_output_tokens: 1_200,
+  };
+
+  const result = applyResponseProfile(payload, "gpt-5.6-sol");
+
+  assert.equal(result.profile, "standard");
+  assert.equal(payload.max_output_tokens, 1_200);
+});
+
+test("profile application does not invent a missing output budget", () => {
+  const payload: Record<string, unknown> = {
+    metadata: {
+      howai_intent: "primary_chat",
+      howai_response_profile: "standard",
+    },
+  };
+
+  applyResponseProfile(payload, "gpt-5.6-luna");
+
+  assert.equal("max_output_tokens" in payload, false);
 });
 
 test("reasoning override metadata is ignored unless the proxy authorizes it", () => {

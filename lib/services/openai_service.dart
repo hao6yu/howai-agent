@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart' show XFile;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:io';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_pptx/flutter_pptx.dart';
 import 'package:path_provider/path_provider.dart';
@@ -16,6 +16,7 @@ import 'ai_personality_service.dart';
 import 'subscription_service.dart';
 import 'file_service.dart';
 import 'profile_name_service.dart';
+import 'chat_image_preprocessor.dart';
 
 /// Event types for streaming responses
 enum StreamEventType {
@@ -1000,20 +1001,18 @@ AUTOMATIONS:
       if (attachments != null && attachments.isNotEmpty) {
         for (final xfile in attachments) {
           try {
-            // Keep original resolution, just compress quality to reduce file size
-            final compressedBytes = await FlutterImageCompress.compressWithFile(
-              xfile.path,
-              quality: 80,
-              format: CompressFormat.jpeg,
-            );
-            if (compressedBytes != null) {
-              final base64Image = base64Encode(compressedBytes);
-              // Responses API uses 'input_image' instead of 'image_url'
+            final encodedImage = await encodeImageForVision(xfile.path);
+            if (encodedImage != null) {
               contentBlocks.add({
                 'type': 'input_image',
-                'image_url': 'data:image/jpeg;base64,$base64Image',
+                'image_url': encodedImage,
+                // GPT-5.6 treats omitted/auto detail like original. High keeps
+                // normal photo fidelity while applying a finite image budget.
+                'detail': 'high',
               });
             }
+          } on VisionImageTooLargeException {
+            rethrow;
           } catch (e) {
             //// _log('Error compressing/encoding image: $e');
           }
@@ -1448,7 +1447,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
                       'Continue from the exact next character where the previous response stopped. Output only the missing continuation, without repeating any earlier text.'
                 }
               ],
-              'max_output_tokens': 1200,
+              'max_output_tokens': responseProfile.maxOutputTokens,
               'reasoning': {
                 'effort': responseProfile.reasoningEffort,
               },
@@ -2438,18 +2437,16 @@ AUTOMATIONS:
       if (attachments != null && attachments.isNotEmpty) {
         for (final xfile in attachments) {
           try {
-            final compressedBytes = await FlutterImageCompress.compressWithFile(
-              xfile.path,
-              quality: 80,
-              format: CompressFormat.jpeg,
-            );
-            if (compressedBytes != null) {
-              final base64Image = base64Encode(compressedBytes);
+            final encodedImage = await encodeImageForVision(xfile.path);
+            if (encodedImage != null) {
               contentBlocks.add({
                 'type': 'input_image',
-                'image_url': 'data:image/jpeg;base64,$base64Image',
+                'image_url': encodedImage,
+                'detail': 'high',
               });
             }
+          } on VisionImageTooLargeException {
+            rethrow;
           } catch (e) {
             // Skip failed images
           }
@@ -2645,6 +2642,7 @@ AUTOMATIONS:
                   response is Map ? response['incomplete_details'] : null;
               final reason =
                   details is Map ? details['reason']?.toString() : null;
+              final terminalText = StringBuffer();
 
               // The image tool can finish before the model runs out of tokens
               // on its trailing caption. The image result is authoritative:
@@ -2652,19 +2650,33 @@ AUTOMATIONS:
               if (response is Map && response['output'] is List) {
                 for (final item in response['output']) {
                   if (item is! Map ||
-                      item['type'] != 'image_generation_call' ||
-                      item['result'] == null) {
+                      (item['type'] != 'image_generation_call' &&
+                          item['type'] != 'message')) {
                     continue;
                   }
 
-                  String base64Data = item['result'].toString();
-                  if (base64Data.isEmpty) continue;
-                  if (base64Data.contains('base64,')) {
-                    base64Data = base64Data.split('base64,').last;
+                  if (item['type'] == 'message' && item['content'] is List) {
+                    for (final content in item['content']) {
+                      if (content is! Map) continue;
+                      final text =
+                          (content['text'] ?? content['refusal'])?.toString();
+                      if (text != null && text.isNotEmpty) {
+                        terminalText.write(text);
+                      }
+                    }
+                    continue;
                   }
-                  final dataUrl = 'data:image/png;base64,$base64Data';
-                  if (!images.contains(dataUrl)) {
-                    images.add(dataUrl);
+
+                  if (item['result'] != null) {
+                    String base64Data = item['result'].toString();
+                    if (base64Data.isEmpty) continue;
+                    if (base64Data.contains('base64,')) {
+                      base64Data = base64Data.split('base64,').last;
+                    }
+                    final dataUrl = 'data:image/png;base64,$base64Data';
+                    if (!images.contains(dataUrl)) {
+                      images.add(dataUrl);
+                    }
                   }
                 }
               }
@@ -2684,12 +2696,27 @@ AUTOMATIONS:
                 return;
               }
 
+              if (terminalText.isNotEmpty) {
+                fullText = terminalText.toString();
+              }
+              if (fullText.trim().isNotEmpty) {
+                // max_output_tokens includes hidden reasoning. Preserve the
+                // visible prefix as a successful result instead of deleting
+                // it and showing the generic transport-error toast.
+                _log(
+                    '[OpenAIService-Stream] ⚠️ Preserving partial response: $reason');
+                yield StreamEvent.done(
+                  fullText: fullText,
+                  title: title,
+                  files: files.isNotEmpty ? files : null,
+                  actionToolCall: actionToolCall,
+                  profileToolCall: profileToolCall,
+                );
+                return;
+              }
+
               _log(
                   '[OpenAIService-Stream] ❌ Incomplete terminal event: $reason');
-              // Never persist the currently streamed prefix as a complete
-              // assistant message. The server-side primary-chat floor makes
-              // this rare; if it still happens, fail visibly so the user can
-              // retry instead of seeing a sentence cut in half.
               yield StreamEvent.error(
                 reason == 'max_output_tokens'
                     ? 'The response reached its output limit before it finished.'
@@ -3280,7 +3307,7 @@ Answer ONLY with "YES" or "NO" - nothing else.
     if (reasoningEffortOverride != null) {
       return _ResponseProfileConfig(
         profile: _HowAiResponseProfile.standard,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 3000,
         reasoningEffort: reasoningEffortOverride,
         verbosity: 'medium',
       );
@@ -3294,7 +3321,7 @@ Answer ONLY with "YES" or "NO" - nothing else.
     if (!isQuick) {
       return const _ResponseProfileConfig(
         profile: _HowAiResponseProfile.standard,
-        maxOutputTokens: 1200,
+        maxOutputTokens: 3000,
         reasoningEffort: 'low',
         verbosity: 'medium',
       );

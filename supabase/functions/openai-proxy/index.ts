@@ -1,6 +1,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import {
   applyModelPolicyControls,
+  applyOutputTokenCeiling,
   DEFAULT_MODEL_POLICY,
   estimateModelCostMicrousd,
   legacyModelAllowlist,
@@ -29,6 +30,9 @@ import {
   type ResponseProfile,
   type WebSearchMode,
 } from "../_shared/openai-response-profile.ts";
+import {
+  estimateResponsesInputTokens,
+} from "../_shared/openai-input-estimate.ts";
 import {
   extractUpstreamErrorTelemetry,
   nonJsonUpstreamErrorTelemetry,
@@ -613,7 +617,7 @@ async function sanitizeResponsesBody(
       );
     }
     const hasAttachments = containsAttachment(json.input);
-    const estimatedInputTokens = Math.ceil(bodyBytes.byteLength / 4);
+    const estimatedInputTokens = estimateResponsesInputTokens(json);
     const maxEstimatedInputTokens = entitlement.cohort === "anonymous"
       ? ANONYMOUS_MAX_ESTIMATED_INPUT_TOKENS
       : entitlement.cohort === "free"
@@ -776,14 +780,7 @@ async function sanitizeResponsesBody(
       );
     }
 
-    if (typeof json.max_output_tokens === "number") {
-      json.max_output_tokens = Math.min(
-        json.max_output_tokens,
-        MAX_OUTPUT_TOKENS,
-      );
-    } else if (json.max_output_tokens == null) {
-      json.max_output_tokens = MAX_OUTPUT_TOKENS;
-    }
+    applyOutputTokenCeiling(json, MAX_OUTPUT_TOKENS);
 
     if (json.tools != null) {
       json.tools = sanitizeResponseTools(json.tools, automationAuthorization);

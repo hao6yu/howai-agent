@@ -135,4 +135,38 @@ void main() {
       );
     });
   });
+
+  group('StoreKit transaction evidence', () {
+    test('accepts and trims a compact StoreKit 2 JWS', () {
+      expect(
+        normalizeStoreKitTransactionJws('  header.payload.signature  '),
+        'header.payload.signature',
+      );
+    });
+
+    test('rejects an empty value, app receipt, or malformed JWS', () {
+      expect(normalizeStoreKitTransactionJws(null), isNull);
+      expect(
+          normalizeStoreKitTransactionJws('opaque-base64-app-receipt'), isNull);
+      expect(normalizeStoreKitTransactionJws('header..signature'), isNull);
+      expect(normalizeStoreKitTransactionJws('header.payload'), isNull);
+    });
+
+    test('prefers evidence delivered by the completed purchase event', () {
+      expect(
+        selectStoreKitTransactionJws(
+          purchaseVerificationData: 'new.purchase.signature',
+          fallbackVerificationData: 'old.history.signature',
+        ),
+        'new.purchase.signature',
+      );
+      expect(
+        selectStoreKitTransactionJws(
+          purchaseVerificationData: 'legacy-app-receipt',
+          fallbackVerificationData: 'valid.history.signature',
+        ),
+        'valid.history.signature',
+      );
+    });
+  });
 }

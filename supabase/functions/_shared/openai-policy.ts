@@ -169,7 +169,7 @@ export function resolveModelPolicy(
       "nano",
       config.models.nano,
       config.freeNanoMaxOutputTokens,
-      "free_attachment_requires_separate_quota",
+      "free_attachment_nano",
     );
   }
 

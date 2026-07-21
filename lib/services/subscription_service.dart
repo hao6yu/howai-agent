@@ -375,7 +375,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  bool _foundSubscriptionDuringRestore = false;
+  Completer<bool>? _restoreEventCompleter;
+  Future<bool>? _activeRestoreAttempt;
 
   // Throttle: tracks when the last full platform check completed
   DateTime? _lastFullCheckTime;
@@ -1038,19 +1039,82 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   // Restore purchases (used by "Restore Purchases" button)
   // ---------------------------------------------------------------------------
 
-  Future<bool> restorePurchases() async {
+  Future<bool> restorePurchases() {
+    final activeAttempt = _activeRestoreAttempt;
+    if (activeAttempt != null) return activeAttempt;
+
+    late final Future<bool> attempt;
+    attempt = _restorePurchases().whenComplete(() {
+      if (identical(_activeRestoreAttempt, attempt)) {
+        _activeRestoreAttempt = null;
+      }
+    });
+    _activeRestoreAttempt = attempt;
+    return attempt;
+  }
+
+  Future<bool> _restorePurchases() async {
+    final userId = _currentEntitlementUserId;
+    if (userId == null) {
+      _errorMessage =
+          'Sign in to a HowAI account before purchasing or restoring Pro.';
+      notifyListeners();
+      return false;
+    }
+
+    final eventCompleter = Completer<bool>();
+    _restoreEventCompleter = eventCompleter;
+
     try {
       debugPrint('[SubscriptionService] Restoring purchases...');
-      _foundSubscriptionDuringRestore = false;
+      _errorMessage = null;
+      notifyListeners();
 
-      await _inAppPurchase.restorePurchases();
+      await _inAppPurchase.restorePurchases(applicationUserName: userId);
 
-      // Purchases are received through purchaseStream; give it time to flush.
-      await Future.delayed(const Duration(seconds: 2));
-      return _foundSubscriptionDuringRestore;
+      // StoreKit sends restored transactions through purchaseStream. Recheck
+      // the trusted server in parallel so an entitlement already recovered by
+      // the backend also resolves the button promptly. An empty StoreKit 2
+      // restore does not emit an event, so keep a bounded wait for that case.
+      final statusCheck = checkSubscriptionStatus()
+          .timeout(const Duration(seconds: 18), onTimeout: () => false)
+          .catchError((Object _) => false);
+      unawaited(statusCheck.then((active) {
+        if (active) _completeRestoreEvent(true);
+      }));
+
+      final restored = await eventCompleter.future.timeout(
+        const Duration(seconds: 18),
+        onTimeout: () => false,
+      );
+      final active = restored || await statusCheck;
+      if (active) {
+        _errorMessage = null;
+        return true;
+      }
+
+      _errorMessage =
+          'No active App Store or Google Play subscription was found for this HowAI account.';
+      notifyListeners();
+      return false;
     } catch (e) {
       debugPrint('[SubscriptionService] Error restoring purchases: $e');
+      _errorMessage =
+          'Unable to restore purchases right now. Please try again.';
+      _completeRestoreEvent(false);
+      notifyListeners();
       return false;
+    } finally {
+      if (identical(_restoreEventCompleter, eventCompleter)) {
+        _restoreEventCompleter = null;
+      }
+    }
+  }
+
+  void _completeRestoreEvent(bool restored) {
+    final completer = _restoreEventCompleter;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete(restored);
     }
   }
 
@@ -1102,7 +1166,13 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   void _listenToPurchaseUpdated(
       List<PurchaseDetails> purchaseDetailsList) async {
+    if (purchaseDetailsList.isEmpty) {
+      _completeRestoreEvent(false);
+      return;
+    }
+
     for (final PurchaseDetails purchaseDetails in purchaseDetailsList) {
+      var purchaseWasDelivered = false;
       debugPrint(
           '[SubscriptionService] Purchase status: ${purchaseDetails.status} for ${purchaseDetails.productID}');
 
@@ -1113,22 +1183,31 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
             '[SubscriptionService] Purchase error: ${purchaseDetails.error}');
         _errorMessage =
             "Purchase error: ${purchaseDetails.error?.message ?? 'Unknown error'}";
+        _completeRestoreEvent(false);
         notifyListeners();
+      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
+        _completeRestoreEvent(false);
       } else if (purchaseDetails.status == PurchaseStatus.purchased ||
           purchaseDetails.status == PurchaseStatus.restored) {
         if (_allSubscriptionIds.contains(purchaseDetails.productID)) {
-          await _handleSubscriptionPurchase(purchaseDetails);
+          purchaseWasDelivered =
+              await _handleSubscriptionPurchase(purchaseDetails);
         }
       }
 
-      // Complete the purchase — important!
-      if (purchaseDetails.pendingCompletePurchase) {
+      // Finish a subscription transaction only after the trusted backend has
+      // granted access. If verification is temporarily unavailable, leaving it
+      // unfinished lets the next launch recover its signed StoreKit evidence.
+      final isSubscription =
+          _allSubscriptionIds.contains(purchaseDetails.productID);
+      if (purchaseDetails.pendingCompletePurchase &&
+          (!isSubscription || purchaseWasDelivered)) {
         await _inAppPurchase.completePurchase(purchaseDetails);
       }
     }
   }
 
-  Future<void> _handleSubscriptionPurchase(
+  Future<bool> _handleSubscriptionPurchase(
       PurchaseDetails purchaseDetails) async {
     try {
       final userId = _currentEntitlementUserId;
@@ -1142,12 +1221,16 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         );
         _errorMessage =
             'Sign in to a HowAI account before purchasing or restoring Pro.';
+        _completeRestoreEvent(false);
         notifyListeners();
-        return;
+        return false;
       }
 
       final entitlement = Platform.isIOS
-          ? await _syncVerifiedAppleEntitlement(expectedUserId: userId)
+          ? await _syncVerifiedAppleEntitlement(
+              expectedUserId: userId,
+              purchase: purchaseDetails,
+            )
           : Platform.isAndroid
               ? await _syncVerifiedGoogleEntitlement(
                   expectedUserId: userId,
@@ -1168,7 +1251,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
           generation: _identityGeneration,
           prefs: prefs,
         );
-        _foundSubscriptionDuringRestore = true;
+        _completeRestoreEvent(true);
         _errorMessage = null;
         debugPrint(
             '[SubscriptionService] Server-verified subscription entitlement confirmed');
@@ -1182,15 +1265,19 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         );
         _errorMessage =
             'The store purchase could not be verified for this HowAI account.';
+        _completeRestoreEvent(false);
         debugPrint(
             '[SubscriptionService] Purchase was not granted without server verification');
       }
 
       notifyListeners();
+      return isEntitled;
     } catch (e) {
       debugPrint('[SubscriptionService] Error handling purchase: $e');
       _errorMessage = "Error processing purchase: $e";
+      _completeRestoreEvent(false);
       notifyListeners();
+      return false;
     }
   }
 
@@ -1252,6 +1339,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   Future<_TrustedServerEntitlement?> _syncVerifiedAppleEntitlement({
     List<SK2Transaction>? transactions,
+    PurchaseDetails? purchase,
     required String expectedUserId,
   }) async {
     if (!Platform.isIOS || _currentEntitlementUserId != expectedUserId) {
@@ -1259,11 +1347,24 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     }
 
     try {
-      final availableTransactions =
-          transactions ?? await SK2Transaction.transactions();
-      final latest = _latestAppleSubscriptionTransaction(availableTransactions);
-      final signedTransaction = latest?.receiptData?.trim() ?? '';
-      if (signedTransaction.isEmpty) {
+      var signedTransaction = selectStoreKitTransactionJws(
+        purchaseVerificationData:
+            purchase?.verificationData.serverVerificationData,
+      );
+      SK2Transaction? unfinishedTransaction;
+      if (signedTransaction == null) {
+        final availableTransactions =
+            transactions ?? await SK2Transaction.unfinishedTransactions();
+        final latest =
+            _latestAppleSubscriptionTransaction(availableTransactions);
+        signedTransaction = selectStoreKitTransactionJws(
+          fallbackVerificationData: latest?.receiptData,
+        );
+        if (transactions == null && signedTransaction != null) {
+          unfinishedTransaction = latest;
+        }
+      }
+      if (signedTransaction == null) {
         debugPrint(
             '[SubscriptionService] No signed StoreKit 2 transaction available for server verification');
         return null;
@@ -1286,6 +1387,17 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
           : null;
       debugPrint(
           '[SubscriptionService] Server-verified Apple entitlement synced (active: $active)');
+      if (active && unfinishedTransaction != null) {
+        final transactionId = int.tryParse(unfinishedTransaction.id);
+        if (transactionId != null) {
+          try {
+            await SK2Transaction.finish(transactionId);
+          } catch (e) {
+            debugPrint(
+                '[SubscriptionService] Verified unfinished StoreKit transaction could not be finished: $e');
+          }
+        }
+      }
       return _TrustedServerEntitlement(
         active: active,
         expiresAt: expiresAt,

@@ -949,9 +949,30 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     final subscriptionService =
                         Provider.of<SubscriptionService>(context,
                             listen: false);
-                    await subscriptionService.restorePurchases();
+                    final restored =
+                        await subscriptionService.restorePurchases();
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          restored
+                              ? 'Your Pro subscription has been restored.'
+                              : subscriptionService.errorMessage ??
+                                  'No active subscription was found.',
+                        ),
+                        backgroundColor: restored ? Colors.green : Colors.red,
+                      ),
+                    );
                   } catch (e) {
-                    // Silent
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                              'Unable to restore purchases right now. Please try again.'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   } finally {
                     if (mounted) setState(() => _isLoading = false);
                   }

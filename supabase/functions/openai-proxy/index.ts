@@ -630,13 +630,6 @@ async function sanitizeResponsesBody(
         413,
       );
     }
-    if (hasAttachments && entitlement.cohort !== "paid") {
-      throw new ProxyPolicyError(
-        "Attachments require a paid plan during the HowAI 2.0 beta.",
-        403,
-      );
-    }
-
     const lunaEstimate = estimateModelCostMicrousd(MODEL_POLICY.models.luna, {
       inputTokens: estimatedInputTokens,
       // GPT-5.6 does not currently expose cache-write tokens in Responses usage.

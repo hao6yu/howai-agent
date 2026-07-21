@@ -90,6 +90,8 @@ OPENAI_PROXY_FREE_NANO_DAILY_BUDGET_MICROUSD=20000
 OPENAI_PROXY_FREE_NANO_MONTHLY_BUDGET_MICROUSD=500000
 OPENAI_PROXY_FREE_USER_DAILY_BUDGET_MICROUSD=50000
 OPENAI_PROXY_FREE_USER_MONTHLY_BUDGET_MICROUSD=1000000
+OPENAI_PROXY_FREE_MAX_ESTIMATED_INPUT_TOKENS=20000
+OPENAI_PROXY_ANON_MAX_ESTIMATED_INPUT_TOKENS=8000
 OPENAI_PROXY_PAID_SOL_DAILY_BUDGET_MICROUSD=2000000
 OPENAI_PROXY_PAID_SOL_MONTHLY_BUDGET_MICROUSD=30000000
 OPENAI_PROXY_PAID_USER_DAILY_BUDGET_MICROUSD=3000000
@@ -139,6 +141,11 @@ the plan-specific output cap. Client-supplied Pro mode, background execution,
 priority processing, and explicit prompt-cache controls are ignored. Verified
 paid synchronous Deep Research stays on the legacy hosted chat model with
 `high` reasoning until the persistent Research workstream replaces it.
+
+Anonymous and signed-in Free users can analyze photo attachments within the
+app's existing 15-per-week allowance. The proxy routes those requests through
+Nano and still enforces the cohort's input-token, answer, and daily/monthly
+spend ceilings.
 
 ## Deploy
 

@@ -89,6 +89,34 @@ test("free users fall back to nano when a Luna guardrail is exhausted", () => {
   assert.equal(result.fallbackReason, "luna_answer_limit_reached");
 });
 
+test("signed-in free users can analyze attachments on Nano", () => {
+  const result = resolveModelPolicy({
+    cohort: "free",
+    entitlementTrusted: false,
+    intent: "primary_chat",
+    hasAttachments: true,
+    estimatedLunaCostMicrousd: 8_000,
+    freeUsage: emptyUsage,
+  });
+
+  assert.equal(result.model, "gpt-5-nano");
+  assert.equal(result.fallbackReason, "free_attachment_nano");
+});
+
+test("anonymous users can analyze attachments on Nano", () => {
+  const result = resolveModelPolicy({
+    cohort: "anonymous",
+    entitlementTrusted: false,
+    intent: "primary_chat",
+    hasAttachments: true,
+    estimatedLunaCostMicrousd: 8_000,
+    freeUsage: emptyUsage,
+  });
+
+  assert.equal(result.model, "gpt-5-nano");
+  assert.equal(result.fallbackReason, "anonymous_nano_only");
+});
+
 test("background checks remain on nano for every tier", () => {
   const result = resolveModelPolicy({
     cohort: "paid",

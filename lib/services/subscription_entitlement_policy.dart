@@ -27,3 +27,29 @@ int boundedEntitlementCacheExpiry({
   if (expiry == null) return maximum;
   return expiry < maximum ? expiry : maximum;
 }
+
+/// Returns StoreKit 2 transaction evidence only when it has the compact JWS
+/// shape expected by the server verifier.
+///
+/// StoreKit 1 app receipts are opaque base64 blobs and must not be confused
+/// with StoreKit 2's signed transaction (`header.payload.signature`).
+String? normalizeStoreKitTransactionJws(String? value) {
+  final candidate = value?.trim() ?? '';
+  if (candidate.isEmpty) return null;
+
+  final segments = candidate.split('.');
+  if (segments.length != 3 || segments.any((segment) => segment.isEmpty)) {
+    return null;
+  }
+  return candidate;
+}
+
+/// Prefers evidence delivered with the purchase event. A signed unfinished
+/// transaction is the fallback for startup reconciliation.
+String? selectStoreKitTransactionJws({
+  String? purchaseVerificationData,
+  String? fallbackVerificationData,
+}) {
+  return normalizeStoreKitTransactionJws(purchaseVerificationData) ??
+      normalizeStoreKitTransactionJws(fallbackVerificationData);
+}

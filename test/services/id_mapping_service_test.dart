@@ -69,4 +69,48 @@ void main() {
     await service.initialize('account-a');
     expect(service.getStats()['messages'], 0);
   });
+
+  test('rebinding a local ID removes the stale reverse mapping', () async {
+    final service = IDMappingService();
+    await service.initialize('account-a');
+    await service.storeConversationMapping(
+      7,
+      '10000000-0000-4000-8000-000000000007',
+    );
+
+    await service.storeConversationMapping(
+      7,
+      '20000000-0000-4000-8000-000000000007',
+    );
+
+    expect(
+      service.getConversationLocalId(
+        '10000000-0000-4000-8000-000000000007',
+      ),
+      isNull,
+    );
+    expect(
+      service.getConversationLocalId(
+        '20000000-0000-4000-8000-000000000007',
+      ),
+      7,
+    );
+    expect(
+      service.getConversationUUID(7),
+      '20000000-0000-4000-8000-000000000007',
+    );
+  });
+
+  test('moving a UUID removes the old local forward mapping', () async {
+    final service = IDMappingService();
+    await service.initialize('account-a');
+    const uuid = '10000000-0000-4000-8000-000000000007';
+    await service.storeMessageMapping(7, uuid);
+
+    await service.storeMessageMapping(8, uuid);
+
+    expect(service.getMessageUUID(7), isNull);
+    expect(service.getMessageUUID(8), uuid);
+    expect(service.getMessageLocalId(uuid), 8);
+  });
 }

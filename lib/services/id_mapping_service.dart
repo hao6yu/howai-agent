@@ -161,18 +161,12 @@ class IDMappingService {
   Future<void> storeConversationMapping(int localId, String uuid) async {
     _conversationCache ??= {};
     _reverseConversationCache ??= {};
-
-    // Check if this UUID is already mapped to a different local ID
-    final existingLocalId = _reverseConversationCache![uuid];
-    if (existingLocalId != null && existingLocalId != localId) {
-      // Remove the old mapping to prevent duplicates
-      _conversationCache!.remove(existingLocalId);
-      debugPrint(
-          '[IDMappingService] Removed old mapping: localId=$existingLocalId -> uuid=$uuid');
-    }
-
-    _conversationCache![localId] = uuid;
-    _reverseConversationCache![uuid] = localId;
+    _bindMapping(
+      _conversationCache!,
+      _reverseConversationCache!,
+      localId,
+      uuid,
+    );
 
     await _saveMapping(
         _scopedKey(_conversationMappingKey), _conversationCache!);
@@ -182,18 +176,12 @@ class IDMappingService {
   Future<void> storeMessageMapping(int localId, String uuid) async {
     _messageCache ??= {};
     _reverseMessageCache ??= {};
-
-    // Check if this UUID is already mapped to a different local ID
-    final existingLocalId = _reverseMessageCache![uuid];
-    if (existingLocalId != null && existingLocalId != localId) {
-      // Remove the old mapping to prevent duplicates
-      _messageCache!.remove(existingLocalId);
-      debugPrint(
-          '[IDMappingService] Removed old message mapping: localId=$existingLocalId -> uuid=$uuid');
-    }
-
-    _messageCache![localId] = uuid;
-    _reverseMessageCache![uuid] = localId;
+    _bindMapping(
+      _messageCache!,
+      _reverseMessageCache!,
+      localId,
+      uuid,
+    );
 
     await _saveMapping(_scopedKey(_messageMappingKey), _messageCache!);
   }
@@ -202,9 +190,12 @@ class IDMappingService {
   Future<void> storeProfileMapping(int localId, String uuid) async {
     _profileCache ??= {};
     _reverseProfileCache ??= {};
-
-    _profileCache![localId] = uuid;
-    _reverseProfileCache![uuid] = localId;
+    _bindMapping(
+      _profileCache!,
+      _reverseProfileCache!,
+      localId,
+      uuid,
+    );
 
     await _saveMapping(_scopedKey(_profileMappingKey), _profileCache!);
   }
@@ -213,11 +204,36 @@ class IDMappingService {
   Future<void> storePersonalityMapping(int localId, String uuid) async {
     _personalityCache ??= {};
     _reversePersonalityCache ??= {};
-
-    _personalityCache![localId] = uuid;
-    _reversePersonalityCache![uuid] = localId;
+    _bindMapping(
+      _personalityCache!,
+      _reversePersonalityCache!,
+      localId,
+      uuid,
+    );
 
     await _saveMapping(_scopedKey(_personalityMappingKey), _personalityCache!);
+  }
+
+  void _bindMapping(
+    Map<int, String> forward,
+    Map<String, int> reverse,
+    int localId,
+    String uuid,
+  ) {
+    final previousUuid = forward[localId];
+    if (previousUuid != null &&
+        previousUuid != uuid &&
+        reverse[previousUuid] == localId) {
+      reverse.remove(previousUuid);
+    }
+
+    final previousLocalId = reverse[uuid];
+    if (previousLocalId != null && previousLocalId != localId) {
+      forward.remove(previousLocalId);
+    }
+
+    forward[localId] = uuid;
+    reverse[uuid] = localId;
   }
 
   /// Get UUID for a local conversation ID

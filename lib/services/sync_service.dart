@@ -312,10 +312,19 @@ class SyncService {
             .range(from, to),
       ),
     );
+    final remoteClientOwners = <String, String>{
+      for (final row in conversations)
+        if (row['client_id'] case final String clientId
+            when clientId.isNotEmpty)
+          clientId: row['id']! as String,
+    };
 
     for (final remote in conversations) {
       if (!_hasActiveUserContext) return;
-      await _mergeRemoteConversation(remote);
+      await _mergeRemoteConversation(
+        remote,
+        remoteClientOwners: remoteClientOwners,
+      );
     }
 
     if (!_hasActiveUserContext) return;
@@ -348,8 +357,9 @@ class SyncService {
   }
 
   Future<int> _mergeRemoteConversation(
-    Map<String, dynamic> remote,
-  ) async {
+    Map<String, dynamic> remote, {
+    Map<String, String>? remoteClientOwners,
+  }) async {
     final uuid = remote['id']! as String;
     final userId = _requireActiveUserId();
     final clientId = remote['client_id'] as String?;
@@ -365,6 +375,23 @@ class SyncService {
     final mappedId = _idMapping.getConversationLocalId(uuid);
     local ??=
         mappedId == null ? null : await _database.getConversation(mappedId);
+    if (clientId == null && local != null) {
+      final localId = local['id']! as int;
+      final localClientId = local['client_id'] as String?;
+      if (localClientId != null && localClientId.isNotEmpty) {
+        final ownerUuid = remoteClientOwners == null
+            ? await _findRemoteConversationOwner(userId, localClientId)
+            : remoteClientOwners[localClientId];
+        if (ownerUuid != null && ownerUuid != uuid) {
+          // A legacy reverse mapping can point at a local conversation whose
+          // stable client ID already belongs to another cloud row. Preserve
+          // both rows: reserve this local row for its canonical owner and let
+          // the legacy row receive a fresh local identity below.
+          await _idMapping.storeConversationMapping(localId, ownerUuid);
+          local = null;
+        }
+      }
+    }
 
     final createdAt = DateTime.parse(remote['created_at'] as String);
     final updatedAt = DateTime.parse(remote['updated_at'] as String);
@@ -519,10 +546,18 @@ class SyncService {
       final mappedUuid = _idMapping.getConversationUUID(conversation.id!);
       late Map<String, dynamic> response;
       if (mappedUuid != null) {
+        final ownerUuid = await _findRemoteConversationOwner(userId, clientId);
+        final targetUuid = ownerUuid ?? mappedUuid;
+        if (targetUuid != mappedUuid) {
+          await _idMapping.storeConversationMapping(
+            conversation.id!,
+            targetUuid,
+          );
+        }
         response = await _supabase.client
             .from('conversations')
             .update(data)
-            .eq('id', mappedUuid)
+            .eq('id', targetUuid)
             .eq('user_id', userId)
             .select()
             .single();
@@ -542,6 +577,19 @@ class SyncService {
       if (throwOnFailure) rethrow;
       return null;
     }
+  }
+
+  Future<String?> _findRemoteConversationOwner(
+    String userId,
+    String clientId,
+  ) async {
+    final response = await _supabase.client
+        .from('conversations')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('client_id', clientId)
+        .maybeSingle();
+    return response?['id'] as String?;
   }
 
   Future<void> updateConversation(Conversation conversation) async {

@@ -9,6 +9,7 @@ enum MessageType {
 
 class ChatMessage {
   final int? id;
+  final String? clientId;
   final String message;
   final bool isUserMessage;
   final String? audioPath;
@@ -24,6 +25,7 @@ class ChatMessage {
 
   ChatMessage({
     this.id,
+    this.clientId,
     required this.message,
     required this.isUserMessage,
     this.audioPath,
@@ -44,6 +46,7 @@ class ChatMessage {
 
     final map = {
       'id': id,
+      'client_id': clientId,
       'message': message,
       'is_user_message': isUserMessage ? 1 : 0,
       'audio_path': audioPath,
@@ -52,9 +55,12 @@ class ChatMessage {
       'image_paths': imagePaths != null ? jsonEncode(imagePaths) : null,
       'image_urls': imageUrls != null ? jsonEncode(imageUrls) : null,
       'file_paths': filePaths != null ? jsonEncode(filePaths) : null,
-      'is_welcome_message': isWelcomeMessage != null && isWelcomeMessage! ? 1 : 0,
+      'is_welcome_message':
+          isWelcomeMessage != null && isWelcomeMessage! ? 1 : 0,
       'conversation_id': conversationId,
-      'location_results': locationResults != null ? jsonEncode(locationResults!.map((r) => r.toJson()).toList()) : null,
+      'location_results': locationResults != null
+          ? jsonEncode(locationResults!.map((r) => r.toJson()).toList())
+          : null,
       'message_type': messageType.index,
     };
 
@@ -65,49 +71,102 @@ class ChatMessage {
   }
 
   factory ChatMessage.fromMap(Map<String, dynamic> map) {
+    final storedMessageType = map['message_type'];
+    final messageTypeIndex =
+        storedMessageType is int ? storedMessageType : null;
+    final messageType = messageTypeIndex != null &&
+            messageTypeIndex >= 0 &&
+            messageTypeIndex < MessageType.values.length
+        ? MessageType.values[messageTypeIndex]
+        : MessageType.normal;
     return ChatMessage(
       id: map['id'],
+      clientId: map['client_id'] as String?,
       message: map['message'],
       isUserMessage: map['is_user_message'] == 1,
       audioPath: map['audio_path'],
       timestamp: map['timestamp'],
       profileId: map['profile_id'],
-      imagePaths: map['image_paths'] != null ? List<String>.from(jsonDecode(map['image_paths'])) : null,
-      imageUrls: map['image_urls'] != null ? List<String>.from(jsonDecode(map['image_urls'])) : null,
-      filePaths: map['file_paths'] != null ? List<String>.from(jsonDecode(map['file_paths'])) : null,
+      imagePaths: map['image_paths'] != null
+          ? List<String>.from(jsonDecode(map['image_paths']))
+          : null,
+      imageUrls: map['image_urls'] != null
+          ? List<String>.from(jsonDecode(map['image_urls']))
+          : null,
+      filePaths: map['file_paths'] != null
+          ? List<String>.from(jsonDecode(map['file_paths']))
+          : null,
       isWelcomeMessage: map['is_welcome_message'] == 1,
       conversationId: map['conversation_id'],
-      locationResults: map['location_results'] != null ? (jsonDecode(map['location_results']) as List).map((item) => PlaceResult.fromStoredJson(item)).toList() : null,
-      messageType: map['message_type'] != null ? MessageType.values[map['message_type']] : MessageType.normal,
+      locationResults: map['location_results'] != null
+          ? (jsonDecode(map['location_results']) as List)
+              .map((item) => PlaceResult.fromStoredJson(item))
+              .toList()
+          : null,
+      messageType: messageType,
     );
   }
 
   /// Convert to Supabase format
   Map<String, dynamic> toSupabase(String conversationUuid) {
     return {
+      'client_id': clientId,
       'conversation_id': conversationUuid,
       'content': message,
       'is_ai': !isUserMessage, // Invert for Supabase
       'image_urls': imageUrls, // Array of URLs
+      'metadata': {
+        'is_welcome_message': isWelcomeMessage ?? false,
+        'message_type': messageType.name,
+        if (locationResults != null)
+          'location_results':
+              locationResults!.map((result) => result.toJson()).toList(),
+      },
       'created_at': timestamp,
     };
   }
 
   /// Create from Supabase data
-  factory ChatMessage.fromSupabase(Map<String, dynamic> data, int localConversationId) {
+  factory ChatMessage.fromSupabase(
+    Map<String, dynamic> data,
+    int localConversationId, {
+    required int profileId,
+  }) {
+    final metadata = data['metadata'] is Map
+        ? Map<String, dynamic>.from(data['metadata'] as Map)
+        : const <String, dynamic>{};
+    final messageTypeName = metadata['message_type'] as String?;
+    final messageType = MessageType.values
+        .where(
+          (value) => value.name == messageTypeName,
+        )
+        .firstOrNull;
+    final storedLocations = metadata['location_results'];
+
     return ChatMessage(
+      clientId: data['client_id'] as String?,
       message: data['content'] as String,
       isUserMessage: !(data['is_ai'] as bool? ?? false), // Invert from Supabase
       timestamp: data['created_at'] as String,
       conversationId: localConversationId,
-      imageUrls: data['image_urls'] != null ? List<String>.from(data['image_urls']) : null,
-      profileId: 1, // Default profile
+      imageUrls: data['image_urls'] != null
+          ? List<String>.from(data['image_urls'] as List)
+          : null,
+      profileId: profileId,
+      isWelcomeMessage: metadata['is_welcome_message'] as bool? ?? false,
+      locationResults: storedLocations is List
+          ? storedLocations
+              .map((item) => PlaceResult.fromStoredJson(item))
+              .toList()
+          : null,
+      messageType: messageType ?? MessageType.normal,
     );
   }
 
   /// Copy with method for updating fields
   ChatMessage copyWith({
     int? id,
+    String? clientId,
     String? message,
     bool? isUserMessage,
     String? audioPath,
@@ -123,6 +182,7 @@ class ChatMessage {
   }) {
     return ChatMessage(
       id: id ?? this.id,
+      clientId: clientId ?? this.clientId,
       message: message ?? this.message,
       isUserMessage: isUserMessage ?? this.isUserMessage,
       audioPath: audioPath ?? this.audioPath,

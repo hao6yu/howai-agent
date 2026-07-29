@@ -1,5 +1,6 @@
 class Conversation {
   final int? id;
+  final String? clientId;
   String title;
   bool isPinned;
   DateTime createdAt;
@@ -9,6 +10,7 @@ class Conversation {
 
   Conversation({
     this.id,
+    this.clientId,
     required this.title,
     this.isPinned = false,
     required this.createdAt,
@@ -21,6 +23,7 @@ class Conversation {
 
   factory Conversation.fromMap(Map<String, dynamic> map) => Conversation(
         id: map['id'],
+        clientId: map['client_id'] as String?,
         title: map['title'] ?? '',
         isPinned: (map['is_pinned'] ?? 0) == 1,
         createdAt: DateTime.parse(map['created_at']),
@@ -33,6 +36,7 @@ class Conversation {
 
   Map<String, dynamic> toMap() => {
         'id': id,
+        'client_id': clientId,
         'title': title,
         'is_pinned': isPinned ? 1 : 0,
         'created_at': createdAt.toIso8601String(),

@@ -501,9 +501,16 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       await _loadDebugOverride();
       await _loadUsageStats();
       _lastKnownEntitlementUserId = _currentEntitlementUserId;
-      _authSubscription = _supabase.authStateChanges.listen((authState) {
-        unawaited(_handleAuthStateChange(authState.session?.user));
-      });
+      _authSubscription = _supabase.authStateChanges.listen(
+        (authState) {
+          unawaited(_handleAuthStateChange(authState.session?.user));
+        },
+        onError: (Object error, StackTrace stackTrace) {
+          _errorMessage = 'Subscription account status could not be refreshed.';
+          debugPrint('[SubscriptionService] Auth stream failed: $error');
+          notifyListeners();
+        },
+      );
 
       final Stream<List<PurchaseDetails>> purchaseUpdated =
           _inAppPurchase.purchaseStream;

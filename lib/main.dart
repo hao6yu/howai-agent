@@ -19,6 +19,7 @@ import 'providers/ai_personality_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/reminder_provider.dart';
 import 'providers/push_notification_provider.dart';
+import 'providers/startup_provider.dart';
 import 'screens/ai_chat_screen.dart';
 import 'services/elevenlabs_service.dart';
 import 'services/openai_service.dart';
@@ -33,6 +34,7 @@ import 'screens/knowledge_hub_screen.dart';
 import 'features/actions/presentation/actions_workspace_screen.dart';
 import 'firebase_options.dart';
 import 'services/push_notification_service.dart';
+import 'core/accessibility/motion_preferences.dart';
 import 'core/theme/howai_theme.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -57,6 +59,7 @@ Future<void> main() async {
 
 Future<void> _bootstrap() async {
   AppConfig.validatePublicBackendConfig();
+  final settingsProvider = SettingsProvider();
 
   // Initialize Supabase with deep link handling
   await Supabase.initialize(
@@ -69,6 +72,66 @@ Future<void> _bootstrap() async {
     ),
   );
 
+  // These initializers only resolve the authenticated proxy configuration.
+  await Future.wait([
+    OpenAIService.initialize(),
+    ElevenLabsService.initialize(),
+    settingsProvider.ready,
+  ]);
+
+  final startupProvider = StartupProvider();
+  final profileProvider = ProfileProvider();
+  final conversationProvider = ConversationProvider();
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: startupProvider),
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider(
+            profileProvider: profileProvider,
+            conversationProvider: conversationProvider,
+          ),
+        ),
+        ChangeNotifierProvider.value(value: profileProvider),
+        ChangeNotifierProvider.value(value: settingsProvider),
+        ChangeNotifierProvider(create: (_) => SubscriptionService()),
+        ChangeNotifierProvider.value(value: conversationProvider),
+        ChangeNotifierProvider(create: (_) => AIPersonalityProvider()),
+        ChangeNotifierProvider(create: (_) => ReminderProvider()),
+        ChangeNotifierProvider(create: (_) => PushNotificationProvider()),
+      ],
+      child: const HowAIMainApp(),
+    ),
+  );
+
+  unawaited(
+    _completeDeferredBootstrap(
+      startupProvider: startupProvider,
+      profileProvider: profileProvider,
+    ),
+  );
+}
+
+Future<void> _completeDeferredBootstrap({
+  required StartupProvider startupProvider,
+  required ProfileProvider profileProvider,
+}) async {
+  final notificationInitialization = _initializeNotifications();
+
+  // Local data remains a readiness gate so feature screens never observe a
+  // half-activated account database.
+  await _initializeLocalData(profileProvider, startupProvider);
+  startupProvider.markReady();
+
+  // Push setup is useful but must not hold the first usable screen hostage.
+  await notificationInitialization;
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    PushNotificationService.instance.flushPendingNavigation();
+  });
+}
+
+Future<void> _initializeNotifications() async {
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -94,29 +157,35 @@ Future<void> _bootstrap() async {
       );
     }
   }
+}
 
+Future<void> _initializeLocalData(
+  ProfileProvider profileProvider,
+  StartupProvider startupProvider,
+) async {
   // Check database integrity and repair if needed
   try {
-    //// print("Checking database integrity...");
     final dbService = DatabaseService();
-    final wasRepaired = await dbService.checkAndRepairDatabase();
-    if (wasRepaired) {
-      //// print("Database was reset due to integrity issues");
-    }
+    final currentUser = Supabase.instance.client.auth.currentUser;
+    await dbService.activateAccount(
+      currentUser == null || currentUser.isAnonymous ? null : currentUser.id,
+    );
+    await dbService.checkAndRepairDatabase();
   } catch (e) {
-    //// print("Error during database check: $e");
+    debugPrint('Local database check failed without deleting data: $e');
+    startupProvider.recordNonFatalError(e);
   }
-
-  // Initialize services
-  await OpenAIService.initialize();
-  await ElevenLabsService.initialize();
 
   // Initialize sync service (will start background sync if authenticated)
   final syncService = SyncService();
-  await syncService.initialize();
+  try {
+    await syncService.initialize();
+  } catch (error) {
+    startupProvider.recordNonFatalError(error);
+    debugPrint('Background sync initialization is unavailable: $error');
+  }
 
   // Initialize the profile provider and load profiles
-  final profileProvider = ProfileProvider();
   try {
     await profileProvider.loadProfiles();
   } catch (e) {
@@ -129,25 +198,6 @@ Future<void> _bootstrap() async {
       // Keep app booting even if local profile load still fails.
     }
   }
-
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => profileProvider),
-        ChangeNotifierProvider(create: (_) => SettingsProvider()),
-        ChangeNotifierProvider(create: (_) => SubscriptionService()),
-        ChangeNotifierProvider(create: (_) => ConversationProvider()),
-        ChangeNotifierProvider(create: (_) => AIPersonalityProvider()),
-        ChangeNotifierProvider(create: (_) => ReminderProvider()),
-        ChangeNotifierProvider(create: (_) => PushNotificationProvider()),
-      ],
-      child: const HowAIMainApp(),
-    ),
-  );
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    PushNotificationService.instance.flushPendingNavigation();
-  });
 }
 
 class HowAIMainApp extends StatelessWidget {
@@ -155,24 +205,30 @@ class HowAIMainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, _) {
+    return Selector<SettingsProvider,
+        ({ThemeMode themeMode, double fontSizeScale, String? selectedLocale})>(
+      selector: (_, settings) => (
+        themeMode: settings.themeMode,
+        fontSizeScale: settings.fontSizeScale,
+        selectedLocale: settings.selectedLocale,
+      ),
+      builder: (context, appearance, _) {
         Locale? locale;
-        if (settings.selectedLocale != null) {
-          final localeParts = settings.selectedLocale!.split('_');
+        if (appearance.selectedLocale != null) {
+          final localeParts = appearance.selectedLocale!.split('_');
           if (localeParts.length > 1) {
             locale = Locale(localeParts[0], localeParts[1]);
           } else {
-            locale = Locale(settings.selectedLocale!);
+            locale = Locale(appearance.selectedLocale!);
           }
         }
         return MaterialApp(
           navigatorKey: rootNavigatorKey,
           title: 'HowAI',
           debugShowCheckedModeBanner: false,
-          themeMode: settings.themeMode,
-          theme: HowAITheme.light(fontScale: settings.fontSizeScale),
-          darkTheme: HowAITheme.dark(fontScale: settings.fontSizeScale),
+          themeMode: appearance.themeMode,
+          theme: HowAITheme.light(fontScale: appearance.fontSizeScale),
+          darkTheme: HowAITheme.dark(fontScale: appearance.fontSizeScale),
           locale: locale,
           localizationsDelegates: const [
             AppLocalizations.delegate,
@@ -180,26 +236,8 @@ class HowAIMainApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [
-            Locale('en'),
-            Locale('zh'),
-            Locale('zh', 'TW'),
-            Locale('ja'),
-            Locale('es'),
-            Locale('fr'),
-            Locale('hi'),
-            Locale('ar'),
-            Locale('ru'),
-            Locale('pt', 'BR'),
-            Locale('ko'),
-            Locale('de'),
-            Locale('id'),
-            Locale('tr'),
-            Locale('it'),
-            Locale('vi'),
-            Locale('pl'),
-          ],
-          home: const AuthGate(),
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const StartupGate(),
           routes: {
             '/auth': (context) => const AuthScreen(),
             '/home': (context) => const MainTabScaffold(),
@@ -217,6 +255,29 @@ class HowAIMainApp extends StatelessWidget {
   }
 }
 
+class StartupGate extends StatelessWidget {
+  const StartupGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isReady =
+        context.select<StartupProvider, bool>((provider) => provider.isReady);
+    return AnimatedSwitcher(
+      duration: motionDuration(context, HowAIMotion.standard),
+      switchInCurve: HowAIMotion.enterCurve,
+      switchOutCurve: HowAIMotion.exitCurve,
+      child: isReady
+          ? const AuthGate(key: ValueKey<String>('startup_ready'))
+          : const Scaffold(
+              key: ValueKey<String>('startup_loading'),
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+    );
+  }
+}
+
 // Auth Gate - Shows auth screen or main app based on auth status
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -228,19 +289,15 @@ class AuthGate extends StatelessWidget {
         // Show loading while checking auth state
         if (authProvider.isLoading) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
-        // Show auth screen if not authenticated
-        // User can choose to continue without account
+        // User can choose to continue without account.
         if (!authProvider.isAuthenticated) {
           return const AuthScreen();
         }
 
-        // Show main app if authenticated
         return const MainTabScaffold();
       },
     );

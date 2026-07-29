@@ -4,7 +4,7 @@ description: >
   HowAI 
 
 publish_to: 'none'
-version: 2.0.0+41
+version: 2.0.1+42
 environment:
   sdk: ">=3.4.0 <4.0.0"
 
@@ -15,6 +15,8 @@ dependencies:
   cupertino_icons: ^1.0.2
   sqflite: ^2.3.0  # For SQLite database
   path: ^1.8.3     # For database path handling
+  uuid: ^4.5.1     # Stable client IDs for idempotent cloud sync
+  crypto: ^3.0.6   # Content fingerprints for durable imported files
   shared_preferences: ^2.5.3  # For storing user preferences
   audioplayers: ^6.4.0  # For game sounds
   flutter_animate: ^4.5.0  # For animations

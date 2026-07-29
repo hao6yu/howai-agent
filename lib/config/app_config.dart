@@ -55,14 +55,12 @@ class AppConfig {
       ? _openAIChatMiniModel
       : 'howai-chat-mini';
 
-  static const elevenLabsApiKey = String.fromEnvironment('ELEVENLABS_API_KEY');
   static const _configuredElevenLabsProxyBaseUrl =
       String.fromEnvironment('ELEVENLABS_PROXY_BASE_URL');
   static String get elevenLabsProxyBaseUrl =>
       _configuredElevenLabsProxyBaseUrl.trim().isNotEmpty
           ? _configuredElevenLabsProxyBaseUrl.trim()
           : '$supabaseUrl/functions/v1/elevenlabs-proxy';
-  static const elevenLabsXiApiKey = String.fromEnvironment('XI_API_KEY');
   static const elevenLabsAgentId =
       String.fromEnvironment('ELEVENLABS_AGENT_ID');
   static const elevenLabsConvaiAgentId =

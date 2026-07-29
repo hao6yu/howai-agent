@@ -13,6 +13,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/agent/agent_action_contracts.dart';
+import '../core/accessibility/motion_preferences.dart';
 import '../core/theme/howai_theme.dart';
 import '../models/chat_message.dart';
 import '../providers/profile_provider.dart';
@@ -65,8 +66,13 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   bool _isConnected = false;
   bool _isConnecting = false;
   bool _isClosing = false;
+  bool _showConnectedLayoutWhileClosing = false;
+  bool _allowRoutePop = false;
+  bool _routePopScheduled = false;
   bool _isPaused = false;
   bool _isAssistantSpeaking = false;
+  bool _speakerphoneEnabled = true;
+  bool _isAudioRouteChanging = false;
 
   // Error handling
   String? _error;
@@ -95,6 +101,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   bool _isPremium = false;
   bool _initialized = false;
   bool _preferenceLoadScheduled = false;
+  Future<void>? _voicePreferenceLoad;
   bool _initialVisionScheduled = false;
   bool _forceBackupProvider = false;
   bool _showBackupOption = false;
@@ -126,6 +133,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   bool _warnedOneMinuteLeft = false;
   bool _isSavingTranscript = false;
   String? _pendingEndReason;
+  bool _reduceMotion = false;
 
   // Background handling
   DateTime? _wentBackgroundAt;
@@ -134,6 +142,10 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
   Timer? _callTimer;
   int _elapsedSeconds = 0;
   static const Duration _connectTimeout = Duration(seconds: 20);
+  static const Duration _disconnectTimeout = Duration(seconds: 4);
+  static const Duration _disposeTimeout = Duration(seconds: 2);
+  static const String _speakerphonePreferenceKey =
+      'voice_call_speakerphone_enabled';
 
   @override
   void initState() {
@@ -142,12 +154,23 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     _orbPulseController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1100),
-    )..repeat(reverse: true);
+    );
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final reduceMotion = prefersReducedMotion(context);
+    if (reduceMotion != _reduceMotion || !_orbPulseController.isAnimating) {
+      _reduceMotion = reduceMotion;
+      if (_reduceMotion) {
+        _orbPulseController
+          ..stop()
+          ..value = 0.5;
+      } else if (!_orbPulseController.isAnimating) {
+        _orbPulseController.repeat(reverse: true);
+      }
+    }
     if (_initialized) return;
     _initialized = true;
 
@@ -165,7 +188,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     if (!_preferenceLoadScheduled) {
       _preferenceLoadScheduled = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        unawaited(_loadVoicePreference());
+        unawaited(_ensureVoicePreferencesLoaded());
       });
     }
     if (widget.initialVisionEnabled && !_initialVisionScheduled) {
@@ -178,12 +201,18 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     }
   }
 
-  Future<void> _loadVoicePreference() async {
+  Future<void> _ensureVoicePreferencesLoaded() {
+    return _voicePreferenceLoad ??= _loadVoicePreferences();
+  }
+
+  Future<void> _loadVoicePreferences() async {
     final prefs = await SharedPreferences.getInstance();
     final savedVoice = prefs.getString('realtime_voice_name');
+    final savedSpeakerphone = prefs.getBool(_speakerphonePreferenceKey) ?? true;
     if (savedVoice == 'marin' || savedVoice == 'cedar') {
       _selectedVoice = savedVoice!;
     }
+    _speakerphoneEnabled = savedSpeakerphone;
     if (!mounted) return;
     setState(() {});
   }
@@ -232,6 +261,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         _setStateIfMounted(() {
           _isConnected = true;
           _isConnecting = false;
+          _isAssistantSpeaking = false;
           _error = null;
           _showBackupOption = false;
         });
@@ -241,6 +271,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         _setStateIfMounted(() {
           _isConnected = false;
           _isConnecting = false;
+          _isAssistantSpeaking = false;
         });
         _callTimer?.cancel();
         if (!_isClosing) {
@@ -249,6 +280,10 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       },
       onUserSpeechStarted: () {
         _userSpeechTurnCount += 1;
+        _setStateIfMounted(() {
+          _isAssistantSpeaking = false;
+          _currentTranscript = null;
+        });
         if (_visionEnabled && _isConnected && !_isAssistantSpeaking) {
           unawaited(_shareVisionFrame(requestResponse: false));
         }
@@ -264,9 +299,6 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         }
         _setStateIfMounted(() {
           _currentTranscript = update.text;
-          if (!update.isUser) {
-            _isAssistantSpeaking = !update.isFinal;
-          }
         });
       },
       onSpeakingChanged: (speaking) {
@@ -636,9 +668,10 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       await session.configure(
         AudioSessionConfiguration(
           avAudioSessionCategory: AVAudioSessionCategory.playAndRecord,
-          avAudioSessionCategoryOptions:
-              AVAudioSessionCategoryOptions.defaultToSpeaker |
-                  AVAudioSessionCategoryOptions.allowBluetooth,
+          avAudioSessionCategoryOptions: _speakerphoneEnabled
+              ? AVAudioSessionCategoryOptions.defaultToSpeaker |
+                  AVAudioSessionCategoryOptions.allowBluetooth
+              : AVAudioSessionCategoryOptions.allowBluetooth,
           avAudioSessionMode: AVAudioSessionMode.voiceChat,
           androidAudioAttributes: const AndroidAudioAttributes(
             contentType: AndroidAudioContentType.speech,
@@ -797,6 +830,8 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
 
   Future<void> _startCall() async {
     if (_isConnecting || _isConnected) return;
+    await _ensureVoicePreferencesLoaded();
+    if (!mounted || _isConnecting || _isConnected) return;
     final l10n = AppLocalizations.of(context)!;
 
     // Check profile
@@ -818,6 +853,8 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       _pendingVoiceToolCall = null;
       _pendingProposalSpeechTurnCount = null;
       _isPaused = false;
+      _isAssistantSpeaking = false;
+      _isAudioRouteChanging = false;
       _elapsedSeconds = 0;
       _userSpeechTurnCount = 0;
       _maxCallSeconds =
@@ -877,6 +914,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
         userName: userName,
         timezone: timezone,
         localDateTime: localDateTime,
+        speakerphoneEnabled: _speakerphoneEnabled,
         interestTags: interestTags,
         communicationStyle: communicationStyle,
       );
@@ -1322,23 +1360,64 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     }
   }
 
+  Future<void> _toggleSpeakerphone() async {
+    if (!_isConnected || _isAudioRouteChanging) return;
+    final service = _voiceSessionService;
+    if (service == null) return;
+
+    final enabled = !_speakerphoneEnabled;
+    _setStateIfMounted(() => _isAudioRouteChanging = true);
+    try {
+      await service.setSpeakerphoneEnabled(enabled);
+      _setStateIfMounted(() => _speakerphoneEnabled = enabled);
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool(_speakerphonePreferenceKey, enabled);
+      } catch (error) {
+        debugPrint('Could not save voice-call audio route: $error');
+      }
+    } catch (error) {
+      debugPrint('Could not change voice-call audio route: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not change the call audio output.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      _setStateIfMounted(() => _isAudioRouteChanging = false);
+    }
+  }
+
   Future<void> _closeCall({String reason = 'user_closed'}) async {
     if (_isClosing) return;
-    _isClosing = true;
     _pendingEndReason = reason;
     _callTimer?.cancel();
 
     _setStateIfMounted(() {
-      _isConnected = false;
+      _showConnectedLayoutWhileClosing = _isConnected;
+      _isClosing = true;
       _isConnecting = false;
+      _isAssistantSpeaking = false;
     });
 
-    try {
-      await _voiceSessionService?.disconnect(reason: reason);
-      await _voiceSessionService?.dispose();
-      _voiceSessionService = null;
-    } catch (e) {
-      debugPrint('Error ending session: $e');
+    final sessionService = _voiceSessionService;
+    _voiceSessionService = null;
+    if (sessionService != null) {
+      try {
+        await sessionService
+            .disconnect(reason: reason)
+            .timeout(_disconnectTimeout);
+      } catch (e) {
+        debugPrint('Error ending session: $e');
+      }
+      try {
+        await sessionService.dispose().timeout(_disposeTimeout);
+      } catch (e) {
+        debugPrint('Error disposing voice session: $e');
+      }
     }
 
     // Deactivate audio session
@@ -1348,14 +1427,28 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     await _finalizeUsageSession(endReason: reason);
 
     _pendingEndReason = null;
-    _isClosing = false;
 
     // Automatically save transcript when present.
     if (_transcript.isNotEmpty && mounted) {
       await _saveTranscriptAndExit();
     } else if (mounted) {
-      Navigator.of(context).pop();
+      _popCallScreen();
     }
+  }
+
+  void _popCallScreen([int? conversationId]) {
+    if (!mounted || _routePopScheduled) return;
+    _routePopScheduled = true;
+    final navigator = Navigator.of(context);
+    final route = ModalRoute.of(context);
+    setState(() {
+      _allowRoutePop = true;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && route?.isCurrent == true) {
+        navigator.pop(conversationId);
+      }
+    });
   }
 
   Future<void> _saveTranscriptAndExit() async {
@@ -1381,7 +1474,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
           messages: memoryMessages,
         ));
       }
-      Navigator.of(context).pop(conversationId);
+      _popCallScreen(conversationId);
       return;
     }
 
@@ -1391,7 +1484,7 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
             Text(AppLocalizations.of(context)!.voiceCallTranscriptSaveFailed),
       ),
     );
-    Navigator.of(context).pop();
+    _popCallScreen();
   }
 
   Future<int?> _saveTranscriptAsConversation() async {
@@ -1677,28 +1770,32 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
       ),
       child: Column(
         children: [
-          if (_visionEnabled)
-            _buildVisionCameraStage(
-              colors: colors,
-              height: cameraHeight,
-            )
-          else
-            AnimatedBuilder(
-              animation: _orbPulseController,
-              builder: (context, child) {
-                return _RealtimeVoiceOrb(
-                  size: connectedOrbSize,
-                  animationValue: _orbPulseController.value,
-                  accent: accent,
-                  disabled: false,
-                  connecting: false,
-                  connected: true,
-                  assistantSpeaking: _isAssistantSpeaking,
-                  muted: _isPaused,
-                  onTap: null,
-                );
-              },
-            ),
+          AnimatedSize(
+            duration: motionDuration(context, HowAIMotion.deliberate),
+            curve: HowAIMotion.enterCurve,
+            alignment: Alignment.topCenter,
+            child: _visionEnabled
+                ? _buildVisionCameraStage(
+                    colors: colors,
+                    height: cameraHeight,
+                  )
+                : AnimatedBuilder(
+                    animation: _orbPulseController,
+                    builder: (context, child) {
+                      return _RealtimeVoiceOrb(
+                        size: connectedOrbSize,
+                        animationValue: _orbPulseController.value,
+                        accent: accent,
+                        disabled: false,
+                        connecting: false,
+                        connected: true,
+                        assistantSpeaking: _isAssistantSpeaking,
+                        muted: _isPaused,
+                        onTap: null,
+                      );
+                    },
+                  ),
+          ),
           const SizedBox(height: 12),
           Expanded(
             child: SingleChildScrollView(
@@ -1728,68 +1825,84 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  if (_pendingVoiceProposal != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: _VoiceApprovalPanel(
-                        proposal: _pendingVoiceProposal!,
-                        isBusy: _isActionBusy,
-                        onApprove: () => unawaited(
-                          _decideVoiceProposal(AgentActionDecision.approved),
-                        ),
-                        onReject: () => unawaited(
-                          _decideVoiceProposal(AgentActionDecision.rejected),
-                        ),
-                      ),
-                    ),
-                  if (_error != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.errorContainer,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          _error!,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onErrorContainer,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  if (_visionError != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: colors.warning.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _visionError!,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: colors.textPrimary,
+                  HowAIAnimatedPresence(
+                    duration: motionDuration(context, HowAIMotion.standard),
+                    child: _pendingVoiceProposal == null
+                        ? null
+                        : Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: _VoiceApprovalPanel(
+                              proposal: _pendingVoiceProposal!,
+                              isBusy: _isActionBusy,
+                              onApprove: () => unawaited(
+                                _decideVoiceProposal(
+                                  AgentActionDecision.approved,
+                                ),
                               ),
-                              textAlign: TextAlign.center,
+                              onReject: () => unawaited(
+                                _decideVoiceProposal(
+                                  AgentActionDecision.rejected,
+                                ),
+                              ),
                             ),
-                            if (_visionNeedsSettings)
-                              TextButton(
-                                onPressed: openAppSettings,
-                                child: const Text('Open Settings'),
+                          ),
+                  ),
+                  HowAIAnimatedPresence(
+                    duration: motionDuration(context, HowAIMotion.standard),
+                    child: _error == null
+                        ? null
+                        : Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.errorContainer,
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                          ],
-                        ),
-                      ),
-                    ),
+                              child: Text(
+                                _error!,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onErrorContainer,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                  ),
+                  HowAIAnimatedPresence(
+                    duration: motionDuration(context, HowAIMotion.standard),
+                    child: _visionError == null
+                        ? null
+                        : Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: colors.warning.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    _visionError!,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: colors.textPrimary,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  if (_visionNeedsSettings)
+                                    TextButton(
+                                      onPressed: openAppSettings,
+                                      child: const Text('Open Settings'),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                  ),
                 ],
               ),
             ),
@@ -1802,8 +1915,10 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
             ),
           ],
           const SizedBox(height: 12),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: isCompact ? 12 : 18,
+            runSpacing: 12,
             children: [
               _VoiceControlButton(
                 icon: _visionEnabled
@@ -1816,7 +1931,6 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
                     _visionEnabled ? colors.accentSoft : colors.surface,
                 onTap: () => unawaited(_toggleVision()),
               ),
-              SizedBox(width: isCompact ? 14 : 22),
               _VoiceControlButton(
                 icon: _isPaused ? Icons.mic_off_rounded : Icons.mic_rounded,
                 label: _isPaused ? l10n.voiceCallUnmute : l10n.voiceCallMute,
@@ -1824,7 +1938,20 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
                 backgroundColor: colors.surface,
                 onTap: _toggleMute,
               ),
-              SizedBox(width: isCompact ? 14 : 22),
+              _VoiceControlButton(
+                icon: _speakerphoneEnabled
+                    ? Icons.volume_up_rounded
+                    : Icons.phone_in_talk_rounded,
+                label: l10n.speakerAudio,
+                toggled: _speakerphoneEnabled,
+                foregroundColor:
+                    _speakerphoneEnabled ? colors.accent : colors.textPrimary,
+                backgroundColor:
+                    _speakerphoneEnabled ? colors.accentSoft : colors.surface,
+                onTap: _isAudioRouteChanging
+                    ? null
+                    : () => unawaited(_toggleSpeakerphone()),
+              ),
               _VoiceControlButton(
                 icon: Icons.call_end_rounded,
                 label: l10n.voiceCallEndCall,
@@ -1835,6 +1962,59 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildClosingOverlay({
+    required AppLocalizations l10n,
+    required ThemeData theme,
+    required HowAIColors colors,
+  }) {
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: _isSavingTranscript
+          ? l10n.voiceCallSavingTranscript
+          : l10n.voiceCallEndedTitle,
+      child: ColoredBox(
+        color: colors.canvas.withValues(alpha: 0.78),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 280),
+            margin: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: colors.divider),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox.square(
+                  dimension: 28,
+                  child: CircularProgressIndicator(strokeWidth: 2.5),
+                ),
+                const SizedBox(height: 16),
+                AnimatedSwitcher(
+                  duration: motionDuration(context, HowAIMotion.quick),
+                  child: Text(
+                    _isSavingTranscript
+                        ? l10n.voiceCallSavingTranscript
+                        : l10n.voiceCallEndedTitle,
+                    key: ValueKey<bool>(_isSavingTranscript),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -1852,11 +2032,13 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
     final isCompact = screenWidth < 360;
     final orbSize = isCompact ? 142.0 : 166.0;
     final verticalGap = isCompact ? 14.0 : 20.0;
+    final visuallyConnected =
+        _isConnected || (_isClosing && _showConnectedLayoutWhileClosing);
     final activityLabel = _isSavingTranscript
         ? l10n.voiceCallSavingTranscript
         : _isPaused
             ? l10n.voiceCallMicMuted
-            : _isConnected
+            : visuallyConnected
                 ? (_isAssistantSpeaking
                     ? l10n.voiceCallAiSpeaking
                     : l10n.listening)
@@ -1865,313 +2047,477 @@ class _ElevenLabsCallScreenState extends State<ElevenLabsCallScreen>
                     : (_error == null ? 'Tap to start' : 'Tap to try again'));
     final statusText = _currentTranscript ?? activityLabel;
 
-    return Scaffold(
-      backgroundColor: howaiColors.canvas,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close_rounded),
-          onPressed: () => _closeCall(reason: 'back_button'),
-        ),
-        title: const Text(
-          'HowAI Voice',
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          IconButton(
-            tooltip: 'Voice options',
-            onPressed: _showVoiceOptions,
-            icon: const Icon(Icons.tune_rounded),
+    return PopScope<int?>(
+      canPop: _allowRoutePop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && !_isClosing) {
+          unawaited(_closeCall(reason: 'system_back'));
+        }
+      },
+      child: Scaffold(
+        backgroundColor: howaiColors.canvas,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.close_rounded),
+            onPressed:
+                _isClosing ? null : () => _closeCall(reason: 'back_button'),
           ),
-          const SizedBox(width: 4),
-        ],
-      ),
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            if (_isConnected) {
-              return _buildConnectedCallBody(
-                constraints: constraints,
-                theme: theme,
-                colors: howaiColors,
-                l10n: l10n,
-                accent: primaryColor,
-                isCompact: isCompact,
-                activityLabel: activityLabel,
-                statusText: statusText,
-              );
-            }
-            final visionHeight = min(
-              300.0,
-              max(
-                200.0,
-                constraints.maxHeight *
-                    (constraints.maxHeight < 700 ? 0.30 : 0.32),
-              ),
-            );
-            return SingleChildScrollView(
-              padding: EdgeInsets.fromLTRB(
-                isCompact ? 16 : 24,
-                12,
-                isCompact ? 16 : 24,
-                24,
-              ),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child: Column(
-                  mainAxisAlignment: _visionEnabled
-                      ? MainAxisAlignment.start
-                      : MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: _isConnected ? 4 : verticalGap),
-
-                    if (!_isConnected) ...[
-                      _buildVisionChoiceTile(
-                        theme: theme,
-                        colors: howaiColors,
-                      ),
-                      const SizedBox(height: 14),
-                    ],
-
-                    if (_visionEnabled) ...[
-                      _buildVisionCameraStage(
-                        colors: howaiColors,
-                        height: visionHeight,
-                      ),
-                      const SizedBox(height: 12),
-                      if (!_isConnected)
-                        FilledButton.icon(
-                          onPressed: _isConnecting ||
-                                  _cameraController?.value.isInitialized != true
-                              ? null
-                              : () => unawaited(_startCall()),
-                          icon: _isConnecting
-                              ? const SizedBox.square(
-                                  dimension: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : const Icon(Icons.mic_rounded),
-                          label: Text(
-                            _isConnecting ? 'Connecting…' : 'Start voice',
-                          ),
-                        ),
-                    ] else ...[
-                      // Animated orb / call button
-                      AnimatedBuilder(
-                        animation: _orbPulseController,
-                        builder: (context, child) {
-                          final t = _orbPulseController.value;
-                          return _RealtimeVoiceOrb(
-                            size: orbSize,
-                            animationValue: t,
+          title: const Text(
+            'HowAI Voice',
+            overflow: TextOverflow.ellipsis,
+          ),
+          actions: [
+            IconButton(
+              tooltip: 'Voice options',
+              onPressed: _isClosing ? null : _showVoiceOptions,
+              icon: const Icon(Icons.tune_rounded),
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: ExcludeSemantics(
+                excluding: _isClosing,
+                child: IgnorePointer(
+                  ignoring: _isClosing,
+                  child: SafeArea(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final showConnectedBody = _isConnected ||
+                            (_isClosing && _showConnectedLayoutWhileClosing);
+                        late final Widget callBody;
+                        if (showConnectedBody) {
+                          callBody = _buildConnectedCallBody(
+                            constraints: constraints,
+                            theme: theme,
+                            colors: howaiColors,
+                            l10n: l10n,
                             accent: primaryColor,
-                            disabled: false,
-                            connecting: _isConnecting,
-                            connected: _isConnected,
-                            assistantSpeaking: _isAssistantSpeaking,
-                            muted: _isPaused,
-                            onTap: !_isConnected && !_isConnecting
-                                ? () => unawaited(_startCall())
-                                : null,
+                            isCompact: isCompact,
+                            activityLabel: activityLabel,
+                            statusText: statusText,
                           );
-                        },
-                      ),
-                      SizedBox(height: verticalGap),
-                      Text(
-                        activityLabel,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: _isAssistantSpeaking
-                              ? howaiColors.accent
-                              : howaiColors.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      if (!_isConnected && !_isConnecting) ...[
-                        const SizedBox(height: 10),
-                        Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            OutlinedButton.icon(
-                              onPressed: _showVoiceOptions,
-                              icon: const Icon(
-                                Icons.graphic_eq_rounded,
-                                size: 18,
-                              ),
-                              label: Text(
-                                'Voice: ${_selectedVoice == 'marin' ? 'Marin' : 'Cedar'}',
-                              ),
+                        } else {
+                          final visionHeight = min(
+                            300.0,
+                            max(
+                              200.0,
+                              constraints.maxHeight *
+                                  (constraints.maxHeight < 700 ? 0.30 : 0.32),
                             ),
-                          ],
-                        ),
-                      ],
-                    ],
-                    if (_currentTranscript != null) ...[
-                      const SizedBox(height: 12),
-                      Container(
-                        width: double.infinity,
-                        constraints: const BoxConstraints(maxWidth: 420),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: howaiColors.surface,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: howaiColors.divider),
-                        ),
-                        child: Text(
-                          statusText,
-                          maxLines: _pendingVoiceProposal == null ? 4 : 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: howaiColors.textSecondary,
-                            height: 1.4,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ],
-
-                    if (_pendingVoiceProposal != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: _VoiceApprovalPanel(
-                          proposal: _pendingVoiceProposal!,
-                          isBusy: _isActionBusy,
-                          onApprove: () => unawaited(
-                            _decideVoiceProposal(
-                              AgentActionDecision.approved,
+                          );
+                          callBody = SingleChildScrollView(
+                            padding: EdgeInsets.fromLTRB(
+                              isCompact ? 16 : 24,
+                              12,
+                              isCompact ? 16 : 24,
+                              24,
                             ),
-                          ),
-                          onReject: () => unawaited(
-                            _decideVoiceProposal(
-                              AgentActionDecision.rejected,
-                            ),
-                          ),
-                        ),
-                      ),
-
-                    // Error message
-                    if (_error != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: theme.colorScheme.errorContainer,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            _error!,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onErrorContainer,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-
-                    if (_visionError != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Container(
-                          width: double.infinity,
-                          constraints: const BoxConstraints(maxWidth: 460),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: howaiColors.warning.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _visionError!,
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: howaiColors.textPrimary,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                  minHeight: constraints.maxHeight),
+                              child: AnimatedSize(
+                                duration: motionDuration(
+                                  context,
+                                  HowAIMotion.deliberate,
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                              if (_visionNeedsSettings) ...[
-                                const SizedBox(height: 6),
-                                TextButton(
-                                  onPressed: openAppSettings,
-                                  child: const Text('Open Settings'),
+                                curve: HowAIMotion.enterCurve,
+                                alignment: Alignment.topCenter,
+                                child: Column(
+                                  mainAxisAlignment: _visionEnabled
+                                      ? MainAxisAlignment.start
+                                      : MainAxisAlignment.center,
+                                  children: [
+                                    SizedBox(
+                                        height: _isConnected ? 4 : verticalGap),
+
+                                    if (!_isConnected) ...[
+                                      _buildVisionChoiceTile(
+                                        theme: theme,
+                                        colors: howaiColors,
+                                      ),
+                                      const SizedBox(height: 14),
+                                    ],
+
+                                    if (_visionEnabled) ...[
+                                      _buildVisionCameraStage(
+                                        colors: howaiColors,
+                                        height: visionHeight,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      if (!_isConnected)
+                                        FilledButton.icon(
+                                          onPressed: _isConnecting ||
+                                                  _cameraController?.value
+                                                          .isInitialized !=
+                                                      true
+                                              ? null
+                                              : () => unawaited(_startCall()),
+                                          icon: _isConnecting
+                                              ? const SizedBox.square(
+                                                  dimension: 18,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeWidth: 2,
+                                                  ),
+                                                )
+                                              : const Icon(Icons.mic_rounded),
+                                          label: Text(
+                                            _isConnecting
+                                                ? 'Connecting…'
+                                                : 'Start voice',
+                                          ),
+                                        ),
+                                    ] else ...[
+                                      // Animated orb / call button
+                                      AnimatedBuilder(
+                                        animation: _orbPulseController,
+                                        builder: (context, child) {
+                                          final t = _orbPulseController.value;
+                                          return _RealtimeVoiceOrb(
+                                            size: orbSize,
+                                            animationValue: t,
+                                            accent: primaryColor,
+                                            disabled: false,
+                                            connecting: _isConnecting,
+                                            connected: _isConnected,
+                                            assistantSpeaking:
+                                                _isAssistantSpeaking,
+                                            muted: _isPaused,
+                                            onTap: !_isConnected &&
+                                                    !_isConnecting
+                                                ? () => unawaited(_startCall())
+                                                : null,
+                                          );
+                                        },
+                                      ),
+                                      SizedBox(height: verticalGap),
+                                      Text(
+                                        activityLabel,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          color: _isAssistantSpeaking
+                                              ? howaiColors.accent
+                                              : howaiColors.textPrimary,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                      if (!_isConnected && !_isConnecting) ...[
+                                        const SizedBox(height: 10),
+                                        Wrap(
+                                          alignment: WrapAlignment.center,
+                                          spacing: 8,
+                                          runSpacing: 8,
+                                          children: [
+                                            OutlinedButton.icon(
+                                              onPressed: _showVoiceOptions,
+                                              icon: const Icon(
+                                                Icons.graphic_eq_rounded,
+                                                size: 18,
+                                              ),
+                                              label: Text(
+                                                'Voice: ${_selectedVoice == 'marin' ? 'Marin' : 'Cedar'}',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ],
+                                    if (_currentTranscript != null) ...[
+                                      const SizedBox(height: 12),
+                                      Container(
+                                        width: double.infinity,
+                                        constraints:
+                                            const BoxConstraints(maxWidth: 420),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 12,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: howaiColors.surface,
+                                          borderRadius:
+                                              BorderRadius.circular(16),
+                                          border: Border.all(
+                                              color: howaiColors.divider),
+                                        ),
+                                        child: Text(
+                                          statusText,
+                                          maxLines:
+                                              _pendingVoiceProposal == null
+                                                  ? 4
+                                                  : 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.bodyMedium
+                                              ?.copyWith(
+                                            color: howaiColors.textSecondary,
+                                            height: 1.4,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ],
+
+                                    HowAIAnimatedPresence(
+                                      duration: motionDuration(
+                                        context,
+                                        HowAIMotion.standard,
+                                      ),
+                                      child: _pendingVoiceProposal == null
+                                          ? null
+                                          : Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 16),
+                                              child: _VoiceApprovalPanel(
+                                                proposal:
+                                                    _pendingVoiceProposal!,
+                                                isBusy: _isActionBusy,
+                                                onApprove: () => unawaited(
+                                                  _decideVoiceProposal(
+                                                    AgentActionDecision
+                                                        .approved,
+                                                  ),
+                                                ),
+                                                onReject: () => unawaited(
+                                                  _decideVoiceProposal(
+                                                    AgentActionDecision
+                                                        .rejected,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                    ),
+
+                                    HowAIAnimatedPresence(
+                                      duration: motionDuration(
+                                        context,
+                                        HowAIMotion.standard,
+                                      ),
+                                      child: _error == null
+                                          ? null
+                                          : Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 16),
+                                              child: Container(
+                                                width: double.infinity,
+                                                padding:
+                                                    const EdgeInsets.all(12),
+                                                decoration: BoxDecoration(
+                                                  color: theme.colorScheme
+                                                      .errorContainer,
+                                                  borderRadius:
+                                                      BorderRadius.circular(12),
+                                                ),
+                                                child: Text(
+                                                  _error!,
+                                                  style: theme
+                                                      .textTheme.bodyMedium
+                                                      ?.copyWith(
+                                                    color: theme.colorScheme
+                                                        .onErrorContainer,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ),
+                                    ),
+
+                                    if (_visionError != null)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 12),
+                                        child: Container(
+                                          width: double.infinity,
+                                          constraints: const BoxConstraints(
+                                              maxWidth: 460),
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: howaiColors.warning
+                                                .withValues(alpha: 0.12),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                _visionError!,
+                                                style: theme
+                                                    .textTheme.bodyMedium
+                                                    ?.copyWith(
+                                                  color:
+                                                      howaiColors.textPrimary,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                              if (_visionNeedsSettings) ...[
+                                                const SizedBox(height: 6),
+                                                TextButton(
+                                                  onPressed: openAppSettings,
+                                                  child: const Text(
+                                                      'Open Settings'),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+
+                                    HowAIAnimatedPresence(
+                                      duration: motionDuration(
+                                        context,
+                                        HowAIMotion.standard,
+                                      ),
+                                      child: !_showBackupOption ||
+                                              _forceBackupProvider
+                                          ? null
+                                          : Padding(
+                                              padding: const EdgeInsets.only(
+                                                  top: 12),
+                                              child: OutlinedButton.icon(
+                                                onPressed: _isConnecting
+                                                    ? null
+                                                    : () => unawaited(
+                                                          _startWithBackupProvider(),
+                                                        ),
+                                                icon: const Icon(
+                                                  Icons.swap_horiz_rounded,
+                                                ),
+                                                label: const Text(
+                                                    'Use backup voice'),
+                                              ),
+                                            ),
+                                    ),
+
+                                    SizedBox(height: verticalGap),
+
+                                    // Saving indicator
+                                    if (_isSavingTranscript)
+                                      const CircularProgressIndicator(),
+
+                                    // End call button (when connected)
+                                    if (_isConnected)
+                                      Wrap(
+                                        alignment: WrapAlignment.center,
+                                        spacing: isCompact ? 12 : 18,
+                                        runSpacing: 12,
+                                        children: [
+                                          _VoiceControlButton(
+                                            icon: _visionEnabled
+                                                ? Icons.videocam_rounded
+                                                : Icons.videocam_outlined,
+                                            label: _visionEnabled
+                                                ? 'Vision on'
+                                                : 'Use camera',
+                                            foregroundColor: _visionEnabled
+                                                ? howaiColors.accent
+                                                : howaiColors.textPrimary,
+                                            backgroundColor: _visionEnabled
+                                                ? howaiColors.accentSoft
+                                                : howaiColors.surface,
+                                            onTap: () =>
+                                                unawaited(_toggleVision()),
+                                          ),
+                                          _VoiceControlButton(
+                                            icon: _isPaused
+                                                ? Icons.mic_off_rounded
+                                                : Icons.mic_rounded,
+                                            label: _isPaused
+                                                ? l10n.voiceCallUnmute
+                                                : l10n.voiceCallMute,
+                                            foregroundColor: _isPaused
+                                                ? howaiColors.danger
+                                                : howaiColors.textPrimary,
+                                            backgroundColor:
+                                                howaiColors.surface,
+                                            onTap: _toggleMute,
+                                          ),
+                                          _VoiceControlButton(
+                                            icon: _speakerphoneEnabled
+                                                ? Icons.volume_up_rounded
+                                                : Icons.phone_in_talk_rounded,
+                                            label: l10n.speakerAudio,
+                                            toggled: _speakerphoneEnabled,
+                                            foregroundColor:
+                                                _speakerphoneEnabled
+                                                    ? howaiColors.accent
+                                                    : howaiColors.textPrimary,
+                                            backgroundColor:
+                                                _speakerphoneEnabled
+                                                    ? howaiColors.accentSoft
+                                                    : howaiColors.surface,
+                                            onTap: _isAudioRouteChanging
+                                                ? null
+                                                : () => unawaited(
+                                                    _toggleSpeakerphone()),
+                                          ),
+                                          _VoiceControlButton(
+                                            icon: Icons.call_end_rounded,
+                                            label: l10n.voiceCallEndCall,
+                                            foregroundColor: Colors.white,
+                                            backgroundColor: howaiColors.danger,
+                                            onTap: () => _closeCall(),
+                                          ),
+                                        ],
+                                      ),
+                                  ],
                                 ),
+                              ),
+                            ),
+                          );
+                        }
+                        // A CameraPreview must never be retained as an outgoing
+                        // AnimatedSwitcher child while its controller is being
+                        // moved or disposed.
+                        if (_visionEnabled || _cameraController != null) {
+                          return callBody;
+                        }
+                        return AnimatedSwitcher(
+                          duration:
+                              motionDuration(context, HowAIMotion.deliberate),
+                          reverseDuration:
+                              motionDuration(context, HowAIMotion.routeExit),
+                          transitionBuilder: fadeSlideTransition,
+                          layoutBuilder: (currentChild, previousChildren) {
+                            return Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                ...previousChildren,
+                                if (currentChild != null) currentChild,
                               ],
-                            ],
+                            );
+                          },
+                          child: KeyedSubtree(
+                            key: ValueKey<bool>(showConnectedBody),
+                            child: callBody,
                           ),
-                        ),
-                      ),
-
-                    if (_showBackupOption && !_forceBackupProvider) ...[
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: _isConnecting
-                            ? null
-                            : () => unawaited(_startWithBackupProvider()),
-                        icon: const Icon(Icons.swap_horiz_rounded),
-                        label: const Text('Use backup voice'),
-                      ),
-                    ],
-
-                    SizedBox(height: verticalGap),
-
-                    // Saving indicator
-                    if (_isSavingTranscript) const CircularProgressIndicator(),
-
-                    // End call button (when connected)
-                    if (_isConnected)
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _VoiceControlButton(
-                            icon: _visionEnabled
-                                ? Icons.videocam_rounded
-                                : Icons.videocam_outlined,
-                            label: _visionEnabled ? 'Vision on' : 'Use camera',
-                            foregroundColor: _visionEnabled
-                                ? howaiColors.accent
-                                : howaiColors.textPrimary,
-                            backgroundColor: _visionEnabled
-                                ? howaiColors.accentSoft
-                                : howaiColors.surface,
-                            onTap: () => unawaited(_toggleVision()),
-                          ),
-                          SizedBox(width: isCompact ? 14 : 22),
-                          _VoiceControlButton(
-                            icon: _isPaused
-                                ? Icons.mic_off_rounded
-                                : Icons.mic_rounded,
-                            label: _isPaused
-                                ? l10n.voiceCallUnmute
-                                : l10n.voiceCallMute,
-                            foregroundColor: _isPaused
-                                ? howaiColors.danger
-                                : howaiColors.textPrimary,
-                            backgroundColor: howaiColors.surface,
-                            onTap: _toggleMute,
-                          ),
-                          SizedBox(width: isCompact ? 14 : 22),
-                          _VoiceControlButton(
-                            icon: Icons.call_end_rounded,
-                            label: l10n.voiceCallEndCall,
-                            foregroundColor: Colors.white,
-                            backgroundColor: howaiColors.danger,
-                            onTap: () => _closeCall(),
-                          ),
-                        ],
-                      ),
-                  ],
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
-            );
-          },
+            ),
+            Positioned.fill(
+              child: IgnorePointer(
+                ignoring: !_isClosing,
+                child: AnimatedSwitcher(
+                  duration: motionDuration(context, HowAIMotion.standard),
+                  transitionBuilder: fadeSlideTransition,
+                  child: _isClosing
+                      ? _buildClosingOverlay(
+                          l10n: l10n,
+                          theme: theme,
+                          colors: howaiColors,
+                        )
+                      : const SizedBox.shrink(
+                          key: ValueKey<String>('voice_call_active'),
+                        ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -2531,7 +2877,7 @@ class _VoiceApprovalPanel extends StatelessWidget {
               children: [
                 TextButton(
                   onPressed: isBusy ? null : onReject,
-                  child: const Text('Cancel'),
+                  child: Text(AppLocalizations.of(context)!.cancel),
                 ),
                 const SizedBox(width: 6),
                 FilledButton(
@@ -2558,39 +2904,73 @@ class _VoiceControlButton extends StatelessWidget {
     required this.foregroundColor,
     required this.backgroundColor,
     required this.onTap,
+    this.toggled,
   });
 
   final IconData icon;
   final String label;
   final Color foregroundColor;
   final Color backgroundColor;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
+  final bool? toggled;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Semantics(
       button: true,
+      enabled: onTap != null,
+      toggled: toggled,
       label: label,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Material(
-            color: backgroundColor,
-            shape: const CircleBorder(),
-            child: InkWell(
-              onTap: onTap,
-              customBorder: const CircleBorder(),
-              child: SizedBox.square(
-                dimension: 58,
-                child: Icon(icon, color: foregroundColor, size: 25),
+          AnimatedContainer(
+            duration: motionDuration(context, HowAIMotion.quick),
+            curve: HowAIMotion.enterCurve,
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              shape: BoxShape.circle,
+            ),
+            child: Material(
+              color: Colors.transparent,
+              shape: const CircleBorder(),
+              child: InkWell(
+                onTap: onTap,
+                customBorder: const CircleBorder(),
+                child: SizedBox.square(
+                  dimension: 58,
+                  child: AnimatedSwitcher(
+                    duration: motionDuration(context, HowAIMotion.quick),
+                    switchInCurve: HowAIMotion.enterCurve,
+                    switchOutCurve: HowAIMotion.exitCurve,
+                    transitionBuilder: (child, animation) => FadeTransition(
+                      opacity: animation,
+                      child: ScaleTransition(
+                        scale: Tween<double>(begin: 0.88, end: 1)
+                            .animate(animation),
+                        child: child,
+                      ),
+                    ),
+                    child: Icon(
+                      icon,
+                      key: ValueKey<IconData>(icon),
+                      color: foregroundColor,
+                      size: 25,
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
           const SizedBox(height: 7),
-          Text(
-            label,
-            style: theme.textTheme.labelSmall,
+          AnimatedSwitcher(
+            duration: motionDuration(context, HowAIMotion.quick),
+            child: Text(
+              label,
+              key: ValueKey<String>(label),
+              style: theme.textTheme.labelSmall,
+            ),
           ),
         ],
       ),

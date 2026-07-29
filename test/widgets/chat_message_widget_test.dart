@@ -19,6 +19,7 @@ void main() {
     required bool isUserMessage,
     bool includeMemoryActions = false,
     List<String>? imagePaths,
+    bool selectionMode = false,
   }) async {
     final message = ChatMessage(
       message: isUserMessage ? 'Hello HowAI' : 'Hello! How can I help?',
@@ -43,7 +44,7 @@ void main() {
             body: ChatMessageWidget(
               message: message,
               messageKey: 1,
-              selectionMode: false,
+              selectionMode: selectionMode,
               selectedMessages: const <int>{},
               onToggleSelection: (_) {},
               onTranslate: (_) {},
@@ -128,5 +129,19 @@ void main() {
     expect(preview.width, 320);
     expect(preview.height, isNull);
     expect(preview.fit, BoxFit.contain);
+  });
+
+  testWidgets('message selection keeps an accessible touch target',
+      (tester) async {
+    await pumpMessage(
+      tester,
+      isUserMessage: true,
+      selectionMode: true,
+    );
+
+    final target = find.byKey(
+      const ValueKey<String>('message-selection-target'),
+    );
+    expect(tester.getSize(target), const Size.square(44));
   });
 }

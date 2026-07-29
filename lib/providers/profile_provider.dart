@@ -18,8 +18,12 @@ class ProfileProvider extends ChangeNotifier {
   Future<void> loadProfiles() async {
     _profiles = await _db.getProfiles();
 
-    // If no profile is selected and we have profiles, select the first one
-    if (_selectedProfileId == null && _profiles.isNotEmpty) {
+    if (_profiles.isEmpty) {
+      _selectedProfileId = null;
+    } else if (_selectedProfileId == null ||
+        !_profiles.any((profile) => profile.id == _selectedProfileId)) {
+      // Local numeric IDs are scoped to the active account database. An ID
+      // selected in the previous account must never leak into this one.
       _selectedProfileId = _profiles.first.id;
     }
 

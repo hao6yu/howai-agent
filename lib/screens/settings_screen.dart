@@ -753,6 +753,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ==================== DIALOGS ====================
 
   void _showSignOutDialog() {
+    final authProvider = context.read<AuthProvider>();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -767,9 +768,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await Provider.of<AuthProvider>(context, listen: false).signOut();
-              if (mounted)
+              final signedOut = await authProvider.signOut();
+              if (!mounted) return;
+              if (signedOut) {
                 _showSnackBar('Signed out successfully', Colors.green);
+              } else {
+                _showSnackBar(
+                  authProvider.errorMessage ?? 'Could not sign out.',
+                  Colors.red,
+                );
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Sign Out'),
@@ -780,17 +788,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showClearChatDialog() {
-    final hasSyncAccount =
-        Provider.of<AuthProvider>(context, listen: false).hasSyncAccount;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(AppLocalizations.of(context)!.clearChatHistoryTitle),
-        content: Text(
-          hasSyncAccount
-              ? 'This will permanently delete all your conversations from both this device and the cloud.'
-              : AppLocalizations.of(context)!.clearChatHistoryWarning,
-        ),
+        content: Text(AppLocalizations.of(context)!.clearChatHistoryWarning),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -837,9 +839,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Reset Usage Statistics'),
-        content: const Text(
-            'This will reset all usage counters for testing purposes.'),
+        title: Text(AppLocalizations.of(context)!.resetUsageStatisticsTitle),
+        content: Text(AppLocalizations.of(context)!.resetUsageStatisticsDesc),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -848,12 +849,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
-              await Provider.of<SubscriptionService>(context, listen: false)
-                  .resetUsageStats();
-              if (mounted)
-                _showSnackBar('Usage statistics reset', Colors.green);
+              await this.context.read<SubscriptionService>().resetUsageStats();
+              if (mounted) {
+                _showSnackBar(
+                  AppLocalizations.of(this.context)!
+                      .debugUsageStatisticsResetSuccess,
+                  Colors.green,
+                );
+              }
             },
-            child: const Text('Reset', style: TextStyle(color: Colors.orange)),
+            child: Text(
+              AppLocalizations.of(context)!.reset,
+              style: const TextStyle(color: Colors.orange),
+            ),
           ),
         ],
       ),
@@ -862,16 +870,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showReviewThresholdDialog() async {
     final currentThreshold = await ReviewService.getReviewThreshold();
+    if (!mounted) return;
     final controller = TextEditingController(text: currentThreshold.toString());
 
-    showDialog(
+    await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Review Threshold'),
+        title: Text(AppLocalizations.of(context)!.debugReviewThresholdTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Set new threshold (1-20):'),
+            Text(AppLocalizations.of(context)!.debugSetNewThreshold),
             const SizedBox(height: 12),
             TextField(
               controller: controller,
@@ -891,12 +900,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () async {
               await ReviewService.resetThresholdToDefault();
+              if (!context.mounted) return;
               Navigator.pop(context);
+              if (!mounted) return;
               setState(() {});
-              if (mounted)
-                _showSnackBar('Threshold reset to default (5)', Colors.blue);
+              _showSnackBar(
+                AppLocalizations.of(this.context)!.debugThresholdResetDefault,
+                Colors.blue,
+              );
             },
-            child: const Text('Reset'),
+            child: Text(AppLocalizations.of(context)!.reset),
           ),
           TextButton(
             onPressed: () async {
@@ -905,18 +918,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   newThreshold >= 1 &&
                   newThreshold <= 20) {
                 await ReviewService.setDebugReviewThreshold(newThreshold);
+                if (!context.mounted) return;
                 Navigator.pop(context);
+                if (!mounted) return;
                 setState(() {});
-                if (mounted)
-                  _showSnackBar('Threshold set to $newThreshold', Colors.green);
+                _showSnackBar(
+                  AppLocalizations.of(this.context)!
+                      .debugReviewThresholdSet(newThreshold),
+                  Colors.green,
+                );
               }
             },
-            child:
-                const Text('Set', style: TextStyle(color: Color(0xFF0078D4))),
+            child: Text(
+              AppLocalizations.of(context)!.set,
+              style: const TextStyle(color: Color(0xFF0078D4)),
+            ),
           ),
         ],
       ),
     );
+    controller.dispose();
   }
 
   void _showResetShowcaseDialog() {
@@ -934,9 +955,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () async {
               await FeatureShowcaseService.resetShowcaseForTesting();
+              if (!context.mounted) return;
               Navigator.pop(context);
-              if (mounted)
+              if (mounted) {
                 _showSnackBar('Feature showcase reset', Colors.green);
+              }
             },
             child:
                 const Text('Reset', style: TextStyle(color: Color(0xFF0078D4))),

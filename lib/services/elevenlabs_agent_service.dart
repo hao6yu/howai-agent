@@ -13,13 +13,11 @@ enum ElevenLabsVoicePreset {
 
 /// Service for managing ElevenLabs Conversational AI Agent connections.
 ///
-/// This handles token resolution for the ElevenLabs Agent SDK, supporting
-/// both direct API access and optional proxy configurations.
+/// This resolves SDK connection tokens through the authenticated server proxy.
 class ElevenLabsAgentService {
-  static String _signedUrlEndpoint =
-      'https://api.elevenlabs.io/v1/convai/conversation/get-signed-url';
+  static const Duration _requestTimeout = Duration(seconds: 20);
+  static String _signedUrlEndpoint = '';
 
-  final String? _apiKey;
   final String? _proxyBaseUrl;
   final String? _supabaseAnonKey;
   final String? _legacyAgentId;
@@ -37,7 +35,6 @@ class ElevenLabsAgentService {
   }
 
   ElevenLabsAgentService({
-    String? apiKey,
     String? agentId,
     String? maleAgentId,
     String? femaleAgentId,
@@ -45,11 +42,6 @@ class ElevenLabsAgentService {
             ? null
             : AppConfig.elevenLabsProxyBaseUrl.trim(),
         _supabaseAnonKey = AppConfig.supabasePublishableKey.trim(),
-        _apiKey = _firstNonEmpty([
-          apiKey,
-          AppConfig.elevenLabsApiKey,
-          AppConfig.elevenLabsXiApiKey,
-        ]),
         _legacyAgentId = _firstNonEmpty([
           agentId,
           AppConfig.elevenLabsAgentId,
@@ -113,23 +105,20 @@ class ElevenLabsAgentService {
       isConfiguredForVoice(voice: ElevenLabsVoicePreset.male) ||
       isConfiguredForVoice(voice: ElevenLabsVoicePreset.female);
 
-  /// Whether an ElevenLabs API key is configured.
-  bool get hasApiKey =>
-      (_proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty) ||
-      (_apiKey != null && _apiKey!.isNotEmpty);
+  /// Whether the authenticated ElevenLabs proxy is configured.
+  bool get hasProxy => _proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty;
 
   /// Whether the service is properly configured for voice calls.
   ///
-  /// The SDK call path in this app requires an agent id plus either the
-  /// Supabase proxy or a local development API key.
-  bool get isConfigured => hasAgentId && hasApiKey;
+  /// The SDK call path requires an agent id plus the Supabase proxy.
+  bool get isConfigured => hasAgentId && hasProxy;
 
   /// Human-readable missing configuration summary for debugging.
   String? get configurationIssue {
     if (!hasAgentId) {
       return 'Missing agent id (ELEVENLABS_AGENT_ID or ELEVENLABS_AGENT_ID_MALE/FEMALE)';
     }
-    if (!hasApiKey) {
+    if (!hasProxy) {
       return 'Missing ElevenLabs proxy URL';
     }
     return null;
@@ -137,7 +126,7 @@ class ElevenLabsAgentService {
 
   String? configurationIssueForVoice({required ElevenLabsVoicePreset voice}) {
     if (isConfiguredForVoice(voice: voice)) {
-      return hasApiKey ? null : 'Missing ElevenLabs proxy URL';
+      return hasProxy ? null : 'Missing ElevenLabs proxy URL';
     }
 
     if (_hasAnyVoiceSpecificAgent) {
@@ -162,7 +151,7 @@ class ElevenLabsAgentService {
   }) async {
     final resolvedAgentId =
         _firstNonEmpty([agentId, agentIdForVoice(voice: voice)]);
-    if (resolvedAgentId == null || !hasApiKey) {
+    if (resolvedAgentId == null || !hasProxy) {
       debugPrint(
           'ElevenLabsAgentService: Not configured for signed URL (missing API key or agent ID)');
       return null;
@@ -172,10 +161,12 @@ class ElevenLabsAgentService {
       final uri = Uri.parse(_signedUrlEndpoint)
           .replace(queryParameters: {'agent_id': resolvedAgentId});
 
-      final response = await http.get(
-        uri,
-        headers: await _buildHeaders(),
-      );
+      final response = await http
+          .get(
+            uri,
+            headers: await _buildHeaders(),
+          )
+          .timeout(_requestTimeout);
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         debugPrint(
@@ -227,8 +218,6 @@ class ElevenLabsAgentService {
       if (_supabaseAnonKey != null && _supabaseAnonKey!.isNotEmpty) {
         headers['apikey'] = _supabaseAnonKey!;
       }
-    } else if (_apiKey != null && _apiKey!.isNotEmpty) {
-      headers['xi-api-key'] = _apiKey!;
     }
 
     return headers;

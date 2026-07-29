@@ -119,6 +119,9 @@ class OpenAIService {
           180); // 3 minutes for main requests (image generation can be slow)
   static const Duration _followupTimeout =
       Duration(seconds: 120); // 2 minutes for follow-up requests
+  // Long reasoning/tool calls can legitimately be quiet for a while. Keep a
+  // finite body timeout without cutting off existing deep-research behavior.
+  static const Duration _streamIdleTimeout = Duration(seconds: 120);
 
   // Persistent HTTP client for connection reuse and better performance
   static http.Client? _httpClient;
@@ -2562,9 +2565,11 @@ AUTOMATIONS:
           await httpClient.send(request).timeout(_httpTimeout);
 
       if (streamedResponse.statusCode != 200) {
-        final body = await streamedResponse.stream.bytesToString();
+        await streamedResponse.stream.drain<void>();
         yield StreamEvent.error(
-            'API error: ${streamedResponse.statusCode} - $body');
+          'The AI service could not complete the request '
+          '(${streamedResponse.statusCode}).',
+        );
         return;
       }
 
@@ -2577,8 +2582,9 @@ AUTOMATIONS:
       bool sawFirstDelta = false;
       // Process SSE stream. Keep a buffer because chunks may split lines/JSON.
       String sseBuffer = '';
-      await for (final chunk
-          in streamedResponse.stream.transform(utf8.decoder)) {
+      await for (final chunk in streamedResponse.stream
+          .timeout(_streamIdleTimeout)
+          .transform(utf8.decoder)) {
         sseBuffer += chunk;
         final lines = sseBuffer.split('\n');
         if (lines.isEmpty) {
@@ -2846,8 +2852,15 @@ AUTOMATIONS:
         actionToolCall: actionToolCall,
         profileToolCall: profileToolCall,
       );
-    } catch (e) {
-      yield StreamEvent.error('Stream error: $e');
+    } on TimeoutException {
+      yield StreamEvent.error(
+        'The response stopped arriving. Please try again.',
+      );
+    } catch (error) {
+      _log('[OpenAIService-Stream] Transport failed: $error');
+      yield StreamEvent.error(
+        'The response could not be completed. Please try again.',
+      );
     }
   }
 

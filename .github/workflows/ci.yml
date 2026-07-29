@@ -20,20 +20,8 @@ jobs:
           flutter-version: 3.44.6
           channel: stable
           cache: true
-      - run: flutter pub get
-      - run: flutter gen-l10n
-      - run: node scripts/check-localizations.mjs
-      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - run: flutter test
-
-  edge-functions:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.1.4
-      - run: deno test --no-lock --allow-env --allow-read supabase/functions/_shared/*.test.ts
+      - run: ./scripts/release-gate.sh
+      - run: flutter build apk --debug
 
   database:
     runs-on: ubuntu-latest
@@ -43,7 +31,8 @@ jobs:
         with:
           version: 2.109.1
       - run: supabase start
-      - run: supabase db lint --local --level warning
+      - run: supabase db lint --local --level warning --fail-on warning
+      - run: supabase db advisors --local --type performance --level warn --fail-on warn
       - run: supabase test db
       - run: curl --fail --silent --show-error --output /dev/null --request OPTIONS http://127.0.0.1:54321/functions/v1/openai-proxy
       - if: always()

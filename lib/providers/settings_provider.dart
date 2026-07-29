@@ -29,6 +29,7 @@ class SettingsProvider with ChangeNotifier {
   String _premiumTtsEngine = 'elevenlabs'; // 'elevenlabs' | 'system'
   Map<String, String>? _selectedSystemTTSVoice; // Selected system TTS voice
   ThemeMode _themeMode = ThemeMode.system; // Default to system theme
+  late final Future<void> _ready;
 
   String? _selectedLocale; // null = system default
   String? get selectedLocale => _selectedLocale;
@@ -53,10 +54,23 @@ class SettingsProvider with ChangeNotifier {
   static const double defaultFontScale = 1.0;
 
   SettingsProvider() {
-    _loadSettings();
+    _ready = _loadSettings();
   }
 
+  /// Completes after persisted appearance and audio preferences are loaded.
+  Future<void> get ready => _ready;
+
   Future<void> _loadSettings() async {
+    try {
+      await _loadSettingsFromPreferences();
+    } catch (error) {
+      debugPrint('Could not load saved settings; using defaults: $error');
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> _loadSettingsFromPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     _useVoiceResponse = prefs.getBool(_useVoiceResponseKey) ?? false;
     _useStreaming = prefs.getBool(_useStreamingKey) ?? true;
@@ -96,8 +110,6 @@ class SettingsProvider with ChangeNotifier {
         if (voiceIdentifier != null) 'identifier': voiceIdentifier,
       };
     }
-
-    notifyListeners();
   }
 
   ThemeMode _parseThemeMode(String themeModeString) {

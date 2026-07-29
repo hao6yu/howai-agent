@@ -6,6 +6,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'voice_audio_route_service.dart';
 import 'voice_session_service.dart';
 
 class RealtimeTurnDetectionConfiguration {
@@ -119,9 +120,12 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
     required VoiceSessionCallbacks callbacks,
     SupabaseClient? supabaseClient,
     http.Client? httpClient,
+    VoiceAudioRouteSetter? audioRouteSetter,
   })  : _callbacks = callbacks,
         _supabase = supabaseClient ?? Supabase.instance.client,
         _http = httpClient ?? http.Client(),
+        _audioRouteSetter =
+            audioRouteSetter ?? VoiceAudioRouteService.setSpeakerphoneEnabled,
         _ownsHttpClient = httpClient == null;
 
   static final Uri _callsUri =
@@ -133,6 +137,7 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
   final VoiceSessionCallbacks _callbacks;
   final SupabaseClient _supabase;
   final http.Client _http;
+  final VoiceAudioRouteSetter _audioRouteSetter;
   final bool _ownsHttpClient;
 
   RTCPeerConnection? _peerConnection;
@@ -146,10 +151,10 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
   bool _disposed = false;
   bool _disconnectedCallbackSent = false;
   bool _initialGreetingSent = false;
-  bool _initialGreetingInProgress = false;
+  bool _assistantAudioPlaying = false;
+  bool _speakerphoneEnabled = true;
   DateTime? _connectedAt;
   Timer? _disconnectGraceTimer;
-  Timer? _initialGreetingRestoreTimer;
   final Set<String> _seenToolCalls = <String>{};
   final Map<String, StringBuffer> _assistantTranscriptBuffers = {};
 
@@ -178,9 +183,10 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
     _closing = false;
     _disconnectedCallbackSent = false;
     _initialGreetingSent = false;
-    _initialGreetingInProgress = false;
-    _initialGreetingRestoreTimer?.cancel();
-    _initialGreetingRestoreTimer = null;
+    _assistantAudioPlaying = false;
+    _speakerphoneEnabled = options.speakerphoneEnabled;
+    _seenToolCalls.clear();
+    _assistantTranscriptBuffers.clear();
     _connectedCompleter = Completer<void>();
     try {
       final material = await _createSession(options);
@@ -217,6 +223,11 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
       }
       _microphoneTrack = audioTracks.first;
       await peer.addTrack(_microphoneTrack!, stream);
+      try {
+        await _audioRouteSetter(_speakerphoneEnabled);
+      } catch (error) {
+        debugPrint('Could not apply the initial Realtime audio route: $error');
+      }
 
       final channel = await peer.createDataChannel(
         'oai-events',
@@ -271,7 +282,6 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
       await peer.setRemoteDescription(
         RTCSessionDescription(answer.body, 'answer'),
       );
-      await Helper.setSpeakerphoneOnButPreferBluetooth();
       await _connectedCompleter!.future.timeout(_connectionTimeout);
     } on VoiceSessionException {
       await _cleanup(endReason: 'connection_failed', reportCompletion: true);
@@ -359,6 +369,8 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
         _connectedAt = DateTime.now();
         _connectedCompleter?.complete();
         _callbacks.onConnected();
+        // Keep VAD active from the first audible word. With WebRTC, Realtime
+        // cancels and truncates the greeting automatically if the user speaks.
         unawaited(_sendInitialGreeting());
       }
       return;
@@ -386,68 +398,21 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
     };
   }
 
-  @visibleForTesting
-  static Map<String, dynamic> suspendTurnDetectionEvent() {
-    return {
-      'type': 'session.update',
-      'session': {
-        'type': 'realtime',
-        'audio': {
-          'input': {'turn_detection': null},
-        },
-      },
-    };
-  }
-
-  @visibleForTesting
-  static Map<String, dynamic> restoreTurnDetectionEvent(
-    RealtimeTurnDetectionConfiguration configuration,
-  ) {
-    return {
-      'type': 'session.update',
-      'session': {
-        'type': 'realtime',
-        'audio': {
-          'input': {'turn_detection': configuration.toJson()},
-        },
-      },
-    };
-  }
-
   Future<void> _sendInitialGreeting() async {
     if (_initialGreetingSent || _closing || _disposed) return;
-    final turnDetection = _material?.turnDetection;
-    if (turnDetection == null) return;
     _initialGreetingSent = true;
-    _initialGreetingInProgress = true;
     try {
-      await _sendEvent(suspendTurnDetectionEvent());
       await _sendEvent(initialGreetingEvent());
-      _initialGreetingRestoreTimer?.cancel();
-      _initialGreetingRestoreTimer = Timer(
-        const Duration(seconds: 12),
-        () => unawaited(_restoreTurnDetectionAfterGreeting()),
-      );
     } catch (error) {
       _initialGreetingSent = false;
-      await _restoreTurnDetectionAfterGreeting();
       debugPrint('Could not start the Realtime greeting: $error');
     }
   }
 
-  Future<void> _restoreTurnDetectionAfterGreeting() async {
-    if (!_initialGreetingInProgress) return;
-    _initialGreetingInProgress = false;
-    _initialGreetingRestoreTimer?.cancel();
-    _initialGreetingRestoreTimer = null;
-    final turnDetection = _material?.turnDetection;
-    if (turnDetection == null || _closing || _disposed) return;
-    try {
-      await _sendEvent({'type': 'input_audio_buffer.clear'});
-      await _sendEvent(restoreTurnDetectionEvent(turnDetection));
-    } catch (error) {
-      debugPrint('Could not restore Realtime turn detection: $error');
-    }
+  void _setAssistantAudioPlaying(bool playing) {
+    if (_assistantAudioPlaying == playing) return;
+    _assistantAudioPlaying = playing;
+    _callbacks.onSpeakingChanged(playing);
   }
 
   void _handlePeerConnectionState(RTCPeerConnectionState state) {
@@ -508,8 +473,10 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
     final type = event['type']?.toString();
     switch (type) {
       case 'input_audio_buffer.speech_started':
+        // Realtime immediately cancels/truncates WebRTC output on genuine
+        // barge-in. Mirror that transition without muting the microphone.
+        _setAssistantAudioPlaying(false);
         _callbacks.onUserSpeechStarted();
-        _callbacks.onSpeakingChanged(false);
       case 'conversation.item.input_audio_transcription.completed':
         final transcript = event['transcript']?.toString().trim() ?? '';
         if (transcript.isNotEmpty) {
@@ -523,7 +490,6 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
           );
         }
       case 'response.output_audio_transcript.delta':
-        _callbacks.onSpeakingChanged(true);
         final delta = event['delta']?.toString() ?? '';
         if (delta.isEmpty) return;
         final itemId = event['item_id']?.toString() ?? 'assistant';
@@ -540,7 +506,6 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
           ),
         );
       case 'response.output_audio_transcript.done':
-        _callbacks.onSpeakingChanged(false);
         final itemId = event['item_id']?.toString() ?? 'assistant';
         final transcript =
             (event['transcript']?.toString().trim().isNotEmpty == true)
@@ -558,19 +523,15 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
           );
         }
       case 'output_audio_buffer.started':
-        _callbacks.onSpeakingChanged(true);
+        _setAssistantAudioPlaying(true);
       case 'output_audio_buffer.stopped':
       case 'output_audio_buffer.cleared':
-        _callbacks.onSpeakingChanged(false);
-        if (_initialGreetingInProgress) {
-          unawaited(_restoreTurnDetectionAfterGreeting());
-        }
+        _setAssistantAudioPlaying(false);
+      case 'response.cancelled':
+        _setAssistantAudioPlaying(false);
       case 'response.done':
         _handleCompletedResponse(event);
       case 'error':
-        if (_initialGreetingInProgress) {
-          unawaited(_restoreTurnDetectionAfterGreeting());
-        }
         final error = event['error'];
         final message =
             error is Map ? error['message']?.toString() : error?.toString();
@@ -652,6 +613,15 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
     if (track == null) return;
     track.enabled = !muted;
     await Helper.setMicrophoneMute(muted, track);
+  }
+
+  @override
+  Future<void> setSpeakerphoneEnabled(bool enabled) async {
+    _speakerphoneEnabled = enabled;
+    // Do not gate the microphone here. WebRTC voice processing is configured
+    // with AEC/noise suppression/AGC, and a fixed mute window can lose the
+    // first words of a real barge-in.
+    await _audioRouteSetter(enabled);
   }
 
   @override
@@ -787,9 +757,8 @@ class OpenAIRealtimeVoiceService implements VoiceSessionService {
     _connectedCompleter = null;
     _disconnectGraceTimer?.cancel();
     _disconnectGraceTimer = null;
-    _initialGreetingRestoreTimer?.cancel();
-    _initialGreetingRestoreTimer = null;
-    _initialGreetingInProgress = false;
+    _assistantAudioPlaying = false;
+    _seenToolCalls.clear();
     _assistantTranscriptBuffers.clear();
 
     try {

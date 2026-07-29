@@ -12,6 +12,7 @@ import '../providers/settings_provider.dart';
 import '../services/file_service.dart';
 import '../services/subscription_service.dart';
 import '../core/theme/howai_theme.dart';
+import '../core/accessibility/motion_preferences.dart';
 
 class ChatInputWidget extends StatefulWidget {
   final TextEditingController textController;
@@ -734,7 +735,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       ? 40
                       : 42,
             )
-            .clamp(38.0, 52.0)
+            .clamp(44.0, 52.0)
             .toDouble();
         final canSend = hasDraft && !widget.isSending;
 
@@ -837,7 +838,11 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
               ),
               const SizedBox(width: 4),
               AnimatedSwitcher(
-                duration: const Duration(milliseconds: 160),
+                key: const ValueKey<String>('adaptive-composer-switcher'),
+                duration: motionDuration(
+                  context,
+                  const Duration(milliseconds: 160),
+                ),
                 switchInCurve: Curves.easeOut,
                 switchOutCurve: Curves.easeIn,
                 child: KeyedSubtree(
@@ -855,7 +860,10 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
           ),
         );
         return AnimatedPadding(
-          duration: const Duration(milliseconds: 180),
+          duration: motionDuration(
+            context,
+            const Duration(milliseconds: 180),
+          ),
           curve: Curves.easeOutCubic,
           padding: EdgeInsets.symmetric(
             horizontal: widget.textInputFocusNode.hasFocus

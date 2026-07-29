@@ -32,6 +32,7 @@ void main() {
     WidgetTester tester, {
     ThinkingLevel thinkingLevel = ThinkingLevel.auto,
     ThemeMode themeMode = ThemeMode.light,
+    bool disableAnimations = false,
   }) async {
     await tester.pumpWidget(
       MultiProvider(
@@ -42,6 +43,12 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              disableAnimations: disableAnimations,
+            ),
+            child: child!,
+          ),
           theme: HowAITheme.light(),
           darkTheme: HowAITheme.dark(),
           themeMode: themeMode,
@@ -166,6 +173,16 @@ void main() {
     await tester.pump();
 
     expect(find.text('Balanced'), findsNothing);
+  });
+
+  testWidgets('composer honors the reduced-motion accessibility setting',
+      (tester) async {
+    await pumpComposer(tester, disableAnimations: true);
+
+    final switcher = tester.widget<AnimatedSwitcher>(
+      find.byKey(const ValueKey<String>('adaptive-composer-switcher')),
+    );
+    expect(switcher.duration, Duration.zero);
   });
 
   for (final testCase in <({

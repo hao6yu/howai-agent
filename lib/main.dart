@@ -35,26 +35,33 @@ import 'features/actions/presentation/actions_workspace_screen.dart';
 import 'firebase_options.dart';
 import 'services/push_notification_service.dart';
 import 'core/accessibility/motion_preferences.dart';
+import 'core/runtime/guarded_tasks.dart';
 import 'core/theme/howai_theme.dart';
 
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+Future<void> main() => runGuardedStartup(
+      initializeBinding: WidgetsFlutterBinding.ensureInitialized,
+      bootstrap: _bootstrap,
+      onError: _recordUnhandledStartupError,
+    );
 
-  await runZonedGuarded(
-    _bootstrap,
-    (error, stack) async {
-      debugPrint('Unhandled startup error: $error');
-      if (Firebase.apps.isNotEmpty) {
-        await FirebaseCrashlytics.instance.recordError(
+void _recordUnhandledStartupError(Object error, StackTrace stackTrace) {
+  debugPrint('Unhandled startup error: $error');
+  if (Firebase.apps.isNotEmpty) {
+    unawaited(
+      runContainedTask(
+        () => FirebaseCrashlytics.instance.recordError(
           error,
-          stack,
+          stackTrace,
           fatal: true,
-        );
-      }
-    },
-  );
+        ),
+        onError: (reportingError, _) {
+          debugPrint('Crash reporting is unavailable: $reportingError');
+        },
+      ),
+    );
+  }
 }
 
 Future<void> _bootstrap() async {

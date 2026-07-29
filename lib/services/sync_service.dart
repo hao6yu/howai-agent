@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../core/runtime/guarded_tasks.dart';
 import '../models/chat_message.dart';
 import '../models/conversation.dart';
 import 'database_service.dart';
@@ -57,14 +58,14 @@ class SyncService {
     await _idMapping.initialize(user.id);
     _activeAccountId = user.id;
     _startBackgroundSync();
-    unawaited(_performInitialSync());
+    _scheduleBackgroundSync('Initial');
   }
 
   void _startBackgroundSync() {
     _backgroundSyncTimer?.cancel();
     _backgroundSyncTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (_supabase.isAuthenticated && !_isSyncing) {
-        unawaited(_syncAll());
+        _scheduleBackgroundSync('Periodic');
       }
     });
   }
@@ -74,15 +75,35 @@ class SyncService {
     _backgroundSyncTimer = null;
     _retryTimer?.cancel();
     _retryTimer = null;
-    unawaited(_stopRealtimeListener());
+    _scheduleContainedOperation(
+      'Realtime listener cleanup failed',
+      _stopRealtimeListener,
+    );
   }
 
-  Future<void> _performInitialSync() async {
-    try {
-      await _syncAll();
-    } catch (error) {
-      debugPrint('[SyncService] Initial sync will retry: $error');
-    }
+  void _scheduleBackgroundSync(String source) {
+    _scheduleContainedOperation('$source sync will retry', _syncAll);
+  }
+
+  void _scheduleContainedOperation(
+    String failureMessage,
+    Future<void> Function() operation,
+  ) {
+    unawaited(
+      runContainedTask(
+        operation,
+        onError: (error, _) {
+          debugPrint('[SyncService] $failureMessage: $error');
+        },
+      ),
+    );
+  }
+
+  void schedulePendingOperations() {
+    _scheduleContainedOperation(
+      'Outbox processing will retry',
+      processPendingOperations,
+    );
   }
 
   Future<void> _syncAll() {
@@ -137,7 +158,7 @@ class SyncService {
       if (accountId != null &&
           accountId == _activeAccountId &&
           _hasActiveUserContext) {
-        unawaited(_syncAll());
+        _scheduleBackgroundSync('Retry');
       }
     });
   }
@@ -641,7 +662,10 @@ class SyncService {
             value: conversationUuid,
           ),
           callback: (payload) {
-            unawaited(_handleNewMessage(payload.newRecord));
+            _scheduleContainedOperation(
+              'Realtime message sync will retry',
+              () => _handleNewMessage(payload.newRecord),
+            );
           },
         )
         .subscribe();

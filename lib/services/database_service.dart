@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -903,7 +902,7 @@ class DatabaseService {
     });
 
     if (enqueueSync) {
-      unawaited(syncService.processPendingOperations());
+      syncService.schedulePendingOperations();
     }
     return insertedId;
   }
@@ -1071,7 +1070,7 @@ class DatabaseService {
     final elapsed = stopwatch.elapsedMilliseconds;
     debugPrint(
         '[DatabaseService] Batch inserted ${messages.length} messages in ${elapsed}ms');
-    unawaited(syncService.processPendingOperations());
+    syncService.schedulePendingOperations();
     return insertedIds;
   }
 
@@ -1489,7 +1488,7 @@ class DatabaseService {
     });
 
     if (enqueueSync) {
-      unawaited(syncService.processPendingOperations());
+      syncService.schedulePendingOperations();
     }
     return insertedId;
   }
@@ -1525,7 +1524,7 @@ class DatabaseService {
       return count;
     });
     if (updated > 0 && enqueueSync) {
-      unawaited(syncService.processPendingOperations());
+      syncService.schedulePendingOperations();
     }
     return updated;
   }

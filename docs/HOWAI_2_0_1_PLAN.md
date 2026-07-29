@@ -57,10 +57,13 @@ The release should improve confidence in:
   same release gate used locally.
 - Updated the Android build to Gradle 8.14.3, Android Gradle Plugin 8.11.1, and
   Kotlin 2.2.20; removed the obsolete Jetifier transform.
+- Upgraded the Flutter purchase stack to Google Play Billing Library 8, blocked
+  purchases without a recoverable signed-in HowAI account, and corrected
+  recurring-price display for trial offers.
 
 Automated verification after these changes:
 
-- 145 Flutter tests pass.
+- 167 Flutter tests pass.
 - 144 Supabase Edge Function contract tests pass.
 - 305 database assertions pass and database lint reports no schema errors.
 - Flutter analysis has no errors; the warning budget is now 76, down from 79.

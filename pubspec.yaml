@@ -6,7 +6,8 @@ description: >
 publish_to: 'none'
 version: 2.0.1+42
 environment:
-  sdk: ">=3.4.0 <4.0.0"
+  sdk: ">=3.12.0 <4.0.0"
+  flutter: ">=3.44.0"
 
 dependencies:
   flutter:
@@ -34,9 +35,9 @@ dependencies:
   flutter_webrtc: 1.2.0  # Direct WebRTC transport for OpenAI Realtime
   lottie: ^3.3.0
   speech_to_text: 7.0.0
-  in_app_purchase: ^3.2.3  # For subscription handling
+  in_app_purchase: ^3.3.0  # Current cross-platform purchase API
   in_app_purchase_storekit: ^0.4.10+1  # iOS SK2 verification and completion fixes
-  in_app_purchase_android: ^0.4.0  # Android Google Play billing verification
+  in_app_purchase_android: ^0.5.2  # Google Play Billing Library 8
   url_launcher: ^6.3.1
   image_picker: ^1.0.4
   camera: ^0.12.0+2  # Live preview + sampled stream frames for Realtime voice vision

@@ -27,6 +27,75 @@ bool resolvePremiumStatus({
   return realStatus;
 }
 
+@visibleForTesting
+String resolveDisplayedSubscriptionPrice(
+  ProductDetails product, {
+  required bool isIOS,
+}) {
+  if (isIOS) return product.price;
+
+  // Google Play exposes a trial or introductory phase as the product's
+  // headline price. Show the final paid phase so the subscription cards do
+  // not present "$0.00" as the recurring price.
+  if (product is GooglePlayProductDetails) {
+    final offers = product.productDetails.subscriptionOfferDetails;
+    final offerIndex = product.subscriptionIndex;
+    if (offers != null &&
+        offerIndex != null &&
+        offerIndex >= 0 &&
+        offerIndex < offers.length) {
+      for (final phase in offers[offerIndex].pricingPhases.reversed) {
+        if (phase.priceAmountMicros > 0 &&
+            phase.formattedPrice.trim().isNotEmpty) {
+          return phase.formattedPrice;
+        }
+      }
+    }
+  }
+
+  if (product.price.trim().isNotEmpty) return product.price;
+
+  // rawPrice is already expressed in the major currency unit by the Flutter
+  // plugin (for example, 7.99 rather than 7,990,000 micros).
+  if (product.rawPrice > 0) {
+    final currencySymbol = product.currencySymbol.isNotEmpty
+        ? product.currencySymbol
+        : _currencySymbolForCode(product.currencyCode);
+    return '$currencySymbol${product.rawPrice.toStringAsFixed(2)}';
+  }
+
+  return '—';
+}
+
+String _currencySymbolForCode(String currencyCode) {
+  switch (currencyCode.toUpperCase()) {
+    case 'USD':
+      return '\$';
+    case 'EUR':
+      return '€';
+    case 'GBP':
+      return '£';
+    case 'JPY':
+      return '¥';
+    case 'CNY':
+      return '¥';
+    case 'KRW':
+      return '₩';
+    case 'INR':
+      return '₹';
+    case 'BRL':
+      return 'R\$';
+    case 'RUB':
+      return '₽';
+    case 'CAD':
+      return 'C\$';
+    case 'AUD':
+      return 'A\$';
+    default:
+      return '$currencyCode ';
+  }
+}
+
 enum SubscriptionTier {
   free,
   premium,
@@ -228,68 +297,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   // ---------------------------------------------------------------------------
 
   // Get actual recurring price, with platform-specific handling
-  String getActualPrice(ProductDetails product) {
-    // iOS: Always use the product.price as-is (Apple handles this correctly)
-    if (Platform.isIOS) {
-      return product.price;
-    }
-
-    // Android: Handle free trial pricing display issues
-    if (product.price.isNotEmpty &&
-        !product.price.toLowerCase().contains('free') &&
-        !product.price.toLowerCase().contains('试用') &&
-        !product.price.toLowerCase().contains('gratuit') &&
-        !product.price.toLowerCase().contains('gratis') &&
-        !product.price.toLowerCase().contains('無料') &&
-        product.price != '0') {
-      return product.price;
-    }
-
-    if (product.rawPrice > 0) {
-      final actualPrice = product.rawPrice / 1000000;
-      final currencySymbol = product.currencySymbol.isNotEmpty
-          ? product.currencySymbol
-          : _getCurrencySymbol(product.currencyCode);
-      return '$currencySymbol${actualPrice.toStringAsFixed(2)}';
-    }
-
-    if (product.id == monthlySubscriptionId) {
-      return '\$7.99';
-    } else if (product.id == yearlySubscriptionId) {
-      return '\$79.99';
-    }
-
-    return 'Free Trial';
-  }
-
-  String _getCurrencySymbol(String currencyCode) {
-    switch (currencyCode.toUpperCase()) {
-      case 'USD':
-        return '\$';
-      case 'EUR':
-        return '€';
-      case 'GBP':
-        return '£';
-      case 'JPY':
-        return '¥';
-      case 'CNY':
-        return '¥';
-      case 'KRW':
-        return '₩';
-      case 'INR':
-        return '₹';
-      case 'BRL':
-        return 'R\$';
-      case 'RUB':
-        return '₽';
-      case 'CAD':
-        return 'C\$';
-      case 'AUD':
-        return 'A\$';
-      default:
-        return '$currencyCode ';
-    }
-  }
+  String getActualPrice(ProductDetails product) =>
+      resolveDisplayedSubscriptionPrice(product, isIOS: Platform.isIOS);
 
   // ---------------------------------------------------------------------------
   // Debug override (for development/testing only)
@@ -1131,6 +1140,14 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   Future<void> subscribe([String? productId]) async {
     try {
+      final userId = _currentEntitlementUserId;
+      if (userId == null) {
+        _errorMessage =
+            'Sign in to a HowAI account before purchasing or restoring Pro.';
+        notifyListeners();
+        return;
+      }
+
       if (_products.isEmpty) {
         _errorMessage = "No products available to purchase";
         notifyListeners();
@@ -1149,8 +1166,10 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
       final PurchaseParam purchaseParam = PurchaseParam(
         productDetails: productDetails,
-        applicationUserName:
-            _supabase.isAuthenticated ? _supabase.currentUser?.id : null,
+        // The signed-in account UUID is a stable, non-PII identifier. The
+        // Android implementation forwards it as Play's obfuscated account ID,
+        // while StoreKit uses it as the application username.
+        applicationUserName: userId,
       );
 
       final bool success =
@@ -1431,7 +1450,9 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       if (purchases.isEmpty) {
         final addition = _inAppPurchase
             .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
-        final result = await addition.queryPastPurchases();
+        final result = await addition.queryPastPurchases(
+          applicationUserName: expectedUserId,
+        );
         if (result.error != null) {
           debugPrint(
               '[SubscriptionService] Google Play query failed: ${result.error}');

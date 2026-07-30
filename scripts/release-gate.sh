@@ -74,4 +74,18 @@ echo "==> Checking release metadata and platform privacy files"
 node --test scripts/check-release-metadata.test.mjs
 node scripts/check-release-metadata.mjs
 
+echo "==> Building the Android debug package"
+# Besides exercising the Android build, Flutter creates android/local.properties
+# here for clean CI checkouts before the release-only Gradle manifest task below.
+flutter build apk --debug
+
+echo "==> Merging and checking the Android release manifest"
+(
+  cd android
+  ./gradlew --no-daemon --max-workers=2 app:processReleaseMainManifest
+)
+node scripts/check-release-metadata.mjs \
+  --merged-android-manifest \
+  build/app/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
+
 echo "==> HowAI 2.0.1 automated release gate passed"

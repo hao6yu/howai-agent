@@ -906,6 +906,12 @@ class AppLocalizationsEs extends AppLocalizations {
   String get sorryCouldNotRespond => 'Lo siento, no pude responder a eso en este momento.';
 
   @override
+  String get guestAiLimitReached => 'Has alcanzado el límite diario de IA para invitados. Inicia sesión o inténtalo mañana.';
+
+  @override
+  String get aiUsageLimitReached => 'Has alcanzado el límite actual de IA. Inténtalo de nuevo más tarde.';
+
+  @override
   String errorWithMessage(Object error) {
     return 'Error: $error';
   }

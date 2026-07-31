@@ -288,6 +288,8 @@
   "imageTookTooLong": "申し訳ありません、画像の生成に時間がかかりすぎました。もう一度お試しください。",
   "somethingWentWrong": "問題が発生しました。もう一度お試しください。",
   "sorryCouldNotRespond": "申し訳ありません、現在応答できませんでした。",
+  "guestAiLimitReached": "本日のゲスト向けAI利用上限に達しました。サインインするか、明日もう一度お試しください。",
+  "aiUsageLimitReached": "現在のAI利用上限に達しました。しばらくしてからもう一度お試しください。",
   "errorWithMessage": "エラー: {error}",
   "processingImage": "画像を処理中...",
   "whatYouCanDo": "できること：",

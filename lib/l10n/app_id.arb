@@ -288,6 +288,8 @@
   "imageTookTooLong": "Maaf, pembuatan gambar terlalu lama. Silakan coba lagi.",
   "somethingWentWrong": "Terjadi kesalahan. Silakan coba lagi.",
   "sorryCouldNotRespond": "Maaf, saya tidak bisa merespons itu sekarang.",
+  "guestAiLimitReached": "Anda telah mencapai batas AI tamu hari ini. Masuk atau coba lagi besok.",
+  "aiUsageLimitReached": "Anda telah mencapai batas AI saat ini. Coba lagi nanti.",
   "errorWithMessage": "Kesalahan: {error}",
   "processingImage": "Memproses gambar...",
   "whatYouCanDo": "Apa yang dapat Anda lakukan:",

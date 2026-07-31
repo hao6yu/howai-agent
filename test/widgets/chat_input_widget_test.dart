@@ -216,6 +216,9 @@ void main() {
         expect(find.text('Quick Actions'), findsOneWidget);
         expect(find.text('Ask from photo'), findsOneWidget);
         expect(find.text('Voice Input'), findsOneWidget);
+        // Thinking level is Pro-only. Limited free features should not look
+        // locked while the user still has allowance remaining.
+        expect(find.text('PRO'), findsOneWidget);
 
         for (final key in const <String>[
           'attachment_actions_group',

@@ -780,6 +780,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     Map<String, dynamic>? pendingReminderDraft,
     Map<String, dynamic>? pendingAutomationDraft,
     List<Map<String, dynamic>> existingReminders = const [],
+    void Function(StreamEvent event)? onStreamError,
   }) async {
     final timestamp = DateTime.now().toIso8601String();
 
@@ -964,6 +965,7 @@ class _AiChatScreenState extends State<AiChatScreen>
 
           case StreamEventType.error:
             print('[ChatScreen] Streaming error: ${event.error}');
+            onStreamError?.call(event);
             // Remove any leftover temporary streaming assistant rows.
             setState(() {
               _messages.removeWhere((m) =>
@@ -1425,6 +1427,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       );
 
       Map<String, dynamic>? response;
+      StreamEvent? streamingFailure;
 
       if (useStreaming) {
         print('[ChatScreen] Using STREAMING response path');
@@ -1456,6 +1459,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           pendingReminderDraft: pendingReminderProposal?.arguments,
           pendingAutomationDraft: pendingAutomationProposal?.arguments,
           existingReminders: existingReminders,
+          onStreamError: (event) => streamingFailure = event,
         );
       } else {
         print('[ChatScreen] Using NON-STREAMING response path');
@@ -2012,8 +2016,19 @@ class _AiChatScreenState extends State<AiChatScreen>
 
         // Only access context if widget is still mounted
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          final errorMessage = switch (streamingFailure?.errorCode) {
+            openAiErrorCodeAnonymousLimit => l10n.guestAiLimitReached,
+            openAiErrorCodeUsageLimit || openAiErrorCodeRateLimit =>
+              l10n.aiUsageLimitReached,
+            _ => l10n.sorryCouldNotRespond,
+          };
           _showErrorSnackBar(
-              AppLocalizations.of(context)!.sorryCouldNotRespond);
+            errorMessage,
+            duration: streamingFailure?.statusCode == 429
+                ? const Duration(seconds: 5)
+                : const Duration(seconds: 2),
+          );
           setState(() {
             _isSending = false;
             _isCreatingNewConversation = false;
@@ -5443,7 +5458,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     } finally {}
   }
 
-  void _showErrorSnackBar(String message) {
+  void _showErrorSnackBar(
+    String message, {
+    Duration duration = const Duration(seconds: 2),
+  }) {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     ChatSnackbarService.show(
       context: context,
@@ -5451,7 +5469,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       textStyle: TextStyle(fontSize: settings.getScaledFontSize(14)),
       backgroundColor: Colors.red.shade800,
       behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 2),
+      duration: duration,
     );
   }
 

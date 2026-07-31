@@ -1859,6 +1859,18 @@ abstract class AppLocalizations {
   /// **'Sorry, I couldn\'t respond to that right now.'**
   String get sorryCouldNotRespond;
 
+  /// No description provided for @guestAiLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached today\'s guest AI limit. Sign in or try again tomorrow.'**
+  String get guestAiLimitReached;
+
+  /// No description provided for @aiUsageLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve reached the current AI limit. Please try again later.'**
+  String get aiUsageLimitReached;
+
   /// No description provided for @errorWithMessage.
   ///
   /// In en, this message translates to:

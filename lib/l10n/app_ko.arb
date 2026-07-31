@@ -288,6 +288,8 @@
   "imageTookTooLong": "죄송합니다. 이미지 생성에 시간이 너무 오래 걸렸습니다. 다시 시도해 주세요.",
   "somethingWentWrong": "문제가 발생했습니다. 다시 시도해 주세요.",
   "sorryCouldNotRespond": "죄송합니다. 지금은 응답할 수 없습니다.",
+  "guestAiLimitReached": "오늘의 게스트 AI 사용 한도에 도달했습니다. 로그인하거나 내일 다시 시도하세요.",
+  "aiUsageLimitReached": "현재 AI 사용 한도에 도달했습니다. 나중에 다시 시도하세요.",
   "errorWithMessage": "오류: {error}",
   "processingImage": "이미지 처리 중...",
   "whatYouCanDo": "할 수 있는 일:",

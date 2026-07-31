@@ -37,6 +37,8 @@ class StreamEvent {
   final Map<String, dynamic>? actionToolCall; // Server-approved action proposal
   final Map<String, dynamic>? profileToolCall;
   final String? error; // For error events
+  final int? statusCode; // HTTP status when the stream could not start
+  final String? errorCode; // Stable app-facing classification
 
   StreamEvent({
     required this.type,
@@ -48,6 +50,8 @@ class StreamEvent {
     this.actionToolCall,
     this.profileToolCall,
     this.error,
+    this.statusCode,
+    this.errorCode,
   });
 
   factory StreamEvent.textDelta(String delta) => StreamEvent(
@@ -60,9 +64,16 @@ class StreamEvent {
         fullText: fullText,
       );
 
-  factory StreamEvent.error(String message) => StreamEvent(
+  factory StreamEvent.error(
+    String message, {
+    int? statusCode,
+    String? errorCode,
+  }) =>
+      StreamEvent(
         type: StreamEventType.error,
         error: message,
+        statusCode: statusCode,
+        errorCode: errorCode,
       );
 
   factory StreamEvent.done({
@@ -82,6 +93,41 @@ class StreamEvent {
         actionToolCall: actionToolCall,
         profileToolCall: profileToolCall,
       );
+}
+
+const String openAiErrorCodeAnonymousLimit = 'anonymous_limit';
+const String openAiErrorCodeUsageLimit = 'usage_limit';
+const String openAiErrorCodeRateLimit = 'rate_limit';
+
+@visibleForTesting
+String? classifyOpenAiProxyError(int statusCode, String responseBody) {
+  if (statusCode != 429) return null;
+
+  final normalized = responseBody.toLowerCase();
+  if (normalized.contains('anonymous')) {
+    return openAiErrorCodeAnonymousLimit;
+  }
+  if (normalized.contains('usage limit') ||
+      normalized.contains('answer or cost limit')) {
+    return openAiErrorCodeUsageLimit;
+  }
+  return openAiErrorCodeRateLimit;
+}
+
+@visibleForTesting
+String safeOpenAiProxyErrorMessage(int statusCode) {
+  switch (statusCode) {
+    case 401:
+      return 'The AI session is no longer authorized.';
+    case 413:
+      return 'This request is too large for the current plan.';
+    case 429:
+      return 'The current AI usage limit has been reached.';
+    case 503:
+      return 'The AI service is temporarily unavailable.';
+    default:
+      return 'The AI service could not complete the request ($statusCode).';
+  }
 }
 
 enum _HowAiResponseProfile { quick, standard, research }
@@ -2565,10 +2611,14 @@ AUTOMATIONS:
           await httpClient.send(request).timeout(_httpTimeout);
 
       if (streamedResponse.statusCode != 200) {
-        await streamedResponse.stream.drain<void>();
+        final responseBody = await streamedResponse.stream.bytesToString();
         yield StreamEvent.error(
-          'The AI service could not complete the request '
-          '(${streamedResponse.statusCode}).',
+          safeOpenAiProxyErrorMessage(streamedResponse.statusCode),
+          statusCode: streamedResponse.statusCode,
+          errorCode: classifyOpenAiProxyError(
+            streamedResponse.statusCode,
+            responseBody,
+          ),
         );
         return;
       }

@@ -1216,7 +1216,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                       icon: Icons.photo_camera,
                                       label: AppLocalizations.of(context)!
                                           .quickActionAskFromPhoto,
-                                      isPremium: !isPremium,
+                                      isPremium: !canUse,
                                       canUse: canUse,
                                       onTap: () {
                                         Navigator.pop(context);
@@ -1341,7 +1341,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                     title: AppLocalizations.of(context)!
                                         .quickActionGenerateImage,
                                     subtitle: null,
-                                    isPremium: !isPremium,
+                                    isPremium: !canUse,
                                     canUse: canUse,
                                     onTap: () {
                                       Navigator.pop(context);
@@ -1392,7 +1392,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                                     title: AppLocalizations.of(context)!
                                         .quickActionFindPlaces,
                                     subtitle: null,
-                                    isPremium: !isPremium,
+                                    isPremium: !canUse,
                                     canUse: canUse,
                                     onTap: () {
                                       Navigator.pop(context);

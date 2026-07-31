@@ -906,6 +906,12 @@ class AppLocalizationsTr extends AppLocalizations {
   String get sorryCouldNotRespond => 'Üzgünüm, şu anda buna yanıt veremedim.';
 
   @override
+  String get guestAiLimitReached => 'Bugünkü misafir AI sınırına ulaştınız. Oturum açın veya yarın tekrar deneyin.';
+
+  @override
+  String get aiUsageLimitReached => 'Mevcut AI sınırına ulaştınız. Lütfen daha sonra tekrar deneyin.';
+
+  @override
   String errorWithMessage(Object error) {
     return 'Hata: $error';
   }

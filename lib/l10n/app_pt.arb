@@ -288,6 +288,8 @@
   "imageTookTooLong": "Desculpe, a imagem demorou demasiado a gerar. Por favor tente novamente.",
   "somethingWentWrong": "Algo correu mal. Por favor tente novamente.",
   "sorryCouldNotRespond": "Desculpe, não consegui responder a isso agora.",
+  "guestAiLimitReached": "Atingiu o limite diário de IA para convidados. Inicie sessão ou tente novamente amanhã.",
+  "aiUsageLimitReached": "Atingiu o limite atual de IA. Tente novamente mais tarde.",
   "errorWithMessage": "Erro: {error}",
   "processingImage": "A processar imagem...",
   "whatYouCanDo": "O que pode fazer:",

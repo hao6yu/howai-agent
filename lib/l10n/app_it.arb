@@ -288,6 +288,8 @@
   "imageTookTooLong": "Mi dispiace, la generazione dell'immagine ha richiesto troppo tempo. Riprova.",
   "somethingWentWrong": "Qualcosa è andato storto. Riprova.",
   "sorryCouldNotRespond": "Mi dispiace, non ho potuto rispondere a questo al momento.",
+  "guestAiLimitReached": "Hai raggiunto il limite giornaliero dell’IA per gli ospiti. Accedi o riprova domani.",
+  "aiUsageLimitReached": "Hai raggiunto il limite attuale dell’IA. Riprova più tardi.",
   "errorWithMessage": "Errore: {error}",
   "processingImage": "Elaborazione immagine...",
   "whatYouCanDo": "Cosa puoi fare:",

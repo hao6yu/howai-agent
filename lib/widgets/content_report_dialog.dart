@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:haogpt/generated/app_localizations.dart';
 import '../models/content_report.dart';
 import '../services/content_report_service.dart';
 import '../models/chat_message.dart';
@@ -210,7 +211,7 @@ class _ContentReportDialogState extends State<ContentReportDialog> {
       actions: [
         TextButton(
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(AppLocalizations.of(context)!.cancel),
         ),
         FilledButton(
           onPressed: _isSubmitting ? null : _submitReport,

@@ -906,6 +906,12 @@ class AppLocalizationsHi extends AppLocalizations {
   String get sorryCouldNotRespond => 'क्षमा करें, मैं अभी इसका जवाब नहीं दे सकता।';
 
   @override
+  String get guestAiLimitReached => 'आप आज की अतिथि AI सीमा तक पहुँच गए हैं। साइन इन करें या कल फिर प्रयास करें।';
+
+  @override
+  String get aiUsageLimitReached => 'आप वर्तमान AI सीमा तक पहुँच गए हैं। कृपया बाद में फिर प्रयास करें।';
+
+  @override
   String errorWithMessage(Object error) {
     return 'त्रुटि: $error';
   }

@@ -1,22 +1,27 @@
-import 'dart:typed_data';
-
 import 'package:elevenlabs_agents/elevenlabs_agents.dart';
+import 'package:flutter/foundation.dart';
 
 import 'elevenlabs_agent_service.dart';
+import 'voice_audio_route_service.dart';
 import 'voice_session_service.dart';
 
 class ElevenLabsVoiceSessionService implements VoiceSessionService {
   ElevenLabsVoiceSessionService({
     required VoiceSessionCallbacks callbacks,
     ElevenLabsAgentService? agentService,
+    VoiceAudioRouteSetter? audioRouteSetter,
   })  : _callbacks = callbacks,
-        _agentService = agentService ?? ElevenLabsAgentService();
+        _agentService = agentService ?? ElevenLabsAgentService(),
+        _audioRouteSetter =
+            audioRouteSetter ?? VoiceAudioRouteService.setSpeakerphoneEnabled;
 
   final VoiceSessionCallbacks _callbacks;
   final ElevenLabsAgentService _agentService;
+  final VoiceAudioRouteSetter _audioRouteSetter;
   ConversationClient? _client;
   bool _connected = false;
   bool _closing = false;
+  bool _userTurnInProgress = false;
 
   @override
   VoiceSessionProvider get provider => VoiceSessionProvider.elevenLabs;
@@ -41,6 +46,7 @@ class ElevenLabsVoiceSessionService implements VoiceSessionService {
     }
 
     _closing = false;
+    _userTurnInProgress = false;
     _client = ConversationClient(
       callbacks: ConversationCallbacks(
         onConnect: ({required String conversationId}) {
@@ -61,7 +67,14 @@ class ElevenLabsVoiceSessionService implements VoiceSessionService {
           }
         },
         onModeChange: ({required ConversationMode mode}) {
+          if (mode == ConversationMode.speaking) {
+            _userTurnInProgress = false;
+          }
           _callbacks.onSpeakingChanged(mode == ConversationMode.speaking);
+        },
+        onInterruption: (_) {
+          _notifyUserSpeechStarted();
+          _callbacks.onSpeakingChanged(false);
         },
         onMessage: ({required String message, required Role source}) {
           if (message.trim().isEmpty) return;
@@ -78,7 +91,7 @@ class ElevenLabsVoiceSessionService implements VoiceSessionService {
           required int eventId,
         }) {
           if (transcript.trim().isEmpty) return;
-          _callbacks.onUserSpeechStarted();
+          _notifyUserSpeechStarted();
           _callbacks.onTranscript(
             VoiceTranscriptUpdate(
               text: transcript,
@@ -93,6 +106,7 @@ class ElevenLabsVoiceSessionService implements VoiceSessionService {
           required int eventId,
         }) {
           if (transcript.trim().isEmpty) return;
+          _notifyUserSpeechStarted();
           _callbacks.onTranscript(
             VoiceTranscriptUpdate(
               text: transcript,
@@ -124,6 +138,11 @@ class ElevenLabsVoiceSessionService implements VoiceSessionService {
         userId: options.userId,
         dynamicVariables: variables,
       );
+      try {
+        await setSpeakerphoneEnabled(options.speakerphoneEnabled);
+      } catch (error) {
+        debugPrint('Could not apply the initial backup audio route: $error');
+      }
     } catch (error) {
       await dispose();
       throw VoiceSessionException(
@@ -136,6 +155,20 @@ class ElevenLabsVoiceSessionService implements VoiceSessionService {
   @override
   Future<void> setMuted(bool muted) async {
     await _client?.setMicMuted(muted);
+  }
+
+  void _notifyUserSpeechStarted() {
+    if (_userTurnInProgress) return;
+    _userTurnInProgress = true;
+    _callbacks.onUserSpeechStarted();
+  }
+
+  @override
+  Future<void> setSpeakerphoneEnabled(bool enabled) async {
+    // LiveKit already captures voice with AEC/noise suppression/AGC. Tearing
+    // down its microphone track for a route change can lose real speech and
+    // force the echo canceller to retrain.
+    await _audioRouteSetter(enabled);
   }
 
   @override
@@ -172,6 +205,7 @@ class ElevenLabsVoiceSessionService implements VoiceSessionService {
     _closing = true;
     _connected = false;
     await _client?.endSession();
+    _userTurnInProgress = false;
     _closing = false;
   }
 
@@ -181,5 +215,6 @@ class ElevenLabsVoiceSessionService implements VoiceSessionService {
     _connected = false;
     _client?.dispose();
     _client = null;
+    _userTurnInProgress = false;
   }
 }

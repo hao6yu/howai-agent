@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haogpt/services/subscription_entitlement_policy.dart';
 import 'package:haogpt/services/subscription_service.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/billing_client_wrappers.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 void main() {
   group('resolvePremiumStatus', () {
@@ -132,6 +135,83 @@ void main() {
           maximumOfflineAgeMs: 24,
         ),
         now + 24,
+      );
+    });
+  });
+
+  group('subscription price display', () {
+    test('uses the final paid Google Play phase after a free trial', () {
+      final product = GooglePlayProductDetails.fromProductDetails(
+        const ProductDetailsWrapper(
+          description: 'Monthly Pro',
+          name: 'Monthly Pro',
+          productId: 'monthly',
+          productType: ProductType.subs,
+          title: 'Monthly Pro',
+          subscriptionOfferDetails: [
+            SubscriptionOfferDetailsWrapper(
+              basePlanId: 'monthly',
+              offerTags: [],
+              offerIdToken: 'trial-token',
+              pricingPhases: [
+                PricingPhaseWrapper(
+                  billingCycleCount: 1,
+                  billingPeriod: 'P7D',
+                  formattedPrice: '\$0.00',
+                  priceAmountMicros: 0,
+                  priceCurrencyCode: 'USD',
+                  recurrenceMode: RecurrenceMode.finiteRecurring,
+                ),
+                PricingPhaseWrapper(
+                  billingCycleCount: 0,
+                  billingPeriod: 'P1M',
+                  formattedPrice: '\$7.99',
+                  priceAmountMicros: 7990000,
+                  priceCurrencyCode: 'USD',
+                  recurrenceMode: RecurrenceMode.infiniteRecurring,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ).single;
+
+      expect(
+        resolveDisplayedSubscriptionPrice(product, isIOS: false),
+        '\$7.99',
+      );
+    });
+
+    test('does not divide a major-unit raw price by one million', () {
+      final product = ProductDetails(
+        id: 'monthly',
+        title: 'Monthly Pro',
+        description: 'Monthly Pro',
+        price: '',
+        rawPrice: 7.99,
+        currencyCode: 'USD',
+        currencySymbol: '\$',
+      );
+
+      expect(
+        resolveDisplayedSubscriptionPrice(product, isIOS: false),
+        '\$7.99',
+      );
+    });
+
+    test('preserves the App Store formatted price', () {
+      final product = ProductDetails(
+        id: 'monthly',
+        title: 'Monthly Pro',
+        description: 'Monthly Pro',
+        price: 'US\$7.99',
+        rawPrice: 7.99,
+        currencyCode: 'USD',
+      );
+
+      expect(
+        resolveDisplayedSubscriptionPrice(product, isIOS: true),
+        'US\$7.99',
       );
     });
   });

@@ -32,6 +32,7 @@ void main() {
     WidgetTester tester, {
     ThinkingLevel thinkingLevel = ThinkingLevel.auto,
     ThemeMode themeMode = ThemeMode.light,
+    bool disableAnimations = false,
   }) async {
     await tester.pumpWidget(
       MultiProvider(
@@ -42,6 +43,12 @@ void main() {
           ),
         ],
         child: MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              disableAnimations: disableAnimations,
+            ),
+            child: child!,
+          ),
           theme: HowAITheme.light(),
           darkTheme: HowAITheme.dark(),
           themeMode: themeMode,
@@ -168,6 +175,16 @@ void main() {
     expect(find.text('Balanced'), findsNothing);
   });
 
+  testWidgets('composer honors the reduced-motion accessibility setting',
+      (tester) async {
+    await pumpComposer(tester, disableAnimations: true);
+
+    final switcher = tester.widget<AnimatedSwitcher>(
+      find.byKey(const ValueKey<String>('adaptive-composer-switcher')),
+    );
+    expect(switcher.duration, Duration.zero);
+  });
+
   for (final testCase in <({
     String name,
     ThemeMode mode,
@@ -199,6 +216,9 @@ void main() {
         expect(find.text('Quick Actions'), findsOneWidget);
         expect(find.text('Ask from photo'), findsOneWidget);
         expect(find.text('Voice Input'), findsOneWidget);
+        // Thinking level is Pro-only. Limited free features should not look
+        // locked while the user still has allowance remaining.
+        expect(find.text('PRO'), findsOneWidget);
 
         for (final key in const <String>[
           'attachment_actions_group',

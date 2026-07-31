@@ -288,6 +288,8 @@
   "imageTookTooLong": "Üzgünüm, görüntü oluşturmak çok uzun sürdü. Lütfen tekrar deneyin.",
   "somethingWentWrong": "Bir şeyler yanlış gitti. Lütfen tekrar deneyin.",
   "sorryCouldNotRespond": "Üzgünüm, şu anda buna yanıt veremedim.",
+  "guestAiLimitReached": "Bugünkü misafir AI sınırına ulaştınız. Oturum açın veya yarın tekrar deneyin.",
+  "aiUsageLimitReached": "Mevcut AI sınırına ulaştınız. Lütfen daha sonra tekrar deneyin.",
   "errorWithMessage": "Hata: {error}",
   "processingImage": "Görüntü işleniyor...",
   "whatYouCanDo": "Yapabilecekleriniz:",

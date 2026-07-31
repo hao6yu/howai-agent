@@ -906,6 +906,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get sorryCouldNotRespond => 'Извините, я не смог ответить на это прямо сейчас.';
 
   @override
+  String get guestAiLimitReached => 'Вы достигли дневного лимита ИИ для гостей. Войдите в аккаунт или попробуйте снова завтра.';
+
+  @override
+  String get aiUsageLimitReached => 'Вы достигли текущего лимита ИИ. Попробуйте снова позже.';
+
+  @override
   String errorWithMessage(Object error) {
     return 'Ошибка: $error';
   }

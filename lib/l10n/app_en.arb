@@ -292,6 +292,8 @@
   "imageTookTooLong": "Sorry, the image took too long to generate. Please try again.",
   "somethingWentWrong": "Something went wrong. Please try again.",
   "sorryCouldNotRespond": "Sorry, I couldn't respond to that right now.",
+  "guestAiLimitReached": "You've reached today's guest AI limit. Sign in or try again tomorrow.",
+  "aiUsageLimitReached": "You've reached the current AI limit. Please try again later.",
   "errorWithMessage": "Oops! Something went wrong. Please try again.",
   "processingImage": "Processing image...",
   "whatYouCanDo": "What you can do:",

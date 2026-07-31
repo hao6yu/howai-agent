@@ -288,6 +288,8 @@
   "imageTookTooLong": "Xin lỗi, việc tạo hình ảnh mất quá nhiều thời gian. Vui lòng thử lại.",
   "somethingWentWrong": "Đã xảy ra lỗi. Vui lòng thử lại.",
   "sorryCouldNotRespond": "Xin lỗi, tôi không thể phản hồi ngay lúc này.",
+  "guestAiLimitReached": "Bạn đã đạt giới hạn AI dành cho khách hôm nay. Hãy đăng nhập hoặc thử lại vào ngày mai.",
+  "aiUsageLimitReached": "Bạn đã đạt giới hạn AI hiện tại. Vui lòng thử lại sau.",
   "errorWithMessage": "Lỗi: {error}",
   "processingImage": "Đang xử lý ảnh...",
   "whatYouCanDo": "Những gì bạn có thể làm:",

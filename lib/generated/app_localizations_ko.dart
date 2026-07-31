@@ -906,6 +906,12 @@ class AppLocalizationsKo extends AppLocalizations {
   String get sorryCouldNotRespond => '죄송합니다. 지금은 응답할 수 없습니다.';
 
   @override
+  String get guestAiLimitReached => '오늘의 게스트 AI 사용 한도에 도달했습니다. 로그인하거나 내일 다시 시도하세요.';
+
+  @override
+  String get aiUsageLimitReached => '현재 AI 사용 한도에 도달했습니다. 나중에 다시 시도하세요.';
+
+  @override
   String errorWithMessage(Object error) {
     return '오류: $error';
   }

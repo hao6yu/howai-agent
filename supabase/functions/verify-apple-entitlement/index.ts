@@ -3,7 +3,7 @@ import {
   Environment,
   SignedDataVerifier,
 } from "npm:@apple/app-store-server-library@3.1.0";
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.111.0";
 
 import {
   AppleEntitlementValidationError,

@@ -906,6 +906,12 @@ class AppLocalizationsVi extends AppLocalizations {
   String get sorryCouldNotRespond => 'Xin lỗi, tôi không thể phản hồi ngay lúc này.';
 
   @override
+  String get guestAiLimitReached => 'Bạn đã đạt giới hạn AI dành cho khách hôm nay. Hãy đăng nhập hoặc thử lại vào ngày mai.';
+
+  @override
+  String get aiUsageLimitReached => 'Bạn đã đạt giới hạn AI hiện tại. Vui lòng thử lại sau.';
+
+  @override
   String errorWithMessage(Object error) {
     return 'Lỗi: $error';
   }

@@ -1,17 +1,46 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.111.0";
+import { isStoredEntitlementActive } from "../_shared/entitlement-status.ts";
 
 const ELEVENLABS_BASE_URL = "https://api.elevenlabs.io";
 const ELEVENLABS_API_KEY = Deno.env.get("ELEVENLABS_API_KEY") ?? "";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
+  "";
 
-const MAX_BODY_BYTES = Number(Deno.env.get("ELEVENLABS_PROXY_MAX_BODY_BYTES") ?? 256 * 1024);
-const MAX_TEXT_CHARS = Number(Deno.env.get("ELEVENLABS_PROXY_MAX_TEXT_CHARS") ?? 5000);
-const MAX_REQUESTS_PER_HOUR = Number(Deno.env.get("ELEVENLABS_PROXY_MAX_REQUESTS_PER_HOUR") ?? 120);
-const ANON_MAX_REQUESTS_PER_DAY = Number(Deno.env.get("ELEVENLABS_PROXY_ANON_MAX_REQUESTS_PER_DAY") ?? 300);
-const ALLOWED_VOICE_IDS = csvSet(Deno.env.get("ELEVENLABS_PROXY_ALLOWED_VOICE_IDS"));
-const ALLOWED_AGENT_IDS = csvSet(Deno.env.get("ELEVENLABS_PROXY_ALLOWED_AGENT_IDS"));
+const MAX_BODY_BYTES = Number(
+  Deno.env.get("ELEVENLABS_PROXY_MAX_BODY_BYTES") ?? 256 * 1024,
+);
+const MAX_TEXT_CHARS = Number(
+  Deno.env.get("ELEVENLABS_PROXY_MAX_TEXT_CHARS") ?? 5000,
+);
+const MAX_REQUESTS_PER_HOUR = Number(
+  Deno.env.get("ELEVENLABS_PROXY_MAX_REQUESTS_PER_HOUR") ?? 120,
+);
+const ANON_MAX_REQUESTS_PER_HOUR = Number(
+  Deno.env.get("ELEVENLABS_PROXY_ANON_MAX_REQUESTS_PER_HOUR") ?? 10,
+);
+const ANON_MAX_REQUESTS_PER_DAY = Number(
+  Deno.env.get("ELEVENLABS_PROXY_ANON_MAX_REQUESTS_PER_DAY") ?? 20,
+);
+const FREE_MAX_REQUESTS_PER_HOUR = Number(
+  Deno.env.get("ELEVENLABS_PROXY_FREE_MAX_REQUESTS_PER_HOUR") ?? 30,
+);
+const FREE_MAX_REQUESTS_PER_DAY = Number(
+  Deno.env.get("ELEVENLABS_PROXY_FREE_MAX_REQUESTS_PER_DAY") ?? 60,
+);
+const PAID_MAX_REQUESTS_PER_DAY = Number(
+  Deno.env.get("ELEVENLABS_PROXY_PAID_MAX_REQUESTS_PER_DAY") ?? 1000,
+);
+const UPSTREAM_TIMEOUT_MS = Number(
+  Deno.env.get("ELEVENLABS_PROXY_UPSTREAM_TIMEOUT_MS") ?? 30_000,
+);
+const ALLOWED_VOICE_IDS = csvSet(
+  Deno.env.get("ELEVENLABS_PROXY_ALLOWED_VOICE_IDS"),
+);
+const ALLOWED_AGENT_IDS = csvSet(
+  Deno.env.get("ELEVENLABS_PROXY_ALLOWED_AGENT_IDS"),
+);
 const ALLOWED_MODELS = csvSet(
   Deno.env.get("ELEVENLABS_PROXY_ALLOWED_MODELS") ??
     "eleven_multilingual_v2,eleven_turbo_v2_5,eleven_flash_v2_5",
@@ -19,8 +48,17 @@ const ALLOWED_MODELS = csvSet(
 
 type ProxyPath =
   | { kind: "voices"; upstreamPath: "/v1/voices" }
-  | { kind: "signed_url"; upstreamPath: "/v1/convai/conversation/get-signed-url"; agentId: string }
-  | { kind: "tts"; upstreamPath: string; voiceId: string; withTimestamps: boolean };
+  | {
+    kind: "signed_url";
+    upstreamPath: "/v1/convai/conversation/get-signed-url";
+    agentId: string;
+  }
+  | {
+    kind: "tts";
+    upstreamPath: string;
+    voiceId: string;
+    withTimestamps: boolean;
+  };
 
 type AuthenticatedUser = {
   id: string;
@@ -28,15 +66,24 @@ type AuthenticatedUser = {
 };
 
 type RequestLog = {
-  user_id: string;
-  is_anonymous: boolean;
-  endpoint: string;
   voice_id?: string | null;
   agent_id?: string | null;
   status_code: number;
   request_bytes: number;
   response_bytes?: number | null;
   error?: string | null;
+};
+
+type UsagePolicy = {
+  cohort: "anonymous" | "free" | "paid";
+  hourlyLimit: number;
+  dailyLimit: number;
+};
+
+type Reservation = {
+  accepted: boolean;
+  reservationId: string | null;
+  reason: string | null;
 };
 
 const supabaseAdmin = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
@@ -57,14 +104,19 @@ function csvSet(raw: string | undefined | null): Set<string> {
 function corsHeaders(origin: string | null): HeadersInit {
   return {
     "Access-Control-Allow-Origin": origin ?? "*",
-    "Access-Control-Allow-Headers": "authorization, content-type, x-client-info, apikey",
+    "Access-Control-Allow-Headers":
+      "authorization, content-type, x-client-info, apikey",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Max-Age": "86400",
     "Vary": "Origin",
   };
 }
 
-function jsonResponse(status: number, body: Record<string, unknown>, origin: string | null): Response {
+function jsonResponse(
+  status: number,
+  body: Record<string, unknown>,
+  origin: string | null,
+): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -81,7 +133,9 @@ function getBearerToken(req: Request): string | null {
   return match?.[1] ?? null;
 }
 
-async function authenticateUser(req: Request): Promise<AuthenticatedUser | null> {
+async function authenticateUser(
+  req: Request,
+): Promise<AuthenticatedUser | null> {
   const accessToken = getBearerToken(req);
   if (!accessToken || !SUPABASE_URL || !SUPABASE_ANON_KEY) {
     return null;
@@ -109,56 +163,76 @@ async function authenticateUser(req: Request): Promise<AuthenticatedUser | null>
   };
 }
 
-async function isWithinRateLimit(user: AuthenticatedUser): Promise<boolean> {
-  if (!supabaseAdmin) {
-    return false;
+async function trustedUsagePolicy(
+  user: AuthenticatedUser,
+): Promise<UsagePolicy> {
+  if (user.isAnonymous) {
+    return {
+      cohort: "anonymous",
+      hourlyLimit: ANON_MAX_REQUESTS_PER_HOUR,
+      dailyLimit: ANON_MAX_REQUESTS_PER_DAY,
+    };
   }
-
-  const hourlySince = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-  const { count: hourlyCount, error: hourlyError } = await supabaseAdmin
-    .from("elevenlabs_proxy_requests")
-    .select("id", { count: "exact", head: true })
+  const { data, error } = await supabaseAdmin!
+    .from("app_entitlements")
+    .select("tier,source,expires_at")
     .eq("user_id", user.id)
-    .gte("created_at", hourlySince);
-
-  if (hourlyError) {
-    console.error("ElevenLabs hourly rate limit lookup failed", hourlyError);
-    return false;
+    .maybeSingle();
+  if (error) {
+    throw new Error(`entitlement_lookup_failed:${error.message}`);
   }
-
-  if ((hourlyCount ?? 0) >= MAX_REQUESTS_PER_HOUR) {
-    return false;
+  if (isStoredEntitlementActive(data)) {
+    return {
+      cohort: "paid",
+      hourlyLimit: MAX_REQUESTS_PER_HOUR,
+      dailyLimit: PAID_MAX_REQUESTS_PER_DAY,
+    };
   }
-
-  if (!user.isAnonymous) {
-    return true;
-  }
-
-  const dailySince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const { count: dailyCount, error: dailyError } = await supabaseAdmin
-    .from("elevenlabs_proxy_requests")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("is_anonymous", true)
-    .gte("created_at", dailySince);
-
-  if (dailyError) {
-    console.error("ElevenLabs anonymous daily limit lookup failed", dailyError);
-    return false;
-  }
-
-  return (dailyCount ?? 0) < ANON_MAX_REQUESTS_PER_DAY;
+  return {
+    cohort: "free",
+    hourlyLimit: FREE_MAX_REQUESTS_PER_HOUR,
+    dailyLimit: FREE_MAX_REQUESTS_PER_DAY,
+  };
 }
 
-async function logRequest(log: RequestLog): Promise<void> {
-  if (!supabaseAdmin) {
-    console.error("Supabase service role client is not configured; skipping ElevenLabs proxy request log.");
-    return;
-  }
+async function reserveRequest(
+  user: AuthenticatedUser,
+  endpoint: string,
+  requestBytes: number,
+  policy: UsagePolicy,
+): Promise<Reservation> {
+  const { data, error } = await supabaseAdmin!.rpc(
+    "reserve_elevenlabs_proxy_request",
+    {
+      p_user_id: user.id,
+      p_is_anonymous: user.isAnonymous,
+      p_endpoint: endpoint,
+      p_hourly_limit: policy.hourlyLimit,
+      p_daily_limit: policy.dailyLimit,
+      p_request_bytes: requestBytes,
+    },
+  );
+  if (error) throw new Error(`reservation_failed:${error.message}`);
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    accepted: row?.accepted === true,
+    reservationId: typeof row?.reservation_id === "string"
+      ? row.reservation_id
+      : null,
+    reason: typeof row?.reason === "string" ? row.reason : null,
+  };
+}
 
-  const { error } = await supabaseAdmin.from("elevenlabs_proxy_requests").insert(log);
+async function completeRequest(
+  reservationId: string,
+  log: RequestLog,
+): Promise<void> {
+  const { error } = await supabaseAdmin!
+    .from("elevenlabs_proxy_requests")
+    .update(log)
+    .eq("id", reservationId);
   if (error) {
-    console.error("Failed to write ElevenLabs proxy request log", error);
+    console.error("Failed to complete ElevenLabs proxy request log", error);
   }
 }
 
@@ -182,12 +256,16 @@ function targetPath(req: Request): ProxyPath | null {
     };
   }
 
-  const ttsMatch = pathname.match(/\/v1\/text-to-speech\/([^/]+)(\/with-timestamps)?$/);
+  const ttsMatch = pathname.match(
+    /\/v1\/text-to-speech\/([^/]+)(\/with-timestamps)?$/,
+  );
   if (ttsMatch) {
     const voiceId = decodeURIComponent(ttsMatch[1] ?? "").trim();
     return {
       kind: "tts",
-      upstreamPath: `/v1/text-to-speech/${encodeURIComponent(voiceId)}${ttsMatch[2] ?? ""}`,
+      upstreamPath: `/v1/text-to-speech/${encodeURIComponent(voiceId)}${
+        ttsMatch[2] ?? ""
+      }`,
       voiceId,
       withTimestamps: Boolean(ttsMatch[2]),
     };
@@ -196,7 +274,10 @@ function targetPath(req: Request): ProxyPath | null {
   return null;
 }
 
-function validateContentLength(req: Request, origin: string | null): Response | null {
+function validateContentLength(
+  req: Request,
+  origin: string | null,
+): Response | null {
   const contentLengthRaw = req.headers.get("content-length");
   if (!contentLengthRaw) {
     return null;
@@ -214,7 +295,9 @@ function isAllowed(id: string, allowed: Set<string>): boolean {
   return allowed.has(id);
 }
 
-function sanitizeVoiceSettings(settings: unknown): Record<string, unknown> | undefined {
+function sanitizeVoiceSettings(
+  settings: unknown,
+): Record<string, unknown> | undefined {
   if (!settings || typeof settings !== "object") {
     return undefined;
   }
@@ -249,7 +332,9 @@ function sanitizeTtsBody(bodyBytes: ArrayBuffer): Uint8Array {
     throw new Error(`Text exceeds ${MAX_TEXT_CHARS} characters`);
   }
 
-  const requestedModel = typeof json.model_id === "string" ? json.model_id : "eleven_multilingual_v2";
+  const requestedModel = typeof json.model_id === "string"
+    ? json.model_id
+    : "eleven_multilingual_v2";
   if (!ALLOWED_MODELS.has(requestedModel)) {
     throw new Error(`Model is not allowed: ${requestedModel}`);
   }
@@ -294,10 +379,17 @@ Deno.serve(async (req: Request) => {
   }
 
   if (!ELEVENLABS_API_KEY) {
-    return jsonResponse(500, { error: "ELEVENLABS_API_KEY is not configured on proxy" }, origin);
+    return jsonResponse(500, {
+      error: "ELEVENLABS_API_KEY is not configured on proxy",
+    }, origin);
   }
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY || !supabaseAdmin) {
-    return jsonResponse(500, { error: "Supabase proxy auth/logging secrets are not configured" }, origin);
+  if (
+    !SUPABASE_URL || !SUPABASE_ANON_KEY || !SUPABASE_SERVICE_ROLE_KEY ||
+    !supabaseAdmin
+  ) {
+    return jsonResponse(500, {
+      error: "Supabase proxy auth/logging secrets are not configured",
+    }, origin);
   }
 
   const user = await authenticateUser(req);
@@ -305,12 +397,9 @@ Deno.serve(async (req: Request) => {
     return jsonResponse(401, { error: "Authentication required" }, origin);
   }
 
-  if (!(await isWithinRateLimit(user))) {
-    return jsonResponse(429, { error: "Temporary usage limit reached" }, origin);
-  }
-
   let path: ProxyPath | null = null;
   let requestBytes = 0;
+  let reservationId: string | null = null;
 
   try {
     path = targetPath(req);
@@ -326,7 +415,9 @@ Deno.serve(async (req: Request) => {
       return jsonResponse(405, { error: "Method not allowed" }, origin);
     }
 
-    if (path.kind === "signed_url" && !isAllowed(path.agentId, ALLOWED_AGENT_IDS)) {
+    if (
+      path.kind === "signed_url" && !isAllowed(path.agentId, ALLOWED_AGENT_IDS)
+    ) {
       return jsonResponse(403, { error: "Agent is not allowed" }, origin);
     }
     if (path.kind === "tts" && !isAllowed(path.voiceId, ALLOWED_VOICE_IDS)) {
@@ -342,7 +433,9 @@ Deno.serve(async (req: Request) => {
     let forwardBody: Uint8Array | undefined;
 
     if (path.kind === "signed_url") {
-      upstreamUrl = `${upstreamUrl}?agent_id=${encodeURIComponent(path.agentId)}`;
+      upstreamUrl = `${upstreamUrl}?agent_id=${
+        encodeURIComponent(path.agentId)
+      }`;
     } else if (path.kind === "tts") {
       const originalBodyBytes = await req.arrayBuffer();
       requestBytes = originalBodyBytes.byteLength;
@@ -352,10 +445,30 @@ Deno.serve(async (req: Request) => {
       forwardBody = sanitizeTtsBody(originalBodyBytes);
     }
 
+    const policy = await trustedUsagePolicy(user);
+    const reservation = await reserveRequest(
+      user,
+      path.upstreamPath,
+      requestBytes,
+      policy,
+    );
+    if (!reservation.accepted || !reservation.reservationId) {
+      return jsonResponse(
+        429,
+        {
+          error: "Temporary usage limit reached",
+          reason: reservation.reason ?? "usage_limit",
+        },
+        origin,
+      );
+    }
+    reservationId = reservation.reservationId;
+
     const upstream = await fetch(upstreamUrl, {
       method: path.kind === "tts" ? "POST" : "GET",
       headers: forwardHeaders(path),
       body: forwardBody,
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
 
     const responseHeaders = new Headers(corsHeaders(origin));
@@ -370,17 +483,16 @@ Deno.serve(async (req: Request) => {
 
     if (!upstream.ok) {
       try {
-        const errorJson = JSON.parse(new TextDecoder().decode(responseBytes)) as Record<string, unknown>;
+        const errorJson = JSON.parse(
+          new TextDecoder().decode(responseBytes),
+        ) as Record<string, unknown>;
         upstreamError = JSON.stringify(errorJson).slice(0, 500);
       } catch {
         upstreamError = new TextDecoder().decode(responseBytes).slice(0, 500);
       }
     }
 
-    await logRequest({
-      user_id: user.id,
-      is_anonymous: user.isAnonymous,
-      endpoint: path.upstreamPath,
+    await completeRequest(reservationId, {
       voice_id: path.kind === "tts" ? path.voiceId : null,
       agent_id: path.kind === "signed_url" ? path.agentId : null,
       status_code: upstream.status,
@@ -389,23 +501,46 @@ Deno.serve(async (req: Request) => {
       error: upstreamError,
     });
 
+    if (!upstream.ok) {
+      return jsonResponse(
+        502,
+        { error: "Voice provider request failed" },
+        origin,
+      );
+    }
+
     return new Response(responseBytes, {
       status: upstream.status,
       headers: responseHeaders,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await logRequest({
-      user_id: user.id,
-      is_anonymous: user.isAnonymous,
-      endpoint: path?.upstreamPath ?? "unknown",
-      voice_id: path?.kind === "tts" ? path.voiceId : null,
-      agent_id: path?.kind === "signed_url" ? path.agentId : null,
-      status_code: 400,
-      request_bytes: requestBytes,
-      error: message,
-    });
-
-    return jsonResponse(400, { error: message }, origin);
+    if (reservationId) {
+      await completeRequest(reservationId, {
+        voice_id: path?.kind === "tts" ? path.voiceId : null,
+        agent_id: path?.kind === "signed_url" ? path.agentId : null,
+        status_code: error instanceof DOMException &&
+            error.name === "TimeoutError"
+          ? 504
+          : 400,
+        request_bytes: requestBytes,
+        error: message.slice(0, 500),
+      });
+    }
+    if (
+      message.startsWith("entitlement_lookup_failed:") ||
+      message.startsWith("reservation_failed:")
+    ) {
+      console.error("ElevenLabs authorization failed", message);
+      return jsonResponse(
+        503,
+        { error: "Voice authorization is temporarily unavailable" },
+        origin,
+      );
+    }
+    if (error instanceof DOMException && error.name === "TimeoutError") {
+      return jsonResponse(504, { error: "Voice provider timed out" }, origin);
+    }
+    return jsonResponse(400, { error: "Invalid voice request" }, origin);
   }
 });

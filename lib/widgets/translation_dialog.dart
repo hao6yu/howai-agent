@@ -841,7 +841,7 @@ class _TranslationDialogState extends State<TranslationDialog> with TickerProvid
                     Expanded(
                       child: _selectedLanguage.isEmpty
                           ? Text(
-                              isKeyboardVisible ? 'Choose target language...' : 'Search or tap to change: Chinese (Simpli...',
+                              'Choose target language...',
                               style: TextStyle(
                                 fontSize: settings.getScaledFontSize(isKeyboardVisible ? 13 : 14),
                                 color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey[500],

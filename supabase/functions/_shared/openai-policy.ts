@@ -57,7 +57,10 @@ export const DEFAULT_MODEL_POLICY: ModelPolicyConfig = Object.freeze({
   freeLunaAnswersPerDay: 3,
   freeLunaDailyBudgetMicrousd: 30_000,
   freeLunaMonthlyBudgetMicrousd: 300_000,
-  anonymousMaxOutputTokens: 400,
+  // Keep this aligned with the Flutter client's quick-response budget. The
+  // Responses API counts hidden reasoning against max_output_tokens, so the
+  // old 400-token ceiling could finish before Nano emitted any visible text.
+  anonymousMaxOutputTokens: 800,
   freeNanoMaxOutputTokens: 700,
   freeLunaMaxOutputTokens: 1_200,
   paidMaxOutputTokens: 3_000,

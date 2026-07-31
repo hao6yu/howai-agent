@@ -13,6 +13,8 @@ class IDMappingService {
   static const String _messageMappingKey = 'message_id_mapping';
   static const String _profileMappingKey = 'profile_id_mapping';
   static const String _personalityMappingKey = 'personality_id_mapping';
+  static const String _legacyMappingOwnerKey = 'legacy_id_mappings_claimed_by';
+  String? _ownerId;
 
   // In-memory cache for faster lookups
   Map<int, String>? _conversationCache;
@@ -27,62 +29,116 @@ class IDMappingService {
   Map<String, int>? _reversePersonalityCache;
 
   /// Initialize and load all mappings into cache
-  Future<void> initialize() async {
+  Future<void> initialize(String ownerId) async {
+    if (ownerId.trim().isEmpty) {
+      throw ArgumentError.value(ownerId, 'ownerId', 'Must not be empty');
+    }
+    if (_ownerId == ownerId &&
+        _conversationCache != null &&
+        _messageCache != null &&
+        _profileCache != null &&
+        _personalityCache != null) {
+      return;
+    }
+    _ownerId = ownerId;
     await _loadAllMappings();
+  }
+
+  String _scopedKey(String baseKey) {
+    final ownerId = _ownerId;
+    if (ownerId == null) {
+      throw StateError('IDMappingService has not been initialized');
+    }
+    return '${baseKey}_$ownerId';
+  }
+
+  Future<String?> _loadScopedJson(
+    SharedPreferences preferences,
+    String baseKey,
+  ) async {
+    final scopedKey = _scopedKey(baseKey);
+    final scoped = preferences.getString(scopedKey);
+    if (scoped != null) return scoped;
+
+    final claimedBy = preferences.getString(_legacyMappingOwnerKey);
+    final legacy = preferences.getString(baseKey);
+    if (legacy != null && (claimedBy == null || claimedBy == _ownerId)) {
+      await preferences.setString(scopedKey, legacy);
+      await preferences.setString(_legacyMappingOwnerKey, _ownerId!);
+      return legacy;
+    }
+    return null;
+  }
+
+  Map<int, String> _decodeMapping(
+    String? encoded,
+    String mappingName,
+  ) {
+    if (encoded == null) return {};
+    try {
+      final decoded = jsonDecode(encoded);
+      if (decoded is! Map) return {};
+      return Map<String, dynamic>.from(decoded).map(
+        (key, value) => MapEntry(int.parse(key), value.toString()),
+      );
+    } catch (error) {
+      debugPrint(
+        '[IDMappingService] Ignoring malformed $mappingName mapping: $error',
+      );
+      return {};
+    }
   }
 
   Future<void> _loadAllMappings() async {
     final prefs = await SharedPreferences.getInstance();
 
     // Load conversation mappings
-    final convJson = prefs.getString(_conversationMappingKey);
-    if (convJson != null) {
-      final Map<String, dynamic> decoded = jsonDecode(convJson);
-      _conversationCache =
-          decoded.map((k, v) => MapEntry(int.parse(k), v.toString()));
-      _reverseConversationCache =
-          _conversationCache!.map((k, v) => MapEntry(v, k));
-    } else {
-      _conversationCache = {};
-      _reverseConversationCache = {};
-    }
+    final convJson = await _loadScopedJson(prefs, _conversationMappingKey);
+    _conversationCache = _decodeMapping(convJson, 'conversation');
+    await _replaceMalformedOrEmptyMapping(
+      prefs,
+      _conversationMappingKey,
+      convJson,
+      _conversationCache!,
+    );
+    _reverseConversationCache =
+        _conversationCache!.map((key, value) => MapEntry(value, key));
 
     // Load message mappings
-    final msgJson = prefs.getString(_messageMappingKey);
-    if (msgJson != null) {
-      final Map<String, dynamic> decoded = jsonDecode(msgJson);
-      _messageCache =
-          decoded.map((k, v) => MapEntry(int.parse(k), v.toString()));
-      _reverseMessageCache = _messageCache!.map((k, v) => MapEntry(v, k));
-    } else {
-      _messageCache = {};
-      _reverseMessageCache = {};
-    }
+    final msgJson = await _loadScopedJson(prefs, _messageMappingKey);
+    _messageCache = _decodeMapping(msgJson, 'message');
+    await _replaceMalformedOrEmptyMapping(
+      prefs,
+      _messageMappingKey,
+      msgJson,
+      _messageCache!,
+    );
+    _reverseMessageCache =
+        _messageCache!.map((key, value) => MapEntry(value, key));
 
     // Load profile mappings
-    final profJson = prefs.getString(_profileMappingKey);
-    if (profJson != null) {
-      final Map<String, dynamic> decoded = jsonDecode(profJson);
-      _profileCache =
-          decoded.map((k, v) => MapEntry(int.parse(k), v.toString()));
-      _reverseProfileCache = _profileCache!.map((k, v) => MapEntry(v, k));
-    } else {
-      _profileCache = {};
-      _reverseProfileCache = {};
-    }
+    final profJson = await _loadScopedJson(prefs, _profileMappingKey);
+    _profileCache = _decodeMapping(profJson, 'profile');
+    await _replaceMalformedOrEmptyMapping(
+      prefs,
+      _profileMappingKey,
+      profJson,
+      _profileCache!,
+    );
+    _reverseProfileCache =
+        _profileCache!.map((key, value) => MapEntry(value, key));
 
     // Load personality mappings
-    final persJson = prefs.getString(_personalityMappingKey);
-    if (persJson != null) {
-      final Map<String, dynamic> decoded = jsonDecode(persJson);
-      _personalityCache =
-          decoded.map((k, v) => MapEntry(int.parse(k), v.toString()));
-      _reversePersonalityCache =
-          _personalityCache!.map((k, v) => MapEntry(v, k));
-    } else {
-      _personalityCache = {};
-      _reversePersonalityCache = {};
-    }
+    final persJson = await _loadScopedJson(prefs, _personalityMappingKey);
+    _personalityCache = _decodeMapping(persJson, 'personality');
+    await _replaceMalformedOrEmptyMapping(
+      prefs,
+      _personalityMappingKey,
+      persJson,
+      _personalityCache!,
+    );
+    _reversePersonalityCache =
+        _personalityCache!.map((key, value) => MapEntry(value, key));
 
     debugPrint('[IDMappingService] Loaded mappings: '
         '${_conversationCache!.length} conversations, '
@@ -91,66 +147,93 @@ class IDMappingService {
         '${_personalityCache!.length} personalities');
   }
 
+  Future<void> _replaceMalformedOrEmptyMapping(
+    SharedPreferences preferences,
+    String baseKey,
+    String? encoded,
+    Map<int, String> decoded,
+  ) async {
+    if (encoded == null || decoded.isNotEmpty) return;
+    await preferences.setString(_scopedKey(baseKey), '{}');
+  }
+
   /// Store a conversation ID mapping
   Future<void> storeConversationMapping(int localId, String uuid) async {
     _conversationCache ??= {};
     _reverseConversationCache ??= {};
+    _bindMapping(
+      _conversationCache!,
+      _reverseConversationCache!,
+      localId,
+      uuid,
+    );
 
-    // Check if this UUID is already mapped to a different local ID
-    final existingLocalId = _reverseConversationCache![uuid];
-    if (existingLocalId != null && existingLocalId != localId) {
-      // Remove the old mapping to prevent duplicates
-      _conversationCache!.remove(existingLocalId);
-      debugPrint(
-          '[IDMappingService] Removed old mapping: localId=$existingLocalId -> uuid=$uuid');
-    }
-
-    _conversationCache![localId] = uuid;
-    _reverseConversationCache![uuid] = localId;
-
-    await _saveMapping(_conversationMappingKey, _conversationCache!);
+    await _saveMapping(
+        _scopedKey(_conversationMappingKey), _conversationCache!);
   }
 
   /// Store a message ID mapping
   Future<void> storeMessageMapping(int localId, String uuid) async {
     _messageCache ??= {};
     _reverseMessageCache ??= {};
+    _bindMapping(
+      _messageCache!,
+      _reverseMessageCache!,
+      localId,
+      uuid,
+    );
 
-    // Check if this UUID is already mapped to a different local ID
-    final existingLocalId = _reverseMessageCache![uuid];
-    if (existingLocalId != null && existingLocalId != localId) {
-      // Remove the old mapping to prevent duplicates
-      _messageCache!.remove(existingLocalId);
-      debugPrint(
-          '[IDMappingService] Removed old message mapping: localId=$existingLocalId -> uuid=$uuid');
-    }
-
-    _messageCache![localId] = uuid;
-    _reverseMessageCache![uuid] = localId;
-
-    await _saveMapping(_messageMappingKey, _messageCache!);
+    await _saveMapping(_scopedKey(_messageMappingKey), _messageCache!);
   }
 
   /// Store a profile ID mapping
   Future<void> storeProfileMapping(int localId, String uuid) async {
     _profileCache ??= {};
     _reverseProfileCache ??= {};
+    _bindMapping(
+      _profileCache!,
+      _reverseProfileCache!,
+      localId,
+      uuid,
+    );
 
-    _profileCache![localId] = uuid;
-    _reverseProfileCache![uuid] = localId;
-
-    await _saveMapping(_profileMappingKey, _profileCache!);
+    await _saveMapping(_scopedKey(_profileMappingKey), _profileCache!);
   }
 
   /// Store a personality ID mapping
   Future<void> storePersonalityMapping(int localId, String uuid) async {
     _personalityCache ??= {};
     _reversePersonalityCache ??= {};
+    _bindMapping(
+      _personalityCache!,
+      _reversePersonalityCache!,
+      localId,
+      uuid,
+    );
 
-    _personalityCache![localId] = uuid;
-    _reversePersonalityCache![uuid] = localId;
+    await _saveMapping(_scopedKey(_personalityMappingKey), _personalityCache!);
+  }
 
-    await _saveMapping(_personalityMappingKey, _personalityCache!);
+  void _bindMapping(
+    Map<int, String> forward,
+    Map<String, int> reverse,
+    int localId,
+    String uuid,
+  ) {
+    final previousUuid = forward[localId];
+    if (previousUuid != null &&
+        previousUuid != uuid &&
+        reverse[previousUuid] == localId) {
+      reverse.remove(previousUuid);
+    }
+
+    final previousLocalId = reverse[uuid];
+    if (previousLocalId != null && previousLocalId != localId) {
+      forward.remove(previousLocalId);
+    }
+
+    forward[localId] = uuid;
+    reverse[uuid] = localId;
   }
 
   /// Get UUID for a local conversation ID
@@ -162,13 +245,33 @@ class IDMappingService {
     final uuid = _conversationCache?.remove(localId);
     if (uuid != null) {
       _reverseConversationCache?.remove(uuid);
-      await _saveMapping(_conversationMappingKey, _conversationCache!);
+      await _saveMapping(
+        _scopedKey(_conversationMappingKey),
+        _conversationCache!,
+      );
     }
   }
 
   /// Get UUID for a local message ID
   String? getMessageUUID(int localId) {
     return _messageCache?[localId];
+  }
+
+  Future<void> removeMessageMappings(Iterable<int> localIds) async {
+    var changed = false;
+    for (final localId in localIds) {
+      final uuid = _messageCache?.remove(localId);
+      if (uuid != null) {
+        _reverseMessageCache?.remove(uuid);
+        changed = true;
+      }
+    }
+    if (changed) {
+      await _saveMapping(
+        _scopedKey(_messageMappingKey),
+        _messageCache!,
+      );
+    }
   }
 
   /// Get UUID for a local profile ID
@@ -217,10 +320,10 @@ class IDMappingService {
   /// Clear all mappings (useful for testing or logout)
   Future<void> clearAllMappings() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_conversationMappingKey);
-    await prefs.remove(_messageMappingKey);
-    await prefs.remove(_profileMappingKey);
-    await prefs.remove(_personalityMappingKey);
+    await prefs.remove(_scopedKey(_conversationMappingKey));
+    await prefs.remove(_scopedKey(_messageMappingKey));
+    await prefs.remove(_scopedKey(_profileMappingKey));
+    await prefs.remove(_scopedKey(_personalityMappingKey));
 
     _conversationCache = {};
     _messageCache = {};
@@ -232,6 +335,20 @@ class IDMappingService {
     _reversePersonalityCache = {};
 
     debugPrint('[IDMappingService] All mappings cleared');
+  }
+
+  /// Clears only process memory when an account signs out. Persisted mappings
+  /// remain isolated under that account and are available on the next sign-in.
+  void deactivate() {
+    _ownerId = null;
+    _conversationCache = null;
+    _messageCache = null;
+    _profileCache = null;
+    _personalityCache = null;
+    _reverseConversationCache = null;
+    _reverseMessageCache = null;
+    _reverseProfileCache = null;
+    _reversePersonalityCache = null;
   }
 
   /// Get statistics about stored mappings
@@ -299,7 +416,10 @@ class IDMappingService {
     }
 
     // Save the cleaned mappings
-    await _saveMapping(_conversationMappingKey, _conversationCache!);
+    await _saveMapping(
+      _scopedKey(_conversationMappingKey),
+      _conversationCache!,
+    );
 
     // Rebuild reverse cache
     _reverseConversationCache =

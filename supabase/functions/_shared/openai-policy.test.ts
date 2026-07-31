@@ -114,7 +114,24 @@ test("anonymous users can analyze attachments on Nano", () => {
   });
 
   assert.equal(result.model, "gpt-5-nano");
+  assert.equal(result.maxOutputTokens, 800);
   assert.equal(result.fallbackReason, "anonymous_nano_only");
+});
+
+test("anonymous output budget can complete the client's quick response profile", () => {
+  const result = resolveModelPolicy({
+    cohort: "anonymous",
+    entitlementTrusted: false,
+    intent: "primary_chat",
+    hasAttachments: false,
+    estimatedLunaCostMicrousd: 0,
+    freeUsage: emptyUsage,
+  });
+  const payload: Record<string, unknown> = { max_output_tokens: 800 };
+
+  applyModelPolicyControls(payload, result);
+
+  assert.equal(payload.max_output_tokens, 800);
 });
 
 test("background checks remain on nano for every tier", () => {

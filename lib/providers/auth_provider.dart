@@ -5,6 +5,8 @@ import '../services/migration_service.dart';
 import '../services/sync_service.dart';
 import '../services/subscription_service.dart';
 import '../services/push_notification_service.dart';
+import '../services/database_service.dart';
+import 'conversation_provider.dart';
 import 'profile_provider.dart';
 import 'dart:async';
 
@@ -14,11 +16,24 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
   StreamSubscription<AuthState>? _authSubscription;
+  final ProfileProvider _profileProvider;
+  final ConversationProvider _conversationProvider;
+  Future<void>? _postAuthTask;
+  String? _postAuthUserId;
+  Future<void> _authTransition = Future<void>.value();
+  Future<void> _lastAuthOperation = Future<void>.value();
+  String? _queuedAuthUserId;
+  bool _authTransitionFailed = false;
+  int _authGeneration = 0;
 
   // Flag to indicate sync has completed and UI should refresh
   bool _syncCompleted = false;
 
-  AuthProvider() {
+  AuthProvider({
+    required ProfileProvider profileProvider,
+    required ConversationProvider conversationProvider,
+  })  : _profileProvider = profileProvider,
+        _conversationProvider = conversationProvider {
     _initialize();
   }
 
@@ -40,32 +55,93 @@ class AuthProvider extends ChangeNotifier {
   // Initialize and listen to auth state changes
   void _initialize() {
     _user = _supabaseService.currentUser;
+    _queuedAuthUserId = _user?.id;
     _isLoading = false;
 
-    debugPrint(
-        '[AuthProvider] Initializing with user: ${_user?.email ?? "none"}');
-
     // Listen to auth state changes
-    _authSubscription = _supabaseService.authStateChanges.listen((authState) {
-      final previousUser = _user;
-      _user = authState.session?.user;
+    _authSubscription = _supabaseService.authStateChanges.listen(
+      (authState) {
+        unawaited(
+          _queueAuthStateChange(authState.session?.user).catchError(
+            (Object _) {},
+          ),
+        );
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        debugPrint('[AuthProvider] Auth state stream failed: $error');
+        _errorMessage = 'Authentication status could not be refreshed.';
+        notifyListeners();
+      },
+    );
 
-      debugPrint(
-          '[AuthProvider] Auth state changed - Previous: ${previousUser?.email ?? "none"}, Current: ${_user?.email ?? "none"}');
-
-      // If user just logged into a recoverable account, trigger sync tasks.
-      // Anonymous sessions are intentionally local-only.
-      if (_user != null &&
-          !_user!.isAnonymous &&
-          (previousUser == null || previousUser.isAnonymous)) {
-        debugPrint('[AuthProvider] User logged in, triggering post-auth tasks');
-        _triggerPostAuthTasks();
-      }
-
-      notifyListeners();
-    });
+    if (_user != null && !_user!.isAnonymous) {
+      _triggerPostAuthTasks();
+    }
 
     notifyListeners();
+  }
+
+  Future<void> _queueAuthStateChange(User? nextUser) {
+    final nextUserId = nextUser?.id;
+    if (_queuedAuthUserId == nextUserId && !_authTransitionFailed) {
+      _user = nextUser;
+      notifyListeners();
+      return _lastAuthOperation;
+    }
+
+    _queuedAuthUserId = nextUserId;
+    _authTransitionFailed = false;
+    final generation = ++_authGeneration;
+    _isLoading = true;
+    _user = nextUser;
+    notifyListeners();
+
+    final operation = _authTransition.then(
+      (_) => _performAuthTransition(nextUser, generation),
+    );
+    _authTransition = operation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    _lastAuthOperation = operation;
+    return operation;
+  }
+
+  Future<void> _performAuthTransition(User? nextUser, int generation) async {
+    try {
+      await SyncService().clearSyncData();
+      final previousPostAuthTask = _postAuthTask;
+      if (previousPostAuthTask != null) {
+        await previousPostAuthTask.catchError((Object _) {});
+      }
+      if (_authGeneration != generation) return;
+
+      await DatabaseService().activateAccount(
+        nextUser == null || nextUser.isAnonymous ? null : nextUser.id,
+      );
+      if (_authGeneration != generation) return;
+
+      await _reloadLocalAccountState();
+      if (_authGeneration != generation) return;
+
+      _authTransitionFailed = false;
+      _errorMessage = null;
+      if (nextUser != null && !nextUser.isAnonymous) {
+        _triggerPostAuthTasks();
+      }
+    } catch (error) {
+      debugPrint('[AuthProvider] Account storage switch failed: $error');
+      _errorMessage = 'Your local account data could not be opened.';
+      if (_authGeneration == generation) {
+        _authTransitionFailed = true;
+      }
+      rethrow;
+    } finally {
+      if (_authGeneration == generation) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
   }
 
   // Sign up with email and password
@@ -85,9 +161,7 @@ class AuthProvider extends ChangeNotifier {
         name: name,
       );
 
-      if (response.user != null) {
-        _user = response.user;
-
+      if (response.user != null && response.session != null) {
         // Create profile in profiles table
         await _supabaseService.upsertUserProfile(
           userId: response.user!.id,
@@ -95,15 +169,17 @@ class AuthProvider extends ChangeNotifier {
           name: name,
         );
 
+        await _queueAuthStateChange(response.user);
         _isLoading = false;
         notifyListeners();
-
-        // Trigger migration and sync after successful sign up
-        _triggerPostAuthTasks();
 
         return true;
       }
 
+      if (response.user != null) {
+        _errorMessage =
+            'Check your email to confirm your account, then sign in.';
+      }
       _isLoading = false;
       notifyListeners();
       return false;
@@ -131,12 +207,9 @@ class AuthProvider extends ChangeNotifier {
       );
 
       if (response.user != null) {
-        _user = response.user;
+        await _queueAuthStateChange(response.user);
         _isLoading = false;
         notifyListeners();
-
-        // Trigger migration and sync after successful sign in
-        _triggerPostAuthTasks();
 
         return true;
       }
@@ -162,7 +235,7 @@ class AuthProvider extends ChangeNotifier {
       final response = await _supabaseService.signInAnonymously();
 
       if (response.user != null) {
-        _user = response.user;
+        await _queueAuthStateChange(response.user);
         _isLoading = false;
         notifyListeners();
         return true;
@@ -234,16 +307,28 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // Sign out
-  Future<void> signOut() async {
+  Future<bool> signOut() async {
     try {
       _errorMessage = null;
-      await PushNotificationService.instance.unregisterCurrentDevice();
-      await _supabaseService.signOut();
-      _user = null;
+      _isLoading = true;
       notifyListeners();
+      try {
+        await PushNotificationService.instance.unregisterCurrentDevice();
+      } catch (error) {
+        debugPrint(
+          '[AuthProvider] Push device unregister failed during sign out: $error',
+        );
+      }
+      await _supabaseService.signOut();
+      await _queueAuthStateChange(null);
+      _isLoading = false;
+      notifyListeners();
+      return true;
     } catch (e) {
+      _isLoading = false;
       _errorMessage = _getErrorMessage(e);
       notifyListeners();
+      return false;
     }
   }
 
@@ -301,6 +386,14 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _reloadLocalAccountState() async {
+    await _profileProvider.loadProfiles();
+    _conversationProvider.clearSelection();
+    await _conversationProvider.loadConversations(
+      profileId: _profileProvider.selectedProfileId,
+    );
+  }
+
   // Helper to extract user-friendly error messages
   String _getErrorMessage(dynamic error) {
     if (error is AuthException) {
@@ -326,35 +419,48 @@ class AuthProvider extends ChangeNotifier {
 
   // Trigger post-authentication tasks (migration, sync, etc.)
   void _triggerPostAuthTasks() {
-    // Run in background, don't await
-    Future.microtask(() async {
+    final user = _user;
+    if (user == null || user.isAnonymous) return;
+    if (_postAuthUserId == user.id && _postAuthTask != null) return;
+
+    final generation = _authGeneration;
+    _postAuthUserId = user.id;
+    _postAuthTask = Future.microtask(() async {
       try {
-        if (_user?.isAnonymous ?? true) {
-          debugPrint(
-              '[AuthProvider] Anonymous session active, skipping cloud sync tasks');
-          return;
-        }
+        if (!_isCurrentAuthContext(user.id, generation)) return;
 
         // Check if migration is needed
         final migrationService = MigrationService();
         if (await migrationService.needsMigration()) {
+          if (!_isCurrentAuthContext(user.id, generation)) return;
           debugPrint('[AuthProvider] Starting background migration');
           await migrationService.startMigration();
         }
+        if (!_isCurrentAuthContext(user.id, generation)) return;
 
         // Restart sync service with new auth state
         final syncService = SyncService();
         await syncService.initialize();
+        if (!_isCurrentAuthContext(user.id, generation)) return;
+        await syncService.syncNow();
+        if (!_isCurrentAuthContext(user.id, generation)) return;
 
         // Sync subscription status to Supabase
         final subscriptionService = SubscriptionService();
         await subscriptionService.syncCurrentSubscriptionToSupabase();
+        if (!_isCurrentAuthContext(user.id, generation)) return;
 
         // Load user profile and AI insights from Supabase (cross-device sync)
         debugPrint('[AuthProvider] Loading profile from Supabase...');
-        final profileProvider = ProfileProvider();
-        await profileProvider.loadProfiles(); // Load local profiles first
-        await profileProvider.loadProfileFromSupabase(); // Then sync from cloud
+        await _profileProvider.loadProfiles();
+        if (!_isCurrentAuthContext(user.id, generation)) return;
+        await _profileProvider.loadProfileFromSupabase();
+        if (!_isCurrentAuthContext(user.id, generation)) return;
+        await _conversationProvider.loadConversations(
+          profileId: _profileProvider.selectedProfileId,
+        );
+
+        if (!_isCurrentAuthContext(user.id, generation)) return;
 
         debugPrint('[AuthProvider] Post-auth tasks completed');
 
@@ -366,8 +472,18 @@ class AuthProvider extends ChangeNotifier {
       } catch (e) {
         debugPrint('[AuthProvider] Error in post-auth tasks (silent): $e');
         // Silent failure - don't disrupt user experience
+      } finally {
+        if (_postAuthUserId == user.id) {
+          _postAuthTask = null;
+        }
       }
     });
+  }
+
+  bool _isCurrentAuthContext(String userId, int generation) {
+    return _authGeneration == generation &&
+        _user?.id == userId &&
+        _supabaseService.currentUser?.id == userId;
   }
 
   @override

@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.111.0";
 import {
   applyModelPolicyControls,
   applyOutputTokenCeiling,
@@ -86,6 +86,9 @@ const MAX_OUTPUT_TOKENS = Number(
 );
 const MAX_REQUESTS_PER_HOUR = Number(
   Deno.env.get("OPENAI_PROXY_MAX_REQUESTS_PER_HOUR") ?? 120,
+);
+const UPSTREAM_TIMEOUT_MS = Number(
+  Deno.env.get("OPENAI_PROXY_UPSTREAM_TIMEOUT_MS") ?? 180_000,
 );
 const ANON_MAX_REQUESTS_PER_DAY = Number(
   Deno.env.get("OPENAI_PROXY_ANON_MAX_REQUESTS_PER_DAY") ?? 300,
@@ -1621,6 +1624,7 @@ Deno.serve(async (req: Request) => {
       method: "POST",
       headers: sanitizeForwardHeaders(req),
       body: forwardBody as BodyInit,
+      signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
 
     const responseHeaders = new Headers(corsHeaders(origin));
@@ -1818,7 +1822,13 @@ Deno.serve(async (req: Request) => {
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    const status = error instanceof ProxyPolicyError ? error.status : 502;
+    const timedOut = error instanceof DOMException &&
+      error.name === "TimeoutError";
+    const status = error instanceof ProxyPolicyError
+      ? error.status
+      : timedOut
+      ? 504
+      : 502;
     await Promise.all([
       logRequest({
         ...rolloutTelemetry(sanitized),
@@ -1854,6 +1864,9 @@ Deno.serve(async (req: Request) => {
 
     if (error instanceof ProxyPolicyError) {
       return jsonResponse(status, { error: message }, origin);
+    }
+    if (timedOut) {
+      return jsonResponse(504, { error: "AI provider timed out" }, origin);
     }
     return jsonResponse(
       502,

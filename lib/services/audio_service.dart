@@ -6,7 +6,9 @@ import 'package:haogpt/generated/app_localizations.dart';
 
 class AudioService {
   static AudioPlayer? _audioPlayer;
+  static StreamSubscription<PlayerState>? _audioStateSubscription;
   static AudioPlayer? _voiceDemoPlayer;
+  static StreamSubscription<PlayerState>? _voiceDemoStateSubscription;
   static final ValueNotifier<bool> _isPlayingAudio = ValueNotifier(false);
   static final ValueNotifier<bool> _isVoiceDemoPlaying = ValueNotifier(false);
   static final ValueNotifier<bool> _isVoiceDemoPaused = ValueNotifier(false);
@@ -90,32 +92,35 @@ class AudioService {
       // print('[Audio Debug] Setting volume to 1.0');
       await _audioPlayer!.setVolume(1.0);
 
-      // Play the audio
-      // print('[Audio Debug] Starting audio playback...');
-      await _audioPlayer!.play();
-      // print('[Audio Debug] Audio play() command completed');
+      final player = _audioPlayer!;
+      await _audioStateSubscription?.cancel();
+      _audioStateSubscription = player.playerStateStream.listen(
+        (state) {
+          if (!identical(_audioPlayer, player)) return;
+          if (state.processingState == ProcessingState.completed ||
+              state.processingState == ProcessingState.idle) {
+            _isPlayingAudio.value = false;
+          } else {
+            _isPlayingAudio.value = state.playing;
+          }
+        },
+        onError: (_) {
+          if (identical(_audioPlayer, player)) {
+            _isPlayingAudio.value = false;
+          }
+        },
+      );
 
-      // Set playing state to true and keep it true during playback
+      // just_audio's play() future completes when playback finishes. Publish
+      // state first and run it without blocking the UI caller.
       _isPlayingAudio.value = true;
-      // print('[Audio Debug] Set isPlayingAudio to TRUE');
-
-      // Get audio duration for tracking
-      final duration = _audioPlayer!.duration;
-      // print('[Audio Debug] Audio duration: ${duration?.inSeconds}s');
-
-      if (duration != null) {
-        // Use a timer based on actual duration to stop playback
-        Timer(duration, () {
-          // print('[Audio Debug] Audio playback timer completed after ${duration.inSeconds}s');
-          _isPlayingAudio.value = false;
-        });
-      } else {
-        // Fallback: estimate duration from file size or use 10 seconds
-        Timer(Duration(seconds: 10), () {
-          // print('[Audio Debug] Fallback timer completed');
-          _isPlayingAudio.value = false;
-        });
-      }
+      unawaited(
+        player.play().catchError((Object error) {
+          if (identical(_audioPlayer, player)) {
+            _isPlayingAudio.value = false;
+          }
+        }),
+      );
     } catch (e) {
       // print('Error playing audio: $e');
       _isPlayingAudio.value = false;
@@ -124,6 +129,8 @@ class AudioService {
 
   /// Stop current audio playback
   static Future<void> stopAudio() async {
+    await _audioStateSubscription?.cancel();
+    _audioStateSubscription = null;
     if (_audioPlayer != null) {
       try {
         await _audioPlayer!.stop();
@@ -134,6 +141,7 @@ class AudioService {
         // print('Error stopping audio: $e');
       }
     }
+    _isPlayingAudio.value = false;
   }
 
   /// Prepare voice demo player
@@ -141,7 +149,9 @@ class AudioService {
       {bool useSpeakerOutput = true}) async {
     try {
       // print('[VoiceDemo] Preparing welcome voice demo player');
-      _voiceDemoPlayer?.dispose();
+      await _voiceDemoStateSubscription?.cancel();
+      _voiceDemoStateSubscription = null;
+      await _voiceDemoPlayer?.dispose();
       _voiceDemoPlayer = AudioPlayer();
 
       // Configure audio session
@@ -176,7 +186,8 @@ class AudioService {
       {bool useSpeakerOutput = true}) async {
     try {
       // print('[VoiceDemo] Starting welcome voice demo');
-      _voiceDemoPlayer?.dispose();
+      await _voiceDemoStateSubscription?.cancel();
+      await _voiceDemoPlayer?.dispose();
       _voiceDemoPlayer = AudioPlayer();
 
       // Configure audio session
@@ -202,20 +213,27 @@ class AudioService {
       // print('[VoiceDemo] Loading voice demo asset...');
       await _voiceDemoPlayer!.setAsset('assets/audio/hao_voice_demo_fixed.mp3');
 
-      _isVoiceDemoPlaying.value = true;
-      _isVoiceDemoPaused.value = false;
-
-      // print('[VoiceDemo] Starting playback...');
-      await _voiceDemoPlayer!.play();
-
-      _voiceDemoPlayer!.playerStateStream.listen((state) {
-        // print('[VoiceDemo] Player state changed: ${state.processingState}, playing: ${state.playing}');
+      final player = _voiceDemoPlayer!;
+      _voiceDemoStateSubscription = player.playerStateStream.listen((state) {
+        if (!identical(_voiceDemoPlayer, player)) return;
         if (state.processingState == ProcessingState.completed ||
             state.processingState == ProcessingState.idle) {
           _isVoiceDemoPlaying.value = false;
           _isVoiceDemoPaused.value = false;
         }
       });
+
+      _isVoiceDemoPlaying.value = true;
+      _isVoiceDemoPaused.value = false;
+
+      unawaited(
+        player.play().catchError((Object error) {
+          if (identical(_voiceDemoPlayer, player)) {
+            _isVoiceDemoPlaying.value = false;
+            _isVoiceDemoPaused.value = false;
+          }
+        }),
+      );
     } catch (e) {
       // print('[VoiceDemo] Error playing demo: $e\n$st');
       _isVoiceDemoPlaying.value = false;
@@ -244,14 +262,24 @@ class AudioService {
   /// Resume voice demo
   static Future<void> resumeVoiceDemo() async {
     if (_voiceDemoPlayer != null && _isVoiceDemoPaused.value) {
+      final player = _voiceDemoPlayer!;
       _isVoiceDemoPaused.value = false;
       _isVoiceDemoPlaying.value = true;
-      await _voiceDemoPlayer!.play();
+      unawaited(
+        player.play().catchError((Object error) {
+          if (identical(_voiceDemoPlayer, player)) {
+            _isVoiceDemoPlaying.value = false;
+            _isVoiceDemoPaused.value = false;
+          }
+        }),
+      );
     }
   }
 
   /// Stop voice demo
   static Future<void> stopVoiceDemo() async {
+    await _voiceDemoStateSubscription?.cancel();
+    _voiceDemoStateSubscription = null;
     if (_voiceDemoPlayer != null) {
       await _voiceDemoPlayer!.stop();
       _isVoiceDemoPlaying.value = false;
@@ -263,7 +291,7 @@ class AudioService {
   static Future<void> dispose() async {
     await stopAudio();
     await stopVoiceDemo();
-    _voiceDemoPlayer?.dispose();
+    await _voiceDemoPlayer?.dispose();
     _isPlayingAudio.dispose();
     _isVoiceDemoPlaying.dispose();
     _isVoiceDemoPaused.dispose();

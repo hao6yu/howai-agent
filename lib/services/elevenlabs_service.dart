@@ -8,8 +8,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_config.dart';
 
 class ElevenLabsService {
-  static String _baseUrl = 'https://api.elevenlabs.io/v1';
-  static String? _apiKey;
+  static const Duration _requestTimeout = Duration(seconds: 35);
+  static String _baseUrl = '';
   static String? _proxyBaseUrl;
   static String? _supabaseAnonKey;
   static String _voiceId = '9BWtsMINqrJLrRacOk9x'; // Default voice (Aria)
@@ -26,9 +26,9 @@ class ElevenLabsService {
     {'id': 'ErXwobaYiN019PkySvjV', 'name': 'Antoni'},
   ];
 
-  // Initialize with env variables or direct values
-  static Future<void> initialize({String? apiKey, String? voiceId}) async {
-    _apiKey = apiKey ?? AppConfig.elevenLabsApiKey;
+  // Initialize the authenticated server proxy. Provider credentials are never
+  // accepted by or compiled into the mobile client.
+  static Future<void> initialize({String? voiceId}) async {
     _proxyBaseUrl = AppConfig.elevenLabsProxyBaseUrl.trim();
     _supabaseAnonKey = AppConfig.supabasePublishableKey.trim();
 
@@ -44,8 +44,7 @@ class ElevenLabsService {
 
   static bool get _isUsingProxy =>
       _proxyBaseUrl != null && _proxyBaseUrl!.isNotEmpty;
-  static bool get _hasApiKey => _apiKey != null && _apiKey!.isNotEmpty;
-  static bool get _isConfigured => _isUsingProxy || _hasApiKey;
+  static bool get _isConfigured => _isUsingProxy;
 
   static Future<Map<String, String>> _buildHeaders({
     required String accept,
@@ -64,8 +63,6 @@ class ElevenLabsService {
       if (_supabaseAnonKey != null && _supabaseAnonKey!.isNotEmpty) {
         headers['apikey'] = _supabaseAnonKey!;
       }
-    } else if (_hasApiKey) {
-      headers['xi-api-key'] = _apiKey!;
     }
 
     return headers;
@@ -122,7 +119,8 @@ class ElevenLabsService {
   Future<bool> hasAudioFile(int storyId, {String? voiceId}) async {
     try {
       final filePath = await _getAudioFilePath(storyId, voiceId: voiceId);
-      return File(filePath).exists();
+      final file = File(filePath);
+      return await file.exists() && await file.length() > 0;
     } catch (e) {
       // print('Error checking audio file: $e');
       return false;
@@ -137,10 +135,12 @@ class ElevenLabsService {
     }
 
     try {
-      final response = await http.get(
-        Uri.parse('$_baseUrl/voices'),
-        headers: await _buildHeaders(accept: 'application/json'),
-      );
+      final response = await http
+          .get(
+            Uri.parse('$_baseUrl/voices'),
+            headers: await _buildHeaders(accept: 'application/json'),
+          )
+          .timeout(_requestTimeout);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -186,23 +186,8 @@ class ElevenLabsService {
     // print('Voice ID: $effectiveVoiceId (${getVoiceNameById(effectiveVoiceId)})');
 
     try {
-      // Check if API key is available
       if (!_isConfigured) {
-        // print('⚠️ ElevenLabsService: No valid API key available. Creating placeholder file.');
-
-        // Create placeholder file so the app doesn't keep trying to generate
-        final filePath =
-            await _getAudioFilePath(storyId, voiceId: effectiveVoiceId);
-        // print('Creating placeholder file at: $filePath');
-        final file = File(filePath);
-        if (!await file.exists()) {
-          await file.create();
-          // print('Placeholder file created');
-        } else {
-          // print('Placeholder file already exists');
-        }
-
-        return filePath;
+        return null;
       }
 
       // print('🔄 Sending request to ElevenLabs API endpoint: $_baseUrl/text-to-speech/$effectiveVoiceId');
@@ -211,23 +196,25 @@ class ElevenLabsService {
       // print('  - Stability: 0.35');
       // print('  - Similarity boost: 1.00');
 
-      final response = await http.post(
-        Uri.parse('$_baseUrl/text-to-speech/$effectiveVoiceId'),
-        headers: await _buildHeaders(
-          accept: 'audio/mpeg',
-          includeJsonContentType: true,
-        ),
-        body: jsonEncode({
-          'text': text,
-          'model_id': 'eleven_multilingual_v2',
-          'voice_settings': {
-            'stability': 0.35,
-            'similarity_boost': 1.00,
-            'style': 0,
-            'use_speaker_boost': true,
-          },
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/text-to-speech/$effectiveVoiceId'),
+            headers: await _buildHeaders(
+              accept: 'audio/mpeg',
+              includeJsonContentType: true,
+            ),
+            body: jsonEncode({
+              'text': text,
+              'model_id': 'eleven_multilingual_v2',
+              'voice_settings': {
+                'stability': 0.35,
+                'similarity_boost': 1.00,
+                'style': 0,
+                'use_speaker_boost': true,
+              },
+            }),
+          )
+          .timeout(_requestTimeout);
 
       // print('Response received in ${elapsed}ms');
 
@@ -236,6 +223,7 @@ class ElevenLabsService {
         // print('Response content type: ${response.headers['content-type']}');
         // print('Audio size: ${response.bodyBytes.length} bytes');
 
+        if (response.bodyBytes.isEmpty) return null;
         final filePath =
             await _getAudioFilePath(storyId, voiceId: effectiveVoiceId);
         // print('Saving audio to file: $filePath');
@@ -265,7 +253,7 @@ class ElevenLabsService {
     try {
       final filePath = await _getAudioFilePath(storyId, voiceId: voiceId);
       final file = File(filePath);
-      if (await file.exists()) {
+      if (await file.exists() && await file.length() > 0) {
         return file;
       }
       return null;
@@ -351,47 +339,32 @@ class ElevenLabsService {
     try {
       // print('ElevenLabsService: Generating audio with timestamps for story $storyId with voice $effectiveVoiceId');
 
-      // Check if API key is available
       if (!_isConfigured) {
-        // print('ElevenLabsService: No valid API key available. Creating placeholder files with mock timestamps.');
-
-        // Create placeholder files so the app doesn't keep trying to generate
-        final filePath =
-            await _getAudioFilePath(storyId, voiceId: effectiveVoiceId);
-        final file = File(filePath);
-        if (!await file.exists()) {
-          await file.create();
-        }
-
-        // Generate mock timestamps for testing
-        final mockTimestamps = _generateMockTimestamps(text);
-        // print('ElevenLabsService: Generated ${mockTimestamps.length} mock timestamps');
-
-        return {
-          'audioPath': filePath,
-          'timestamps': mockTimestamps,
-        };
+        return null;
       }
 
       // Generate audio with timestamps using the /with-timestamps endpoint
       // print('ElevenLabsService: Calling /with-timestamps endpoint');
-      final response = await http.post(
-        Uri.parse('$_baseUrl/text-to-speech/$effectiveVoiceId/with-timestamps'),
-        headers: await _buildHeaders(
-          accept: 'application/json',
-          includeJsonContentType: true,
-        ),
-        body: jsonEncode({
-          'text': text,
-          'model_id': 'eleven_multilingual_v2',
-          'voice_settings': {
-            'stability': 0.6,
-            'similarity_boost': 0.85,
-            'style': 0,
-            'use_speaker_boost': true,
-          },
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse(
+                '$_baseUrl/text-to-speech/$effectiveVoiceId/with-timestamps'),
+            headers: await _buildHeaders(
+              accept: 'application/json',
+              includeJsonContentType: true,
+            ),
+            body: jsonEncode({
+              'text': text,
+              'model_id': 'eleven_multilingual_v2',
+              'voice_settings': {
+                'stability': 0.6,
+                'similarity_boost': 0.85,
+                'style': 0,
+                'use_speaker_boost': true,
+              },
+            }),
+          )
+          .timeout(_requestTimeout);
 
       if (response.statusCode != 200) {
         // print('Error generating audio with timestamps: ${response.statusCode} - ${response.reasonPhrase}');
@@ -403,6 +376,7 @@ class ElevenLabsService {
       // Extract audio data and save to file
       final audioBase64 = responseData['audio_base64'] as String;
       final audioBytes = base64Decode(audioBase64);
+      if (audioBytes.isEmpty) return null;
 
       final filePath =
           await _getAudioFilePath(storyId, voiceId: effectiveVoiceId);
@@ -444,37 +418,6 @@ class ElevenLabsService {
       // print('Exception generating audio with timestamps: $e');
       return null;
     }
-  }
-
-  // Generate mock timestamps for testing when API key is not available
-  List<Map<String, dynamic>> _generateMockTimestamps(String text) {
-    final wordTimestamps = <Map<String, dynamic>>[];
-    final wordRegex = RegExp(r"[\w'']+");
-    final matches = wordRegex.allMatches(text).toList();
-
-    double currentTime = 0.5; // Start after 0.5 seconds
-
-    for (final match in matches) {
-      final word = match.group(0)!;
-      final wordStart = match.start;
-      final wordEnd = match.end;
-
-      // Estimate word duration based on length (roughly 0.1s per character + 0.2s base)
-      final wordDuration = (word.length * 0.1) + 0.2;
-
-      wordTimestamps.add({
-        'word': word.toLowerCase(),
-        'start': currentTime,
-        'end': currentTime + wordDuration,
-        'originalWord': word,
-        'textStart': wordStart,
-        'textEnd': wordEnd,
-      });
-
-      currentTime += wordDuration + 0.1; // Add small pause between words
-    }
-
-    return wordTimestamps;
   }
 
   // Convert character-level timestamps to word-level timestamps
@@ -621,23 +564,8 @@ class ElevenLabsService {
     }
 
     try {
-      // Check if API key is available
       if (!_isConfigured) {
-        // print('⚠️ ElevenLabsService: No valid API key available. Creating placeholder file.');
-
-        // Create placeholder file so the app doesn't keep trying to generate
-        final filePath =
-            await _getAudioFilePath(storyId, voiceId: effectiveVoiceId);
-        // print('Creating placeholder file at: $filePath');
-        final file = File(filePath);
-        if (!await file.exists()) {
-          await file.create();
-          // print('Placeholder file created');
-        } else {
-          // print('Placeholder file already exists');
-        }
-
-        return filePath;
+        return null;
       }
 
       // print('🔄 Sending request to ElevenLabs API endpoint: $_baseUrl/text-to-speech/$effectiveVoiceId');
@@ -665,18 +593,20 @@ class ElevenLabsService {
         effectiveSettings.addAll(voiceSettings);
       }
 
-      final response = await http.post(
-        Uri.parse('$_baseUrl/text-to-speech/$effectiveVoiceId'),
-        headers: await _buildHeaders(
-          accept: 'audio/mpeg',
-          includeJsonContentType: true,
-        ),
-        body: jsonEncode({
-          'text': text,
-          'model_id': 'eleven_multilingual_v2',
-          'voice_settings': effectiveSettings,
-        }),
-      );
+      final response = await http
+          .post(
+            Uri.parse('$_baseUrl/text-to-speech/$effectiveVoiceId'),
+            headers: await _buildHeaders(
+              accept: 'audio/mpeg',
+              includeJsonContentType: true,
+            ),
+            body: jsonEncode({
+              'text': text,
+              'model_id': 'eleven_multilingual_v2',
+              'voice_settings': effectiveSettings,
+            }),
+          )
+          .timeout(_requestTimeout);
 
       // print('Response received in ${elapsed}ms');
 
@@ -685,6 +615,7 @@ class ElevenLabsService {
         // print('Response content type: ${response.headers['content-type']}');
         // print('Audio size: ${response.bodyBytes.length} bytes');
 
+        if (response.bodyBytes.isEmpty) return null;
         final filePath =
             await _getAudioFilePath(storyId, voiceId: effectiveVoiceId);
         // print('Saving audio to file: $filePath');

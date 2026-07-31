@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.111.0";
 import { isStoredEntitlementActive } from "../_shared/entitlement-status.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
@@ -190,17 +190,17 @@ const MEMORY_SCHEMA = {
   type: "object",
   additionalProperties: false,
   properties: {
-    summary: { type: "string", maxLength: 1200 },
+    summary: { type: "string", maxLength: 600 },
     memories: {
       type: "array",
-      maxItems: 8,
+      maxItems: 4,
       items: {
         type: "object",
         additionalProperties: false,
         properties: {
           memory_key: { type: "string", maxLength: 160 },
           title: { type: "string", maxLength: 120 },
-          content: { type: "string", maxLength: 2000 },
+          content: { type: "string", maxLength: 800 },
           memory_type: {
             type: "string",
             enum: ["preference", "fact", "goal", "constraint", "other"],
@@ -349,7 +349,10 @@ Deno.serve(async (req: Request) => {
       model: "howai-chat-mini",
       metadata: {
         howai_intent: "lightweight",
-        howai_response_profile: "standard",
+        // Extraction needs compact structured output, not conversational
+        // reasoning. The quick profile preserves more of Nano's bounded output
+        // budget for the JSON payload.
+        howai_response_profile: "quick",
         howai_disable_personalization: true,
       },
       instructions: `<memory_extraction_task>
@@ -366,8 +369,7 @@ Set is_explicit=true only when the user clearly stated the detail. Use a stable 
           JSON.stringify(messages)
         }`,
       }],
-      max_output_tokens: 900,
-      reasoning: { effort: "low" },
+      max_output_tokens: 700,
       text: {
         verbosity: "low",
         format: {
@@ -392,20 +394,57 @@ Set is_explicit=true only when the user clearly stated the detail. Use a stable 
   }
 
   const outputText = extractOutputText(upstreamBody);
+  const responseStatus = typeof upstreamBody.status === "string"
+    ? upstreamBody.status
+    : null;
+  if (!outputText || responseStatus === "incomplete") {
+    console.warn("Memory extraction returned no complete output", {
+      response_status: responseStatus,
+      incomplete_reason:
+        (upstreamBody.incomplete_details as Record<string, unknown> | null)
+          ?.reason ?? null,
+    });
+    return jsonResponse(200, {
+      processed: false,
+      reason: responseStatus === "incomplete"
+        ? "output_incomplete"
+        : "invalid_model_output",
+    }, origin);
+  }
+
   let extracted: Record<string, unknown>;
   try {
-    extracted = outputText ? JSON.parse(outputText) : {};
+    const parsed = JSON.parse(outputText);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new TypeError("Expected a JSON object");
+    }
+    extracted = parsed as Record<string, unknown>;
   } catch {
-    return jsonResponse(502, { error: "Invalid memory extraction" }, origin);
+    console.warn("Memory extraction returned malformed structured output", {
+      response_status: responseStatus,
+      output_characters: outputText.length,
+    });
+    return jsonResponse(200, {
+      processed: false,
+      reason: "invalid_model_output",
+    }, origin);
   }
-  const summary = typeof extracted.summary === "string"
-    ? extracted.summary.replace(/\s+/g, " ").trim().slice(0, 2000)
-    : "";
-  const candidates = Array.isArray(extracted.memories)
-    ? extracted.memories.map(validateCandidate).filter((
-      memory,
-    ): memory is MemoryCandidate => memory != null)
-    : [];
+  if (
+    typeof extracted.summary !== "string" ||
+    !Array.isArray(extracted.memories)
+  ) {
+    console.warn("Memory extraction returned an unexpected object shape", {
+      response_status: responseStatus,
+    });
+    return jsonResponse(200, {
+      processed: false,
+      reason: "invalid_model_output",
+    }, origin);
+  }
+  const summary = extracted.summary.replace(/\s+/g, " ").trim().slice(0, 600);
+  const candidates = extracted.memories.map(validateCandidate).filter((
+    memory,
+  ): memory is MemoryCandidate => memory != null);
 
   const stored: Array<Record<string, unknown>> = [];
   const candidateKeys = candidates.map((memory) => memory.memory_key);

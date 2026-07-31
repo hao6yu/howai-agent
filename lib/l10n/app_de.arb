@@ -288,6 +288,8 @@
   "imageTookTooLong": "Entschuldigung, die Bilderzeugung hat zu lange gedauert. Bitte versuchen Sie es erneut.",
   "somethingWentWrong": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
   "sorryCouldNotRespond": "Entschuldigung, ich konnte darauf gerade nicht antworten.",
+  "guestAiLimitReached": "Du hast das heutige KI-Limit für Gäste erreicht. Melde dich an oder versuche es morgen erneut.",
+  "aiUsageLimitReached": "Du hast das aktuelle KI-Limit erreicht. Versuche es später erneut.",
   "errorWithMessage": "Fehler: {error}",
   "processingImage": "Verarbeite Bild...",
   "whatYouCanDo": "Was Sie tun können:",

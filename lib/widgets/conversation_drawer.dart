@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:haogpt/generated/app_localizations.dart';
@@ -7,8 +10,8 @@ import '../models/conversation.dart';
 import '../models/profile.dart';
 import '../services/database_service.dart';
 import '../services/subscription_service.dart';
-import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import '../core/accessibility/motion_preferences.dart';
 import '../core/theme/howai_theme.dart';
 import 'new_conversation_button.dart';
 
@@ -237,6 +240,20 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
     if (query.isEmpty) return true;
     return conversation.title.toLowerCase().contains(query) ||
         (conversation.id != null && _messageMatchIds.contains(conversation.id));
+  }
+
+  Future<void> _closeThenNavigate(String routeName) async {
+    final navigator = Navigator.of(context);
+    final closeDuration = motionDuration(
+      context,
+      HowAIMotion.drawerTransition,
+    );
+    Navigator.pop(context);
+    if (closeDuration > Duration.zero) {
+      await Future<void>.delayed(closeDuration);
+    }
+    if (!mounted || !navigator.mounted) return;
+    await navigator.pushNamed(routeName);
   }
 
   List<Widget> _buildRecencySections(
@@ -588,10 +605,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
           ),
           child: InkWell(
             onTap: () {
-              // Close drawer first
-              Navigator.pop(context);
-              // Navigate to settings
-              Navigator.pushNamed(context, '/settings');
+              unawaited(_closeThenNavigate('/settings'));
             },
             child: Padding(
               padding:
@@ -696,8 +710,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
             icon: Icons.checklist_rounded,
             label: 'Automations',
             onTap: () {
-              Navigator.pop(context);
-              Navigator.pushNamed(context, '/actions');
+              unawaited(_closeThenNavigate('/actions'));
             },
           ),
           Container(
@@ -712,8 +725,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                 label: AppLocalizations.of(context)!.knowledgeHubTitle,
                 showProBadge: !subscriptionService.isPremium,
                 onTap: () {
-                  Navigator.pop(context);
-                  Navigator.pushNamed(context, '/knowledge-hub');
+                  unawaited(_closeThenNavigate('/knowledge-hub'));
                 },
               );
             },

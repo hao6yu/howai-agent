@@ -123,6 +123,7 @@ void main() {
     late List<bool> speakingChanges;
     late List<VoiceToolCall> toolCalls;
     late List<String> errors;
+    late List<bool> audioRoutes;
     late int userSpeechStarts;
     late OpenAIRealtimeVoiceService service;
 
@@ -131,6 +132,7 @@ void main() {
       speakingChanges = [];
       toolCalls = [];
       errors = [];
+      audioRoutes = [];
       userSpeechStarts = 0;
       service = OpenAIRealtimeVoiceService(
         callbacks: VoiceSessionCallbacks(
@@ -149,6 +151,7 @@ void main() {
         httpClient: MockClient((_) async {
           throw StateError('Network requests are not expected in event tests');
         }),
+        audioRouteSetter: (enabled) async => audioRoutes.add(enabled),
       );
     });
 
@@ -160,7 +163,14 @@ void main() {
       });
 
       expect(userSpeechStarts, 1);
-      expect(speakingChanges, [false]);
+      expect(speakingChanges, isEmpty);
+    });
+
+    test('applies speaker and earpiece route changes', () async {
+      await service.setSpeakerphoneEnabled(false);
+      await service.setSpeakerphoneEnabled(true);
+
+      expect(audioRoutes, [false, true]);
     });
 
     test('builds a short audio-only opening greeting', () {
@@ -168,6 +178,7 @@ void main() {
       final response = event['response'] as Map<String, dynamic>;
 
       expect(event['type'], 'response.create');
+      expect(event, isNot(contains('session')));
       expect(response['output_modalities'], ['audio']);
       expect(response['tool_choice'], 'none');
       expect(response['max_output_tokens'], 256);
@@ -197,25 +208,16 @@ void main() {
       });
     });
 
-    test('suspends VAD only for the opening greeting, then restores it', () {
+    test('keeps interruption enabled for every Realtime turn', () {
       final configuration = RealtimeTurnDetectionConfiguration.fromJson({
         'type': 'server_vad',
         'threshold': 0.6,
         'prefix_padding_ms': 300,
         'silence_duration_ms': 450,
       });
-      final suspended = OpenAIRealtimeVoiceService.suspendTurnDetectionEvent();
-      final restored =
-          OpenAIRealtimeVoiceService.restoreTurnDetectionEvent(configuration);
 
       expect(
-        (((suspended['session'] as Map)['audio'] as Map)['input']
-            as Map)['turn_detection'],
-        isNull,
-      );
-      expect(
-        (((restored['session'] as Map)['audio'] as Map)['input']
-            as Map)['turn_detection'],
+        configuration.toJson(),
         {
           'type': 'server_vad',
           'threshold': 0.6,
@@ -263,7 +265,40 @@ void main() {
         'Good morning',
       ]);
       expect(transcripts.last.isFinal, isTrue);
-      expect(speakingChanges, [true, true, false]);
+      expect(speakingChanges, isEmpty);
+    });
+
+    test('tracks audible playback instead of transcript generation', () {
+      service.handleServerEventForTest({
+        'type': 'output_audio_buffer.started',
+      });
+      service.handleServerEventForTest({
+        'type': 'response.output_audio_transcript.done',
+        'item_id': 'assistant-1',
+        'transcript': 'Still playing',
+      });
+
+      expect(speakingChanges, [true]);
+
+      service.handleServerEventForTest({
+        'type': 'output_audio_buffer.stopped',
+      });
+      expect(speakingChanges, [true, false]);
+    });
+
+    test('ends audible playback immediately on user barge-in', () {
+      service.handleServerEventForTest({
+        'type': 'output_audio_buffer.started',
+      });
+      service.handleServerEventForTest({
+        'type': 'input_audio_buffer.speech_started',
+      });
+      service.handleServerEventForTest({
+        'type': 'output_audio_buffer.cleared',
+      });
+
+      expect(userSpeechStarts, 1);
+      expect(speakingChanges, [true, false]);
     });
 
     test('dispatches each function call once', () async {

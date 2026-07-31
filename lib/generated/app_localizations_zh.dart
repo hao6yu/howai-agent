@@ -906,6 +906,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sorryCouldNotRespond => '抱歉，我现在无法回应。';
 
   @override
+  String get guestAiLimitReached => '你已达到今天的访客 AI 使用上限。请登录或明天再试。';
+
+  @override
+  String get aiUsageLimitReached => '你已达到当前 AI 使用上限，请稍后再试。';
+
+  @override
   String errorWithMessage(Object error) {
     return '错误: $error';
   }
@@ -3960,6 +3966,12 @@ class AppLocalizationsZhTw extends AppLocalizationsZh {
 
   @override
   String get sorryCouldNotRespond => '抱歉，我現在無法回應。';
+
+  @override
+  String get guestAiLimitReached => '你已達到今天的訪客 AI 使用上限。請登入或明天再試。';
+
+  @override
+  String get aiUsageLimitReached => '你已達到目前的 AI 使用上限，請稍後再試。';
 
   @override
   String errorWithMessage(Object error) {

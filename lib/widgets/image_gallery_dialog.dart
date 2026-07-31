@@ -6,8 +6,10 @@ import 'package:http/http.dart' as http;
 import 'package:gal/gal.dart';
 import 'dart:io';
 import 'dart:typed_data';
-import 'dart:convert';
 import 'package:haogpt/generated/app_localizations.dart';
+
+import '../services/message_media_service.dart';
+import '../core/accessibility/motion_preferences.dart';
 
 class ImageGalleryDialog extends StatefulWidget {
   final List<String> imagePaths;
@@ -30,6 +32,13 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
   late AnimationController _saveSuccessController;
   late Animation<double> _saveSuccessAnimation;
   bool _showSaveSuccess = false;
+  bool _reduceMotion = false;
+  ResolvedMessageMedia _resolvedMedia = const ResolvedMessageMedia(
+    visibleImagePaths: <String>[],
+    fileAvailability: <String, bool>{},
+    dataImageBytes: <String, Uint8List>{},
+  );
+  bool _mediaResolved = false;
 
   @override
   void initState() {
@@ -50,6 +59,26 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
       parent: _saveSuccessController,
       curve: Curves.elasticOut,
     ));
+    _resolveMedia();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _reduceMotion = prefersReducedMotion(context);
+    _saveSuccessController.duration =
+        _reduceMotion ? Duration.zero : const Duration(milliseconds: 1500);
+  }
+
+  Future<void> _resolveMedia() async {
+    final media = await const MessageMediaService().resolvePaths(
+      imagePaths: widget.imagePaths,
+    );
+    if (!mounted) return;
+    setState(() {
+      _resolvedMedia = media;
+      _mediaResolved = true;
+    });
   }
 
   @override
@@ -99,18 +128,13 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
               builder: (context, index) {
                 final path = widget.imagePaths[index];
 
-                // Safe image provider creation with file existence check
+                // Media validation and data-URI decoding happen outside build.
                 ImageProvider<Object> imageProvider;
                 if (path.startsWith('http')) {
                   imageProvider = NetworkImage(path);
                 } else if (path.startsWith('data:image')) {
-                  // Handle base64 data URLs
-                  try {
-                    final base64Data = path.split(',').last;
-                    final bytes = base64Decode(base64Data);
-                    imageProvider = MemoryImage(Uint8List.fromList(bytes));
-                  } catch (e) {
-                    // Return a placeholder for failed base64 decode
+                  final bytes = _resolvedMedia.dataImageBytes[path];
+                  if (bytes == null) {
                     return PhotoViewGalleryPageOptions.customChild(
                       child: Container(
                         color: Colors.black,
@@ -125,7 +149,10 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
                               ),
                               SizedBox(height: 16),
                               Text(
-                                'Failed to decode image',
+                                _mediaResolved
+                                    ? 'Failed to decode image'
+                                    : AppLocalizations.of(context)!
+                                        .loadingPhoto,
                                 style: TextStyle(
                                   color: Colors.grey.shade400,
                                   fontSize: 16,
@@ -140,11 +167,11 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
                       maxScale: PhotoViewComputedScale.covered * 2,
                     );
                   }
+                  imageProvider = MemoryImage(bytes);
                 } else {
                   final file = File(path);
-                  if (file.existsSync()) {
-                    imageProvider = FileImage(file);
-                  } else {
+                  if (_mediaResolved &&
+                      !_resolvedMedia.visibleImagePaths.contains(path)) {
                     // Return a placeholder provider for missing files
                     return PhotoViewGalleryPageOptions.customChild(
                       child: Container(
@@ -175,6 +202,7 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
                       maxScale: PhotoViewComputedScale.covered * 2,
                     );
                   }
+                  imageProvider = FileImage(file);
                 }
 
                 return PhotoViewGalleryPageOptions(
@@ -234,9 +262,9 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
               ),
 
             // Show download/save button for both local and remote images on all platforms
-            if (widget.imagePaths[_currentIndex].startsWith('http') ||
-                widget.imagePaths[_currentIndex].startsWith('data:image') ||
-                File(widget.imagePaths[_currentIndex]).existsSync())
+            if (!_mediaResolved ||
+                _resolvedMedia.visibleImagePaths
+                    .contains(widget.imagePaths[_currentIndex]))
               Positioned(
                 top: 48,
                 right: 24,
@@ -259,11 +287,8 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
                             imageBytes = Uint8List.fromList(response.bodyBytes);
                           }
                         } else if (path.startsWith('data:image')) {
-                          // Handle base64 data URLs
-                          final base64Data = path.split(',').last;
-                          imageBytes =
-                              Uint8List.fromList(base64Decode(base64Data));
-                        } else if (File(path).existsSync()) {
+                          imageBytes = _resolvedMedia.dataImageBytes[path];
+                        } else if (await File(path).exists()) {
                           imageBytes = await File(path).readAsBytes();
                         }
 

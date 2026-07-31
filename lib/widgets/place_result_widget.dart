@@ -10,6 +10,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert' as json;
 import '../config/app_config.dart';
 import '../features/places/presentation/place_presentation.dart';
+import '../core/accessibility/motion_preferences.dart';
 import '../services/location_service.dart';
 import '../providers/settings_provider.dart';
 import 'street_view_modal.dart';
@@ -25,7 +26,8 @@ class PlaceResultWidget extends StatefulWidget {
     required this.places,
     required this.searchQuery,
     this.onRetry,
-    this.enableRouteFeatures = true, // Default to enabled for backward compatibility
+    this.enableRouteFeatures =
+        true, // Default to enabled for backward compatibility
   });
 
   @override
@@ -92,16 +94,23 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     final screenHeight = screenSize.height;
 
     // Use same device detection logic as build method
-    final isMiniPhone = (screenWidth <= 390 && screenHeight <= 850) || (screenWidth <= 850 && screenHeight <= 390);
-    final isStandardPhone = (screenWidth <= 410 && screenHeight <= 880) || (screenWidth <= 880 && screenHeight <= 410);
-    final isPlusProPhone = (screenWidth <= 450 && screenHeight <= 970) || (screenWidth <= 970 && screenHeight <= 450);
+    final isMiniPhone = (screenWidth <= 390 && screenHeight <= 850) ||
+        (screenWidth <= 850 && screenHeight <= 390);
+    final isStandardPhone = (screenWidth <= 410 && screenHeight <= 880) ||
+        (screenWidth <= 880 && screenHeight <= 410);
+    final isPlusProPhone = (screenWidth <= 450 && screenHeight <= 970) ||
+        (screenWidth <= 970 && screenHeight <= 450);
 
     final isUltraCompact = isMiniPhone;
     final isVerySmall = isStandardPhone && !isMiniPhone;
     final isSmall = isPlusProPhone && !isStandardPhone;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isUltraCompact ? 6 : (isVerySmall ? 8 : (isSmall ? 12 : 16)), vertical: isUltraCompact ? 4 : (isVerySmall ? 6 : (isSmall ? 8 : 12))),
+      padding: EdgeInsets.symmetric(
+          horizontal:
+              isUltraCompact ? 6 : (isVerySmall ? 8 : (isSmall ? 12 : 16)),
+          vertical:
+              isUltraCompact ? 4 : (isVerySmall ? 6 : (isSmall ? 8 : 12))),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF5856D6), Color(0xFF5856D6).withOpacity(0.8)],
@@ -128,7 +137,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
             child: Icon(
               Icons.location_on,
               color: Colors.white,
-              size: settings.getScaledFontSize(isUltraCompact ? 14 : (isVerySmall ? 16 : (isSmall ? 18 : 20))),
+              size: settings.getScaledFontSize(isUltraCompact
+                  ? 14
+                  : (isVerySmall ? 16 : (isSmall ? 18 : 20))),
             ),
           ),
           SizedBox(width: isUltraCompact ? 6 : (isVerySmall ? 8 : 12)),
@@ -137,10 +148,13 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  AppLocalizations.of(context)!.foundPlaces(widget.places.length),
+                  AppLocalizations.of(context)!
+                      .foundPlaces(widget.places.length),
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: settings.getScaledFontSize(isUltraCompact ? 10 : (isVerySmall ? 12 : (isSmall ? 14 : 16))),
+                    fontSize: settings.getScaledFontSize(isUltraCompact
+                        ? 10
+                        : (isVerySmall ? 12 : (isSmall ? 14 : 16))),
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -148,10 +162,13 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                 ),
                 if (_locationService.currentAddress != null)
                   Text(
-                    AppLocalizations.of(context)!.nearLocation(_locationService.currentAddress!),
+                    AppLocalizations.of(context)!
+                        .nearLocation(_locationService.currentAddress!),
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.9),
-                      fontSize: settings.getScaledFontSize(isUltraCompact ? 8 : (isVerySmall ? 9 : (isSmall ? 10 : 12))),
+                      fontSize: settings.getScaledFontSize(isUltraCompact
+                          ? 8
+                          : (isVerySmall ? 9 : (isSmall ? 10 : 12))),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -185,9 +202,12 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     final screenHeight = screenSize.height;
 
     // Use same device detection logic
-    final isMiniPhone = (screenWidth <= 390 && screenHeight <= 850) || (screenWidth <= 850 && screenHeight <= 390);
-    final isStandardPhone = (screenWidth <= 410 && screenHeight <= 880) || (screenWidth <= 880 && screenHeight <= 410);
-    final isPlusProPhone = (screenWidth <= 450 && screenHeight <= 970) || (screenWidth <= 970 && screenHeight <= 450);
+    final isMiniPhone = (screenWidth <= 390 && screenHeight <= 850) ||
+        (screenWidth <= 850 && screenHeight <= 390);
+    final isStandardPhone = (screenWidth <= 410 && screenHeight <= 880) ||
+        (screenWidth <= 880 && screenHeight <= 410);
+    final isPlusProPhone = (screenWidth <= 450 && screenHeight <= 970) ||
+        (screenWidth <= 970 && screenHeight <= 450);
 
     final isUltraCompact = isMiniPhone;
     final isVerySmall = isStandardPhone && !isMiniPhone;
@@ -197,9 +217,14 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
       margin: EdgeInsets.symmetric(horizontal: 0),
       padding: EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.grey.shade50,
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200),
+        border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade600
+                : Colors.grey.shade200),
       ),
       child: Row(
         children: [
@@ -262,12 +287,19 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: Duration(milliseconds: 200),
-        padding: EdgeInsets.symmetric(vertical: isTablet ? 10 : 8, horizontal: isTablet ? 8 : 6),
+        padding: EdgeInsets.symmetric(
+            vertical: isTablet ? 10 : 8, horizontal: isTablet ? 8 : 6),
         decoration: BoxDecoration(
-          color: isActive ? (isDark ? activeColor.withOpacity(0.15) : activeColor.withOpacity(0.1)) : (isDark ? Colors.grey.shade700 : Colors.white),
+          color: isActive
+              ? (isDark
+                  ? activeColor.withOpacity(0.15)
+                  : activeColor.withOpacity(0.1))
+              : (isDark ? Colors.grey.shade700 : Colors.white),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isActive ? activeColor : (isDark ? Colors.grey.shade500 : Colors.grey.shade300),
+            color: isActive
+                ? activeColor
+                : (isDark ? Colors.grey.shade500 : Colors.grey.shade300),
             width: isActive ? 2 : 1,
           ),
           boxShadow: [
@@ -303,18 +335,26 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
   }
 
   void _openFullScreenMap() async {
+    final enterDuration = motionDuration(context, HowAIMotion.deliberate);
+    final exitDuration = motionDuration(context, HowAIMotion.routeExit);
     // Open full-screen map and wait for it to close
     await Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => _FullScreenMapView(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            _FullScreenMapView(
           places: widget.places,
           searchQuery: widget.searchQuery,
           enableRouteFeatures: widget.enableRouteFeatures,
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return FadeTransition(opacity: animation, child: child);
+          return fadeSlideTransition(
+            child,
+            animation,
+            begin: Offset.zero,
+          );
         },
-        transitionDuration: Duration(milliseconds: 300),
+        transitionDuration: enterDuration,
+        reverseTransitionDuration: exitDuration,
         barrierDismissible: true,
         opaque: false,
       ),
@@ -322,31 +362,36 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
   }
 
   void _openFullScreenList() async {
+    final enterDuration = motionDuration(context, HowAIMotion.deliberate);
+    final exitDuration = motionDuration(context, HowAIMotion.routeExit);
     // Open full-screen list view and wait for the result
     final selectedPlaceIndex = await Navigator.of(context).push<int>(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => _FullScreenListView(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            _FullScreenListView(
           places: widget.places,
           searchQuery: widget.searchQuery,
           enableRouteFeatures: widget.enableRouteFeatures,
         ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: Offset(0.0, 1.0),
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
+          return fadeSlideTransition(
+            child,
+            animation,
+            begin: const Offset(0, 0.04),
           );
         },
-        transitionDuration: Duration(milliseconds: 300),
+        transitionDuration: enterDuration,
+        reverseTransitionDuration: exitDuration,
         barrierDismissible: true,
         opaque: true,
       ),
     );
 
     // If a place was selected, navigate to that card
-    if (selectedPlaceIndex != null && selectedPlaceIndex >= 0 && selectedPlaceIndex < widget.places.length) {
+    if (!mounted) return;
+    if (selectedPlaceIndex != null &&
+        selectedPlaceIndex >= 0 &&
+        selectedPlaceIndex < widget.places.length) {
       setState(() {
         _currentIndex = selectedPlaceIndex;
       });
@@ -391,7 +436,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                     place: place,
                     settings: settings,
                     locationService: _locationService,
-                    buildPhotoPlaceholder: () => _buildPhotoPlaceholder(place, settings),
+                    buildPhotoPlaceholder: () =>
+                        _buildPhotoPlaceholder(place, settings),
                   ),
                 ),
               ),
@@ -476,7 +522,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                         ),
                         Spacer(),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: place.isOpen ? Colors.green : Colors.red,
                             borderRadius: BorderRadius.circular(8),
@@ -512,9 +559,14 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
         // Place cards (swipeable) - connected to tab bar
         Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.white,
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(12)),
-            border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200),
+            border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade200),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.05),
@@ -523,7 +575,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
               ),
             ],
           ),
-          height: _getResponsiveCardHeight(screenSize), // Dynamic height based on screen size
+          height: _getResponsiveCardHeight(
+              screenSize), // Dynamic height based on screen size
           child: PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
@@ -534,7 +587,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
             itemCount: widget.places.length,
             itemBuilder: (context, index) {
               return Padding(
-                padding: EdgeInsets.all(screenSize.width >= 600 ? 16 : 12), // More padding for tablets
+                padding: EdgeInsets.all(screenSize.width >= 600
+                    ? 16
+                    : 12), // More padding for tablets
                 child: _buildPlaceCard(widget.places[index], settings),
               );
             },
@@ -551,7 +606,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     );
   }
 
-  double _calculateOptimalCardHeight(Size screenSize, SettingsProvider settings) {
+  double _calculateOptimalCardHeight(
+      Size screenSize, SettingsProvider settings) {
     final isTablet = screenSize.width >= 600;
     final isLandscape = screenSize.width > screenSize.height;
 
@@ -561,7 +617,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     double photoHeight = isLandscape && !isTablet ? 0 : 200; // Photo section
     double padding = 32; // Total padding
 
-    double estimatedHeight = baseContentHeight + actionButtonsHeight + photoHeight + padding;
+    double estimatedHeight =
+        baseContentHeight + actionButtonsHeight + photoHeight + padding;
 
     // Responsive adjustments
     if (isTablet) {
@@ -597,9 +654,14 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
           constraints: const BoxConstraints(minHeight: 200),
           padding: EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade800
+                : Colors.grey.shade50,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200),
+            border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade200),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -608,7 +670,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
               Icon(
                 Icons.location_off,
                 size: settings.getScaledFontSize(48),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade500 : Colors.grey.shade400,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade500
+                    : Colors.grey.shade400,
               ),
               SizedBox(height: 16),
               Text(
@@ -616,7 +680,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(16),
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade600,
                 ),
               ),
               SizedBox(height: 8),
@@ -625,7 +691,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(14),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade500,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade400
+                      : Colors.grey.shade500,
                 ),
               ),
               if (widget.onRetry != null) ...[
@@ -662,7 +730,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
 
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
       ),
       child: isLandscape && !isTablet
@@ -714,14 +784,18 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
 
     // Determine border radius based on layout
     final borderRadius = isHorizontalLayout
-        ? BorderRadius.horizontal(left: Radius.circular(20)) // Left side only for horizontal layout
-        : BorderRadius.vertical(top: Radius.circular(20)); // Top only for vertical layout
+        ? BorderRadius.horizontal(
+            left: Radius.circular(20)) // Left side only for horizontal layout
+        : BorderRadius.vertical(
+            top: Radius.circular(20)); // Top only for vertical layout
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: borderRadius,
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade100,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade700
+            : Colors.grey.shade100,
       ),
       child: Stack(
         children: [
@@ -729,14 +803,22 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
           ClipRRect(
             borderRadius: borderRadius,
             child: place.photoReference != null
-                ? GestureDetector(
-                    onTap: () => _showPhotoGallery(place, settings),
-                    child: Image.network(
-                      _locationService.getPhotoUrl(place.photoReference!, maxWidth: 600),
-                      width: double.infinity,
-                      height: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _buildPhotoPlaceholder(place, settings),
+                ? Semantics(
+                    button: true,
+                    label:
+                        '${AppLocalizations.of(context)!.photos}: ${place.name}',
+                    child: GestureDetector(
+                      onTap: () => _showPhotoGallery(place, settings),
+                      child: Image.network(
+                        _locationService.getPhotoUrl(place.photoReference!,
+                            maxWidth: 600),
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        cacheWidth: 600,
+                        errorBuilder: (context, error, stackTrace) =>
+                            _buildPhotoPlaceholder(place, settings),
+                      ),
                     ),
                   )
                 : _buildPhotoPlaceholder(place, settings),
@@ -756,7 +838,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    place.isOpen ? AppLocalizations.of(context)!.open : AppLocalizations.of(context)!.closed,
+                    place.isOpen
+                        ? AppLocalizations.of(context)!.open
+                        : AppLocalizations.of(context)!.closed,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: settings.getScaledFontSize(10),
@@ -833,7 +917,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                       ),
                       SizedBox(width: 4),
                       Text(
-                        place.photoReferences.isNotEmpty ? 'Photos' : 'View photo',
+                        place.photoReferences.isNotEmpty
+                            ? 'Photos'
+                            : 'View photo',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: settings.getScaledFontSize(10),
@@ -875,15 +961,22 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     final screenHeight = screenSize.height;
 
     // Use same device detection logic for iPhone 16 Pro Max
-    final isIPhone16ProMax = (screenWidth == 440 && screenHeight == 956) || (screenWidth == 956 && screenHeight == 440);
-    final isVerySmallScreen = isIPhone16ProMax || (screenWidth <= 450 && screenHeight <= 970) || (screenWidth <= 970 && screenHeight <= 450);
+    final isIPhone16ProMax = (screenWidth == 440 && screenHeight == 956) ||
+        (screenWidth == 956 && screenHeight == 440);
+    final isVerySmallScreen = isIPhone16ProMax ||
+        (screenWidth <= 450 && screenHeight <= 970) ||
+        (screenWidth <= 970 && screenHeight <= 450);
 
     return Container(
       padding: EdgeInsets.fromLTRB(
         isIPhone16ProMax ? 10 : (isVerySmallScreen ? 12 : 16), // left
         isIPhone16ProMax ? 10 : (isVerySmallScreen ? 12 : 16), // top
         isIPhone16ProMax ? 10 : (isVerySmallScreen ? 12 : 16), // right
-        isIPhone16ProMax ? 10 : (isVerySmallScreen ? 12 : 16), // bottom - increased for scrollable content
+        isIPhone16ProMax
+            ? 10
+            : (isVerySmallScreen
+                ? 12
+                : 16), // bottom - increased for scrollable content
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -897,9 +990,12 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                 child: Text(
                   place.name,
                   style: TextStyle(
-                    fontSize: settings.getScaledFontSize(isIPhone16ProMax ? 16 : (isVerySmallScreen ? 17 : 18)),
+                    fontSize: settings.getScaledFontSize(
+                        isIPhone16ProMax ? 16 : (isVerySmallScreen ? 17 : 18)),
                     fontWeight: FontWeight.w700,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Color(0xFF1C1C1E),
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Color(0xFF1C1C1E),
                     height: 1.2,
                   ),
                   maxLines: isVerySmallScreen ? 1 : 2,
@@ -918,7 +1014,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
             _getPlaceDescription(place),
             style: TextStyle(
               fontSize: settings.getScaledFontSize(isVerySmallScreen ? 12 : 13),
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Color(0xFF5856D6),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.blue.shade200
+                  : Color(0xFF5856D6),
               fontWeight: FontWeight.w600,
             ),
             maxLines: 1,
@@ -933,7 +1031,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
               Icon(
                 Icons.location_on_outlined,
                 size: settings.getScaledFontSize(isVerySmallScreen ? 13 : 15),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade600,
               ),
               SizedBox(width: 3),
               Expanded(
@@ -942,10 +1042,16 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                   child: Text(
                     place.address,
                     style: TextStyle(
-                      fontSize: settings.getScaledFontSize(isVerySmallScreen ? 13 : 15),
-                      color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600,
+                      fontSize: settings
+                          .getScaledFontSize(isVerySmallScreen ? 13 : 15),
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.blue.shade200
+                          : Colors.blue.shade600,
                       decoration: TextDecoration.underline,
-                      decorationColor: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600,
+                      decorationColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? Colors.blue.shade200
+                              : Colors.blue.shade600,
                       height: 1.2,
                     ),
                     maxLines: isVerySmallScreen ? 1 : 2,
@@ -961,7 +1067,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
           // AI Insights - compact preview (if available)
           if (place.aiSummary != null || place.reviewSummary != null) ...[
             _buildCompactAIInsights(place, settings),
-            SizedBox(height: isIPhone16ProMax ? 4 : (isVerySmallScreen ? 6 : 8)),
+            SizedBox(
+                height: isIPhone16ProMax ? 4 : (isVerySmallScreen ? 6 : 8)),
           ],
 
           // Action buttons - responsive to screen size
@@ -973,43 +1080,54 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                   fullLabel: AppLocalizations.of(context)!.directions,
                   shortLabel: 'Directions',
                   onTap: () => _openDirections(place),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Color(0xFF5856D6),
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.purple.shade200
+                      : Color(0xFF5856D6),
                   settings: settings,
                   screenWidth: screenWidth,
                 ),
               ),
-              SizedBox(width: isIPhone16ProMax ? 3 : (isVerySmallScreen ? 4 : 5)),
+              SizedBox(
+                  width: isIPhone16ProMax ? 3 : (isVerySmallScreen ? 4 : 5)),
               Expanded(
                 child: _buildResponsiveActionButton(
                   icon: Icons.info_outline,
                   fullLabel: AppLocalizations.of(context)!.details,
                   shortLabel: 'Details',
                   onTap: () => _showPlaceDetails(place),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade200
+                      : Colors.grey.shade600,
                   settings: settings,
                   screenWidth: screenWidth,
                 ),
               ),
-              SizedBox(width: isIPhone16ProMax ? 3 : (isVerySmallScreen ? 4 : 5)),
+              SizedBox(
+                  width: isIPhone16ProMax ? 3 : (isVerySmallScreen ? 4 : 5)),
               Expanded(
                 child: _buildResponsiveActionButton(
                   icon: Icons.streetview,
                   fullLabel: 'Street',
                   shortLabel: 'Street',
                   onTap: () => _openStreetView(place),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.blue.shade200
+                      : Colors.blue.shade600,
                   settings: settings,
                   screenWidth: screenWidth,
                 ),
               ),
-              SizedBox(width: isIPhone16ProMax ? 3 : (isVerySmallScreen ? 4 : 5)),
+              SizedBox(
+                  width: isIPhone16ProMax ? 3 : (isVerySmallScreen ? 4 : 5)),
               Expanded(
                 child: _buildResponsiveActionButton(
                   icon: Icons.share,
                   fullLabel: AppLocalizations.of(context)!.share,
                   shortLabel: 'Share',
                   onTap: () => _sharePlace(place),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.green.shade200
+                      : Colors.green.shade600,
                   settings: settings,
                   screenWidth: screenWidth,
                 ),
@@ -1025,14 +1143,20 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
         return Container(
-          margin: EdgeInsets.only(left: 16, right: 16), // Only top margin to connect with cards
+          margin: EdgeInsets.only(
+              left: 16, right: 16), // Only top margin to connect with cards
           padding: EdgeInsets.symmetric(
             horizontal: 12,
           ),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade800
+                : Colors.grey.shade50,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200),
+            border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade200),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1043,7 +1167,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                 child: Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _currentIndex > 0 ? Color(0xFF5856D6) : Colors.grey.shade300,
+                    color: _currentIndex > 0
+                        ? Color(0xFF5856D6)
+                        : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: _currentIndex > 0
                         ? [
@@ -1067,27 +1193,38 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.white,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade700
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300),
+                  border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade600
+                          : Colors.grey.shade300),
                 ),
                 child: Text(
                   '${_currentIndex + 1} of ${widget.places.length}',
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(14),
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade700,
                   ),
                 ),
               ),
 
               // Next button
               GestureDetector(
-                onTap: _currentIndex < widget.places.length - 1 ? _goToNextPage : null,
+                onTap: _currentIndex < widget.places.length - 1
+                    ? _goToNextPage
+                    : null,
                 child: Container(
                   padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: _currentIndex < widget.places.length - 1 ? Color(0xFF5856D6) : Colors.grey.shade300,
+                    color: _currentIndex < widget.places.length - 1
+                        ? Color(0xFF5856D6)
+                        : Colors.grey.shade300,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: _currentIndex < widget.places.length - 1
                         ? [
@@ -1125,7 +1262,10 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
             child: Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (_currentIndex > 0 ? Color(0xFF5856D6) : Colors.grey.shade400).withOpacity(0.9),
+                color: (_currentIndex > 0
+                        ? Color(0xFF5856D6)
+                        : Colors.grey.shade400)
+                    .withOpacity(0.9),
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
@@ -1162,11 +1302,15 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
 
           // Next button
           GestureDetector(
-            onTap: _currentIndex < widget.places.length - 1 ? _goToNextPage : null,
+            onTap:
+                _currentIndex < widget.places.length - 1 ? _goToNextPage : null,
             child: Container(
               padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: (_currentIndex < widget.places.length - 1 ? Color(0xFF5856D6) : Colors.grey.shade400).withOpacity(0.9),
+                color: (_currentIndex < widget.places.length - 1
+                        ? Color(0xFF5856D6)
+                        : Colors.grey.shade400)
+                    .withOpacity(0.9),
                 borderRadius: BorderRadius.circular(8),
                 boxShadow: [
                   BoxShadow(
@@ -1262,7 +1406,11 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
             child: Container(
               padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: _currentIndex > 0 ? Color(0xFF5856D6) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300),
+                color: _currentIndex > 0
+                    ? Color(0xFF5856D6)
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -1277,27 +1425,39 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade100,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade700
+                  : Colors.grey.shade100,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300),
+              border: Border.all(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade600
+                      : Colors.grey.shade300),
             ),
             child: Text(
               '${_currentIndex + 1} of ${widget.places.length}',
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(14),
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade700,
               ),
             ),
           ),
 
           // Next button
           GestureDetector(
-            onTap: _currentIndex < widget.places.length - 1 ? _goToNextPage : null,
+            onTap:
+                _currentIndex < widget.places.length - 1 ? _goToNextPage : null,
             child: Container(
               padding: EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: _currentIndex < widget.places.length - 1 ? Color(0xFF5856D6) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300),
+                color: _currentIndex < widget.places.length - 1
+                    ? Color(0xFF5856D6)
+                    : (Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade300),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
@@ -1336,39 +1496,53 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     final screenHeight = screenSize.height;
 
     // Use same detection logic for iPhone 16 Pro Max
-    final isIPhone16ProMax = (screenWidth == 440 && screenHeight == 956) || (screenWidth == 956 && screenHeight == 440);
-    final isVerySmallScreen = isIPhone16ProMax || (screenWidth <= 450 && screenHeight <= 970) || (screenWidth <= 970 && screenHeight <= 450);
+    final isIPhone16ProMax = (screenWidth == 440 && screenHeight == 956) ||
+        (screenWidth == 956 && screenHeight == 440);
+    final isVerySmallScreen = isIPhone16ProMax ||
+        (screenWidth <= 450 && screenHeight <= 970) ||
+        (screenWidth <= 970 && screenHeight <= 450);
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final isTablet = screenWidth >= 600; // iPad support
 
     // Better colors for dark mode
     final starColor = isDark ? Colors.amber.shade400 : Colors.amber;
-    final ratingTextColor = isDark ? Colors.amber.shade300 : Colors.amber.shade700;
+    final ratingTextColor =
+        isDark ? Colors.amber.shade300 : Colors.amber.shade700;
     final reviewLinkColor = isDark ? Colors.blue.shade300 : Color(0xFF0066CC);
 
     return GestureDetector(
-      onTap: place.userRatingsTotal > 0 ? () => _showRatingBreakdown(place) : null,
+      onTap:
+          place.userRatingsTotal > 0 ? () => _showRatingBreakdown(place) : null,
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: isTablet ? 10 : (isVerySmallScreen ? 6 : 8), vertical: isTablet ? 6 : (isVerySmallScreen ? 2 : 4)),
+        padding: EdgeInsets.symmetric(
+            horizontal: isTablet ? 10 : (isVerySmallScreen ? 6 : 8),
+            vertical: isTablet ? 6 : (isVerySmallScreen ? 2 : 4)),
         decoration: BoxDecoration(
-          color: isDark ? Colors.amber.withOpacity(0.15) : Colors.amber.withOpacity(0.1),
+          color: isDark
+              ? Colors.amber.withOpacity(0.15)
+              : Colors.amber.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: isDark ? Colors.amber.withOpacity(0.4) : Colors.amber.withOpacity(0.3)),
+          border: Border.all(
+              color: isDark
+                  ? Colors.amber.withOpacity(0.4)
+                  : Colors.amber.withOpacity(0.3)),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               Icons.star,
-              size: settings.getScaledFontSize(isTablet ? 16 : (isVerySmallScreen ? 12 : 14)),
+              size: settings.getScaledFontSize(
+                  isTablet ? 16 : (isVerySmallScreen ? 12 : 14)),
               color: starColor,
             ),
             SizedBox(width: 2),
             Text(
               place.rating.toStringAsFixed(1),
               style: TextStyle(
-                fontSize: settings.getScaledFontSize(isTablet ? 16 : (isVerySmallScreen ? 12 : 14)),
+                fontSize: settings.getScaledFontSize(
+                    isTablet ? 16 : (isVerySmallScreen ? 12 : 14)),
                 fontWeight: FontWeight.w600,
                 color: ratingTextColor,
               ),
@@ -1378,17 +1552,23 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
               Text(
                 '(${place.userRatingsTotal})',
                 style: TextStyle(
-                  fontSize: settings.getScaledFontSize(isTablet ? 12 : (isVerySmallScreen ? 9 : 10)),
+                  fontSize: settings.getScaledFontSize(
+                      isTablet ? 12 : (isVerySmallScreen ? 9 : 10)),
                   color: place.userRatingsTotal > 0
                       ? reviewLinkColor // Better contrast for dark mode
                       : (isDark ? Colors.grey.shade300 : Colors.grey.shade600),
-                  decoration: place.userRatingsTotal > 0 ? TextDecoration.underline : null,
-                  fontWeight: place.userRatingsTotal > 0 ? FontWeight.w500 : FontWeight.normal,
+                  decoration: place.userRatingsTotal > 0
+                      ? TextDecoration.underline
+                      : null,
+                  fontWeight: place.userRatingsTotal > 0
+                      ? FontWeight.w500
+                      : FontWeight.normal,
                 ),
               ),
             ],
             // Add small arrow to indicate it's clickable
-            if (place.userRatingsTotal > 0 && (!isVerySmallScreen || isTablet)) ...[
+            if (place.userRatingsTotal > 0 &&
+                (!isVerySmallScreen || isTablet)) ...[
               SizedBox(width: 2),
               Icon(
                 Icons.arrow_drop_down,
@@ -1407,8 +1587,11 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     final screenWidth = screenSize.width;
     final screenHeight = screenSize.height;
 
-    final isIPhone16ProMax = (screenWidth == 440 && screenHeight == 956) || (screenWidth == 956 && screenHeight == 440);
-    final isVerySmallScreen = isIPhone16ProMax || (screenWidth <= 450 && screenHeight <= 970) || (screenWidth <= 970 && screenHeight <= 450);
+    final isIPhone16ProMax = (screenWidth == 440 && screenHeight == 956) ||
+        (screenWidth == 956 && screenHeight == 440);
+    final isVerySmallScreen = isIPhone16ProMax ||
+        (screenWidth <= 450 && screenHeight <= 970) ||
+        (screenWidth <= 970 && screenHeight <= 450);
 
     String aiText = '';
     if (place.aiSummary != null && place.aiSummary!.isNotEmpty) {
@@ -1422,36 +1605,51 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     return Container(
       padding: EdgeInsets.all(isVerySmallScreen ? 6 : 8), // Reduced padding
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade800.withOpacity(0.2) : Colors.purple.shade50,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.purple.shade800.withOpacity(0.2)
+            : Colors.purple.shade50,
         borderRadius: BorderRadius.circular(6), // Smaller radius
-        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade300.withOpacity(0.5) : Colors.purple.shade200, width: 1),
+        border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.purple.shade300.withOpacity(0.5)
+                : Colors.purple.shade200,
+            width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min, // Important: don't take more space than needed
+        mainAxisSize:
+            MainAxisSize.min, // Important: don't take more space than needed
         children: [
           // Header with AI badge - more compact
           Row(
             children: [
               Icon(
                 Icons.auto_awesome,
-                size: settings.getScaledFontSize(isVerySmallScreen ? 10 : 12), // Smaller icon
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Colors.purple.shade600,
+                size: settings.getScaledFontSize(
+                    isVerySmallScreen ? 10 : 12), // Smaller icon
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.purple.shade200
+                    : Colors.purple.shade600,
               ),
               SizedBox(width: 3),
               Text(
                 'AI Insights',
                 style: TextStyle(
-                  fontSize: settings.getScaledFontSize(isVerySmallScreen ? 9 : 10), // Smaller text
+                  fontSize: settings.getScaledFontSize(
+                      isVerySmallScreen ? 9 : 10), // Smaller text
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Colors.purple.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.purple.shade200
+                      : Colors.purple.shade600,
                 ),
               ),
               SizedBox(width: 3),
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade400 : Colors.purple.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.purple.shade400
+                      : Colors.purple.shade600,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -1470,8 +1668,11 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
           Text(
             aiText,
             style: TextStyle(
-              fontSize: settings.getScaledFontSize(isVerySmallScreen ? 10 : 11), // Smaller text
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white.withOpacity(0.9) : Colors.grey.shade700,
+              fontSize: settings.getScaledFontSize(
+                  isVerySmallScreen ? 10 : 11), // Smaller text
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white.withOpacity(0.9)
+                  : Colors.grey.shade700,
               height: 1.2, // Tighter line height
             ),
             maxLines: 2, // Always limit to 2 lines for compactness
@@ -1494,8 +1695,11 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     final screenHeight = screenSize.height;
 
     // Use same detection logic for iPhone 16 Pro Max
-    final isIPhone16ProMax = (screenWidth == 440 && screenHeight == 956) || (screenWidth == 956 && screenHeight == 440);
-    final isVerySmallScreen = isIPhone16ProMax || (screenWidth <= 450 && screenHeight <= 970) || (screenWidth <= 970 && screenHeight <= 450);
+    final isIPhone16ProMax = (screenWidth == 440 && screenHeight == 956) ||
+        (screenWidth == 956 && screenHeight == 440);
+    final isVerySmallScreen = isIPhone16ProMax ||
+        (screenWidth <= 450 && screenHeight <= 970) ||
+        (screenWidth <= 970 && screenHeight <= 450);
 
     return Material(
       color: Colors.transparent,
@@ -1515,13 +1719,16 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: settings.getScaledFontSize(isVerySmallScreen ? 15 : 17), color: color),
+              Icon(icon,
+                  size: settings.getScaledFontSize(isVerySmallScreen ? 15 : 17),
+                  color: color),
               SizedBox(width: isVerySmallScreen ? 2 : 4),
               Flexible(
                 child: Text(
                   label,
                   style: TextStyle(
-                    fontSize: settings.getScaledFontSize(isVerySmallScreen ? 11 : 13),
+                    fontSize:
+                        settings.getScaledFontSize(isVerySmallScreen ? 11 : 13),
                     fontWeight: FontWeight.w600,
                     color: color,
                     height: 1.1,
@@ -1553,8 +1760,11 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
 
     // Enhanced device detection with iPad support
     final isTablet = screenWidth >= 600; // iPad or larger tablet
-    final isIPhone16ProMax = (screenWidth == 440 && screenHeight == 956) || (screenWidth == 956 && screenHeight == 440);
-    final isVerySmallScreen = isIPhone16ProMax || (screenWidth <= 450 && screenHeight <= 970) || (screenWidth <= 970 && screenHeight <= 450);
+    final isIPhone16ProMax = (screenWidth == 440 && screenHeight == 956) ||
+        (screenWidth == 956 && screenHeight == 440);
+    final isVerySmallScreen = isIPhone16ProMax ||
+        (screenWidth <= 450 && screenHeight <= 970) ||
+        (screenWidth <= 970 && screenHeight <= 450);
 
     // Determine which label to use based on screen width and available space
     // iPad gets full labels, phones get responsive behavior
@@ -1598,8 +1808,14 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
         borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: EdgeInsets.symmetric(
-            vertical: isTablet ? 12 : (isIPhone16ProMax ? 6 : (isVerySmallScreen ? 8 : 10)),
-            horizontal: showIconOnly ? (isTablet ? 12 : 8) : (isTablet ? 10 : (isIPhone16ProMax ? 3 : (isVerySmallScreen ? 4 : 6))),
+            vertical: isTablet
+                ? 12
+                : (isIPhone16ProMax ? 6 : (isVerySmallScreen ? 8 : 10)),
+            horizontal: showIconOnly
+                ? (isTablet ? 12 : 8)
+                : (isTablet
+                    ? 10
+                    : (isIPhone16ProMax ? 3 : (isVerySmallScreen ? 4 : 6))),
           ),
           decoration: BoxDecoration(
             border: Border.all(color: actionColor.withOpacity(0.3)),
@@ -1610,7 +1826,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
           child: showIconOnly
               ? Icon(
                   icon,
-                  size: settings.getScaledFontSize(isTablet ? 20 : (isVerySmallScreen ? 15 : 17)),
+                  size: settings.getScaledFontSize(
+                      isTablet ? 20 : (isVerySmallScreen ? 15 : 17)),
                   color: actionColor,
                 )
               : Row(
@@ -1619,7 +1836,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                   children: [
                     Icon(
                       icon,
-                      size: settings.getScaledFontSize(isTablet ? 18 : (isVerySmallScreen ? 15 : 17)),
+                      size: settings.getScaledFontSize(
+                          isTablet ? 18 : (isVerySmallScreen ? 15 : 17)),
                       color: actionColor,
                     ),
                     SizedBox(width: isTablet ? 6 : (isVerySmallScreen ? 2 : 4)),
@@ -1627,7 +1845,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                       child: Text(
                         displayLabel,
                         style: TextStyle(
-                          fontSize: settings.getScaledFontSize(isTablet ? 15 : (isVerySmallScreen ? 11 : 13)),
+                          fontSize: settings.getScaledFontSize(
+                              isTablet ? 15 : (isVerySmallScreen ? 11 : 13)),
                           fontWeight: FontWeight.w600,
                           color: actionColor,
                           height: 1.1,
@@ -1767,7 +1986,11 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                             (index) => Icon(
                                   Icons.star,
                                   size: isTablet ? 24 : 20,
-                                  color: index < place.rating.round() ? Colors.amber : (isDark ? Colors.grey.shade600 : Colors.grey.shade400),
+                                  color: index < place.rating.round()
+                                      ? Colors.amber
+                                      : (isDark
+                                          ? Colors.grey.shade600
+                                          : Colors.grey.shade400),
                                 )),
                       ),
                       SizedBox(height: 4),
@@ -1775,7 +1998,9 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                         '${place.userRatingsTotal} global ratings',
                         style: TextStyle(
                           fontSize: isTablet ? 16 : 14,
-                          color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+                          color: isDark
+                              ? Colors.grey.shade300
+                              : Colors.grey.shade600,
                         ),
                       ),
                     ],
@@ -1789,7 +2014,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
               ...List.generate(5, (index) {
                 final starCount = 5 - index;
                 // Simulated percentage distribution based on common patterns
-                final percentage = _getSimulatedPercentage(starCount, place.rating);
+                final percentage =
+                    _getSimulatedPercentage(starCount, place.rating);
 
                 return Padding(
                   padding: EdgeInsets.symmetric(vertical: isTablet ? 3 : 2),
@@ -1799,9 +2025,12 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                         '$starCount star',
                         style: TextStyle(
                           fontSize: isTablet ? 16 : 14,
-                          color: isDark ? Colors.lightBlue.shade200 : Color(0xFF0066CC),
+                          color: isDark
+                              ? Colors.lightBlue.shade200
+                              : Color(0xFF0066CC),
                           decoration: TextDecoration.underline,
-                          fontWeight: isDark ? FontWeight.w600 : FontWeight.normal,
+                          fontWeight:
+                              isDark ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
                       SizedBox(width: 12),
@@ -1809,8 +2038,11 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                         child: Container(
                           height: isTablet ? 18 : 16,
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(isTablet ? 9 : 8),
+                            color: isDark
+                                ? Colors.grey.shade700
+                                : Colors.grey.shade300,
+                            borderRadius:
+                                BorderRadius.circular(isTablet ? 9 : 8),
                           ),
                           child: FractionallySizedBox(
                             alignment: Alignment.centerLeft,
@@ -1818,7 +2050,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                             child: Container(
                               decoration: BoxDecoration(
                                 color: Colors.orange,
-                                borderRadius: BorderRadius.circular(isTablet ? 9 : 8),
+                                borderRadius:
+                                    BorderRadius.circular(isTablet ? 9 : 8),
                               ),
                             ),
                           ),
@@ -1829,9 +2062,12 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                         '${percentage.toInt()}%',
                         style: TextStyle(
                           fontSize: isTablet ? 16 : 14,
-                          color: isDark ? Colors.lightBlue.shade200 : Color(0xFF0066CC),
+                          color: isDark
+                              ? Colors.lightBlue.shade200
+                              : Color(0xFF0066CC),
                           decoration: TextDecoration.underline,
-                          fontWeight: isDark ? FontWeight.w600 : FontWeight.normal,
+                          fontWeight:
+                              isDark ? FontWeight.w600 : FontWeight.normal,
                         ),
                       ),
                     ],
@@ -1850,7 +2086,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
                     _showAllReviews(place);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? Colors.blue.shade600 : Color(0xFF0066CC),
+                    backgroundColor:
+                        isDark ? Colors.blue.shade600 : Color(0xFF0066CC),
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 12),
                     shape: RoundedRectangleBorder(
@@ -1963,7 +2200,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'displayName,rating,nationalPhoneNumber,websiteUri,regularOpeningHours,reviews,photos',
+          'X-Goog-FieldMask':
+              'displayName,rating,nationalPhoneNumber,websiteUri,regularOpeningHours,reviews,photos',
         },
       );
 
@@ -1975,7 +2213,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
         if (data['reviews'] != null) {
           for (var reviewData in data['reviews']) {
             reviews.add(PlaceReview(
-              authorName: reviewData['authorAttribution']?['displayName'] ?? 'Anonymous',
+              authorName: reviewData['authorAttribution']?['displayName'] ??
+                  'Anonymous',
               rating: reviewData['rating'] ?? 0,
               text: reviewData['text']?['text'] ?? '',
               relativeTime: reviewData['relativePublishTimeDescription'] ?? '',
@@ -1988,9 +2227,17 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
           rating: (data['rating'] ?? 0).toDouble(),
           phoneNumber: data['nationalPhoneNumber'],
           website: data['websiteUri'],
-          openingHours: data['regularOpeningHours']?['weekdayDescriptions'] != null ? List<String>.from(data['regularOpeningHours']['weekdayDescriptions']) : [],
+          openingHours:
+              data['regularOpeningHours']?['weekdayDescriptions'] != null
+                  ? List<String>.from(
+                      data['regularOpeningHours']['weekdayDescriptions'])
+                  : [],
           reviews: reviews,
-          photoReferences: data['photos'] != null ? (data['photos'] as List).map((p) => p['name'] as String).toList() : [],
+          photoReferences: data['photos'] != null
+              ? (data['photos'] as List)
+                  .map((p) => p['name'] as String)
+                  .toList()
+              : [],
         );
       }
     } catch (e) {
@@ -2017,7 +2264,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     // Rating if available
     if (place.rating > 0) {
       String ratingStars = '⭐' * place.rating.round();
-      buffer.writeln('⭐ Rating: ${place.rating.toStringAsFixed(1)}/5.0 $ratingStars');
+      buffer.writeln(
+          '⭐ Rating: ${place.rating.toStringAsFixed(1)}/5.0 $ratingStars');
       if (place.userRatingsTotal > 0) {
         buffer.writeln('   (${place.userRatingsTotal} reviews)');
       }
@@ -2049,7 +2297,8 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
     // Google Maps link
     buffer.writeln('');
     buffer.writeln('🗺️ Get Directions:');
-    buffer.writeln('https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}');
+    buffer.writeln(
+        'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}');
 
     // Footer
     buffer.writeln('');
@@ -2163,7 +2412,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
       return BitmapDescriptor.hueCyan;
     } else if (types.contains('lodging') || types.contains('hotel')) {
       return BitmapDescriptor.hueBlue;
-    } else if (types.contains('tourist_attraction') || types.contains('museum')) {
+    } else if (types.contains('tourist_attraction') ||
+        types.contains('museum')) {
       return BitmapDescriptor.hueViolet;
     } else if (types.contains('shopping_mall') || types.contains('store')) {
       return BitmapDescriptor.hueGreen;
@@ -2227,7 +2477,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
       builder: (BuildContext context) {
         return Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF2C2C2E) : Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Color(0xFF2C2C2E)
+                : Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -2239,7 +2491,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade600
+                      : Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -2253,7 +2507,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
                       ),
                     ),
                     SizedBox(height: 20),
@@ -2266,11 +2522,27 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                           color: Color(0xFF5856D6).withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.search, color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Color(0xFF5856D6)),
+                        child: Icon(Icons.search,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.purple.shade200
+                                    : Color(0xFF5856D6)),
                       ),
-                      title: Text(AppLocalizations.of(context)!.searchForBusinessHere, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)),
-                      subtitle: Text(AppLocalizations.of(context)!.findRestaurantsShopsAndServicesAtThisLocation,
-                          style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600)),
+                      title: Text(
+                          AppLocalizations.of(context)!.searchForBusinessHere,
+                          style: TextStyle(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black)),
+                      subtitle: Text(
+                          AppLocalizations.of(context)!
+                              .findRestaurantsShopsAndServicesAtThisLocation,
+                          style: TextStyle(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade300
+                                  : Colors.grey.shade600)),
                       onTap: () {
                         Navigator.pop(context);
                         _findPlaceAtLocation(position);
@@ -2287,11 +2559,27 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                           color: Colors.green.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.map, color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green),
+                        child: Icon(Icons.map,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.green.shade200
+                                    : Colors.green),
                       ),
-                      title: Text(AppLocalizations.of(context)!.openInGoogleMaps, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)),
-                      subtitle: Text(AppLocalizations.of(context)!.viewThisLocationInTheNativeGoogleMapsApp,
-                          style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600)),
+                      title: Text(
+                          AppLocalizations.of(context)!.openInGoogleMaps,
+                          style: TextStyle(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black)),
+                      subtitle: Text(
+                          AppLocalizations.of(context)!
+                              .viewThisLocationInTheNativeGoogleMapsApp,
+                          style: TextStyle(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade300
+                                  : Colors.grey.shade600)),
                       onTap: () {
                         Navigator.pop(context);
                         _openInGoogleMaps(position);
@@ -2308,11 +2596,25 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                           color: Colors.blue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.directions, color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue),
+                        child: Icon(Icons.directions,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.blue.shade200
+                                    : Colors.blue),
                       ),
-                      title: Text(AppLocalizations.of(context)!.getDirections, style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black)),
-                      subtitle: Text(AppLocalizations.of(context)!.navigateToThisLocation,
-                          style: TextStyle(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600)),
+                      title: Text(AppLocalizations.of(context)!.getDirections,
+                          style: TextStyle(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black)),
+                      subtitle: Text(
+                          AppLocalizations.of(context)!.navigateToThisLocation,
+                          style: TextStyle(
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade300
+                                  : Colors.grey.shade600)),
                       onTap: () {
                         Navigator.pop(context);
                         _getDirectionsToLocation(position);
@@ -2385,7 +2687,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
         //// print('🗺️ [MapTap] Selected place: ${nearestPlace.name} at ${nearestPlace.distance.toStringAsFixed(1)}m');
 
         // Check if this place already exists in our widget.places list
-        final existingPlace = widget.places.any((place) => place.placeId == nearestPlace.placeId);
+        final existingPlace =
+            widget.places.any((place) => place.placeId == nearestPlace.placeId);
         //// print('🗺️ [MapTap] Place already exists in list: $existingPlace');
 
         if (existingPlace) {
@@ -2401,7 +2704,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
             markerId: MarkerId(nearestPlace.placeId),
             position: LatLng(nearestPlace.latitude, nearestPlace.longitude),
             icon: BitmapDescriptor.defaultMarkerWithHue(
-              BitmapDescriptor.hueGreen, // Use green to highlight the found place
+              BitmapDescriptor
+                  .hueGreen, // Use green to highlight the found place
             ),
             onTap: () => _showPlaceOnMap(nearestPlace),
           );
@@ -2437,7 +2741,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
   // Open location in Google Maps app
   Future<void> _openInGoogleMaps(LatLng position) async {
     try {
-      final url = 'https://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}';
+      final url =
+          'https://www.google.com/maps/search/?api=1&query=${position.latitude},${position.longitude}';
       if (await canLaunchUrl(Uri.parse(url))) {
         await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       }
@@ -2448,7 +2753,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
 
   // Get directions to location
   Future<void> _getDirectionsToLocation(LatLng position) async {
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=${position.latitude},${position.longitude}';
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=${position.latitude},${position.longitude}';
     try {
       if (await canLaunchUrl(Uri.parse(url))) {
         await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
@@ -2615,7 +2921,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         SizedBox(height: 8),
                         _buildMapControl(Icons.remove, () => _zoomOut()),
                         SizedBox(height: 8),
-                        _buildMapControl(Icons.center_focus_strong, () => _fitCameraToMarkers()),
+                        _buildMapControl(Icons.center_focus_strong,
+                            () => _fitCameraToMarkers()),
                         SizedBox(height: 8),
                         if (widget.enableRouteFeatures) ...[
                           _buildRouteControl(),
@@ -2672,12 +2979,17 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
   Widget _buildMapTypeDropdownCompact() {
     final mapTypes = [
       {'type': MapType.normal, 'icon': Icons.map, 'label': 'Map'},
-      {'type': MapType.satellite, 'icon': Icons.satellite_alt, 'label': 'Satellite'},
+      {
+        'type': MapType.satellite,
+        'icon': Icons.satellite_alt,
+        'label': 'Satellite'
+      },
       {'type': MapType.hybrid, 'icon': Icons.layers, 'label': 'Hybrid'},
       {'type': MapType.terrain, 'icon': Icons.terrain, 'label': 'Terrain'},
     ];
 
-    final currentMapType = mapTypes.firstWhere((type) => type['type'] == _currentMapType);
+    final currentMapType =
+        mapTypes.firstWhere((type) => type['type'] == _currentMapType);
 
     return Container(
       width: 40, // Fixed width to prevent layout shifts
@@ -2748,7 +3060,11 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
 
     final mapTypes = [
       {'type': MapType.normal, 'icon': Icons.map, 'label': 'Map'},
-      {'type': MapType.satellite, 'icon': Icons.satellite_alt, 'label': 'Satellite'},
+      {
+        'type': MapType.satellite,
+        'icon': Icons.satellite_alt,
+        'label': 'Satellite'
+      },
       {'type': MapType.hybrid, 'icon': Icons.layers, 'label': 'Hybrid'},
       {'type': MapType.terrain, 'icon': Icons.terrain, 'label': 'Terrain'},
     ];
@@ -2756,15 +3072,21 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
     // Calculate the correct position based on the map controls layout
     // Controls are positioned: zoom in, zoom out, center, route, map type, traffic
     // So map type is the 5th control (index 4)
-    final controlIndex = 4; // 0: zoom in, 1: zoom out, 2: center, 3: route, 4: map type
-    final topPosition = 16.0 + (controlIndex * (40.0 + 8.0)); // 16px top margin + (index * (button height + spacing))
+    final controlIndex =
+        4; // 0: zoom in, 1: zoom out, 2: center, 3: route, 4: map type
+    final topPosition = 16.0 +
+        (controlIndex *
+            (40.0 +
+                8.0)); // 16px top margin + (index * (button height + spacing))
 
     return Positioned(
       top: topPosition,
       right: 64, // 40px (button width) + 8px spacing + 16px margin
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: mapTypes.where((type) => type['type'] != _currentMapType).map((mapTypeData) {
+        children: mapTypes
+            .where((type) => type['type'] != _currentMapType)
+            .map((mapTypeData) {
           final mapType = mapTypeData['type'] as MapType;
           final icon = mapTypeData['icon'] as IconData;
 
@@ -2795,7 +3117,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('🗺️ Map type changed to ${mapTypeData['label']}'),
+                      content: Text(
+                          '🗺️ Map type changed to ${mapTypeData['label']}'),
                       duration: Duration(seconds: 2),
                       behavior: SnackBarBehavior.floating,
                       backgroundColor: Color(0xFF5856D6),
@@ -2809,7 +3132,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                   child: Icon(
                     icon,
                     size: 20,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade600,
                   ),
                 ),
               ),
@@ -2879,7 +3204,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
   Widget _buildPlaceCard(PlaceResult place, SettingsProvider settings) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF2C2C2E) : Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Color(0xFF2C2C2E)
+            : Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
@@ -2908,7 +3235,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(18),
                           fontWeight: FontWeight.w700,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : Colors.black,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -2919,16 +3248,19 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         children: [
                           if (place.rating > 0) ...[
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Colors.amber.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                                border: Border.all(
+                                    color: Colors.amber.withOpacity(0.3)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.star, size: 12, color: Colors.amber),
+                                  Icon(Icons.star,
+                                      size: 12, color: Colors.amber),
                                   SizedBox(width: 2),
                                   Text(
                                     place.rating.toStringAsFixed(1),
@@ -2944,26 +3276,34 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                             SizedBox(width: 6),
                           ],
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
                               color: Colors.grey.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                              border: Border.all(
+                                  color: Colors.grey.withOpacity(0.3)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.location_on, size: 12, color: Colors.grey.shade600),
+                                Icon(Icons.location_on,
+                                    size: 12, color: Colors.grey.shade600),
                                 SizedBox(width: 2),
                                 Text(
                                   place.getDistanceText(
-                                    locale: Localizations.localeOf(context).toString(),
-                                    countryCode: Localizations.localeOf(context).countryCode,
+                                    locale: Localizations.localeOf(context)
+                                        .toString(),
+                                    countryCode: Localizations.localeOf(context)
+                                        .countryCode,
                                   ),
                                   style: TextStyle(
                                     fontSize: settings.getScaledFontSize(11),
                                     fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.grey.shade300
+                                        : Colors.grey.shade600,
                                   ),
                                 ),
                               ],
@@ -2972,18 +3312,22 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                           SizedBox(width: 6),
                           // Photos button inline with rating and distance
                           GestureDetector(
-                            onTap: () => _showPhotoGalleryFromMap(place, settings),
+                            onTap: () =>
+                                _showPhotoGalleryFromMap(place, settings),
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Colors.orange.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(6),
-                                border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                                border: Border.all(
+                                    color: Colors.orange.withOpacity(0.3)),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.photo_camera, size: 12, color: Colors.orange.shade600),
+                                  Icon(Icons.photo_camera,
+                                      size: 12, color: Colors.orange.shade600),
                                   SizedBox(width: 2),
                                   Text(
                                     AppLocalizations.of(context)!.photos,
@@ -3032,36 +3376,47 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                                   settings: settings,
                                 ),
                                 Spacer(),
-                                if (_routeDistance != null && _routeDuration != null)
+                                if (_routeDistance != null &&
+                                    _routeDuration != null)
                                   GestureDetector(
                                     onTap: _clearRoute,
                                     child: Container(
                                       padding: EdgeInsets.all(4),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade200,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey.shade700
+                                            : Colors.grey.shade200,
                                         shape: BoxShape.circle,
                                       ),
                                       child: Icon(
                                         Icons.close,
                                         size: 14,
-                                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                                        color: Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey.shade300
+                                            : Colors.grey.shade600,
                                       ),
                                     ),
                                   ),
                               ],
                             ),
                             // Route info display - only show when route is calculated
-                            if (_routeDistance != null && _routeDuration != null) ...[
+                            if (_routeDistance != null &&
+                                _routeDuration != null) ...[
                               SizedBox(height: 6),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 6),
                                     decoration: BoxDecoration(
                                       color: _getRouteColor().withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(8),
-                                      border: Border.all(color: _getRouteColor().withOpacity(0.4)),
+                                      border: Border.all(
+                                          color: _getRouteColor()
+                                              .withOpacity(0.4)),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
@@ -3075,7 +3430,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                                         Text(
                                           '$_routeDistance • $_routeDuration ${_getTravelModeLabel()}',
                                           style: TextStyle(
-                                            fontSize: settings.getScaledFontSize(11),
+                                            fontSize:
+                                                settings.getScaledFontSize(11),
                                             color: _getRouteColor(),
                                             fontWeight: FontWeight.w600,
                                           ),
@@ -3084,24 +3440,30 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                                     ),
                                   ),
                                   // Transit details
-                                  if (_travelMode == 'transit' && _transitDetails != null) ...[
+                                  if (_travelMode == 'transit' &&
+                                      _transitDetails != null) ...[
                                     SizedBox(height: 4),
                                     Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
                                         color: Colors.orange.shade50,
                                         borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: Colors.orange.shade200),
+                                        border: Border.all(
+                                            color: Colors.orange.shade200),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          Icon(Icons.train, size: 12, color: Colors.orange.shade700),
+                                          Icon(Icons.train,
+                                              size: 12,
+                                              color: Colors.orange.shade700),
                                           SizedBox(width: 4),
                                           Text(
                                             _transitDetails!,
                                             style: TextStyle(
-                                              fontSize: settings.getScaledFontSize(10),
+                                              fontSize: settings
+                                                  .getScaledFontSize(10),
                                               color: Colors.orange.shade700,
                                               fontWeight: FontWeight.w600,
                                             ),
@@ -3123,9 +3485,15 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                           place.address,
                           style: TextStyle(
                             fontSize: settings.getScaledFontSize(14),
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.blue.shade200
+                                    : Colors.blue.shade600,
                             decoration: TextDecoration.underline,
-                            decorationColor: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600,
+                            decorationColor:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.blue.shade200
+                                    : Colors.blue.shade600,
                           ),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
@@ -3150,13 +3518,17 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                     child: Container(
                       padding: EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade200,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade700
+                            : Colors.grey.shade200,
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
                         Icons.close,
                         size: settings.getScaledFontSize(16),
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade300
+                            : Colors.grey.shade600,
                       ),
                     ),
                   ),
@@ -3175,7 +3547,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         icon: Icons.directions,
                         label: AppLocalizations.of(context)!.go,
                         onTap: () => _showNavigationOptions(place),
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Color(0xFF5856D6),
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.purple.shade200
+                            : Color(0xFF5856D6),
                         settings: settings,
                       ),
                     ),
@@ -3185,7 +3559,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         icon: Icons.info_outline,
                         label: AppLocalizations.of(context)!.info,
                         onTap: () => _showPlaceDetails(place),
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade300
+                            : Colors.grey.shade600,
                         settings: settings,
                       ),
                     ),
@@ -3195,7 +3571,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         icon: Icons.streetview,
                         label: AppLocalizations.of(context)!.street,
                         onTap: () => _openStreetViewMap(place),
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.blue.shade200
+                            : Colors.blue.shade600,
                         settings: settings,
                       ),
                     ),
@@ -3205,7 +3583,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         icon: Icons.share,
                         label: AppLocalizations.of(context)!.share,
                         onTap: () => _sharePlace(place),
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green.shade600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.green.shade200
+                            : Colors.green.shade600,
                         settings: settings,
                       ),
                     ),
@@ -3235,7 +3615,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
 
   void _openDirections(PlaceResult place) async {
     try {
-      final url = 'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}';
+      final url =
+          'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}';
       if (await canLaunchUrl(Uri.parse(url))) {
         await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
       }
@@ -3245,7 +3626,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
   }
 
   void _sharePlace(PlaceResult place) async {
-    final String ratingText = place.rating > 0 ? '${place.rating.toStringAsFixed(1)} ⭐ (${place.userRatingsTotal} reviews)' : 'No rating available';
+    final String ratingText = place.rating > 0
+        ? '${place.rating.toStringAsFixed(1)} ⭐ (${place.userRatingsTotal} reviews)'
+        : 'No rating available';
     final String shareText = '${place.name}\n${place.address}\n$ratingText';
     await Share.share(shareText);
   }
@@ -3281,7 +3664,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                     place: place,
                     settings: settings,
                     locationService: LocationService(),
-                    buildPhotoPlaceholder: () => _buildPhotoPlaceholderForMap(place, settings),
+                    buildPhotoPlaceholder: () =>
+                        _buildPhotoPlaceholderForMap(place, settings),
                   ),
                 ),
               ),
@@ -3366,7 +3750,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                         ),
                         Spacer(),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: place.isOpen ? Colors.green : Colors.red,
                             borderRadius: BorderRadius.circular(8),
@@ -3392,7 +3777,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
     );
   }
 
-  Widget _buildPhotoPlaceholderForMap(PlaceResult place, SettingsProvider settings) {
+  Widget _buildPhotoPlaceholderForMap(
+      PlaceResult place, SettingsProvider settings) {
     final presentation = PlacePresentation.fromTypes(place.types);
     final icon = presentation.icon;
     final color = presentation.accent;
@@ -3590,21 +3976,24 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
   }
 
   void _openGoogleMaps(PlaceResult place) async {
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}';
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
   }
 
   void _openAppleMaps(PlaceResult place) async {
-    final url = 'https://maps.apple.com/?daddr=${place.latitude},${place.longitude}';
+    final url =
+        'https://maps.apple.com/?daddr=${place.latitude},${place.longitude}';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
   }
 
   void _openTransit(PlaceResult place) async {
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=transit';
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=transit';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
@@ -3713,10 +4102,14 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
     }
 
     final origin = locationService.currentPosition!;
-    await _calculateRoute(origin.latitude, origin.longitude, place.latitude, place.longitude, mode: _travelMode);
+    await _calculateRoute(
+        origin.latitude, origin.longitude, place.latitude, place.longitude,
+        mode: _travelMode);
   }
 
-  Future<void> _calculateRoute(double originLat, double originLng, double destLat, double destLng, {String mode = 'driving'}) async {
+  Future<void> _calculateRoute(
+      double originLat, double originLng, double destLat, double destLng,
+      {String mode = 'driving'}) async {
     try {
       final apiKey = AppConfig.googleMapsApiKey;
       if (apiKey.isEmpty) {
@@ -3745,7 +4138,9 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
           String? transitInfo;
           if (mode == 'transit' && route['legs'][0]['steps'] != null) {
             final steps = route['legs'][0]['steps'] as List;
-            final transitSteps = steps.where((step) => step['travel_mode'] == 'TRANSIT').toList();
+            final transitSteps = steps
+                .where((step) => step['travel_mode'] == 'TRANSIT')
+                .toList();
 
             if (transitSteps.isNotEmpty) {
               List<String> transitLines = [];
@@ -3760,7 +4155,8 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
                     } else if (line['name'] != null) {
                       lineInfo = line['name'];
                     }
-                    if (lineInfo.isNotEmpty && !transitLines.contains(lineInfo)) {
+                    if (lineInfo.isNotEmpty &&
+                        !transitLines.contains(lineInfo)) {
                       transitLines.add(lineInfo);
                     }
                   }
@@ -3910,11 +4306,17 @@ class _FullScreenMapViewState extends State<_FullScreenMapView> {
   }) {
     Color color;
     if (mode == 'walking') {
-      color = Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade700;
+      color = Theme.of(context).brightness == Brightness.dark
+          ? Colors.blue.shade200
+          : Colors.blue.shade700;
     } else if (mode == 'transit') {
-      color = Theme.of(context).brightness == Brightness.dark ? Colors.orange.shade200 : Colors.orange.shade700;
+      color = Theme.of(context).brightness == Brightness.dark
+          ? Colors.orange.shade200
+          : Colors.orange.shade700;
     } else {
-      color = Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Colors.purple.shade600;
+      color = Theme.of(context).brightness == Brightness.dark
+          ? Colors.purple.shade200
+          : Colors.purple.shade600;
     }
 
     return GestureDetector(
@@ -4005,7 +4407,9 @@ class NavigationOptionsSheet extends StatelessWidget {
             maxHeight: MediaQuery.of(context).size.height * 0.75,
           ),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF2C2C2E) : Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Color(0xFF2C2C2E)
+                : Colors.white,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -4017,7 +4421,9 @@ class NavigationOptionsSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade600
+                      : Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -4038,14 +4444,20 @@ class NavigationOptionsSheet extends StatelessWidget {
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(16),
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                           ),
                           Text(
                             place.name,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(12),
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade300
+                                  : Colors.grey.shade600,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -4054,7 +4466,11 @@ class NavigationOptionsSheet extends StatelessWidget {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close, size: 20, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                      icon: Icon(Icons.close,
+                          size: 20,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.grey.shade300
+                              : Colors.grey.shade600),
                       padding: EdgeInsets.zero,
                       constraints: BoxConstraints(),
                     ),
@@ -4270,14 +4686,20 @@ class NavigationOptionsSheet extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 4, vertical: 3),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade700
+                : Colors.white,
             borderRadius: BorderRadius.circular(4),
             border: Border.all(color: color.withOpacity(0.3)),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : color, size: 14),
+              Icon(icon,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : color,
+                  size: 14),
               SizedBox(width: 2),
               Expanded(
                 child: Text(
@@ -4285,7 +4707,9 @@ class NavigationOptionsSheet extends StatelessWidget {
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(11),
                     fontWeight: FontWeight.w600,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : color,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : color,
                   ),
                   textAlign: TextAlign.center,
                   maxLines: 1,
@@ -4314,7 +4738,8 @@ class NavigationOptionsSheet extends StatelessWidget {
 
   void _openGoogleMaps(BuildContext context) async {
     Navigator.pop(context);
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}';
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
@@ -4322,7 +4747,8 @@ class NavigationOptionsSheet extends StatelessWidget {
 
   void _openAppleMaps(BuildContext context) async {
     Navigator.pop(context);
-    final url = 'https://maps.apple.com/?daddr=${place.latitude},${place.longitude}';
+    final url =
+        'https://maps.apple.com/?daddr=${place.latitude},${place.longitude}';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
@@ -4330,7 +4756,8 @@ class NavigationOptionsSheet extends StatelessWidget {
 
   void _openPublicTransit(BuildContext context) async {
     Navigator.pop(context);
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=transit';
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=transit';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
@@ -4338,7 +4765,8 @@ class NavigationOptionsSheet extends StatelessWidget {
 
   void _openWalkingDirections(BuildContext context) async {
     Navigator.pop(context);
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking';
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=walking';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
@@ -4346,7 +4774,8 @@ class NavigationOptionsSheet extends StatelessWidget {
 
   void _openCyclingDirections(BuildContext context) async {
     Navigator.pop(context);
-    final url = 'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=bicycling';
+    final url =
+        'https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}&travelmode=bicycling';
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     }
@@ -4354,37 +4783,46 @@ class NavigationOptionsSheet extends StatelessWidget {
 
   void _openUber(BuildContext context) async {
     Navigator.pop(context);
-    final url = 'uber://?action=setPickup&dropoff[latitude]=${place.latitude}&dropoff[longitude]=${place.longitude}&dropoff[nickname]=${Uri.encodeComponent(place.name)}';
-    final fallbackUrl = 'https://m.uber.com/ul/?action=setPickup&dropoff[latitude]=${place.latitude}&dropoff[longitude]=${place.longitude}&dropoff[nickname]=${Uri.encodeComponent(place.name)}';
+    final url =
+        'uber://?action=setPickup&dropoff[latitude]=${place.latitude}&dropoff[longitude]=${place.longitude}&dropoff[nickname]=${Uri.encodeComponent(place.name)}';
+    final fallbackUrl =
+        'https://m.uber.com/ul/?action=setPickup&dropoff[latitude]=${place.latitude}&dropoff[longitude]=${place.longitude}&dropoff[nickname]=${Uri.encodeComponent(place.name)}';
 
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } else if (await canLaunchUrl(Uri.parse(fallbackUrl))) {
-      await launchUrl(Uri.parse(fallbackUrl), mode: LaunchMode.externalApplication);
+      await launchUrl(Uri.parse(fallbackUrl),
+          mode: LaunchMode.externalApplication);
     }
   }
 
   void _openLyft(BuildContext context) async {
     Navigator.pop(context);
-    final url = 'lyft://ridetype?id=lyft&destination[latitude]=${place.latitude}&destination[longitude]=${place.longitude}';
-    final fallbackUrl = 'https://lyft.com/ride?destination[latitude]=${place.latitude}&destination[longitude]=${place.longitude}';
+    final url =
+        'lyft://ridetype?id=lyft&destination[latitude]=${place.latitude}&destination[longitude]=${place.longitude}';
+    final fallbackUrl =
+        'https://lyft.com/ride?destination[latitude]=${place.latitude}&destination[longitude]=${place.longitude}';
 
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } else if (await canLaunchUrl(Uri.parse(fallbackUrl))) {
-      await launchUrl(Uri.parse(fallbackUrl), mode: LaunchMode.externalApplication);
+      await launchUrl(Uri.parse(fallbackUrl),
+          mode: LaunchMode.externalApplication);
     }
   }
 
   void _openWaze(BuildContext context) async {
     Navigator.pop(context);
-    final url = 'waze://?ll=${place.latitude},${place.longitude}&navigate=yes&z=10';
-    final fallbackUrl = 'https://waze.com/ul?ll=${place.latitude},${place.longitude}&navigate=yes&z=10';
+    final url =
+        'waze://?ll=${place.latitude},${place.longitude}&navigate=yes&z=10';
+    final fallbackUrl =
+        'https://waze.com/ul?ll=${place.latitude},${place.longitude}&navigate=yes&z=10';
 
     if (await canLaunchUrl(Uri.parse(url))) {
       await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
     } else if (await canLaunchUrl(Uri.parse(fallbackUrl))) {
-      await launchUrl(Uri.parse(fallbackUrl), mode: LaunchMode.externalApplication);
+      await launchUrl(Uri.parse(fallbackUrl),
+          mode: LaunchMode.externalApplication);
     }
   }
 
@@ -4426,7 +4864,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
             maxHeight: MediaQuery.of(context).size.height * 0.85,
           ),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Color(0xFF2C2C2E) : Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Color(0xFF2C2C2E)
+                : Colors.white,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Column(
@@ -4438,7 +4878,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade600
+                      : Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -4461,14 +4903,20 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                                   style: TextStyle(
                                     fontSize: settings.getScaledFontSize(20),
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.white
+                                        : Colors.black,
                                   ),
                                 ),
                                 Text(
                                   _getPlaceDescription(),
                                   style: TextStyle(
                                     fontSize: settings.getScaledFontSize(14),
-                                    color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Color(0xFF5856D6),
+                                    color: Theme.of(context).brightness ==
+                                            Brightness.dark
+                                        ? Colors.purple.shade200
+                                        : Color(0xFF5856D6),
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -4477,7 +4925,11 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                           ),
                           IconButton(
                             onPressed: () => Navigator.pop(context),
-                            icon: Icon(Icons.close, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+                            icon: Icon(Icons.close,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.grey.shade300
+                                    : Colors.grey.shade600),
                           ),
                         ],
                       ),
@@ -4489,7 +4941,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                       SizedBox(height: 16),
 
                       // AI Insights Section (if available)
-                      if (widget.place.aiSummary != null || widget.place.reviewSummary != null) ...[
+                      if (widget.place.aiSummary != null ||
+                          widget.place.reviewSummary != null) ...[
                         _buildInfoCard(
                           title: AppLocalizations.of(context)!.aiInsights,
                           icon: Icons.auto_awesome,
@@ -4510,18 +4963,24 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
 
                       // Status & Hours
                       _buildInfoCard(
-                        title: AppLocalizations.of(context)!.hoursAndAvailability,
+                        title:
+                            AppLocalizations.of(context)!.hoursAndAvailability,
                         icon: Icons.access_time,
                         color: widget.place.isOpen
-                            ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green)
-                            : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.green.shade200
+                                : Colors.green)
+                            : (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.red.shade200
+                                : Colors.red),
                         child: _buildExpandableStatusContent(settings),
                       ),
                       SizedBox(height: 12),
 
                       // Services & Amenities
                       _buildInfoCard(
-                        title: AppLocalizations.of(context)!.servicesAndAmenities,
+                        title:
+                            AppLocalizations.of(context)!.servicesAndAmenities,
                         icon: Icons.miscellaneous_services,
                         color: Colors.orange,
                         child: _buildServicesAmenitiesContent(settings),
@@ -4536,7 +4995,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                             child: ElevatedButton.icon(
                               onPressed: () => _openDirections(context),
                               icon: Icon(Icons.directions, size: 16),
-                              label: Text(AppLocalizations.of(context)!.directions),
+                              label: Text(
+                                  AppLocalizations.of(context)!.directions),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Color(0xFF5856D6),
                                 foregroundColor: Colors.white,
@@ -4623,7 +5083,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(15),
                   fontWeight: FontWeight.w500,
-                  color: statusColor ?? (isClickable ? Color(0xFF5856D6) : Colors.black87),
+                  color: statusColor ??
+                      (isClickable ? Color(0xFF5856D6) : Colors.black87),
                   decoration: isClickable ? TextDecoration.underline : null,
                 ),
               ),
@@ -4681,7 +5142,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
     });
   }
 
-  Widget _buildOpeningHoursSection(List<String> openingHours, SettingsProvider settings) {
+  Widget _buildOpeningHoursSection(
+      List<String> openingHours, SettingsProvider settings) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -4714,9 +5176,14 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
         Container(
           padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade800
+                : Colors.grey.shade50,
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200),
+            border: Border.all(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade600
+                    : Colors.grey.shade200),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -4841,7 +5308,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
     // Rating if available
     if (widget.place.rating > 0) {
       String ratingStars = '⭐' * widget.place.rating.round();
-      buffer.writeln('⭐ Rating: ${widget.place.rating.toStringAsFixed(1)}/5.0 $ratingStars');
+      buffer.writeln(
+          '⭐ Rating: ${widget.place.rating.toStringAsFixed(1)}/5.0 $ratingStars');
       if (widget.place.userRatingsTotal > 0) {
         buffer.writeln('   (${widget.place.userRatingsTotal} reviews)');
       }
@@ -4873,7 +5341,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
     // Google Maps link
     buffer.writeln('');
     buffer.writeln('🗺️ Get Directions:');
-    buffer.writeln('https://www.google.com/maps/dir/?api=1&destination=${widget.place.latitude},${widget.place.longitude}');
+    buffer.writeln(
+        'https://www.google.com/maps/dir/?api=1&destination=${widget.place.latitude},${widget.place.longitude}');
 
     // Footer
     buffer.writeln('');
@@ -4903,26 +5372,37 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                     Container(
                       padding: EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: (widget.place.isOpen ? Colors.green : Colors.red).withOpacity(0.2),
+                        color: (widget.place.isOpen ? Colors.green : Colors.red)
+                            .withOpacity(0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Icon(
                         widget.place.isOpen ? Icons.check_circle : Icons.cancel,
                         color: widget.place.isOpen
-                            ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green)
-                            : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.green.shade200
+                                : Colors.green)
+                            : (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.red.shade200
+                                : Colors.red),
                         size: 16,
                       ),
                     ),
                     SizedBox(width: 8),
                     Text(
-                      widget.place.isOpen ? AppLocalizations.of(context)!.currentlyOpen : AppLocalizations.of(context)!.currentlyClosed,
+                      widget.place.isOpen
+                          ? AppLocalizations.of(context)!.currentlyOpen
+                          : AppLocalizations.of(context)!.currentlyClosed,
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(15),
                         fontWeight: FontWeight.w600,
                         color: widget.place.isOpen
-                            ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green)
-                            : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.green.shade200
+                                : Colors.green)
+                            : (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.red.shade200
+                                : Colors.red),
                       ),
                     ),
                   ],
@@ -4931,7 +5411,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
               if (widget.place.openingHours.isNotEmpty)
                 Icon(
                   _isStatusExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade600,
                 ),
             ],
           ),
@@ -4943,7 +5425,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
               AppLocalizations.of(context)!.tapToViewOpeningHours,
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(12),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade500,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade500,
               ),
             ),
           ],
@@ -4954,9 +5438,14 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300),
+                border: Border.all(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade300),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -4967,7 +5456,10 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                             hour,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(13),
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade800,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade200
+                                  : Colors.grey.shade800,
                             ),
                           ),
                         ))
@@ -4980,7 +5472,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
     );
   }
 
-  Widget _buildSectionTitle(String title, IconData icon, SettingsProvider settings) {
+  Widget _buildSectionTitle(
+      String title, IconData icon, SettingsProvider settings) {
     return Row(
       children: [
         Container(
@@ -5001,7 +5494,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
           style: TextStyle(
             fontSize: settings.getScaledFontSize(16),
             fontWeight: FontWeight.bold,
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade800,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade200
+                : Colors.grey.shade800,
           ),
         ),
       ],
@@ -5013,57 +5508,102 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
 
     // Core Facilities
     if (place.hasRestroom == true) {
-      amenities.add({'icon': Icons.wc, 'label': 'Restroom', 'color': Colors.blue});
+      amenities
+          .add({'icon': Icons.wc, 'label': 'Restroom', 'color': Colors.blue});
     }
     if (place.hasParking == true) {
-      amenities.add({'icon': Icons.local_parking, 'label': 'Parking', 'color': Colors.green});
+      amenities.add({
+        'icon': Icons.local_parking,
+        'label': 'Parking',
+        'color': Colors.green
+      });
     }
     if (place.hasEvCharger == true) {
-      amenities.add({'icon': Icons.ev_station, 'label': 'EV Charger', 'color': Colors.orange});
+      amenities.add({
+        'icon': Icons.ev_station,
+        'label': 'EV Charger',
+        'color': Colors.orange
+      });
     }
 
     // Accessibility & Family
     if (place.wheelchairAccessible == true) {
-      amenities.add({'icon': Icons.accessible, 'label': 'Wheelchair Access', 'color': Colors.purple});
+      amenities.add({
+        'icon': Icons.accessible,
+        'label': 'Wheelchair Access',
+        'color': Colors.purple
+      });
     }
     if (place.allowsDogs == true) {
-      amenities.add({'icon': Icons.pets, 'label': 'Pet Friendly', 'color': Colors.brown});
+      amenities.add(
+          {'icon': Icons.pets, 'label': 'Pet Friendly', 'color': Colors.brown});
     }
     if (place.goodForChildren == true) {
-      amenities.add({'icon': Icons.child_friendly, 'label': 'Kid Friendly', 'color': Colors.pink});
+      amenities.add({
+        'icon': Icons.child_friendly,
+        'label': 'Kid Friendly',
+        'color': Colors.pink
+      });
     }
 
     // Service Options
     if (place.takeout == true) {
-      amenities.add({'icon': Icons.takeout_dining, 'label': 'Takeout', 'color': Colors.teal});
+      amenities.add({
+        'icon': Icons.takeout_dining,
+        'label': 'Takeout',
+        'color': Colors.teal
+      });
     }
     if (place.delivery == true) {
-      amenities.add({'icon': Icons.delivery_dining, 'label': 'Delivery', 'color': Colors.red});
+      amenities.add({
+        'icon': Icons.delivery_dining,
+        'label': 'Delivery',
+        'color': Colors.red
+      });
     }
     if (place.dineIn == true) {
-      amenities.add({'icon': Icons.restaurant, 'label': 'Dine In', 'color': Colors.indigo});
+      amenities.add({
+        'icon': Icons.restaurant,
+        'label': 'Dine In',
+        'color': Colors.indigo
+      });
     }
     if (place.curbsidePickup == true) {
-      amenities.add({'icon': Icons.drive_eta, 'label': 'Curbside Pickup', 'color': Colors.cyan});
+      amenities.add({
+        'icon': Icons.drive_eta,
+        'label': 'Curbside Pickup',
+        'color': Colors.cyan
+      });
     }
 
     if (amenities.isEmpty) {
       return Container(
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey.shade800
+              : Colors.grey.shade50,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200),
+          border: Border.all(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade600
+                  : Colors.grey.shade200),
         ),
         child: Row(
           children: [
-            Icon(Icons.info_outline, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade500, size: 20),
+            Icon(Icons.info_outline,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade500,
+                size: 20),
             SizedBox(width: 8),
             Text(
               AppLocalizations.of(context)!.facilityInformationNotAvailable,
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(14),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade600,
               ),
             ),
           ],
@@ -5074,9 +5614,14 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200),
+        border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade600
+                : Colors.grey.shade200),
       ),
       child: Wrap(
         spacing: 12,
@@ -5137,7 +5682,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
               subtitle: '${widget.place.userRatingsTotal} reviews',
               color: Colors.amber,
               settings: settings,
-              onTap: widget.place.userRatingsTotal > 0 ? () => _showRatingBreakdown(widget.place) : null,
+              onTap: widget.place.userRatingsTotal > 0
+                  ? () => _showRatingBreakdown(widget.place)
+                  : null,
               isClickable: widget.place.userRatingsTotal > 0,
             ),
           ),
@@ -5147,7 +5694,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
         Expanded(
           child: _buildOverviewCard(
             icon: Icons.attach_money,
-            title: widget.place.priceLevel != 'Unknown' ? widget.place.priceLevel : 'N/A',
+            title: widget.place.priceLevel != 'Unknown'
+                ? widget.place.priceLevel
+                : 'N/A',
             subtitle: AppLocalizations.of(context)!.priceLevel,
             color: Colors.green,
             settings: settings,
@@ -5219,7 +5768,11 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
             subtitle,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(10),
-              color: isClickable ? Color(0xFF0066CC) : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+              color: isClickable
+                  ? Color(0xFF0066CC)
+                  : (Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade600),
               decoration: isClickable ? TextDecoration.underline : null,
             ),
             textAlign: TextAlign.center,
@@ -5248,9 +5801,14 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade200),
+        border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade600
+                : Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -5271,14 +5829,20 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
             ),
             child: Row(
               children: [
-                Icon(icon, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : color, size: 18),
+                Icon(icon,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : color,
+                    size: 18),
                 SizedBox(width: 6),
                 Text(
                   title,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : color,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : color,
                   ),
                 ),
               ],
@@ -5321,7 +5885,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
               AppLocalizations.of(context)!.aiGeneratedInsights,
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(10),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade600,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -5335,7 +5901,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
             widget.place.aiSummary!,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(13),
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade800,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade200
+                  : Colors.grey.shade800,
               height: 1.3,
             ),
           ),
@@ -5346,14 +5914,20 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
           if (widget.place.aiSummary != null) SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.rate_review, color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Colors.purple.shade600, size: 14),
+              Icon(Icons.rate_review,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.purple.shade200
+                      : Colors.purple.shade600,
+                  size: 14),
               SizedBox(width: 4),
               Text(
                 AppLocalizations.of(context)!.reviewAnalysis,
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(10),
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Colors.purple.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.purple.shade200
+                      : Colors.purple.shade600,
                 ),
               ),
             ],
@@ -5363,7 +5937,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
             widget.place.reviewSummary!,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(13),
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade800,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade200
+                  : Colors.grey.shade800,
               height: 1.3,
             ),
           ),
@@ -5436,26 +6012,37 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                     Container(
                       padding: EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: (widget.place.isOpen ? Colors.green : Colors.red).withOpacity(0.2),
+                        color: (widget.place.isOpen ? Colors.green : Colors.red)
+                            .withOpacity(0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Icon(
                         widget.place.isOpen ? Icons.check_circle : Icons.cancel,
                         color: widget.place.isOpen
-                            ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green)
-                            : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.green.shade200
+                                : Colors.green)
+                            : (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.red.shade200
+                                : Colors.red),
                         size: 16,
                       ),
                     ),
                     SizedBox(width: 8),
                     Text(
-                      widget.place.isOpen ? AppLocalizations.of(context)!.currentlyOpen : AppLocalizations.of(context)!.currentlyClosed,
+                      widget.place.isOpen
+                          ? AppLocalizations.of(context)!.currentlyOpen
+                          : AppLocalizations.of(context)!.currentlyClosed,
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(15),
                         fontWeight: FontWeight.w600,
                         color: widget.place.isOpen
-                            ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green)
-                            : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade200 : Colors.red),
+                            ? (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.green.shade200
+                                : Colors.green)
+                            : (Theme.of(context).brightness == Brightness.dark
+                                ? Colors.red.shade200
+                                : Colors.red),
                       ),
                     ),
                   ],
@@ -5464,7 +6051,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
               if (widget.place.openingHours.isNotEmpty)
                 Icon(
                   _isStatusExpanded ? Icons.expand_less : Icons.expand_more,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade600,
                 ),
             ],
           ),
@@ -5476,7 +6065,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
               AppLocalizations.of(context)!.tapToViewOpeningHours,
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(12),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade500,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade500,
               ),
             ),
           ],
@@ -5487,9 +6078,14 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
             Container(
               padding: EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade800
+                    : Colors.grey.shade50,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : Colors.grey.shade300),
+                border: Border.all(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey.shade600
+                        : Colors.grey.shade300),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -5500,7 +6096,10 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                             hour,
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(13),
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade800,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade200
+                                  : Colors.grey.shade800,
                             ),
                           ),
                         ))
@@ -5519,39 +6118,77 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
 
     // Service Options
     if (widget.place.takeout == true) {
-      services.add({'icon': Icons.takeout_dining, 'label': 'Takeout', 'color': Colors.teal});
+      services.add({
+        'icon': Icons.takeout_dining,
+        'label': 'Takeout',
+        'color': Colors.teal
+      });
     }
     if (widget.place.delivery == true) {
-      services.add({'icon': Icons.delivery_dining, 'label': 'Delivery', 'color': Colors.red});
+      services.add({
+        'icon': Icons.delivery_dining,
+        'label': 'Delivery',
+        'color': Colors.red
+      });
     }
     if (widget.place.dineIn == true) {
-      services.add({'icon': Icons.restaurant, 'label': 'Dine In', 'color': Colors.indigo});
+      services.add({
+        'icon': Icons.restaurant,
+        'label': 'Dine In',
+        'color': Colors.indigo
+      });
     }
     if (widget.place.curbsidePickup == true) {
-      services.add({'icon': Icons.drive_eta, 'label': 'Curbside Pickup', 'color': Colors.cyan});
+      services.add({
+        'icon': Icons.drive_eta,
+        'label': 'Curbside Pickup',
+        'color': Colors.cyan
+      });
     }
     if (widget.place.reservable == true) {
-      services.add({'icon': Icons.event_available, 'label': 'Reservations', 'color': Colors.purple});
+      services.add({
+        'icon': Icons.event_available,
+        'label': 'Reservations',
+        'color': Colors.purple
+      });
     }
 
     // Amenities
     if (widget.place.hasRestroom == true) {
-      amenities.add({'icon': Icons.wc, 'label': 'Restroom', 'color': Colors.blue});
+      amenities
+          .add({'icon': Icons.wc, 'label': 'Restroom', 'color': Colors.blue});
     }
     if (widget.place.hasParking == true) {
-      amenities.add({'icon': Icons.local_parking, 'label': 'Parking', 'color': Colors.green});
+      amenities.add({
+        'icon': Icons.local_parking,
+        'label': 'Parking',
+        'color': Colors.green
+      });
     }
     if (widget.place.hasEvCharger == true) {
-      amenities.add({'icon': Icons.ev_station, 'label': 'EV Charger', 'color': Colors.orange});
+      amenities.add({
+        'icon': Icons.ev_station,
+        'label': 'EV Charger',
+        'color': Colors.orange
+      });
     }
     if (widget.place.wheelchairAccessible == true) {
-      amenities.add({'icon': Icons.accessible, 'label': 'Wheelchair Access', 'color': Colors.purple});
+      amenities.add({
+        'icon': Icons.accessible,
+        'label': 'Wheelchair Access',
+        'color': Colors.purple
+      });
     }
     if (widget.place.allowsDogs == true) {
-      amenities.add({'icon': Icons.pets, 'label': 'Pet Friendly', 'color': Colors.brown});
+      amenities.add(
+          {'icon': Icons.pets, 'label': 'Pet Friendly', 'color': Colors.brown});
     }
     if (widget.place.goodForChildren == true) {
-      amenities.add({'icon': Icons.child_friendly, 'label': 'Kid Friendly', 'color': Colors.pink});
+      amenities.add({
+        'icon': Icons.child_friendly,
+        'label': 'Kid Friendly',
+        'color': Colors.pink
+      });
     }
 
     return Column(
@@ -5564,7 +6201,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
             style: TextStyle(
               fontSize: settings.getScaledFontSize(12),
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade700,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade200
+                  : Colors.grey.shade700,
             ),
           ),
           SizedBox(height: 6),
@@ -5590,7 +6229,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
             style: TextStyle(
               fontSize: settings.getScaledFontSize(12),
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade700,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey.shade200
+                  : Colors.grey.shade700,
             ),
           ),
           SizedBox(height: 6),
@@ -5612,13 +6253,19 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
         if (services.isEmpty && amenities.isEmpty)
           Row(
             children: [
-              Icon(Icons.info_outline, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade500, size: 16),
+              Icon(Icons.info_outline,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade400
+                      : Colors.grey.shade500,
+                  size: 16),
               SizedBox(width: 6),
               Text(
                 AppLocalizations.of(context)!.serviceInformationNotAvailable,
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(12),
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade600,
                 ),
               ),
             ],
@@ -5638,7 +6285,11 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
     Widget row = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600),
+        Icon(icon,
+            size: 18,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade300
+                : Colors.grey.shade600),
         SizedBox(width: 10),
         Expanded(
           child: Column(
@@ -5649,7 +6300,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(11),
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade600,
                 ),
               ),
               SizedBox(height: 1),
@@ -5658,8 +6311,12 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                 style: TextStyle(
                   fontSize: settings.getScaledFontSize(13),
                   color: isClickable
-                      ? (Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600)
-                      : (Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade200 : Colors.grey.shade800),
+                      ? (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.blue.shade200
+                          : Colors.blue.shade600)
+                      : (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.grey.shade200
+                          : Colors.grey.shade800),
                   decoration: isClickable ? TextDecoration.underline : null,
                 ),
                 maxLines: 1,
@@ -5669,21 +6326,35 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
           ),
         ),
         if (isClickable && title != AppLocalizations.of(context)!.address)
-          Icon(Icons.open_in_new, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600),
+          Icon(Icons.open_in_new,
+              size: 14,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.blue.shade200
+                  : Colors.blue.shade600),
         if (isClickable && title == AppLocalizations.of(context)!.address) ...[
           if (_showCopiedFeedback) ...[
-            Icon(Icons.check_circle, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green.shade600),
+            Icon(Icons.check_circle,
+                size: 14,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.green.shade200
+                    : Colors.green.shade600),
             SizedBox(width: 4),
             Text(
               AppLocalizations.of(context)!.copied,
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(11),
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.green.shade200 : Colors.green.shade600,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.green.shade200
+                    : Colors.green.shade600,
               ),
             ),
           ] else
-            Icon(Icons.content_copy, size: 14, color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.shade200 : Colors.blue.shade600),
+            Icon(Icons.content_copy,
+                size: 14,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.blue.shade200
+                    : Colors.blue.shade600),
         ],
       ],
     );
@@ -5707,21 +6378,32 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : color.withOpacity(0.1),
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade700
+            : color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade600 : color.withOpacity(0.3)),
+        border: Border.all(
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade600
+                : color.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Theme.of(context).brightness == Brightness.dark ? Colors.white : color, size: 12),
+          Icon(icon,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : color,
+              size: 12),
           SizedBox(width: 3),
           Text(
             label,
             style: TextStyle(
               fontSize: settings.getScaledFontSize(10),
               fontWeight: FontWeight.w600,
-              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : color,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : color,
             ),
           ),
         ],
@@ -5779,7 +6461,9 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
                             (index) => Icon(
                                   Icons.star,
                                   size: 20,
-                                  color: index < place.rating.round() ? Colors.amber : Colors.grey.shade400,
+                                  color: index < place.rating.round()
+                                      ? Colors.amber
+                                      : Colors.grey.shade400,
                                 )),
                       ),
                       SizedBox(height: 4),
@@ -5801,7 +6485,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
               ...List.generate(5, (index) {
                 final starCount = 5 - index;
                 // Simulated percentage distribution based on common patterns
-                final percentage = _getSimulatedPercentage(starCount, place.rating);
+                final percentage =
+                    _getSimulatedPercentage(starCount, place.rating);
 
                 return Padding(
                   padding: EdgeInsets.symmetric(vertical: 2),
@@ -5965,7 +6650,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
         headers: {
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': apiKey,
-          'X-Goog-FieldMask': 'displayName,rating,nationalPhoneNumber,websiteUri,regularOpeningHours,reviews,photos',
+          'X-Goog-FieldMask':
+              'displayName,rating,nationalPhoneNumber,websiteUri,regularOpeningHours,reviews,photos',
         },
       );
 
@@ -5977,7 +6663,8 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
         if (data['reviews'] != null) {
           for (var reviewData in data['reviews']) {
             reviews.add(PlaceReview(
-              authorName: reviewData['authorAttribution']?['displayName'] ?? 'Anonymous',
+              authorName: reviewData['authorAttribution']?['displayName'] ??
+                  'Anonymous',
               rating: reviewData['rating'] ?? 0,
               text: reviewData['text']?['text'] ?? '',
               relativeTime: reviewData['relativePublishTimeDescription'] ?? '',
@@ -5990,9 +6677,17 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
           rating: (data['rating'] ?? 0).toDouble(),
           phoneNumber: data['nationalPhoneNumber'],
           website: data['websiteUri'],
-          openingHours: data['regularOpeningHours']?['weekdayDescriptions'] != null ? List<String>.from(data['regularOpeningHours']['weekdayDescriptions']) : [],
+          openingHours:
+              data['regularOpeningHours']?['weekdayDescriptions'] != null
+                  ? List<String>.from(
+                      data['regularOpeningHours']['weekdayDescriptions'])
+                  : [],
           reviews: reviews,
-          photoReferences: data['photos'] != null ? (data['photos'] as List).map((p) => p['name'] as String).toList() : [],
+          photoReferences: data['photos'] != null
+              ? (data['photos'] as List)
+                  .map((p) => p['name'] as String)
+                  .toList()
+              : [],
         );
       }
     } catch (e) {
@@ -6001,25 +6696,6 @@ class _PlaceDetailsSheetState extends State<PlaceDetailsSheet> {
 
     return null;
   }
-}
-
-class _PhotoGalleryWidget extends StatefulWidget {
-  final List<String> photos;
-  final PlaceResult place;
-  final SettingsProvider settings;
-  final LocationService locationService;
-  final Widget Function() buildPhotoPlaceholder;
-
-  const _PhotoGalleryWidget({
-    required this.photos,
-    required this.place,
-    required this.settings,
-    required this.locationService,
-    required this.buildPhotoPlaceholder,
-  });
-
-  @override
-  State<_PhotoGalleryWidget> createState() => _PhotoGalleryWidgetState();
 }
 
 class _EnhancedPhotoGalleryWidget extends StatefulWidget {
@@ -6036,182 +6712,12 @@ class _EnhancedPhotoGalleryWidget extends StatefulWidget {
   });
 
   @override
-  State<_EnhancedPhotoGalleryWidget> createState() => _EnhancedPhotoGalleryWidgetState();
+  State<_EnhancedPhotoGalleryWidget> createState() =>
+      _EnhancedPhotoGalleryWidgetState();
 }
 
-class _PhotoGalleryWidgetState extends State<_PhotoGalleryWidget> {
-  late PageController _pageController;
-  int _currentPhotoIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController();
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    //// print('🖼️ [DEBUG] PhotoGalleryWidget: ${widget.photos.length} photos for ${widget.place.name}');
-
-    if (widget.photos.isEmpty) {
-      //// print('🖼️ [DEBUG] No photos available, showing placeholder');
-      return widget.buildPhotoPlaceholder();
-    }
-
-    //// print('🖼️ [DEBUG] Showing photo gallery with ${widget.photos.length} photos');
-    return Stack(
-      children: [
-        // Photo PageView
-        PageView.builder(
-          controller: _pageController,
-          onPageChanged: (index) {
-            setState(() {
-              _currentPhotoIndex = index;
-            });
-          },
-          itemCount: widget.photos.length,
-          itemBuilder: (context, index) {
-            return Container(
-              width: double.infinity,
-              height: double.infinity,
-              child: Image.network(
-                widget.locationService.getPhotoUrl(widget.photos[index], maxWidth: 1200),
-                fit: BoxFit.contain, // Changed from cover to contain to show full image
-                loadingBuilder: (context, child, loadingProgress) {
-                  if (loadingProgress == null) return child;
-                  return Container(
-                    color: Colors.grey.shade200,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null,
-                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5856D6)),
-                      ),
-                    ),
-                  );
-                },
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: Colors.grey.shade200,
-                  child: Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 48,
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
-                        ),
-                        SizedBox(height: 8),
-                        Text(
-                          AppLocalizations.of(context)!.unableToLoadPhoto,
-                          style: TextStyle(
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        ),
-
-        // Photo navigation arrows (if multiple photos)
-        if (widget.photos.length > 1) ...[
-          // Left arrow
-          if (_currentPhotoIndex > 0)
-            Positioned(
-              left: 8,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: () {
-                    _pageController.previousPage(
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.chevron_left,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          // Right arrow
-          if (_currentPhotoIndex < widget.photos.length - 1)
-            Positioned(
-              right: 8,
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: () {
-                    _pageController.nextPage(
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.chevron_right,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-          // Photo counter
-          Positioned(
-            top: 12,
-            left: 12,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                '${_currentPhotoIndex + 1} / ${widget.photos.length}',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: widget.settings.getScaledFontSize(10),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _EnhancedPhotoGalleryWidgetState extends State<_EnhancedPhotoGalleryWidget> {
+class _EnhancedPhotoGalleryWidgetState
+    extends State<_EnhancedPhotoGalleryWidget> {
   late PageController _pageController;
   int _currentPhotoIndex = 0;
   List<String> _allPhotos = [];
@@ -6232,20 +6738,24 @@ class _EnhancedPhotoGalleryWidgetState extends State<_EnhancedPhotoGalleryWidget
 
   Future<void> _loadAllPhotos() async {
     // Start with photos from search results
-    List<String> initialPhotos = widget.place.photoReferences.isNotEmpty ? widget.place.photoReferences : (widget.place.photoReference != null ? [widget.place.photoReference!] : <String>[]);
+    List<String> initialPhotos = widget.place.photoReferences.isNotEmpty
+        ? widget.place.photoReferences
+        : (widget.place.photoReference != null
+            ? [widget.place.photoReference!]
+            : <String>[]);
 
-    setState(() {
-      _allPhotos = initialPhotos;
-      _isLoadingMorePhotos = true;
-    });
+    _allPhotos = initialPhotos;
+    _isLoadingMorePhotos = true;
 
     // Try to get more photos from Place Details API
     try {
-      final additionalPhotos = await widget.locationService.getPlacePhotos(widget.place.placeId);
+      final additionalPhotos =
+          await widget.locationService.getPlacePhotos(widget.place.placeId);
+      if (!mounted) return;
 
       if (additionalPhotos.isNotEmpty) {
         // Merge and deduplicate photos
-        Set<String> photoSet = Set<String>.from(_allPhotos);
+        final photoSet = <String>{..._allPhotos};
         photoSet.addAll(additionalPhotos);
 
         setState(() {
@@ -6259,6 +6769,7 @@ class _EnhancedPhotoGalleryWidgetState extends State<_EnhancedPhotoGalleryWidget
       }
     } catch (e) {
       //// print('🖼️ [ERROR] Failed to load additional photos: $e');
+      if (!mounted) return;
       setState(() {
         _isLoadingMorePhotos = false;
       });
@@ -6288,7 +6799,9 @@ class _EnhancedPhotoGalleryWidgetState extends State<_EnhancedPhotoGalleryWidget
               Text(
                 AppLocalizations.of(context)!.loadingPhotos,
                 style: TextStyle(
-                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.grey.shade300
+                      : Colors.grey.shade600,
                   fontSize: 16,
                 ),
               ),
@@ -6307,6 +6820,7 @@ class _EnhancedPhotoGalleryWidgetState extends State<_EnhancedPhotoGalleryWidget
           color: Colors.black, // Black background for better photo viewing
           child: PageView.builder(
             controller: _pageController,
+            allowImplicitScrolling: true,
             onPageChanged: (index) {
               setState(() {
                 _currentPhotoIndex = index;
@@ -6324,8 +6838,10 @@ class _EnhancedPhotoGalleryWidgetState extends State<_EnhancedPhotoGalleryWidget
                   height: double.infinity,
                   child: Center(
                     child: Image.network(
-                      widget.locationService.getPhotoUrl(_allPhotos[index], maxWidth: 1200),
+                      widget.locationService
+                          .getPhotoUrl(_allPhotos[index], maxWidth: 1200),
                       fit: BoxFit.contain, // Show full image without cropping
+                      cacheWidth: 1200,
                       loadingBuilder: (context, child, loadingProgress) {
                         if (loadingProgress == null) return child;
                         return Container(
@@ -6335,8 +6851,13 @@ class _EnhancedPhotoGalleryWidgetState extends State<_EnhancedPhotoGalleryWidget
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  value: loadingProgress.expectedTotalBytes !=
+                                          null
+                                      ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                      : null,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white),
                                 ),
                                 SizedBox(height: 16),
                                 Text(
@@ -6391,23 +6912,35 @@ class _EnhancedPhotoGalleryWidgetState extends State<_EnhancedPhotoGalleryWidget
               top: 0,
               bottom: 0,
               child: Center(
-                child: GestureDetector(
-                  onTap: () {
-                    _pageController.previousPage(
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.chevron_left,
-                      color: Colors.white,
-                      size: 20,
+                child: Semantics(
+                  button: true,
+                  label: MaterialLocalizations.of(context).previousPageTooltip,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      _pageController.previousPage(
+                        duration: motionDuration(
+                          context,
+                          const Duration(milliseconds: 300),
+                        ),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Icon(
+                        Icons.chevron_left,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -6421,23 +6954,35 @@ class _EnhancedPhotoGalleryWidgetState extends State<_EnhancedPhotoGalleryWidget
               top: 0,
               bottom: 0,
               child: Center(
-                child: GestureDetector(
-                  onTap: () {
-                    _pageController.nextPage(
-                      duration: Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Icon(
-                      Icons.chevron_right,
-                      color: Colors.white,
-                      size: 20,
+                child: Semantics(
+                  button: true,
+                  label: MaterialLocalizations.of(context).nextPageTooltip,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () {
+                      _pageController.nextPage(
+                        duration: motionDuration(
+                          context,
+                          const Duration(milliseconds: 300),
+                        ),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 44,
+                      ),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Icon(
+                        Icons.chevron_right,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -6503,7 +7048,9 @@ class _ReviewsBottomSheet extends StatelessWidget {
         return Container(
           height: MediaQuery.of(context).size.height * 0.8,
           decoration: BoxDecoration(
-            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.white,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.white,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: Column(
@@ -6533,7 +7080,10 @@ class _ReviewsBottomSheet extends StatelessWidget {
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(18),
                               fontWeight: FontWeight.w700,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                           ),
                           SizedBox(height: 4),
@@ -6549,17 +7099,25 @@ class _ReviewsBottomSheet extends StatelessWidget {
                                 '${place.rating.toStringAsFixed(1)} (${place.userRatingsTotal} total reviews)',
                                 style: TextStyle(
                                   fontSize: settings.getScaledFontSize(14),
-                                  color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.grey.shade300
+                                      : Colors.grey.shade600,
                                 ),
                               ),
                             ],
                           ),
                           SizedBox(height: 4),
                           Text(
-                            placeDetails?.reviews.isNotEmpty == true ? 'Showing ${placeDetails!.reviews.length} recent reviews' : 'Recent reviews from Google',
+                            placeDetails?.reviews.isNotEmpty == true
+                                ? 'Showing ${placeDetails!.reviews.length} recent reviews'
+                                : 'Recent reviews from Google',
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(12),
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade500,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.grey.shade400
+                                  : Colors.grey.shade500,
                             ),
                           ),
                         ],
@@ -6595,15 +7153,20 @@ class _ReviewsBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildReviewItem(PlaceReview review, SettingsProvider settings, BuildContext context) {
+  Widget _buildReviewItem(
+      PlaceReview review, SettingsProvider settings, BuildContext context) {
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade800 : Colors.grey.shade50,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade800
+            : Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade700 : Colors.grey.shade200,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey.shade700
+              : Colors.grey.shade200,
         ),
       ),
       child: Column(
@@ -6616,7 +7179,9 @@ class _ReviewsBottomSheet extends StatelessWidget {
                 radius: 20,
                 backgroundColor: Colors.purple.withOpacity(0.2),
                 child: Text(
-                  review.authorName.isNotEmpty ? review.authorName[0].toUpperCase() : 'A',
+                  review.authorName.isNotEmpty
+                      ? review.authorName[0].toUpperCase()
+                      : 'A',
                   style: TextStyle(
                     fontSize: settings.getScaledFontSize(16),
                     fontWeight: FontWeight.w600,
@@ -6630,11 +7195,15 @@ class _ReviewsBottomSheet extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      review.authorName.isNotEmpty ? review.authorName : 'Anonymous',
+                      review.authorName.isNotEmpty
+                          ? review.authorName
+                          : 'Anonymous',
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(14),
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
                       ),
                     ),
                     SizedBox(height: 2),
@@ -6646,7 +7215,9 @@ class _ReviewsBottomSheet extends StatelessWidget {
                               (index) => Icon(
                                     Icons.star,
                                     size: 14,
-                                    color: index < review.rating ? Colors.amber : Colors.grey.shade400,
+                                    color: index < review.rating
+                                        ? Colors.amber
+                                        : Colors.grey.shade400,
                                   )),
                         ),
                         SizedBox(width: 8),
@@ -6654,7 +7225,10 @@ class _ReviewsBottomSheet extends StatelessWidget {
                           review.relativeTime,
                           style: TextStyle(
                             fontSize: settings.getScaledFontSize(12),
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade400
+                                    : Colors.grey.shade600,
                           ),
                         ),
                       ],
@@ -6671,7 +7245,9 @@ class _ReviewsBottomSheet extends StatelessWidget {
               review.text,
               style: TextStyle(
                 fontSize: settings.getScaledFontSize(13),
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade700,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade300
+                    : Colors.grey.shade700,
                 height: 1.4,
               ),
             ),
@@ -6740,7 +7316,9 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
     return Consumer<SettingsProvider>(
       builder: (context, settings, child) {
         return Scaffold(
-          backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.grey.shade50,
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? Colors.black
+              : Colors.grey.shade50,
           appBar: AppBar(
             title: Text(
               AppLocalizations.of(context)!.foundPlaces(widget.places.length),
@@ -6749,7 +7327,9 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            backgroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.white,
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.grey.shade900
+                : Colors.white,
             elevation: 0,
             leading: IconButton(
               icon: Icon(Icons.close),
@@ -6830,11 +7410,14 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
     return places;
   }
 
-  Widget _buildListItem(PlaceResult place, SettingsProvider settings, int index) {
+  Widget _buildListItem(
+      PlaceResult place, SettingsProvider settings, int index) {
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade900 : Colors.white,
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey.shade900
+            : Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -6867,7 +7450,9 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                         child: Image.network(
                           _locationService.getPhotoUrl(place.photoReference!),
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => _buildPlaceIcon(place),
+                          cacheWidth: 240,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildPlaceIcon(place),
                         ),
                       )
                     : _buildPlaceIcon(place),
@@ -6886,7 +7471,9 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(16),
                         fontWeight: FontWeight.w600,
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -6909,7 +7496,10 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                             style: TextStyle(
                               fontSize: settings.getScaledFontSize(14),
                               fontWeight: FontWeight.w500,
-                              color: Theme.of(context).brightness == Brightness.dark ? Colors.white : Colors.black,
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? Colors.white
+                                  : Colors.black,
                             ),
                           ),
                           SizedBox(width: 8),
@@ -6918,7 +7508,10 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                           _getPlaceTypeText(place),
                           style: TextStyle(
                             fontSize: settings.getScaledFontSize(12),
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey.shade300
+                                    : Colors.grey.shade600,
                           ),
                         ),
                       ],
@@ -6929,17 +7522,23 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                     // Review snippet (if available)
                     if (place.reviewSummary != null) ...[
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                         margin: EdgeInsets.only(bottom: 3),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.blue.withOpacity(0.15) : Colors.blue.withOpacity(0.1),
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.blue.withOpacity(0.15)
+                              : Colors.blue.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           '"${place.reviewSummary!}"',
                           style: TextStyle(
                             fontSize: settings.getScaledFontSize(9),
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.lightBlue.shade200 : Colors.blue.shade700,
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.lightBlue.shade200
+                                    : Colors.blue.shade700,
                             fontStyle: FontStyle.italic,
                           ),
                           maxLines: 1,
@@ -6953,7 +7552,9 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                       place.address,
                       style: TextStyle(
                         fontSize: settings.getScaledFontSize(10),
-                        color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade300 : Colors.grey.shade600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey.shade300
+                            : Colors.grey.shade600,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -6965,11 +7566,18 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                     Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding:
+                              EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: place.isOpen
-                                ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.withOpacity(0.15) : Colors.green.withOpacity(0.1))
-                                : (Theme.of(context).brightness == Brightness.dark ? Colors.red.withOpacity(0.15) : Colors.red.withOpacity(0.1)),
+                                ? (Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.green.withOpacity(0.15)
+                                    : Colors.green.withOpacity(0.1))
+                                : (Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.red.withOpacity(0.15)
+                                    : Colors.red.withOpacity(0.1)),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -6978,8 +7586,14 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                               fontSize: settings.getScaledFontSize(10),
                               fontWeight: FontWeight.w500,
                               color: place.isOpen
-                                  ? (Theme.of(context).brightness == Brightness.dark ? Colors.green.shade400 : Colors.green)
-                                  : (Theme.of(context).brightness == Brightness.dark ? Colors.red.shade400 : Colors.red),
+                                  ? (Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.green.shade400
+                                      : Colors.green)
+                                  : (Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.red.shade400
+                                      : Colors.red),
                             ),
                           ),
                         ),
@@ -6987,12 +7601,16 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
                         Text(
                           place.getDistanceText(
                             locale: Localizations.localeOf(context).toString(),
-                            countryCode: Localizations.localeOf(context).countryCode,
+                            countryCode:
+                                Localizations.localeOf(context).countryCode,
                           ),
                           style: TextStyle(
                             fontSize: settings.getScaledFontSize(12),
                             fontWeight: FontWeight.w500,
-                            color: Theme.of(context).brightness == Brightness.dark ? Colors.purple.shade200 : Color(0xFF5856D6),
+                            color:
+                                Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.purple.shade200
+                                    : Color(0xFF5856D6),
                           ),
                         ),
                       ],
@@ -7005,7 +7623,9 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
               Icon(
                 Icons.arrow_forward_ios,
                 size: 16,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.grey.shade400 : Colors.grey.shade600,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.grey.shade400
+                    : Colors.grey.shade600,
               ),
             ],
           ),
@@ -7060,7 +7680,8 @@ class _FullScreenListViewState extends State<_FullScreenListView> {
 
   void _openPlaceDetails(PlaceResult place) {
     // Find the index of the selected place in the original list
-    final placeIndex = widget.places.indexWhere((p) => p.placeId == place.placeId);
+    final placeIndex =
+        widget.places.indexWhere((p) => p.placeId == place.placeId);
 
     // Close the list view and pass back the selected place index
     Navigator.of(context).pop(placeIndex >= 0 ? placeIndex : null);

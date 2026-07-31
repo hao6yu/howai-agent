@@ -39,6 +39,7 @@ class VoiceSessionStartOptions {
     required this.userName,
     required this.timezone,
     required this.localDateTime,
+    this.speakerphoneEnabled = true,
     this.interestTags,
     this.communicationStyle,
   });
@@ -48,6 +49,7 @@ class VoiceSessionStartOptions {
   final String userName;
   final String timezone;
   final String localDateTime;
+  final bool speakerphoneEnabled;
   final String? interestTags;
   final String? communicationStyle;
 }
@@ -94,6 +96,7 @@ abstract class VoiceSessionService {
 
   Future<void> connect(VoiceSessionStartOptions options);
   Future<void> setMuted(bool muted);
+  Future<void> setSpeakerphoneEnabled(bool enabled);
   Future<void> sendToolResult({
     required String callId,
     required Map<String, dynamic> result,

@@ -906,6 +906,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get sorryCouldNotRespond => 'Desculpe, não consegui responder a isso agora.';
 
   @override
+  String get guestAiLimitReached => 'Atingiu o limite diário de IA para convidados. Inicie sessão ou tente novamente amanhã.';
+
+  @override
+  String get aiUsageLimitReached => 'Atingiu o limite atual de IA. Tente novamente mais tarde.';
+
+  @override
   String errorWithMessage(Object error) {
     return 'Erro: $error';
   }
@@ -3960,6 +3966,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get sorryCouldNotRespond => 'Desculpe, não consegui responder a isso agora.';
+
+  @override
+  String get guestAiLimitReached => 'Você atingiu o limite diário de IA para convidados. Entre na sua conta ou tente novamente amanhã.';
+
+  @override
+  String get aiUsageLimitReached => 'Você atingiu o limite atual de IA. Tente novamente mais tarde.';
 
   @override
   String errorWithMessage(Object error) {

@@ -1,4 +1,10 @@
+import 'dart:io';
+
+import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as path;
+import 'package:path_provider/path_provider.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/knowledge_source.dart';
 import '../models/knowledge_source_chunk.dart';
@@ -19,6 +25,7 @@ class KnowledgeSourceService {
   static const int defaultChunkSize = 1000;
   static const int defaultChunkOverlap = 120;
   static const int maxExtractionChars = 24000;
+  static const Uuid _uuid = Uuid();
 
   void _ensurePremiumAccess() {
     if (!_subscriptionService.isPremium) {
@@ -34,31 +41,43 @@ class KnowledgeSourceService {
     _ensurePremiumAccess();
 
     final now = DateTime.now().toIso8601String();
-    final filePath = file.path;
-    final extension =
-        (file.extension ?? FileService.getFileExtension(file.name))
-            .toLowerCase();
-    final mimeType =
-        extension.isEmpty ? null : FileService.getMimeType(extension);
-    final fingerprint = _computeFileFingerprint(file);
+    final persistedFile = await _persistImportedFile(file);
+    try {
+      final extension =
+          (file.extension ?? FileService.getFileExtension(file.name))
+              .toLowerCase();
+      final mimeType =
+          extension.isEmpty ? null : FileService.getMimeType(extension);
+      final fingerprint = await _computeFileFingerprint(persistedFile);
 
-    final source = KnowledgeSource(
-      profileId: profileId,
-      knowledgeItemId: knowledgeItemId,
-      sourceType: KnowledgeSourceType.file,
-      displayName: file.name,
-      mimeType: mimeType,
-      fileExtension: extension.isEmpty ? null : extension,
-      fileSizeBytes: file.size > 0 ? file.size : null,
-      localUri: filePath,
-      sha256: fingerprint,
-      extractionStatus: KnowledgeExtractionStatus.pending,
-      createdAt: now,
-      updatedAt: now,
-    );
+      final source = KnowledgeSource(
+        profileId: profileId,
+        knowledgeItemId: knowledgeItemId,
+        sourceType: KnowledgeSourceType.file,
+        displayName: file.name,
+        mimeType: mimeType,
+        fileExtension: extension.isEmpty ? null : extension,
+        fileSizeBytes: persistedFile.size > 0 ? persistedFile.size : null,
+        localUri: persistedFile.path,
+        sha256: fingerprint,
+        extractionStatus: KnowledgeExtractionStatus.pending,
+        createdAt: now,
+        updatedAt: now,
+      );
 
-    final id = await _databaseService.insertKnowledgeSource(source);
-    return source.copyWith(id: id);
+      final id = await _databaseService.insertKnowledgeSource(source);
+      return source.copyWith(id: id);
+    } catch (_) {
+      final persistedPath = persistedFile.path;
+      if (persistedPath != null) {
+        try {
+          await _deleteManagedFile(persistedPath);
+        } catch (_) {
+          // Preserve the original import/database error.
+        }
+      }
+      rethrow;
+    }
   }
 
   Future<KnowledgeSource> ingestFileSource({
@@ -77,7 +96,13 @@ class KnowledgeSourceService {
     );
 
     try {
-      final extractedText = (await FileService.extractTextFromFile(file)) ?? '';
+      final persistedFile = PlatformFile(
+        name: source.displayName,
+        path: source.localUri,
+        size: source.fileSizeBytes ?? file.size,
+      );
+      final extractedText =
+          (await FileService.extractTextFromFile(persistedFile)) ?? '';
       final normalizedText = _normalizeExtractedText(extractedText);
 
       if (normalizedText.isEmpty) {
@@ -168,7 +193,11 @@ class KnowledgeSourceService {
 
   Future<bool> deleteSource(int sourceId) async {
     _ensurePremiumAccess();
+    final source = await _databaseService.getKnowledgeSourceById(sourceId);
     final rows = await _databaseService.deleteKnowledgeSource(sourceId);
+    if (rows > 0 && source?.localUri != null) {
+      await _deleteManagedFile(source!.localUri!);
+    }
     return rows > 0;
   }
 
@@ -342,12 +371,67 @@ class KnowledgeSourceService {
         .toSet();
   }
 
-  String _computeFileFingerprint(PlatformFile file) {
-    return Object.hashAll([
-      file.name,
-      file.size,
-      file.extension ?? '',
-      file.path ?? '',
-    ]).toString();
+  Future<PlatformFile> _persistImportedFile(PlatformFile file) async {
+    final root = await _managedFilesDirectory();
+    await root.create(recursive: true);
+    final extension =
+        (file.extension ?? FileService.getFileExtension(file.name))
+            .toLowerCase();
+    final storedName = '${_uuid.v4()}${extension.isEmpty ? '' : '.$extension'}';
+    final destination = File(path.join(root.path, storedName));
+
+    try {
+      if (file.path != null) {
+        await File(file.path!).copy(destination.path);
+      } else if (file.bytes != null) {
+        await destination.writeAsBytes(file.bytes!, flush: true);
+      } else {
+        throw StateError('The selected file is no longer available.');
+      }
+
+      return PlatformFile(
+        name: file.name,
+        path: destination.path,
+        size: await destination.length(),
+      );
+    } catch (_) {
+      if (await destination.exists()) {
+        try {
+          await destination.delete();
+        } catch (_) {
+          // Preserve the original copy/write error.
+        }
+      }
+      rethrow;
+    }
+  }
+
+  Future<Directory> _managedFilesDirectory() async {
+    final documents = await getApplicationDocumentsDirectory();
+    final accountScope = _databaseService.activeAccountId ?? 'local';
+    return Directory(
+      path.join(
+        documents.path,
+        'knowledge_sources',
+        accountScope,
+      ),
+    );
+  }
+
+  Future<void> _deleteManagedFile(String filePath) async {
+    final root = await _managedFilesDirectory();
+    final normalizedRoot = path.normalize(root.absolute.path);
+    final normalizedFile = path.normalize(File(filePath).absolute.path);
+    if (!path.isWithin(normalizedRoot, normalizedFile)) return;
+    final file = File(normalizedFile);
+    if (await file.exists()) await file.delete();
+  }
+
+  Future<String> _computeFileFingerprint(PlatformFile file) async {
+    final filePath = file.path;
+    if (filePath == null) {
+      throw StateError('The imported file has no durable path.');
+    }
+    return (await sha256.bind(File(filePath).openRead()).first).toString();
   }
 }

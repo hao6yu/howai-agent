@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_selectionarea/flutter_markdown_selectionarea.dart';
 import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import 'dart:io';
-import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:open_file/open_file.dart';
 
@@ -15,6 +15,7 @@ import '../services/review_service.dart';
 import 'image_gallery_dialog.dart';
 import 'content_report_dialog.dart';
 import '../services/content_report_service.dart';
+import '../services/message_media_service.dart';
 // place_result_widget is now handled separately in chat screen
 import 'package:haogpt/generated/app_localizations.dart';
 import '../services/profile_translation_service.dart';
@@ -77,14 +78,19 @@ class ChatMessageWidget extends StatefulWidget {
 
 class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   Offset? _lastTapPosition;
-  late Future<Map<String, dynamic>> _messageReportFuture;
+  late Future<MessageReportStatus> _messageReportFuture;
+  late ResolvedMessageMedia _resolvedMedia;
+  int _mediaResolutionGeneration = 0;
+  double _fontScale = 1;
 
   @override
   void initState() {
     super.initState();
     _messageReportFuture = widget.isStreaming
-        ? Future.value({'isReported': false, 'shouldHide': false})
+        ? Future.value(const MessageReportStatus.notReported())
         : _getMessageReportStatus();
+    _resolvedMedia = ResolvedMessageMedia.initial(widget.message);
+    _resolveMessageMedia();
   }
 
   @override
@@ -93,13 +99,31 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     if (oldWidget.isStreaming != widget.isStreaming ||
         oldWidget.message.id != widget.message.id) {
       _messageReportFuture = widget.isStreaming
-          ? Future.value({'isReported': false, 'shouldHide': false})
+          ? Future.value(const MessageReportStatus.notReported())
           : _getMessageReportStatus();
     }
+    if (!listEquals(oldWidget.message.imagePaths, widget.message.imagePaths) ||
+        !listEquals(oldWidget.message.filePaths, widget.message.filePaths)) {
+      _resolvedMedia = ResolvedMessageMedia.initial(widget.message);
+      _resolveMessageMedia();
+    }
+  }
+
+  Future<void> _resolveMessageMedia() async {
+    final generation = ++_mediaResolutionGeneration;
+    final media = await const MessageMediaService().resolve(
+      widget.message,
+      initial: _resolvedMedia,
+    );
+    if (!mounted || generation != _mediaResolutionGeneration) return;
+    setState(() => _resolvedMedia = media);
   }
 
   @override
   Widget build(BuildContext context) {
+    _fontScale = context.select<SettingsProvider, double>(
+      (settings) => settings.fontSizeScale,
+    );
     final isUserMessage = widget.message.isUserMessage;
     final isSelected = widget.selectedMessages.contains(widget.messageKey);
     final colors = context.howaiColors;
@@ -126,25 +150,45 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               // Selection checkbox (if in selection mode)
               if (widget.selectionMode)
                 Padding(
-                  padding: const EdgeInsets.only(right: 8.0, top: 2.0),
-                  child: GestureDetector(
-                    onTap: () => widget.onToggleSelection(widget.messageKey),
-                    child: Container(
-                      width: 26,
-                      height: 26,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color:
-                              isSelected ? colors.accent : colors.textTertiary,
-                          width: 2,
+                  padding: const EdgeInsets.only(right: 4),
+                  child: Semantics(
+                    button: true,
+                    selected: isSelected,
+                    label: isSelected
+                        ? AppLocalizations.of(context)!.unselectAll
+                        : AppLocalizations.of(context)!.select,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => widget.onToggleSelection(widget.messageKey),
+                      child: SizedBox.square(
+                        key: const ValueKey<String>(
+                          'message-selection-target',
                         ),
-                        color: isSelected ? colors.accent : colors.canvas,
+                        dimension: 44,
+                        child: Center(
+                          child: Container(
+                            width: 26,
+                            height: 26,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: isSelected
+                                    ? colors.accent
+                                    : colors.textTertiary,
+                                width: 2,
+                              ),
+                              color: isSelected ? colors.accent : colors.canvas,
+                            ),
+                            child: isSelected
+                                ? const Icon(
+                                    Icons.check,
+                                    color: Colors.white,
+                                    size: 18,
+                                  )
+                                : null,
+                          ),
+                        ),
                       ),
-                      child: isSelected
-                          ? const Icon(Icons.check,
-                              color: Colors.white, size: 18)
-                          : null,
                     ),
                   ),
                 ),
@@ -197,13 +241,13 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
       );
     }
 
-    return FutureBuilder<Map<String, dynamic>>(
+    return FutureBuilder<MessageReportStatus>(
       future: _messageReportFuture,
       builder: (context, snapshot) {
         final reportData =
-            snapshot.data ?? {'isReported': false, 'shouldHide': false};
-        final isReported = reportData['isReported'] as bool;
-        final shouldHide = reportData['shouldHide'] as bool;
+            snapshot.data ?? const MessageReportStatus.notReported();
+        final isReported = reportData.isReported;
+        final shouldHide = reportData.shouldHide;
 
         final colors = context.howaiColors;
         return Stack(
@@ -244,7 +288,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   }
 
   Widget _buildMessageContent(bool isUserMessage) {
-    final settings = Provider.of<SettingsProvider>(context);
+    final fontScale = _fontScale;
     final colors = context.howaiColors;
     final isWelcomeMessage = widget.message.isWelcomeMessage ?? false;
     final hasLocationResults = !isUserMessage &&
@@ -309,20 +353,11 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                           child: Wrap(
                             spacing: 8,
                             runSpacing: 8,
-                            children: widget.message.imagePaths!
-                                .where((path) =>
-                                    path.startsWith('http') ||
-                                    path.startsWith('data:image') ||
-                                    File(path).existsSync())
+                            children: _resolvedMedia.visibleImagePaths
                                 .map((path) => GestureDetector(
                                       onTap: () {
-                                        final imagePaths = widget
-                                            .message.imagePaths!
-                                            .where((p) =>
-                                                p.startsWith('http') ||
-                                                p.startsWith('data:image') ||
-                                                File(p).existsSync())
-                                            .toList();
+                                        final imagePaths =
+                                            _resolvedMedia.visibleImagePaths;
                                         final initialIndex =
                                             imagePaths.indexOf(path);
                                         showDialog(
@@ -337,76 +372,14 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(
                                             isUserMessage ? 10 : 14),
-                                        child: path.startsWith('http')
-                                            ? Image.network(
-                                                path,
-                                                width: imagePreviewWidth,
-                                                height: imagePreviewHeight,
-                                                fit: isUserMessage
-                                                    ? BoxFit.cover
-                                                    : BoxFit.contain,
-                                                errorBuilder: (context, error,
-                                                    stackTrace) {
-                                                  return Container(
-                                                    width: imagePreviewWidth,
-                                                    height:
-                                                        imagePreviewHeight ??
-                                                            imagePreviewWidth,
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          Colors.grey.shade200,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              8),
-                                                    ),
-                                                    child: Icon(
-                                                      Icons.broken_image,
-                                                      color:
-                                                          Colors.grey.shade400,
-                                                      size: 32,
-                                                    ),
-                                                  );
-                                                },
-                                              )
-                                            : path.startsWith('data:image')
-                                                ? Image.memory(
-                                                    base64Decode(
-                                                        path.split(',').last),
-                                                    width: imagePreviewWidth,
-                                                    height: imagePreviewHeight,
-                                                    fit: isUserMessage
-                                                        ? BoxFit.cover
-                                                        : BoxFit.contain,
-                                                    errorBuilder: (context,
-                                                        error, stackTrace) {
-                                                      return Container(
-                                                        width:
-                                                            imagePreviewWidth,
-                                                        height:
-                                                            imagePreviewHeight ??
-                                                                imagePreviewWidth,
-                                                        decoration:
-                                                            BoxDecoration(
-                                                          color: Colors
-                                                              .grey.shade200,
-                                                          borderRadius:
-                                                              BorderRadius
-                                                                  .circular(8),
-                                                        ),
-                                                        child: Icon(
-                                                          Icons.broken_image,
-                                                          color: Colors
-                                                              .grey.shade400,
-                                                          size: 32,
-                                                        ),
-                                                      );
-                                                    },
-                                                  )
-                                                : _buildSafeLocalImage(
-                                                    path,
-                                                    imagePreviewWidth,
-                                                    imagePreviewHeight,
-                                                  ),
+                                        child: _buildResolvedImage(
+                                          path: path,
+                                          width: imagePreviewWidth,
+                                          height: imagePreviewHeight,
+                                          fit: isUserMessage
+                                              ? BoxFit.cover
+                                              : BoxFit.contain,
+                                        ),
                                       ),
                                     ))
                                 .toList(),
@@ -423,8 +396,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                             children: widget.message.filePaths!
                                 .where((path) => path.isNotEmpty)
                                 .map((path) {
-                              // Check file existence
-                              final fileExists = File(path).existsSync();
+                              final fileExists =
+                                  _resolvedMedia.fileAvailability[path];
 
                               return GestureDetector(
                                 onTap: () => _openFile(path),
@@ -477,7 +450,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                             ),
-                                            if (!fileExists) ...[
+                                            if (fileExists == false) ...[
                                               const SizedBox(height: 2),
                                               Text(
                                                 'File not accessible',
@@ -536,7 +509,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                           Brightness.dark
                                       ? Colors.white
                                       : Colors.black87,
-                                  fontSize: settings.getScaledFontSize(14),
+                                  fontSize: 14 * fontScale,
                                   height: 1.4,
                                 ),
                               )
@@ -553,13 +526,8 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                           : uri.path;
                                       final file = File(path);
 
-                                      // If file doesn't exist, return empty container (skip the image)
-                                      if (!file.existsSync()) {
-                                        return SizedBox
-                                            .shrink(); // Invisible widget that takes no space
-                                      }
-
-                                      // File exists, show it safely with click handler
+                                      // File loading stays asynchronous; failures
+                                      // collapse through the image error builder.
                                       return GestureDetector(
                                         onTap: () {
                                           // Show image in gallery dialog for saving
@@ -726,13 +694,13 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                               Brightness.dark
                                           ? Colors.white
                                           : Colors.black87,
-                                      fontSize: settings.getScaledFontSize(14),
+                                      fontSize: 14 * fontScale,
                                       height: 1.4,
                                     ),
                                     a: TextStyle(
                                       color: Color(0xFF0078D4),
                                       decoration: TextDecoration.underline,
-                                      fontSize: settings.getScaledFontSize(14),
+                                      fontSize: 14 * fontScale,
                                     ),
                                     em: TextStyle(
                                       color: Theme.of(context).brightness ==
@@ -740,14 +708,14 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                           ? Colors.grey.shade300
                                           : Colors.grey.shade700,
                                       fontStyle: FontStyle.italic,
-                                      fontSize: settings.getScaledFontSize(14),
+                                      fontSize: 14 * fontScale,
                                     ),
                                     h1: TextStyle(
                                       color: Theme.of(context).brightness ==
                                               Brightness.dark
                                           ? Colors.white
                                           : Colors.black87,
-                                      fontSize: settings.getScaledFontSize(18),
+                                      fontSize: 18 * fontScale,
                                       fontWeight: FontWeight.bold,
                                     ),
                                     h2: TextStyle(
@@ -755,7 +723,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                               Brightness.dark
                                           ? Colors.white
                                           : Colors.black87,
-                                      fontSize: settings.getScaledFontSize(16),
+                                      fontSize: 16 * fontScale,
                                       fontWeight: FontWeight.bold,
                                     ),
                                     h3: TextStyle(
@@ -763,7 +731,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                               Brightness.dark
                                           ? Colors.white
                                           : Colors.black87,
-                                      fontSize: settings.getScaledFontSize(15),
+                                      fontSize: 15 * fontScale,
                                       fontWeight: FontWeight.w600,
                                     ),
                                     code: TextStyle(
@@ -777,7 +745,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                           ? Colors.white
                                           : Colors.black87,
                                       fontFamily: 'monospace',
-                                      fontSize: settings.getScaledFontSize(12),
+                                      fontSize: 12 * fontScale,
                                     ),
                                     codeblockDecoration: BoxDecoration(
                                       color: Theme.of(context).brightness ==
@@ -798,20 +766,20 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                           ? Colors.grey.shade300
                                           : Colors.grey.shade700,
                                       fontStyle: FontStyle.italic,
-                                      fontSize: settings.getScaledFontSize(14),
+                                      fontSize: 14 * fontScale,
                                     ),
                                     listBullet: TextStyle(
                                       color: Theme.of(context).brightness ==
                                               Brightness.dark
                                           ? Colors.white
                                           : Colors.black87,
-                                      fontSize: settings.getScaledFontSize(14),
+                                      fontSize: 14 * fontScale,
                                     ),
                                   ),
                                   onTapLink: (text, href, title) async {
                                     if (href != null) {
                                       if (href.endsWith('.pdf') &&
-                                          File(href).existsSync()) {
+                                          await File(href).exists()) {
                                         await OpenFile.open(href);
                                       } else {
                                         final isImage = href.endsWith('.png') ||
@@ -875,7 +843,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                 Theme.of(context).brightness == Brightness.dark
                                     ? Colors.white
                                     : Colors.black87,
-                            fontSize: settings.getScaledFontSize(15),
+                            fontSize: 15 * fontScale,
                           ),
                         ),
                       ),
@@ -1249,8 +1217,9 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     required String tooltip,
     required VoidCallback onTap,
   }) {
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
+    return Selector<SettingsProvider, double>(
+      selector: (_, settings) => settings.fontSizeScale,
+      builder: (context, fontScale, child) {
         final colors = context.howaiColors;
         return Material(
           color: Colors.transparent,
@@ -1268,7 +1237,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
               padding: const EdgeInsets.all(8),
               child: Icon(
                 icon,
-                size: settings.getScaledFontSize(16),
+                size: 16 * fontScale,
                 color: colors.textSecondary,
               ),
             ),
@@ -1279,13 +1248,14 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   }
 
   Widget _buildReportButton() {
-    return FutureBuilder<bool>(
-      future: _isMessageReported(),
+    return FutureBuilder<MessageReportStatus>(
+      future: _messageReportFuture,
       builder: (context, snapshot) {
-        final isReported = snapshot.data ?? false;
+        final isReported = snapshot.data?.isReported ?? false;
 
-        return Consumer<SettingsProvider>(
-          builder: (context, settings, child) {
+        return Selector<SettingsProvider, double>(
+          selector: (_, settings) => settings.fontSizeScale,
+          builder: (context, fontScale, child) {
             final colors = context.howaiColors;
             return Material(
               color: Colors.transparent,
@@ -1305,7 +1275,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                   padding: const EdgeInsets.all(8),
                   child: Icon(
                     isReported ? Icons.flag : Icons.flag_outlined,
-                    size: settings.getScaledFontSize(16),
+                    size: 16 * fontScale,
                     color: isReported ? colors.warning : colors.textSecondary,
                   ),
                 ),
@@ -1315,19 +1285,6 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
         );
       },
     );
-  }
-
-  Future<bool> _isMessageReported() async {
-    try {
-      final messageId = widget.message.id;
-      if (messageId == null) return false;
-
-      final contentReportService = ContentReportService();
-      return await contentReportService.isMessageReported(messageId);
-    } catch (e) {
-      // print('❌ Error checking if message is reported: $e');
-      return false;
-    }
   }
 
   void _showSingleImagePreview(BuildContext context, String imageUrl) {
@@ -1495,7 +1452,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
       // Check if file exists first
       final file = File(path);
-      if (!file.existsSync()) {
+      if (!await file.exists()) {
         // print('[ChatMessageWidget] File does not exist: $path');
 
         // Show a helpful error message to the user
@@ -1586,12 +1543,21 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
     }
   }
 
-  Widget _buildSafeLocalImage(String path, double width, double? height) {
-    final file = File(path);
+  Widget _buildResolvedImage({
+    required String path,
+    required double width,
+    required double? height,
+    required BoxFit fit,
+  }) {
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final cacheWidth = math.max(1, (width * devicePixelRatio).round());
     final fallbackHeight = height ?? width;
 
-    // Check if file exists before trying to load it
-    if (!file.existsSync()) {
+    Widget errorBuilder(
+      BuildContext context,
+      Object error,
+      StackTrace? stackTrace,
+    ) {
       return Container(
         width: width,
         height: fallbackHeight,
@@ -1599,33 +1565,59 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.image_not_supported,
-              color: Colors.grey.shade400,
-              size: width * 0.3,
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Image not found',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 10,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
+        child: Icon(
+          Icons.broken_image,
+          color: Colors.grey.shade400,
+          size: 32,
         ),
       );
     }
+
+    if (path.startsWith('http')) {
+      return Image.network(
+        path,
+        width: width,
+        height: height,
+        fit: fit,
+        cacheWidth: cacheWidth,
+        errorBuilder: errorBuilder,
+      );
+    }
+
+    if (path.startsWith('data:image')) {
+      final bytes = _resolvedMedia.dataImageBytes[path];
+      if (bytes == null) {
+        return SizedBox(
+          width: width,
+          height: fallbackHeight,
+          child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        );
+      }
+      return Image.memory(
+        bytes,
+        width: width,
+        height: height,
+        fit: fit,
+        cacheWidth: cacheWidth,
+        errorBuilder: errorBuilder,
+      );
+    }
+
+    return _buildSafeLocalImage(path, width, height);
+  }
+
+  Widget _buildSafeLocalImage(String path, double width, double? height) {
+    final file = File(path);
+    final fallbackHeight = height ?? width;
+    final cacheWidth =
+        math.max(1, (width * MediaQuery.devicePixelRatioOf(context)).round());
 
     return Image.file(
       file,
       width: width,
       height: height,
       fit: height == null ? BoxFit.contain : BoxFit.cover,
+      cacheWidth: cacheWidth,
       errorBuilder: (context, error, stackTrace) {
         // print('Error loading local image: $error');
         return Container(
@@ -1680,7 +1672,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           // Refresh the widget to show updated report status
           if (mounted) {
             setState(() {
-              // This will trigger a rebuild to show reported indicators
+              _messageReportFuture = _getMessageReportStatus();
             });
           }
         },
@@ -1689,30 +1681,21 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
   }
 
   /// Get report status for this message
-  Future<Map<String, dynamic>> _getMessageReportStatus() async {
+  Future<MessageReportStatus> _getMessageReportStatus() async {
     if (widget.message.id == null || widget.message.isUserMessage) {
-      return {'isReported': false, 'shouldHide': false};
+      return const MessageReportStatus.notReported();
     }
 
     try {
       final reportService = ContentReportService();
-      final isReported =
-          await reportService.isMessageReported(widget.message.id!);
-
-      // Check if message has images (AI-generated images should be hidden when reported)
       final hasImages = widget.message.imagePaths?.isNotEmpty == true;
-      final shouldHide = await reportService.shouldHideMessage(
+      return await reportService.getMessageReportStatus(
         widget.message.id!,
         hasImages: hasImages,
       );
-
-      return {
-        'isReported': isReported,
-        'shouldHide': shouldHide,
-      };
     } catch (e) {
       // print('❌ Error getting message report status: $e');
-      return {'isReported': false, 'shouldHide': false};
+      return const MessageReportStatus.notReported();
     }
   }
 
@@ -1885,18 +1868,11 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
-                              children: widget.message.imagePaths!
-                                  .where((path) =>
-                                      path.startsWith('http') ||
-                                      File(path).existsSync())
+                              children: _resolvedMedia.visibleImagePaths
                                   .map((path) => GestureDetector(
                                         onTap: () {
-                                          final imagePaths = widget
-                                              .message.imagePaths!
-                                              .where((p) =>
-                                                  p.startsWith('http') ||
-                                                  File(p).existsSync())
-                                              .toList();
+                                          final imagePaths =
+                                              _resolvedMedia.visibleImagePaths;
                                           final initialIndex =
                                               imagePaths.indexOf(path);
                                           showDialog(
@@ -1911,35 +1887,12 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                         child: ClipRRect(
                                           borderRadius:
                                               BorderRadius.circular(10),
-                                          child: path.startsWith('http')
-                                              ? Image.network(
-                                                  path,
-                                                  width: 96,
-                                                  height: 96,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error,
-                                                      stackTrace) {
-                                                    return Container(
-                                                      width: 96,
-                                                      height: 96,
-                                                      decoration: BoxDecoration(
-                                                        color: Colors
-                                                            .grey.shade200,
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(8),
-                                                      ),
-                                                      child: Icon(
-                                                        Icons.broken_image,
-                                                        color: Colors
-                                                            .grey.shade400,
-                                                        size: 32,
-                                                      ),
-                                                    );
-                                                  },
-                                                )
-                                              : _buildSafeLocalImage(
-                                                  path, 96, 96),
+                                          child: _buildResolvedImage(
+                                            path: path,
+                                            width: 96,
+                                            height: 96,
+                                            fit: BoxFit.cover,
+                                          ),
                                         ),
                                       ))
                                   .toList(),
@@ -1968,7 +1921,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: Text('Close'),
+                child: Text(MaterialLocalizations.of(context).closeButtonLabel),
               ),
             ],
           );
@@ -2004,8 +1957,9 @@ class _CompactMessageActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.howaiColors;
-    return Consumer<SettingsProvider>(
-      builder: (context, settings, child) {
+    return Selector<SettingsProvider, double>(
+      selector: (_, settings) => settings.fontSizeScale,
+      builder: (context, fontScale, child) {
         final foreground =
             action.destructive ? colors.danger : colors.textPrimary;
         return Semantics(
@@ -2031,7 +1985,7 @@ class _CompactMessageActionButton extends StatelessWidget {
                         action.label,
                         style: TextStyle(
                           color: foreground,
-                          fontSize: settings.getScaledFontSize(11),
+                          fontSize: 11 * fontScale,
                           height: 1.05,
                           fontWeight: FontWeight.w600,
                         ),

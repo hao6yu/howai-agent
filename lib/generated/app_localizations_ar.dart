@@ -906,6 +906,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get sorryCouldNotRespond => 'عذرًا، لم أتمكن من الرد على ذلك الآن.';
 
   @override
+  String get guestAiLimitReached => 'لقد وصلت إلى حد استخدام الذكاء الاصطناعي للضيف اليوم. سجّل الدخول أو حاول غدًا.';
+
+  @override
+  String get aiUsageLimitReached => 'لقد وصلت إلى حد استخدام الذكاء الاصطناعي الحالي. يُرجى المحاولة لاحقًا.';
+
+  @override
   String errorWithMessage(Object error) {
     return 'خطأ: $error';
   }

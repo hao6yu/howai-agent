@@ -288,24 +288,6 @@ class _LocationSearchDialogState extends State<LocationSearchDialog> {
                             ),
                           ),
                         ),
-                        Container(
-                          padding:
-                              EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
-                            ),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            'PRO',
-                            style: TextStyle(
-                              fontSize: settings.getScaledFontSize(9),
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -446,9 +428,10 @@ class _LocationSearchDialogState extends State<LocationSearchDialog> {
                               SizedBox(height: 4),
 
                               // Current location toggle
-                              Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
+                              Material(
+                                color: Colors.transparent,
+                                shape: RoundedRectangleBorder(
+                                  side: BorderSide(
                                     color: Theme.of(context).brightness ==
                                             Brightness.dark
                                         ? Colors.grey.shade600
@@ -456,6 +439,7 @@ class _LocationSearchDialogState extends State<LocationSearchDialog> {
                                   ),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
+                                clipBehavior: Clip.antiAlias,
                                 child: ListTile(
                                   dense: true,
                                   leading: Icon(

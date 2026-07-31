@@ -4,12 +4,38 @@ import 'dart:convert';
 import '../models/content_report.dart';
 import '../services/database_service.dart';
 
+class MessageReportStatus {
+  const MessageReportStatus({
+    required this.isReported,
+    required this.shouldHide,
+  });
+
+  const MessageReportStatus.notReported()
+      : isReported = false,
+        shouldHide = false;
+
+  factory MessageReportStatus.fromReportedState({
+    required bool isReported,
+    required bool hasImages,
+  }) {
+    return MessageReportStatus(
+      isReported: isReported,
+      shouldHide: isReported && hasImages,
+    );
+  }
+
+  final bool isReported;
+  final bool shouldHide;
+}
+
 class ContentReportService {
-  static final ContentReportService _instance = ContentReportService._internal();
+  static final ContentReportService _instance =
+      ContentReportService._internal();
   factory ContentReportService() => _instance;
   ContentReportService._internal();
 
   final DatabaseService _databaseService = DatabaseService();
+  final Map<int, bool> _reportedMessageCache = <int, bool>{};
 
   /// Submit a content report (stores both in database and SharedPreferences as backup)
   Future<bool> submitContentReport(ContentReport report) async {
@@ -20,6 +46,7 @@ class ContentReportService {
 
       // Also store in SharedPreferences as backup (for Google Play compliance)
       await _storeReportInPreferences(report);
+      _reportedMessageCache[report.messageId] = true;
 
       // print('📝 Content report submitted successfully: ${report.reason.name} for message ${report.messageId}');
       return true;
@@ -29,6 +56,7 @@ class ContentReportService {
       // Fallback to SharedPreferences only if database fails
       try {
         await _storeReportInPreferences(report);
+        _reportedMessageCache[report.messageId] = true;
         // print('📝 Content report stored in preferences as fallback');
         return true;
       } catch (prefError) {
@@ -71,6 +99,9 @@ class ContentReportService {
 
   /// Check if a specific message has been reported
   Future<bool> isMessageReported(int messageId) async {
+    final cached = _reportedMessageCache[messageId];
+    if (cached != null) return cached;
+
     try {
       final db = await _databaseService.database;
       final result = await db.query(
@@ -79,7 +110,9 @@ class ContentReportService {
         whereArgs: [messageId],
         limit: 1,
       );
-      return result.isNotEmpty;
+      final isReported = result.isNotEmpty;
+      _reportedMessageCache[messageId] = isReported;
+      return isReported;
     } catch (e) {
       // print('❌ Error checking if message is reported: $e');
       return false;
@@ -102,7 +135,8 @@ class ContentReportService {
   }
 
   /// Check if message should be hidden (images hidden immediately, text stays visible)
-  Future<bool> shouldHideMessage(int messageId, {bool hasImages = false}) async {
+  Future<bool> shouldHideMessage(int messageId,
+      {bool hasImages = false}) async {
     try {
       final isReported = await isMessageReported(messageId);
 
@@ -116,6 +150,18 @@ class ContentReportService {
       // print('❌ Error checking if message should be hidden: $e');
       return false;
     }
+  }
+
+  /// Resolves both report indicators with one database lookup.
+  Future<MessageReportStatus> getMessageReportStatus(
+    int messageId, {
+    bool hasImages = false,
+  }) async {
+    final isReported = await isMessageReported(messageId);
+    return MessageReportStatus.fromReportedState(
+      isReported: isReported,
+      hasImages: hasImages,
+    );
   }
 
   /// Get reports count for statistics
@@ -194,7 +240,12 @@ class ContentReportService {
       };
     } catch (e) {
       // print('❌ Error getting report statistics: $e');
-      return {'totalReports': 0, 'reasonBreakdown': {}, 'resolvedCount': 0, 'pendingCount': 0};
+      return {
+        'totalReports': 0,
+        'reasonBreakdown': {},
+        'resolvedCount': 0,
+        'pendingCount': 0
+      };
     }
   }
 
@@ -203,6 +254,7 @@ class ContentReportService {
     try {
       final db = await _databaseService.database;
       await db.delete('content_reports');
+      _reportedMessageCache.clear();
 
       // Also clear SharedPreferences backup
       final prefs = await SharedPreferences.getInstance();

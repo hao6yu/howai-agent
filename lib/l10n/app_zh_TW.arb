@@ -288,6 +288,8 @@
   "imageTookTooLong": "抱歉，圖像生成時間過長。請重試。",
   "somethingWentWrong": "出現錯誤，請重試。",
   "sorryCouldNotRespond": "抱歉，我現在無法回應。",
+  "guestAiLimitReached": "你已達到今天的訪客 AI 使用上限。請登入或明天再試。",
+  "aiUsageLimitReached": "你已達到目前的 AI 使用上限，請稍後再試。",
   "errorWithMessage": "錯誤: {error}",
   "processingImage": "正在處理圖像...",
   "whatYouCanDo": "你可以做什麼：",

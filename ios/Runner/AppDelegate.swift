@@ -42,10 +42,6 @@ import GoogleMaps
     
     pluginRegistrant = self
 
-    AVAudioSession.sharedInstance().requestRecordPermission { granted in
-        print("Native mic permission granted: \(granted)")
-    }
-
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

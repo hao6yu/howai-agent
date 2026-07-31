@@ -31,7 +31,6 @@ import '../services/chat_attachment_service.dart';
 import '../services/pdf_workflow_service.dart';
 import '../services/loading_message_service.dart';
 import '../services/chat_translation_service.dart';
-import '../services/chat_audio_listener_service.dart';
 import '../constants/chat_ui_constants.dart';
 
 import '../models/chat_message.dart';
@@ -65,6 +64,7 @@ import '../services/file_service.dart';
 import '../services/location_service.dart';
 import '../services/sync_service.dart';
 import '../services/id_mapping_service.dart';
+import '../services/supabase_service.dart';
 import '../services/device_timezone_service.dart';
 import '../widgets/place_result_widget.dart';
 import '../services/chat_integration_helper.dart';
@@ -83,6 +83,7 @@ import '../widgets/full_language_selection_dialog.dart';
 import '../widgets/location_search_dialog.dart';
 import '../features/actions/presentation/action_approval_card.dart';
 import '../core/theme/howai_theme.dart';
+import '../core/accessibility/motion_preferences.dart';
 
 class AiChatScreen extends StatefulWidget {
   final VoidCallback? onNavigateToGuide;
@@ -184,7 +185,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   Timer? _aiLoadingTimer;
   Timer? _aiTimeoutTimer; // Separate timer for timeout handling
   Timer? _loadingMessageRotationTimer; // Timer to rotate loading messages
-  String _aiLoadingMessage = '';
+  final ValueNotifier<String> _aiLoadingMessage = ValueNotifier<String>('');
   bool _requestCancelled = false; // Flag to track if request was cancelled
   String? _currentRequestId; // Track current request to prevent duplicates
   int _loadingMessageIndex = 0;
@@ -196,9 +197,12 @@ class _AiChatScreenState extends State<AiChatScreen>
   Set<int> _selectedMessages = {};
 
   bool _didInitLocalization = false;
+  bool _reduceMotion = false;
 
   int? _lastLoadedConversationId;
   bool _conversationReconcileScheduled = false;
+  ConversationProvider? _listenedConversationProvider;
+  AuthProvider? _listenedAuthProvider;
 
   // Add TTS instance and state
   FlutterTts? _flutterTts;
@@ -228,6 +232,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _textInputFocusNode.addListener(_handleTextInputFocusChange);
+    AudioService.isPlayingAudio.addListener(_handleAudioPlaybackChanged);
 
     _micAnimationController = AnimationController(
       vsync: this,
@@ -264,19 +269,6 @@ class _AiChatScreenState extends State<AiChatScreen>
       context.read<ReminderProvider>().ensureCapability();
     });
 
-    // Listen for conversation selection changes
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final conversationProvider =
-          Provider.of<ConversationProvider>(context, listen: false);
-      conversationProvider.addListener(_onConversationChanged);
-    });
-
-    // Listen for auth sync completion to refresh conversations
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      authProvider.addListener(_onAuthSyncCompleted);
-    });
-
     _scrollController.addListener(_onScroll);
 
     // Initialize device TTS
@@ -301,7 +293,9 @@ class _AiChatScreenState extends State<AiChatScreen>
         final currentConvId = currentConv!.id!;
         // Get the UUID for this conversation
         final idMapping = IDMappingService();
-        await idMapping.initialize();
+        final user = SupabaseService().currentUser;
+        if (user == null || user.isAnonymous) return;
+        await idMapping.initialize(user.id);
         final conversationUuid = idMapping.getConversationUUID(currentConvId);
 
         if (conversationUuid != null) {
@@ -375,7 +369,11 @@ class _AiChatScreenState extends State<AiChatScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    AudioService.isPlayingAudio.removeListener(_handleAudioPlaybackChanged);
     _textInputFocusNode.removeListener(_handleTextInputFocusChange);
+    _scrollController.removeListener(_onScroll);
+    _listenedConversationProvider?.removeListener(_onConversationChanged);
+    _listenedAuthProvider?.removeListener(_onAuthSyncCompleted);
     _textController.dispose();
     _scrollController.dispose();
     _micAnimationController.dispose();
@@ -389,6 +387,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     _aiLoadingTimer?.cancel();
     _aiTimeoutTimer?.cancel();
     _stopLoadingMessageRotation();
+    _aiLoadingMessage.dispose();
 
     // Cancel PDF auto-conversion timer
     _pdfAutoConversionTimer?.cancel();
@@ -399,26 +398,23 @@ class _AiChatScreenState extends State<AiChatScreen>
     // Cleanup
     _audioRecorderService.dispose();
 
-    _scrollController.removeListener(_onScroll);
-
-    // Remove conversation listener
-    try {
-      final conversationProvider =
-          Provider.of<ConversationProvider>(context, listen: false);
-      conversationProvider.removeListener(_onConversationChanged);
-    } catch (e) {}
-
-    // Remove auth listener
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      authProvider.removeListener(_onAuthSyncCompleted);
-    } catch (e) {}
-
     // Dispose device TTS
     DeviceTtsService.stop(_flutterTts);
     _flutterTts = null;
 
     super.dispose();
+  }
+
+  void _handleAudioPlaybackChanged() {
+    if (!mounted) return;
+    final isPlaying = AudioService.isPlayingAudio.value;
+    setState(() {
+      _isPlayingAudio = isPlaying;
+      if (!isPlaying) {
+        _currentPlaybackUsesDeviceTTS = false;
+        _currentPlayingMessageId = null;
+      }
+    });
   }
 
   @override
@@ -682,13 +678,11 @@ class _AiChatScreenState extends State<AiChatScreen>
       isLongWait: isLongWait,
     );
 
-    setState(() {
-      _aiLoadingMessage = LoadingMessageService.buildMessage(
-        aiName: aiName,
-        shuffledMessages: shuffled,
-        index: 0,
-      );
-    });
+    _aiLoadingMessage.value = LoadingMessageService.buildMessage(
+      aiName: aiName,
+      shuffledMessages: shuffled,
+      index: 0,
+    );
 
     _loadingMessageRotationTimer =
         Timer.periodic(ChatUiConstants.loadingRotationInterval, (timer) {
@@ -697,13 +691,11 @@ class _AiChatScreenState extends State<AiChatScreen>
         return;
       }
       _loadingMessageIndex = (_loadingMessageIndex + 1) % shuffled.length;
-      setState(() {
-        _aiLoadingMessage = LoadingMessageService.buildMessage(
-          aiName: aiName,
-          shuffledMessages: shuffled,
-          index: _loadingMessageIndex,
-        );
-      });
+      _aiLoadingMessage.value = LoadingMessageService.buildMessage(
+        aiName: aiName,
+        shuffledMessages: shuffled,
+        index: _loadingMessageIndex,
+      );
     });
   }
 
@@ -788,6 +780,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     Map<String, dynamic>? pendingReminderDraft,
     Map<String, dynamic>? pendingAutomationDraft,
     List<Map<String, dynamic>> existingReminders = const [],
+    void Function(StreamEvent event)? onStreamError,
   }) async {
     final timestamp = DateTime.now().toIso8601String();
 
@@ -972,6 +965,7 @@ class _AiChatScreenState extends State<AiChatScreen>
 
           case StreamEventType.error:
             print('[ChatScreen] Streaming error: ${event.error}');
+            onStreamError?.call(event);
             // Remove any leftover temporary streaming assistant rows.
             setState(() {
               _messages.removeWhere((m) =>
@@ -1433,6 +1427,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       );
 
       Map<String, dynamic>? response;
+      StreamEvent? streamingFailure;
 
       if (useStreaming) {
         print('[ChatScreen] Using STREAMING response path');
@@ -1464,6 +1459,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           pendingReminderDraft: pendingReminderProposal?.arguments,
           pendingAutomationDraft: pendingAutomationProposal?.arguments,
           existingReminders: existingReminders,
+          onStreamError: (event) => streamingFailure = event,
         );
       } else {
         print('[ChatScreen] Using NON-STREAMING response path');
@@ -2020,8 +2016,19 @@ class _AiChatScreenState extends State<AiChatScreen>
 
         // Only access context if widget is still mounted
         if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          final errorMessage = switch (streamingFailure?.errorCode) {
+            openAiErrorCodeAnonymousLimit => l10n.guestAiLimitReached,
+            openAiErrorCodeUsageLimit || openAiErrorCodeRateLimit =>
+              l10n.aiUsageLimitReached,
+            _ => l10n.sorryCouldNotRespond,
+          };
           _showErrorSnackBar(
-              AppLocalizations.of(context)!.sorryCouldNotRespond);
+            errorMessage,
+            duration: streamingFailure?.statusCode == 429
+                ? const Duration(seconds: 5)
+                : const Duration(seconds: 2),
+          );
           setState(() {
             _isSending = false;
             _isCreatingNewConversation = false;
@@ -2047,6 +2054,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       // Ensure timers are always cleaned up
       _aiLoadingTimer?.cancel();
       _aiTimeoutTimer?.cancel();
+      _scheduleConversationReconciliation();
     }
   }
 
@@ -2103,8 +2111,8 @@ class _AiChatScreenState extends State<AiChatScreen>
       // Show loading indicator
       setState(() {
         _isSending = true;
-        _aiLoadingMessage = 'Searching for ${queryInfo.query} near you...';
       });
+      _aiLoadingMessage.value = 'Searching for ${queryInfo.query} near you...';
 
       // Perform location search
       final LocationService locationService = LocationService();
@@ -2263,24 +2271,11 @@ class _AiChatScreenState extends State<AiChatScreen>
     await AudioService.playAudio(audioPath,
         useSpeakerOutput: settings.useSpeakerOutput,
         playbackSpeed: settings.elevenLabsPlaybackSpeed);
-
-    ChatAudioListenerService.bindPlaybackListener(
-      isPlayingNotifier: AudioService.isPlayingAudio,
-      isMounted: () => mounted,
-      onPlaybackChanged: (isPlaying) {
-        setState(() {
-          _isPlayingAudio = isPlaying;
-          if (!isPlaying) {
-            _currentPlaybackUsesDeviceTTS = false;
-            _currentPlayingMessageId = null;
-          }
-        });
-      },
-    );
   }
 
   Future<void> _stopAudio() async {
     await AudioService.stopAudio();
+    if (!mounted) return;
     setState(() {
       _currentPlaybackUsesDeviceTTS = false;
       _currentPlayingMessageId = null;
@@ -2619,13 +2614,6 @@ class _AiChatScreenState extends State<AiChatScreen>
           builder: (context, conversationProvider, child) {
             final selectedConversation =
                 conversationProvider.selectedConversation;
-
-            if (!_isSending &&
-                !_isCreatingNewConversation &&
-                !_isLoading &&
-                selectedConversation?.id != _lastLoadedConversationId) {
-              _scheduleConversationReconciliation();
-            }
 
             // Filter messages for the selected conversation (important for UI consistency)
             List<ChatMessage> displayMessages = [];
@@ -3057,13 +3045,17 @@ class _AiChatScreenState extends State<AiChatScreen>
                                       ),
                                     ),
                                     const SizedBox(width: 10),
-                                    Text(
-                                      _aiLoadingMessage,
-                                      style: TextStyle(
-                                        color: Color(0xFF8E6CFF),
-                                        fontStyle: FontStyle.italic,
-                                        fontSize:
-                                            settings.getScaledFontSize(14),
+                                    ValueListenableBuilder<String>(
+                                      valueListenable: _aiLoadingMessage,
+                                      builder: (context, message, child) =>
+                                          Text(
+                                        message,
+                                        style: TextStyle(
+                                          color: const Color(0xFF8E6CFF),
+                                          fontStyle: FontStyle.italic,
+                                          fontSize:
+                                              settings.getScaledFontSize(14),
+                                        ),
                                       ),
                                     ),
                                   ],
@@ -5151,10 +5143,42 @@ class _AiChatScreenState extends State<AiChatScreen>
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    final reduceMotion = prefersReducedMotion(context);
+    if (reduceMotion != _reduceMotion) {
+      _reduceMotion = reduceMotion;
+      if (_reduceMotion) {
+        _micAnimationController.stop();
+        _recordingPulseController.stop();
+      } else if (_isRecording) {
+        _micAnimationController.repeat(reverse: true);
+        _recordingPulseController.repeat();
+      }
+      final shortDuration =
+          _reduceMotion ? Duration.zero : const Duration(milliseconds: 300);
+      _micAnimationController.duration = shortDuration;
+      _sendButtonController.duration = shortDuration;
+      _inputModeAnimationController.duration = shortDuration;
+      _recordingPulseController.duration =
+          _reduceMotion ? Duration.zero : const Duration(milliseconds: 1000);
+    }
+
+    final nextConversationProvider = context.read<ConversationProvider>();
+    if (!identical(_listenedConversationProvider, nextConversationProvider)) {
+      _listenedConversationProvider?.removeListener(_onConversationChanged);
+      _listenedConversationProvider = nextConversationProvider
+        ..addListener(_onConversationChanged);
+    }
+    final nextAuthProvider = context.read<AuthProvider>();
+    if (!identical(_listenedAuthProvider, nextAuthProvider)) {
+      _listenedAuthProvider?.removeListener(_onAuthSyncCompleted);
+      _listenedAuthProvider = nextAuthProvider
+        ..addListener(_onAuthSyncCompleted);
+    }
+
     if (!_didInitLocalization) {
       _recordButtonText =
           AppLocalizations.of(context)?.holdToTalk ?? 'Hold to Talk';
-      _aiLoadingMessage =
+      _aiLoadingMessage.value =
           AppLocalizations.of(context)?.processing ?? 'Processing...';
       _didInitLocalization = true;
     }
@@ -5164,19 +5188,17 @@ class _AiChatScreenState extends State<AiChatScreen>
       return;
     }
     // Existing didChangeDependencies logic...
-    final profileProvider =
-        Provider.of<ProfileProvider>(context, listen: false);
+    final profileProvider = context.watch<ProfileProvider>();
     final currentProfileId = profileProvider.selectedProfileId;
-    if (currentProfileId != null) {
+    if (currentProfileId != null && currentProfileId != _currentProfileId) {
       _currentProfileId = currentProfileId;
       _loadProfileDetails(currentProfileId);
     }
-    if (Provider.of<ProfileProvider>(context).chatHistoryCleared) {
+    if (profileProvider.chatHistoryCleared) {
       setState(() {
         _messages = [];
       });
-      Provider.of<ProfileProvider>(context, listen: false)
-          .resetChatHistoryClearedFlag();
+      profileProvider.resetChatHistoryClearedFlag();
     }
 
     // Load conversations for the current profile
@@ -5326,11 +5348,10 @@ class _AiChatScreenState extends State<AiChatScreen>
         _recordingDuration = 0;
       });
 
-      // Start the mic animation
-      _micAnimationController.repeat(reverse: true);
-
-      // Start the recording pulse animation
-      _recordingPulseController.repeat();
+      if (!_reduceMotion) {
+        _micAnimationController.repeat(reverse: true);
+        _recordingPulseController.repeat();
+      }
 
       // Start recording duration timer
       _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -5437,7 +5458,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     } finally {}
   }
 
-  void _showErrorSnackBar(String message) {
+  void _showErrorSnackBar(
+    String message, {
+    Duration duration = const Duration(seconds: 2),
+  }) {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     ChatSnackbarService.show(
       context: context,
@@ -5445,7 +5469,7 @@ class _AiChatScreenState extends State<AiChatScreen>
       textStyle: TextStyle(fontSize: settings.getScaledFontSize(14)),
       backgroundColor: Colors.red.shade800,
       behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 2),
+      duration: duration,
     );
   }
 
@@ -6086,11 +6110,11 @@ class _AiChatScreenState extends State<AiChatScreen>
   /// navigates to the new conversation.
   void _startElevenLabsCall({bool initialVisionEnabled = false}) async {
     final result = await Navigator.of(context).push<int?>(
-      MaterialPageRoute(
+      HowAIModalPageRoute<int?>(
         builder: (context) => ElevenLabsCallScreen(
           initialVisionEnabled: initialVisionEnabled,
         ),
-        fullscreenDialog: true,
+        reducedMotion: prefersReducedMotion(context),
       ),
     );
 

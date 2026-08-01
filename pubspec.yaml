@@ -108,8 +108,10 @@ flutter_launcher_icons:
   android: true  # Add Android support
   ios: true
   image_path: "assets/icon/icon.png"
-  adaptive_icon_background: "#FFFFFF"  # For Android adaptive icons
-  adaptive_icon_foreground: "assets/icon/icon.png"
+  adaptive_icon_background: "assets/icon/icon-adaptive-background.png"
+  adaptive_icon_foreground: "assets/icon/icon-adaptive-foreground.png"
+  adaptive_icon_foreground_inset: 8
+  adaptive_icon_monochrome: "assets/icon/icon-adaptive-foreground.png"
 
 dependency_overrides:
   screenshot: ^3.0.0  # Force compatible screenshot version

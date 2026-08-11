@@ -17,6 +17,15 @@ const Map<String, String> _languageNames = {
   'zh': 'Chinese',
 };
 
+/// Image requests use the complete-response path so attachment preprocessing
+/// and the active conversation lifecycle remain one atomic request in the UI.
+bool shouldUseStreamingChatResponse({
+  required bool streamingEnabled,
+  required bool hasImageAttachments,
+}) {
+  return streamingEnabled && !hasImageAttachments;
+}
+
 /// Uses the app locale only as a fallback while preserving natural multilingual
 /// and code-switched conversations.
 String chatResponseLanguageInstructions(String appLocale) {

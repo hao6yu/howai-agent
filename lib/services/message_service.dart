@@ -260,7 +260,10 @@ class MessageService {
   }
 
   /// Generate conversation title from message text
-  static String generateConversationTitle(String message) {
+  static String generateConversationTitle(
+    String message, {
+    String fallbackTitle = 'New Conversation',
+  }) {
     // Remove common filler words
     final fillerWords = [
       'a',
@@ -286,6 +289,10 @@ class MessageService {
         .where((word) =>
             word.isNotEmpty && !fillerWords.contains(word.toLowerCase()))
         .toList();
+
+    if (words.isEmpty) {
+      return fallbackTitle;
+    }
 
     // If we have 4 or fewer significant words, use those
     if (words.length <= 4) {

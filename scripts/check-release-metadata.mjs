@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 export const releasePolicy = Object.freeze({
   major: 2,
   minor: 0,
-  patch: 1,
-  minimumBuild: 42,
+  patch: 3,
+  minimumBuild: 48,
 });
 
 export function parsePubspecVersion(pubspec) {
@@ -34,12 +34,12 @@ export function validateReleaseVersion(pubspec, policy = releasePolicy) {
 
   if (actualVersion !== expectedVersion) {
     throw new Error(
-      `HowAI 2.0.1 requires version ${expectedVersion}; found ${actualVersion}.`,
+      `HowAI release requires version ${expectedVersion}; found ${actualVersion}.`,
     );
   }
   if (version.build < policy.minimumBuild) {
     throw new Error(
-      `HowAI 2.0.1 requires build ${policy.minimumBuild} or newer; found ${version.build}.`,
+      `HowAI release requires build ${policy.minimumBuild} or newer; found ${version.build}.`,
     );
   }
 
@@ -150,6 +150,19 @@ export function validateMergedAndroidManifest(manifest) {
   }
 }
 
+export function validateAndroidReleaseSigningConfig(buildFile) {
+  if (buildFile.includes('signingConfigs.getByName("debug")')) {
+    throw new Error(
+      'Android release builds must never fall back to the debug signing key.',
+    );
+  }
+  if (!buildFile.includes('Release signing requires android/key.properties')) {
+    throw new Error(
+      'Android release builds must fail when key.properties is unavailable.',
+    );
+  }
+}
+
 function readDartSources(directory, rootDirectory) {
   const sources = [];
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -177,6 +190,12 @@ export function validateReleaseMetadata(rootDirectory) {
     'utf8',
   );
   validateAndroidSourceManifest(androidManifest);
+  validateAndroidReleaseSigningConfig(
+    fs.readFileSync(
+      path.join(rootDirectory, 'android/app/build.gradle.kts'),
+      'utf8',
+    ),
+  );
 
   for (const relativePath of [
     'android/app/google-services.json',

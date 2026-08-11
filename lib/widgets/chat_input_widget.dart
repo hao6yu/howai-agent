@@ -250,13 +250,18 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
                       // Show image preview - callback to parent
                     },
                     child: Container(
+                      key: ValueKey<String>('pending_image_thumbnail_$index'),
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
                         image: DecorationImage(
-                          image: FileImage(File(image.path)),
+                          image: ResizeImage.resizeIfNeeded(
+                            256,
+                            256,
+                            FileImage(File(image.path)),
+                          ),
                           fit: BoxFit.cover,
                         ),
                       ),

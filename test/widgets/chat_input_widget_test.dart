@@ -33,6 +33,7 @@ void main() {
     ThinkingLevel thinkingLevel = ThinkingLevel.auto,
     ThemeMode themeMode = ThemeMode.light,
     bool disableAnimations = false,
+    List<XFile> pendingImages = const <XFile>[],
   }) async {
     await tester.pumpWidget(
       MultiProvider(
@@ -64,6 +65,7 @@ void main() {
               alignment: Alignment.bottomCenter,
               child: _ComposerHarness(
                 thinkingLevel: thinkingLevel,
+                pendingImages: pendingImages,
               ),
             ),
           ),
@@ -185,6 +187,25 @@ void main() {
     expect(switcher.duration, Duration.zero);
   });
 
+  testWidgets('pending photo thumbnails use a bounded image decode',
+      (tester) async {
+    await pumpComposer(
+      tester,
+      pendingImages: [XFile('assets/icon/google.png')],
+    );
+
+    final thumbnail = tester.widget<Container>(
+      find.byKey(const ValueKey<String>('pending_image_thumbnail_0')),
+    );
+    final decoration = thumbnail.decoration! as BoxDecoration;
+    final provider = decoration.image!.image;
+
+    expect(provider, isA<ResizeImage>());
+    final resized = provider as ResizeImage;
+    expect(resized.width, 256);
+    expect(resized.height, 256);
+  });
+
   for (final testCase in <({
     String name,
     ThemeMode mode,
@@ -247,9 +268,13 @@ void main() {
 }
 
 class _ComposerHarness extends StatefulWidget {
-  const _ComposerHarness({required this.thinkingLevel});
+  const _ComposerHarness({
+    required this.thinkingLevel,
+    required this.pendingImages,
+  });
 
   final ThinkingLevel thinkingLevel;
+  final List<XFile> pendingImages;
 
   @override
   State<_ComposerHarness> createState() => _ComposerHarnessState();
@@ -302,7 +327,7 @@ class _ComposerHarnessState extends State<_ComposerHarness>
       isVoiceInputMode: false,
       isRecording: false,
       isSending: false,
-      pendingImages: const <XFile>[],
+      pendingImages: widget.pendingImages,
       pendingFiles: const <PlatformFile>[],
       isPdfWorkflowActive: false,
       pdfCountdown: 0,

@@ -20,6 +20,19 @@ if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(FileInputStream(keystorePropertiesFile))
 }
 
+val releasePackageRequested = gradle.startParameter.taskNames.any { taskName ->
+    val normalized = taskName.lowercase()
+    normalized.contains("release") &&
+        (normalized.contains("bundle") ||
+            normalized.contains("assemble") ||
+            normalized.contains("package"))
+}
+if (releasePackageRequested && !keystorePropertiesFile.exists()) {
+    throw GradleException(
+        "Release signing requires android/key.properties; refusing to use a debug key."
+    )
+}
+
 // Load local.properties for API keys
 val localPropertiesFile = rootProject.file("local.properties")
 val localProperties = Properties()
@@ -69,11 +82,9 @@ android {
 
     buildTypes {
         release {
-            // Use the release signing configuration
-            signingConfig = if (keystorePropertiesFile.exists()) {
-                signingConfigs.getByName("release")
-            } else {
-                signingConfigs.getByName("debug")
+            if (keystorePropertiesFile.exists()) {
+                // Store packages must use the configured release identity.
+                signingConfig = signingConfigs.getByName("release")
             }
             
             // Enable minification and obfuscation for release builds

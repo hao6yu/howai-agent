@@ -897,8 +897,6 @@ class _AiChatScreenState extends State<AiChatScreen>
                   _streamingMessageIndex = _messages.length - 1;
                   _activeStreamingMessageTimestamp = timestamp;
                   _streamingMessageAdded = true;
-                  _isSending =
-                      false; // Hide typing indicator, show message instead
                 });
                 lastRenderedText = displayText;
                 lastUiUpdateAt = DateTime.now();
@@ -1159,7 +1157,12 @@ class _AiChatScreenState extends State<AiChatScreen>
     // right away instead of waiting for the AI response round-trip.
     if (isNewConversation) {
       _isCreatingNewConversation = true;
-      final provisionalTitle = MessageService.generateConversationTitle(text);
+      final provisionalTitle = MessageService.generateConversationTitle(
+        text,
+        fallbackTitle: images != null && images.isNotEmpty
+            ? AppLocalizations.of(context)!.photoAnalysis
+            : AppLocalizations.of(context)!.newConversation,
+      );
       await conversationProvider.createConversation(
           provisionalTitle, _currentProfileId);
       conversationId = conversationProvider.selectedConversation?.id;
@@ -1419,10 +1422,15 @@ class _AiChatScreenState extends State<AiChatScreen>
 
       // Hosted tools are available in both response paths. OpenAI infers
       // whether image generation is needed from the conversation.
-      final useStreaming = settings.useStreaming;
+      final hasImageAttachments = images != null && images.isNotEmpty;
+      final useStreaming = shouldUseStreamingChatResponse(
+        streamingEnabled: settings.useStreaming,
+        hasImageAttachments: hasImageAttachments,
+      );
       print(
         '[ChatScreen] Streaming decision => useStreaming=$useStreaming '
         '(settings.useStreaming=${settings.useStreaming}, '
+        'hasImageAttachments=$hasImageAttachments, '
         'reasoningEffortOverride=$reasoningEffortOverride)',
       );
 
@@ -3026,7 +3034,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                         ),
 
                         // Loading indicator for AI typing
-                        if (_isSending)
+                        if (_isSending && !_streamingMessageAdded)
                           Container(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             child: Consumer<SettingsProvider>(

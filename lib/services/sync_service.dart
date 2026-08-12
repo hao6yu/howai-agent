@@ -9,6 +9,7 @@ import '../models/conversation.dart';
 import 'database_service.dart';
 import 'id_mapping_service.dart';
 import 'supabase_service.dart';
+import 'sync_reconciliation_policy.dart';
 
 /// Synchronizes the active account's SQLite file with Supabase.
 ///
@@ -301,6 +302,16 @@ class SyncService {
 
   Future<void> _downloadRemoteConversations() async {
     final userId = _requireActiveUserId();
+    final localConversationsAtSnapshotStart =
+        await _database.getAllConversations();
+    final deletionBaseline = ConversationDeletionBaseline.capture(
+      localIds: localConversationsAtSnapshotStart
+          .map((conversation) => conversation['id'])
+          .whereType<int>(),
+      remoteIdForLocalId: _idMapping.getConversationUUID,
+    );
+    if (!_hasActiveUserContext) return;
+
     final conversations = await _fetchAllRows(
       (from, to) async => List<Map<String, dynamic>>.from(
         await _supabase.client
@@ -330,26 +341,37 @@ class SyncService {
     if (!_hasActiveUserContext) return;
     await _removeConversationsDeletedRemotely(
       conversations.map((row) => row['id']! as String).toSet(),
+      deletionBaseline: deletionBaseline,
     );
   }
 
   Future<void> _removeConversationsDeletedRemotely(
-    Set<String> remoteConversationIds,
-  ) async {
-    final localConversations = await _database.getAllConversations();
-    for (final local in localConversations) {
+    Set<String> remoteConversationIds, {
+    required ConversationDeletionBaseline deletionBaseline,
+  }) async {
+    final candidates = deletionBaseline.absentFrom(remoteConversationIds);
+    for (final candidate in candidates) {
       if (!_hasActiveUserContext) return;
-      final localId = local['id']! as int;
-      final remoteId = _idMapping.getConversationUUID(localId);
-      // No mapping means this is a local/offline conversation that still
-      // needs to upload. Only reconcile rows known to have existed remotely.
-      if (remoteId == null || remoteConversationIds.contains(remoteId)) {
+      // The mapping must still match the baseline. Uploads and merge repairs
+      // may rebind mappings while the remote snapshot is in flight.
+      if (!candidate.isStillMappedTo(
+        _idMapping.getConversationUUID(candidate.localId),
+      )) {
         continue;
       }
 
-      final messages = await _database.getConversationMessages(localId);
-      await _database.deleteConversation(localId);
-      await _idMapping.removeConversationMapping(localId);
+      final local = await _database.getConversation(candidate.localId);
+      if (local == null) continue;
+      final messages =
+          await _database.getConversationMessages(candidate.localId);
+      if (!candidate.isStillMappedTo(
+        _idMapping.getConversationUUID(candidate.localId),
+      )) {
+        continue;
+      }
+
+      await _database.deleteConversation(candidate.localId);
+      await _idMapping.removeConversationMapping(candidate.localId);
       await _idMapping.removeMessageMappings(
         messages.map((message) => message['id']).whereType<int>(),
       );

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   findForbiddenMobileSecretReferences,
   parsePubspecVersion,
+  validateAndroidReleaseSigningConfig,
   validateAndroidSourceManifest,
   validateMergedAndroidManifest,
   validateReleaseVersion,
@@ -31,39 +32,58 @@ const compliantMergedManifest = `
 `;
 
 test('parses the HowAI app version and numeric build', () => {
-  assert.deepEqual(parsePubspecVersion('name: haogpt\nversion: 2.0.1+42\n'), {
+  assert.deepEqual(parsePubspecVersion('name: haogpt\nversion: 2.0.3+48\n'), {
     major: 2,
     minor: 0,
-    patch: 1,
-    build: 42,
+    patch: 3,
+    build: 48,
   });
 });
 
-test('accepts the 2.0.1 release line and later build numbers', () => {
+test('accepts the 2.0.3 release line and later build numbers', () => {
   assert.equal(
-    validateReleaseVersion('version: 2.0.1+47\n').build,
-    47,
+    validateReleaseVersion('version: 2.0.3+48\n').build,
+    48,
   );
 });
 
-test('rejects the previous 2.0.0 release line', () => {
+test('rejects the previous 2.0.2 release line', () => {
   assert.throws(
-    () => validateReleaseVersion('version: 2.0.0+99\n'),
-    /requires version 2\.0\.1/,
+    () => validateReleaseVersion('version: 2.0.2+99\n'),
+    /requires version 2\.0\.3/,
   );
 });
 
 test('rejects a reused build number', () => {
   assert.throws(
-    () => validateReleaseVersion('version: 2.0.1+41\n'),
-    /requires build 42 or newer/,
+    () => validateReleaseVersion('version: 2.0.3+47\n'),
+    /requires build 48 or newer/,
   );
 });
 
 test('rejects a version without a numeric build', () => {
   assert.throws(
-    () => validateReleaseVersion('version: 2.0.1\n'),
+    () => validateReleaseVersion('version: 2.0.3\n'),
     /numeric build/,
+  );
+});
+
+test('accepts fail-closed Android release signing', () => {
+  assert.doesNotThrow(() =>
+    validateAndroidReleaseSigningConfig(`
+      throw GradleException("Release signing requires android/key.properties")
+      signingConfig = signingConfigs.getByName("release")
+    `),
+  );
+});
+
+test('rejects Android debug signing fallback', () => {
+  assert.throws(
+    () =>
+      validateAndroidReleaseSigningConfig(`
+        signingConfig = signingConfigs.getByName("debug")
+      `),
+    /must never fall back to the debug signing key/,
   );
 });
 

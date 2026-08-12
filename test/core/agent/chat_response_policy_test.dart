@@ -2,6 +2,38 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:haogpt/core/agent/chat_response_policy.dart';
 
 void main() {
+  group('shouldUseStreamingChatResponse', () {
+    test('keeps normal chat streaming when enabled', () {
+      expect(
+        shouldUseStreamingChatResponse(
+          streamingEnabled: true,
+          hasImageAttachments: false,
+        ),
+        isTrue,
+      );
+    });
+
+    test('routes image requests through the complete-response path', () {
+      expect(
+        shouldUseStreamingChatResponse(
+          streamingEnabled: true,
+          hasImageAttachments: true,
+        ),
+        isFalse,
+      );
+    });
+
+    test('respects a disabled streaming preference', () {
+      expect(
+        shouldUseStreamingChatResponse(
+          streamingEnabled: false,
+          hasImageAttachments: false,
+        ),
+        isFalse,
+      );
+    });
+  });
+
   group('chatResponseLanguageInstructions', () {
     test('uses the app language only as a multilingual fallback', () {
       final instructions = chatResponseLanguageInstructions('en-US');

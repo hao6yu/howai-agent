@@ -20,7 +20,7 @@ flutter analyze --no-fatal-infos --no-fatal-warnings | tee "$ANALYZE_LOG"
 ANALYZE_EXIT="${PIPESTATUS[0]}"
 set -e
 
-# HowAI 2.0.1 starts with 76 analyzer warnings inherited from 2.0.0. Keep the
+# HowAI 2.x has an inherited analyzer-warning budget. Keep the
 # gate useful immediately by preventing that warning debt from increasing.
 # Follow-up hardening slices should lower this budget as warnings are removed.
 MAX_ANALYZER_WARNINGS=76
@@ -48,27 +48,21 @@ echo "==> Running Flutter tests"
 flutter test
 
 echo "==> Running Supabase Edge Function contract tests"
-if command -v deno >/dev/null 2>&1; then
-  deno check \
-    --node-modules-dir=auto \
-    --lock=deno.lock \
-    supabase/functions/*/index.ts
-  deno test \
-    --lock=deno.lock \
-    --allow-env \
-    --allow-read \
-    supabase/functions/_shared/*.test.ts
-else
-  npx --yes deno@2.1.4 check \
-    --node-modules-dir=auto \
-    --lock=deno.lock \
-    supabase/functions/*/index.ts
-  npx --yes deno@2.1.4 test \
-    --lock=deno.lock \
-    --allow-env \
-    --allow-read \
-    supabase/functions/_shared/*.test.ts
-fi
+readonly DENO_VERSION="2.1.4"
+# Ignore any package.json above the checkout so Deno cannot materialize a
+# workspace-local node_modules directory from unrelated parent configuration.
+DENO_NO_PACKAGE_JSON=1 npx --yes "deno@${DENO_VERSION}" check \
+  --node-modules-dir=none \
+  --frozen \
+  --lock=deno.lock \
+  supabase/functions/*/index.ts
+DENO_NO_PACKAGE_JSON=1 npx --yes "deno@${DENO_VERSION}" test \
+  --node-modules-dir=none \
+  --frozen \
+  --lock=deno.lock \
+  --allow-env \
+  --allow-read \
+  supabase/functions/_shared/*.test.ts
 
 echo "==> Checking release metadata and platform privacy files"
 node --test scripts/check-release-metadata.test.mjs
@@ -88,4 +82,5 @@ node scripts/check-release-metadata.mjs \
   --merged-android-manifest \
   build/app/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
 
-echo "==> HowAI 2.0.1 automated release gate passed"
+APP_VERSION="$(awk '/^version:/ { print $2; exit }' pubspec.yaml)"
+echo "==> HowAI ${APP_VERSION} automated release gate passed"

@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 
 import '../models/chat_message.dart';
+import 'chat_attachment_service.dart';
+
+typedef StorageImageUrlResolver = Future<String> Function(String reference);
 
 @immutable
 class ResolvedMessageMedia {
@@ -17,7 +19,19 @@ class ResolvedMessageMedia {
   factory ResolvedMessageMedia.initial(ChatMessage message) {
     final visibleImagePaths = <String>[];
     final dataImageBytes = <String, Uint8List>{};
-    for (final path in message.imagePaths ?? const <String>[]) {
+    final localPaths = message.imagePaths ?? const <String>[];
+    final remotePaths = message.imageUrls ?? const <String>[];
+    final count = localPaths.length > remotePaths.length
+        ? localPaths.length
+        : remotePaths.length;
+    for (var index = 0; index < count; index++) {
+      final localPath = index < localPaths.length
+          ? localPaths[index].trim()
+          : '';
+      final remotePath = index < remotePaths.length
+          ? remotePaths[index].trim()
+          : '';
+      final path = localPath.isNotEmpty ? localPath : remotePath;
       if (path.startsWith('http')) {
         visibleImagePaths.add(path);
       } else if (path.startsWith('data:image')) {
@@ -42,7 +56,10 @@ class ResolvedMessageMedia {
 }
 
 class MessageMediaService {
-  const MessageMediaService();
+  const MessageMediaService({StorageImageUrlResolver? storageUrlResolver})
+    : _storageUrlResolver = storageUrlResolver;
+
+  final StorageImageUrlResolver? _storageUrlResolver;
 
   Future<ResolvedMessageMedia> resolve(
     ChatMessage message, {
@@ -50,6 +67,7 @@ class MessageMediaService {
   }) async {
     return resolvePaths(
       imagePaths: message.imagePaths ?? const <String>[],
+      imageUrls: message.imageUrls ?? const <String>[],
       filePaths: message.filePaths ?? const <String>[],
       knownDataImageBytes:
           initial?.dataImageBytes ?? const <String, Uint8List>{},
@@ -58,18 +76,25 @@ class MessageMediaService {
 
   Future<ResolvedMessageMedia> resolvePaths({
     required List<String> imagePaths,
+    List<String> imageUrls = const <String>[],
     List<String> filePaths = const <String>[],
     Map<String, Uint8List> knownDataImageBytes = const <String, Uint8List>{},
   }) async {
-    final resolvedImages = await Future.wait(
-      imagePaths.map(
-        (path) => _resolveImage(path, knownDataImageBytes[path]),
-      ),
-    );
+    final imageCount = imagePaths.length > imageUrls.length
+        ? imagePaths.length
+        : imageUrls.length;
+    final resolvedImages = await Future.wait([
+      for (var index = 0; index < imageCount; index++)
+        _resolvePreferredImage(
+          index < imagePaths.length ? imagePaths[index] : '',
+          index < imageUrls.length ? imageUrls[index] : '',
+          knownDataImageBytes,
+        ),
+    ]);
     final resolvedFiles = await Future.wait(
-      filePaths.where((path) => path.isNotEmpty).map(
-            (path) async => MapEntry(path, await File(path).exists()),
-          ),
+      filePaths
+          .where((path) => path.isNotEmpty)
+          .map((path) async => MapEntry(path, await File(path).exists())),
     );
 
     return ResolvedMessageMedia(
@@ -85,12 +110,52 @@ class MessageMediaService {
     );
   }
 
+  Future<_ResolvedImage> _resolvePreferredImage(
+    String localPath,
+    String remotePath,
+    Map<String, Uint8List> knownDataImageBytes,
+  ) async {
+    final normalizedLocalPath = localPath.trim();
+    if (normalizedLocalPath.isNotEmpty) {
+      final local = await _resolveImage(
+        normalizedLocalPath,
+        knownDataImageBytes[normalizedLocalPath],
+      );
+      if (local.isVisible) return local;
+    }
+
+    final normalizedRemotePath = remotePath.trim();
+    if (normalizedRemotePath.isNotEmpty &&
+        normalizedRemotePath != normalizedLocalPath) {
+      return _resolveImage(
+        normalizedRemotePath,
+        knownDataImageBytes[normalizedRemotePath],
+      );
+    }
+    return _ResolvedImage(
+      path: normalizedLocalPath.isNotEmpty
+          ? normalizedLocalPath
+          : normalizedRemotePath,
+      isVisible: false,
+    );
+  }
+
   Future<_ResolvedImage> _resolveImage(
     String path,
     Uint8List? knownDataImageBytes,
   ) async {
     if (path.startsWith('http')) {
       return _ResolvedImage(path: path, isVisible: true);
+    }
+    if (path.startsWith('${ChatAttachmentService.referenceScheme}://')) {
+      try {
+        final signedUrl =
+            await (_storageUrlResolver ??
+                ChatAttachmentService().createSignedImageUrl)(path);
+        return _ResolvedImage(path: signedUrl, isVisible: true);
+      } catch (_) {
+        return _ResolvedImage(path: path, isVisible: false);
+      }
     }
     if (path.startsWith('data:image')) {
       if (knownDataImageBytes != null) {
@@ -107,10 +172,7 @@ class MessageMediaService {
         return _ResolvedImage(path: path, isVisible: false);
       }
     }
-    return _ResolvedImage(
-      path: path,
-      isVisible: await File(path).exists(),
-    );
+    return _ResolvedImage(path: path, isVisible: await File(path).exists());
   }
 }
 

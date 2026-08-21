@@ -43,9 +43,7 @@ class DatabaseService {
   /// so existing users keep their history during the 2.0.1 upgrade. Later
   /// accounts get independent files and can never see another account's rows.
   Future<void> activateAccount(String? accountId) {
-    final operation = _accountSwitch.then(
-      (_) => _activateAccount(accountId),
-    );
+    final operation = _accountSwitch.then((_) => _activateAccount(accountId));
     _accountSwitch = operation.then<void>(
       (_) {},
       onError: (Object _, StackTrace __) {},
@@ -55,8 +53,9 @@ class DatabaseService {
 
   Future<void> _activateAccount(String? accountId) async {
     final normalized = accountId?.trim();
-    final nextAccountId =
-        normalized == null || normalized.isEmpty ? null : normalized;
+    final nextAccountId = normalized == null || normalized.isEmpty
+        ? null
+        : normalized;
     final nextDatabaseName = databaseNameForAccount(nextAccountId);
 
     if (_activeAccountId == nextAccountId &&
@@ -115,7 +114,7 @@ class DatabaseService {
     final path = join(await getDatabasesPath(), _databaseName);
     final db = await openDatabase(
       path,
-      version: 21,
+      version: 22,
       onCreate: _createDb,
       onUpgrade: _onUpgrade,
       onConfigure: (db) async {
@@ -133,11 +132,13 @@ class DatabaseService {
   Future<void> _optimizeDatabase(Database db) async {
     try {
       // Optimize SQLite settings for performance
-      await db
-          .execute('PRAGMA synchronous = NORMAL'); // Balance safety/performance
+      await db.execute(
+        'PRAGMA synchronous = NORMAL',
+      ); // Balance safety/performance
       await db.execute('PRAGMA cache_size = 10000'); // 40MB cache
-      await db
-          .execute('PRAGMA temp_store = MEMORY'); // Keep temp tables in memory
+      await db.execute(
+        'PRAGMA temp_store = MEMORY',
+      ); // Keep temp tables in memory
 
       // Try WAL mode, but handle gracefully if not supported
       try {
@@ -145,7 +146,8 @@ class DatabaseService {
       } catch (e) {
         // WAL mode might not be supported on all platforms, use default mode
         print(
-            '[DatabaseService] WAL mode not supported, using default journal mode');
+          '[DatabaseService] WAL mode not supported, using default journal mode',
+        );
       }
     } catch (e) {
       // If any optimization fails, log but don't crash
@@ -167,6 +169,7 @@ class DatabaseService {
     ''');
 
     await _createSyncOutboxTable(db);
+    await _createSyncOutboxQuarantineTable(db);
 
     // Create conversations table
     await db.execute('''
@@ -178,6 +181,7 @@ class DatabaseService {
         created_at TEXT,
         updated_at TEXT,
         archived_at TEXT,
+        deleted_at TEXT,
         profile_id INTEGER
       )
     ''');
@@ -203,7 +207,8 @@ class DatabaseService {
   Future<void> _preloadDefaultProfiles(Database db) async {
     // Check if profiles already exist
     final count = Sqflite.firstIntValue(
-        await db.rawQuery('SELECT COUNT(*) FROM profiles'));
+      await db.rawQuery('SELECT COUNT(*) FROM profiles'),
+    );
     if (count == 0) {
       // Add User's profile
       await db.insert('profiles', {
@@ -229,7 +234,8 @@ class DatabaseService {
     if (oldVersion < 7) {
       try {
         await db.execute(
-            'ALTER TABLE chat_messages ADD COLUMN is_welcome_message INTEGER DEFAULT 0');
+          'ALTER TABLE chat_messages ADD COLUMN is_welcome_message INTEGER DEFAULT 0',
+        );
         // print('Added is_welcome_message column to chat_messages table');
       } catch (e) {
         // print('Error adding is_welcome_message column: $e');
@@ -286,8 +292,9 @@ class DatabaseService {
     // Add file_paths column for file attachments support
     if (oldVersion < 9) {
       try {
-        await db
-            .execute('ALTER TABLE chat_messages ADD COLUMN file_paths TEXT');
+        await db.execute(
+          'ALTER TABLE chat_messages ADD COLUMN file_paths TEXT',
+        );
         // print('Added file_paths column to chat_messages table');
       } catch (e) {
         // print('Error adding file_paths column: $e');
@@ -298,7 +305,8 @@ class DatabaseService {
     if (oldVersion < 10) {
       try {
         await db.execute(
-            'ALTER TABLE chat_messages ADD COLUMN location_results TEXT');
+          'ALTER TABLE chat_messages ADD COLUMN location_results TEXT',
+        );
         // print('Added location_results column to chat_messages table');
       } catch (e) {
         // print('Error adding location_results column: $e');
@@ -309,7 +317,8 @@ class DatabaseService {
     if (oldVersion < 11) {
       try {
         await db.execute(
-            'ALTER TABLE chat_messages ADD COLUMN message_type INTEGER DEFAULT 0');
+          'ALTER TABLE chat_messages ADD COLUMN message_type INTEGER DEFAULT 0',
+        );
         // print('Added message_type column to chat_messages table');
       } catch (e) {
         // print('Error adding message_type column: $e');
@@ -330,7 +339,8 @@ class DatabaseService {
     if (oldVersion < 13) {
       try {
         await db.execute(
-            'ALTER TABLE ai_personalities ADD COLUMN avatar_path TEXT');
+          'ALTER TABLE ai_personalities ADD COLUMN avatar_path TEXT',
+        );
         // print('Added avatar_path column to ai_personalities table');
       } catch (e) {
         // print('Error adding avatar_path column to ai_personalities table: $e');
@@ -350,8 +360,9 @@ class DatabaseService {
     // Add image_urls column for Supabase cloud storage URLs
     if (oldVersion < 15) {
       try {
-        await db
-            .execute('ALTER TABLE chat_messages ADD COLUMN image_urls TEXT');
+        await db.execute(
+          'ALTER TABLE chat_messages ADD COLUMN image_urls TEXT',
+        );
         // print('Added image_urls column to chat_messages table');
       } catch (e) {
         // print('Error adding image_urls column: $e');
@@ -450,6 +461,20 @@ class DatabaseService {
       await _ensureSyncIdentityIndexes(db);
     }
 
+    if (oldVersion < 22) {
+      await _safeAddColumn(
+        db,
+        table: 'conversations',
+        column: 'deleted_at',
+        definition: 'TEXT',
+      );
+      await _createSyncOutboxQuarantineTable(db);
+      await db.execute('''
+        CREATE INDEX IF NOT EXISTS idx_conversations_deleted_at
+        ON conversations(deleted_at)
+      ''');
+    }
+
     // Add avatarPath and createdAt columns if missing
     final columns = await db.rawQuery("PRAGMA table_info(profiles)");
     final hasAvatarPath = columns.any((col) => col['name'] == 'avatarPath');
@@ -486,9 +511,7 @@ class DatabaseService {
     try {
       final exists = await _columnExists(db, table, column);
       if (exists) return;
-      await db.execute(
-        'ALTER TABLE $table ADD COLUMN $column $definition',
-      );
+      await db.execute('ALTER TABLE $table ADD COLUMN $column $definition');
     } catch (e) {
       // Never crash app startup due to additive migration mismatch.
       print('[DatabaseService] Safe add column skipped for $table.$column: $e');
@@ -543,6 +566,27 @@ class DatabaseService {
     ''');
   }
 
+  Future<void> _createSyncOutboxQuarantineTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_outbox_quarantine(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_outbox_id INTEGER NOT NULL UNIQUE,
+        entity_type TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        local_id INTEGER NOT NULL,
+        attempts INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL,
+        last_error TEXT,
+        quarantined_at TEXT NOT NULL,
+        reason TEXT NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_sync_outbox_quarantine_created
+      ON sync_outbox_quarantine(quarantined_at DESC)
+    ''');
+  }
+
   Future<void> _ensureSyncIdentityIndexes(Database db) async {
     await db.execute('''
       CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_client_id
@@ -559,6 +603,12 @@ class DatabaseService {
       ON chat_messages(client_id)
       WHERE client_id IS NOT NULL
     ''');
+    if (await _columnExists(db, 'conversations', 'deleted_at')) {
+      await db.execute('''
+        CREATE INDEX IF NOT EXISTS idx_conversations_deleted_at
+        ON conversations(deleted_at)
+      ''');
+    }
   }
 
   // Helper method to create ai_personalities table
@@ -744,8 +794,9 @@ class DatabaseService {
   // Profile CRUD operations
   Future<int> insertProfile(Profile profile) async {
     final db = await database;
-    final map =
-        profile.copyWith(clientId: profile.clientId ?? _uuid.v4()).toMap();
+    final map = profile
+        .copyWith(clientId: profile.clientId ?? _uuid.v4())
+        .toMap();
     map['characteristics'] = jsonEncode(map['characteristics']);
     map['preferences'] = jsonEncode(map['preferences']);
     return await db.insert('profiles', map);
@@ -852,11 +903,7 @@ class DatabaseService {
 
   Future<int> deleteProfile(int id) async {
     final db = await database;
-    return await db.delete(
-      'profiles',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('profiles', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> deleteDatabase() async {
@@ -913,16 +960,12 @@ class DatabaseService {
     required String operation,
     required int localId,
   }) async {
-    await executor.insert(
-      'sync_outbox',
-      {
-        'entity_type': entityType,
-        'operation': operation,
-        'local_id': localId,
-        'created_at': DateTime.now().toUtc().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    await executor.insert('sync_outbox', {
+      'entity_type': entityType,
+      'operation': operation,
+      'local_id': localId,
+      'created_at': DateTime.now().toUtc().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   Future<List<Map<String, dynamic>>> getPendingSyncOperations({
@@ -947,13 +990,103 @@ class DatabaseService {
         0;
   }
 
+  Future<int> getQuarantinedSyncOperationCount() async {
+    final db = await database;
+    return Sqflite.firstIntValue(
+          await db.rawQuery('SELECT COUNT(*) FROM sync_outbox_quarantine'),
+        ) ??
+        0;
+  }
+
+  Future<void> quarantineSyncOperation(
+    int outboxId, {
+    required String reason,
+    Object? error,
+  }) async {
+    final db = await database;
+    await db.transaction((transaction) async {
+      final rows = await transaction.query(
+        'sync_outbox',
+        where: 'id = ?',
+        whereArgs: [outboxId],
+        limit: 1,
+      );
+      if (rows.isEmpty) return;
+      final row = rows.first;
+      await transaction.insert('sync_outbox_quarantine', {
+        'source_outbox_id': outboxId,
+        'entity_type': row['entity_type'],
+        'operation': row['operation'],
+        'local_id': row['local_id'],
+        'attempts': row['attempts'],
+        'created_at': row['created_at'],
+        'last_error': error?.toString() ?? row['last_error'],
+        'quarantined_at': DateTime.now().toUtc().toIso8601String(),
+        'reason': reason,
+      }, conflictAlgorithm: ConflictAlgorithm.ignore);
+      await transaction.delete(
+        'sync_outbox',
+        where: 'id = ?',
+        whereArgs: [outboxId],
+      );
+      await _pruneSyncOutboxQuarantine(transaction);
+    });
+  }
+
+  Future<void> _quarantineMatchingSyncOperations(
+    DatabaseExecutor executor, {
+    required String where,
+    required List<Object?> whereArgs,
+    required String reason,
+  }) async {
+    final now = DateTime.now().toUtc().toIso8601String();
+    await executor.rawInsert(
+      '''
+      INSERT OR IGNORE INTO sync_outbox_quarantine(
+        source_outbox_id,
+        entity_type,
+        operation,
+        local_id,
+        attempts,
+        created_at,
+        last_error,
+        quarantined_at,
+        reason
+      )
+      SELECT id, entity_type, operation, local_id, attempts, created_at,
+             last_error, ?, ?
+      FROM sync_outbox
+      WHERE $where
+    ''',
+      [now, reason, ...whereArgs],
+    );
+    await executor.delete('sync_outbox', where: where, whereArgs: whereArgs);
+  }
+
+  Future<void> _pruneSyncOutboxQuarantine(DatabaseExecutor executor) async {
+    final cutoff = DateTime.now()
+        .toUtc()
+        .subtract(const Duration(days: 30))
+        .toIso8601String();
+    await executor.delete(
+      'sync_outbox_quarantine',
+      where: 'quarantined_at < ?',
+      whereArgs: [cutoff],
+    );
+    await executor.rawDelete('''
+      DELETE FROM sync_outbox_quarantine
+      WHERE id NOT IN (
+        SELECT id
+        FROM sync_outbox_quarantine
+        ORDER BY id DESC
+        LIMIT 500
+      )
+    ''');
+  }
+
   Future<void> completeSyncOperation(int outboxId) async {
     final db = await database;
-    await db.delete(
-      'sync_outbox',
-      where: 'id = ?',
-      whereArgs: [outboxId],
-    );
+    await db.delete('sync_outbox', where: 'id = ?', whereArgs: [outboxId]);
   }
 
   Future<void> failSyncOperation(
@@ -1031,6 +1164,27 @@ class DatabaseService {
     return clientId;
   }
 
+  Future<bool> adoptMessageClientId(int messageId, String clientId) async {
+    final db = await database;
+    return db.transaction((txn) async {
+      final conflict = await txn.query(
+        'chat_messages',
+        columns: ['id'],
+        where: 'client_id = ? AND id <> ?',
+        whereArgs: [clientId, messageId],
+        limit: 1,
+      );
+      if (conflict.isNotEmpty) return false;
+      return await txn.update(
+            'chat_messages',
+            {'client_id': clientId},
+            where: 'id = ?',
+            whereArgs: [messageId],
+          ) >
+          0;
+    });
+  }
+
   // Batch insert multiple chat messages efficiently using transactions
   Future<List<int>> batchInsertChatMessages(List<ChatMessage> messages) async {
     if (messages.isEmpty) return [];
@@ -1069,7 +1223,8 @@ class DatabaseService {
 
     final elapsed = stopwatch.elapsedMilliseconds;
     debugPrint(
-        '[DatabaseService] Batch inserted ${messages.length} messages in ${elapsed}ms');
+      '[DatabaseService] Batch inserted ${messages.length} messages in ${elapsed}ms',
+    );
     syncService.schedulePendingOperations();
     return insertedIds;
   }
@@ -1100,7 +1255,8 @@ class DatabaseService {
 
     final elapsed = stopwatch.elapsedMilliseconds;
     print(
-        '[DatabaseService] Batch updated ${messages.length} messages in ${elapsed}ms');
+      '[DatabaseService] Batch updated ${messages.length} messages in ${elapsed}ms',
+    );
   }
 
   Future<int> updateChatMessage(ChatMessage message) async {
@@ -1146,8 +1302,10 @@ class DatabaseService {
       offset: offset,
     );
 
-    final messages =
-        List.generate(maps.length, (i) => ChatMessage.fromMap(maps[i]));
+    final messages = List.generate(
+      maps.length,
+      (i) => ChatMessage.fromMap(maps[i]),
+    );
     return messages.reversed.toList(); // Return in chronological order
   }
 
@@ -1185,11 +1343,9 @@ class DatabaseService {
     final db = await database;
     // We're not actually deleting the files here, just the references
     // The actual file deletion should be handled separately
-    return await db.update(
-      'chat_messages',
-      {'audio_path': null},
-      where: 'audio_path IS NOT NULL',
-    );
+    return await db.update('chat_messages', {
+      'audio_path': null,
+    }, where: 'audio_path IS NOT NULL');
   }
 
   // Check integrity first and only replace a database when SQLite explicitly
@@ -1267,6 +1423,7 @@ class DatabaseService {
         created_at TEXT,
         updated_at TEXT,
         archived_at TEXT,
+        deleted_at TEXT,
         profile_id INTEGER
       )
     ''');
@@ -1277,6 +1434,7 @@ class DatabaseService {
     await _createKnowledgeItemsTable(db);
     await _createKnowledgeSourcesTables(db);
     await _createSyncOutboxTable(db);
+    await _createSyncOutboxQuarantineTable(db);
 
     // Ensure additive columns exist.
     await _safeAddColumn(
@@ -1360,6 +1518,16 @@ class DatabaseService {
     );
     await _safeAddColumn(
       db,
+      table: 'conversations',
+      column: 'deleted_at',
+      definition: 'TEXT',
+    );
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_conversations_deleted_at
+      ON conversations(deleted_at)
+    ''');
+    await _safeAddColumn(
+      db,
       table: 'chat_messages',
       column: 'conversation_id',
       definition: 'INTEGER',
@@ -1420,11 +1588,14 @@ class DatabaseService {
 
   // Add methods to update specific aspects of the profile
   Future<void> updateProfileCharacteristics(
-      int profileId, Map<String, dynamic> characteristics) async {
+    int profileId,
+    Map<String, dynamic> characteristics,
+  ) async {
     final profile = await getProfile(profileId);
     if (profile != null) {
-      final updatedCharacteristics =
-          Map<String, dynamic>.from(profile.characteristics);
+      final updatedCharacteristics = Map<String, dynamic>.from(
+        profile.characteristics,
+      );
       updatedCharacteristics.addAll(characteristics);
 
       final updatedProfile = profile.copyWith(
@@ -1436,15 +1607,15 @@ class DatabaseService {
   }
 
   Future<void> updateProfilePreferences(
-      int profileId, Map<String, dynamic> preferences) async {
+    int profileId,
+    Map<String, dynamic> preferences,
+  ) async {
     final profile = await getProfile(profileId);
     if (profile != null) {
       final updatedPreferences = Map<String, dynamic>.from(profile.preferences);
       updatedPreferences.addAll(preferences);
 
-      final updatedProfile = profile.copyWith(
-        preferences: updatedPreferences,
-      );
+      final updatedProfile = profile.copyWith(preferences: updatedPreferences);
 
       await updateProfile(updatedProfile);
     }
@@ -1510,7 +1681,7 @@ class DatabaseService {
       final count = await transaction.update(
         'conversations',
         values,
-        where: 'id = ?',
+        where: 'id = ? AND deleted_at IS NULL',
         whereArgs: [localId],
       );
       if (count > 0 && enqueueSync) {
@@ -1529,9 +1700,157 @@ class DatabaseService {
     return updated;
   }
 
-  Future<int> deleteConversation(int id) async {
+  Future<int> markConversationDeleted(int id) async {
+    final deletedAt = DateTime.now().toUtc();
+    final updated = await _markConversationDeleted(
+      id,
+      deletedAt: deletedAt,
+      enqueueDeletion: true,
+    );
+    if (updated > 0) {
+      syncService.schedulePendingOperations();
+    }
+    return updated;
+  }
+
+  Future<int> markConversationsDeletedForProfile(int profileId) async {
+    final db = await database;
+    final deletedAt = DateTime.now().toUtc();
+    final count = await db.transaction((txn) async {
+      final rows = await txn.query(
+        'conversations',
+        columns: ['id'],
+        where: 'profile_id = ? AND deleted_at IS NULL',
+        whereArgs: [profileId],
+      );
+      var updated = 0;
+      for (final row in rows) {
+        updated += await _markConversationDeletedInTransaction(
+          txn,
+          row['id']! as int,
+          deletedAt: deletedAt,
+          enqueueDeletion: true,
+          pruneQuarantine: false,
+        );
+      }
+      await _pruneSyncOutboxQuarantine(txn);
+      return updated;
+    });
+    if (count > 0) {
+      syncService.schedulePendingOperations();
+    }
+    return count;
+  }
+
+  Future<int> applyRemoteConversationTombstone(
+    int id, {
+    required DateTime deletedAt,
+  }) => _markConversationDeleted(
+    id,
+    deletedAt: deletedAt,
+    enqueueDeletion: false,
+  );
+
+  Future<int> _markConversationDeleted(
+    int id, {
+    required DateTime deletedAt,
+    required bool enqueueDeletion,
+  }) async {
+    final db = await database;
+    return db.transaction(
+      (txn) => _markConversationDeletedInTransaction(
+        txn,
+        id,
+        deletedAt: deletedAt,
+        enqueueDeletion: enqueueDeletion,
+      ),
+    );
+  }
+
+  Future<int> _markConversationDeletedInTransaction(
+    Transaction txn,
+    int id, {
+    required DateTime deletedAt,
+    required bool enqueueDeletion,
+    bool pruneQuarantine = true,
+  }) async {
+    final rows = await txn.query(
+      'conversations',
+      columns: ['id', 'deleted_at'],
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
+    if (rows.isEmpty) return 0;
+
+    final timestamp = deletedAt.toUtc().toIso8601String();
+    final updated = await txn.update(
+      'conversations',
+      {
+        'deleted_at': rows.first['deleted_at'] ?? timestamp,
+        'updated_at': timestamp,
+      },
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+
+    await _quarantineMatchingSyncOperations(
+      txn,
+      where:
+          "entity_type = 'conversation' AND local_id = ?${enqueueDeletion ? " AND operation <> 'delete'" : ''}",
+      whereArgs: [id],
+      reason: enqueueDeletion
+          ? 'superseded_by_conversation_delete'
+          : 'superseded_by_remote_tombstone',
+    );
+    await _quarantineMatchingSyncOperations(
+      txn,
+      where: '''
+        entity_type = 'message'
+        AND local_id IN (
+          SELECT id FROM chat_messages WHERE conversation_id = ?
+        )
+      ''',
+      whereArgs: [id],
+      reason: enqueueDeletion
+          ? 'parent_conversation_deleted'
+          : 'parent_conversation_tombstoned_remotely',
+    );
+
+    if (enqueueDeletion) {
+      await _enqueueSyncOperation(
+        txn,
+        entityType: 'conversation',
+        operation: 'delete',
+        localId: id,
+      );
+    }
+    if (pruneQuarantine) {
+      await _pruneSyncOutboxQuarantine(txn);
+    }
+    return updated;
+  }
+
+  Future<int> purgeConversation(int id) async {
     final db = await database;
     return db.transaction((txn) async {
+      await _quarantineMatchingSyncOperations(
+        txn,
+        where: "entity_type = 'conversation' AND local_id = ?",
+        whereArgs: [id],
+        reason: 'conversation_purged_after_tombstone',
+      );
+      await _quarantineMatchingSyncOperations(
+        txn,
+        where: '''
+          entity_type = 'message'
+          AND local_id IN (
+            SELECT id FROM chat_messages WHERE conversation_id = ?
+          )
+        ''',
+        whereArgs: [id],
+        reason: 'message_purged_after_conversation_tombstone',
+      );
       await txn.update(
         'knowledge_items',
         {'conversation_id': null},
@@ -1543,24 +1862,27 @@ class DatabaseService {
         where: 'conversation_id = ?',
         whereArgs: [id],
       );
-      return txn.delete(
-        'conversations',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
+      return txn.delete('conversations', where: 'id = ?', whereArgs: [id]);
     });
   }
 
-  Future<List<Map<String, dynamic>>> getConversations(
-      {int? profileId,
-      bool pinnedFirst = true,
-      bool includeArchived = false,
-      bool archivedOnly = false}) async {
+  @Deprecated('Use purgeConversation only after a confirmed tombstone.')
+  Future<int> deleteConversation(int id) => purgeConversation(id);
+
+  Future<List<Map<String, dynamic>>> getConversations({
+    int? profileId,
+    bool pinnedFirst = true,
+    bool includeArchived = false,
+    bool archivedOnly = false,
+  }) async {
     final db = await database;
-    final orderBy =
-        pinnedFirst ? 'is_pinned DESC, updated_at DESC' : 'updated_at DESC';
+    final orderBy = pinnedFirst
+        ? 'is_pinned DESC, updated_at DESC'
+        : 'updated_at DESC';
     final where = <String>[];
     final whereArgs = <Object?>[];
+
+    where.add('deleted_at IS NULL');
 
     if (profileId != null) {
       where.add('profile_id = ?');
@@ -1574,7 +1896,7 @@ class DatabaseService {
 
     return db.query(
       'conversations',
-      where: where.isEmpty ? null : where.join(' AND '),
+      where: where.join(' AND '),
       whereArgs: whereArgs.isEmpty ? null : whereArgs,
       orderBy: orderBy,
     );
@@ -1609,20 +1931,54 @@ class DatabaseService {
   }
 
   // Get all conversations (for migration)
-  Future<List<Map<String, dynamic>>> getAllConversations() async {
+  Future<List<Map<String, dynamic>>> getAllConversations({
+    bool includeDeleted = false,
+  }) async {
     final db = await database;
-    return await db.query('conversations', orderBy: 'created_at ASC');
+    return await db.query(
+      'conversations',
+      where: includeDeleted ? null : 'deleted_at IS NULL',
+      orderBy: 'created_at ASC',
+    );
   }
 
   // Get a single conversation by ID
   Future<Map<String, dynamic>?> getConversation(int id) async {
     final db = await database;
-    final results = await db.query('conversations',
-        where: 'id = ?', whereArgs: [id], limit: 1);
+    final results = await db.query(
+      'conversations',
+      where: 'id = ? AND deleted_at IS NULL',
+      whereArgs: [id],
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  Future<Map<String, dynamic>?> getConversationIncludingDeleted(int id) async {
+    final db = await database;
+    final results = await db.query(
+      'conversations',
+      where: 'id = ?',
+      whereArgs: [id],
+      limit: 1,
+    );
     return results.isNotEmpty ? results.first : null;
   }
 
   Future<Map<String, dynamic>?> getConversationByClientId(
+    String clientId,
+  ) async {
+    final db = await database;
+    final results = await db.query(
+      'conversations',
+      where: 'client_id = ? AND deleted_at IS NULL',
+      whereArgs: [clientId],
+      limit: 1,
+    );
+    return results.isNotEmpty ? results.first : null;
+  }
+
+  Future<Map<String, dynamic>?> getConversationByClientIdIncludingDeleted(
     String clientId,
   ) async {
     final db = await database;
@@ -1662,7 +2018,8 @@ class DatabaseService {
 
   // Get messages for a specific conversation
   Future<List<Map<String, dynamic>>> getConversationMessages(
-      int conversationId) async {
+    int conversationId,
+  ) async {
     final db = await database;
     return await db.query(
       'chat_messages',
@@ -1727,7 +2084,8 @@ class DatabaseService {
   }
 
   Future<List<Map<String, dynamic>>> getAIPersonalitiesForProfile(
-      int profileId) async {
+    int profileId,
+  ) async {
     final db = await database;
     return await db.query(
       'ai_personalities',
@@ -1811,11 +2169,7 @@ class DatabaseService {
 
   Future<int> deleteKnowledgeItem(int id) async {
     final db = await database;
-    return await db.delete(
-      'knowledge_items',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return await db.delete('knowledge_items', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<int> clearKnowledgeItemsForProfile(int profileId) async {
@@ -1889,15 +2243,13 @@ class DatabaseService {
 
   Future<int> deleteKnowledgeSource(int id) async {
     final db = await database;
-    return db.delete(
-      'knowledge_sources',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    return db.delete('knowledge_sources', where: 'id = ?', whereArgs: [id]);
   }
 
   Future<void> replaceKnowledgeSourceChunks(
-      int sourceId, List<KnowledgeSourceChunk> chunks) async {
+    int sourceId,
+    List<KnowledgeSourceChunk> chunks,
+  ) async {
     final db = await database;
     await db.transaction((txn) async {
       await txn.delete(
@@ -1941,15 +2293,11 @@ class DatabaseService {
     required int sourceId,
   }) async {
     final db = await database;
-    return db.insert(
-      'knowledge_item_sources',
-      {
-        'knowledge_item_id': knowledgeItemId,
-        'source_id': sourceId,
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.ignore,
-    );
+    return db.insert('knowledge_item_sources', {
+      'knowledge_item_id': knowledgeItemId,
+      'source_id': sourceId,
+      'created_at': DateTime.now().toIso8601String(),
+    }, conflictAlgorithm: ConflictAlgorithm.ignore);
   }
 
   Future<int> unlinkKnowledgeItemFromSource({

@@ -42,8 +42,10 @@ class ConversationProvider with ChangeNotifier {
   }
 
   // Helper method to ensure conversations are loaded for a profile
-  Future<void> ensureConversationsLoaded(BuildContext context,
-      {int? profileId}) async {
+  Future<void> ensureConversationsLoaded(
+    BuildContext context, {
+    int? profileId,
+  }) async {
     if (_conversations.isEmpty) {
       // Load conversations without auto-selecting any
       await loadConversations(profileId: profileId);
@@ -123,8 +125,9 @@ class ConversationProvider with ChangeNotifier {
 
     final selected = _selectedConversation;
     if (selected != null && selected.id == conversationId) {
-      _selectedConversation =
-          _conversations.firstWhere((c) => c.id == conversationId);
+      _selectedConversation = _conversations.firstWhere(
+        (c) => c.id == conversationId,
+      );
     }
     notifyListeners();
   }
@@ -154,10 +157,8 @@ class ConversationProvider with ChangeNotifier {
   Future<bool> deleteConversation(Conversation conversation) async {
     if (conversation.id == null) return false;
     final db = DatabaseService();
-    final remoteDeleted = await db.syncService.deleteConversation(conversation);
-    if (!remoteDeleted) return false;
-
-    await db.deleteConversation(conversation.id!);
+    final tombstoned = await db.syncService.deleteConversation(conversation);
+    if (!tombstoned) return false;
     if (_selectedConversation?.id == conversation.id) {
       _selectedConversation = null;
     }

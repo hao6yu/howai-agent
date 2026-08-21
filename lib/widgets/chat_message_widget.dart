@@ -103,6 +103,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
           : _getMessageReportStatus();
     }
     if (!listEquals(oldWidget.message.imagePaths, widget.message.imagePaths) ||
+        !listEquals(oldWidget.message.imageUrls, widget.message.imageUrls) ||
         !listEquals(oldWidget.message.filePaths, widget.message.filePaths)) {
       _resolvedMedia = ResolvedMessageMedia.initial(widget.message);
       _resolveMessageMedia();
@@ -346,8 +347,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (widget.message.imagePaths != null &&
-                          widget.message.imagePaths!.isNotEmpty)
+                      if (widget.message.hasImages)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8.0),
                           child: Wrap(
@@ -1688,7 +1688,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
     try {
       final reportService = ContentReportService();
-      final hasImages = widget.message.imagePaths?.isNotEmpty == true;
+      final hasImages = widget.message.hasImages;
       return await reportService.getMessageReportStatus(
         widget.message.id!,
         hasImages: hasImages,
@@ -1701,7 +1701,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
 
   /// Build hidden content warning for reported messages
   Widget _buildHiddenContentWarning() {
-    final hasImages = widget.message.imagePaths?.isNotEmpty == true;
+    final hasImages = widget.message.hasImages;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1812,7 +1812,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                           Text(widget.message.message),
 
                         // Images handling
-                        if (widget.message.imagePaths?.isNotEmpty == true) ...[
+                        if (widget.message.hasImages) ...[
                           const SizedBox(height: 8),
                           if (!showImages) ...[
                             // Warning box with show images button
@@ -1832,7 +1832,7 @@ class _ChatMessageWidgetState extends State<ChatMessageWidget> {
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
-                                          'Contains ${widget.message.imagePaths!.length} flagged image(s)',
+                                          'Contains ${widget.message.imageCount} flagged image(s)',
                                           style: TextStyle(
                                             color: Colors.red[700],
                                             fontSize: 12,

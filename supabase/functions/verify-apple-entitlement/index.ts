@@ -1,8 +1,3 @@
-import { Buffer } from "node:buffer";
-import {
-  Environment,
-  SignedDataVerifier,
-} from "npm:@apple/app-store-server-library@3.1.0";
 import { createClient } from "npm:@supabase/supabase-js@2.111.0";
 
 import {
@@ -11,6 +6,11 @@ import {
   evaluateAppleTransaction,
 } from "../_shared/apple-entitlement.ts";
 import { APPLE_ROOT_CA_DER_BASE64 } from "../_shared/apple-root-certificates.ts";
+import {
+  AppleSignedDataVerificationError,
+  verifyAndDecodeAppleTransaction,
+} from "../_shared/apple-signed-data-verifier.ts";
+import { summarizeAppleTransactionJws } from "../_shared/apple-verification-diagnostics.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -18,21 +18,12 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ??
   "";
 
 const APPLE_BUNDLE_ID = Deno.env.get("APPLE_APP_BUNDLE_ID") ?? "com.hyu.HaoGPT";
-const APPLE_APP_ID = Number(Deno.env.get("APPLE_APP_ID") ?? "6746110671");
-// Apple's library still validates the complete pinned certificate chain when
-// this is false. Live OCSP checks are opt-in because an OCSP outage must not
-// incorrectly downgrade a valid subscriber.
-const APPLE_ONLINE_CHECKS =
-  Deno.env.get("APPLE_VERIFY_ONLINE_CHECKS") === "true";
 const APPLE_PRODUCT_IDS = new Set(
   (Deno.env.get("APPLE_SUBSCRIPTION_PRODUCT_IDS") ??
     "com.hyu.HaoGPT.premium.monthly,com.haoyu.HaoGPT.premium.yearly")
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean),
-);
-const APPLE_ROOT_CERTIFICATES = APPLE_ROOT_CA_DER_BASE64.map((value) =>
-  Buffer.from(value, "base64")
 );
 const MAX_BODY_BYTES = 32 * 1024;
 const MAX_SIGNED_TRANSACTION_LENGTH = 24 * 1024;
@@ -76,9 +67,7 @@ Deno.serve(async (req) => {
     );
   }
 
-  if (
-    !supabaseAdmin || !Number.isSafeInteger(APPLE_APP_ID) || APPLE_APP_ID <= 0
-  ) {
+  if (!supabaseAdmin) {
     console.error("Apple entitlement verification is not configured.");
     return jsonResponse(503, {
       error: "Entitlement verification is unavailable.",
@@ -200,11 +189,34 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     if (error instanceof AppleEntitlementValidationError) {
+      console.warn(
+        "Apple transaction payload validation rejected",
+        JSON.stringify({
+          diagnostic_version: "apple_verification_v2",
+          rejection: error.message,
+          transaction: summarizeAppleTransactionJws(
+            signedTransaction,
+            APPLE_BUNDLE_ID,
+            APPLE_PRODUCT_IDS,
+          ),
+        }),
+      );
       return jsonResponse(422, { error: error.message }, origin);
     }
 
-    if (error instanceof SignedTransactionVerificationError) {
-      console.warn("Apple signed transaction verification failed.");
+    if (error instanceof AppleSignedDataVerificationError) {
+      console.warn(
+        "Apple signed transaction verification failed",
+        JSON.stringify({
+          diagnostic_version: "apple_verification_v2",
+          verification_code: error.code,
+          transaction: summarizeAppleTransactionJws(
+            signedTransaction,
+            APPLE_BUNDLE_ID,
+            APPLE_PRODUCT_IDS,
+          ),
+        }),
+      );
       return jsonResponse(422, {
         error: "App Store transaction verification failed.",
       }, origin);
@@ -217,41 +229,22 @@ Deno.serve(async (req) => {
   }
 });
 
-class SignedTransactionVerificationError extends Error {}
-
 async function verifySignedTransaction(
   signedTransaction: string,
 ): Promise<VerifiedTransaction> {
-  const attempts = [
-    {
-      appleEnvironment: Environment.PRODUCTION,
-      environment: "Production" as const,
-    },
-    { appleEnvironment: Environment.SANDBOX, environment: "Sandbox" as const },
-  ];
-
-  for (const attempt of attempts) {
-    try {
-      const verifier = new SignedDataVerifier(
-        APPLE_ROOT_CERTIFICATES,
-        APPLE_ONLINE_CHECKS,
-        attempt.appleEnvironment,
-        APPLE_BUNDLE_ID,
-        attempt.appleEnvironment === Environment.PRODUCTION
-          ? APPLE_APP_ID
-          : undefined,
-      );
-      const payload = await verifier.verifyAndDecodeTransaction(
-        signedTransaction,
-      );
-      return { environment: attempt.environment, payload };
-    } catch {
-      // A signed transaction identifies its environment only after verification,
-      // so production and sandbox are intentionally attempted in that order.
-    }
+  const payload = await verifyAndDecodeAppleTransaction(
+    signedTransaction,
+    APPLE_ROOT_CA_DER_BASE64,
+  );
+  if (payload.environment === "Production") {
+    return { environment: "Production", payload };
   }
-
-  throw new SignedTransactionVerificationError();
+  if (payload.environment === "Sandbox") {
+    return { environment: "Sandbox", payload };
+  }
+  throw new AppleEntitlementValidationError(
+    "Unexpected App Store environment.",
+  );
 }
 
 async function authenticateUser(

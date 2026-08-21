@@ -35,4 +35,22 @@ void main() {
 
     expect(conversation.isArchived, isFalse);
   });
+
+  test('conversation deletion tombstone round-trips through local maps', () {
+    final deletedAt = DateTime.utc(2026, 8, 20, 23, 57);
+    final conversation = Conversation(
+      id: 8,
+      clientId: '22e619ef-cf1f-4d7d-a87a-9ff6fa42a356',
+      title: 'Deleted on another device',
+      createdAt: DateTime.utc(2026, 8, 1),
+      updatedAt: deletedAt,
+      deletedAt: deletedAt,
+      profileId: 1,
+    );
+
+    final restored = Conversation.fromMap(conversation.toMap());
+
+    expect(restored.isDeleted, isTrue);
+    expect(restored.deletedAt, deletedAt);
+  });
 }

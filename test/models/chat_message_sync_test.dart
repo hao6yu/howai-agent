@@ -32,16 +32,10 @@ void main() {
       ],
     );
 
-    final remote = message.toSupabase(
-      '30000000-0000-4000-8000-000000000001',
-    );
+    final remote = message.toSupabase('30000000-0000-4000-8000-000000000001');
     remote['id'] = '40000000-0000-4000-8000-000000000001';
 
-    final restored = ChatMessage.fromSupabase(
-      remote,
-      17,
-      profileId: 84,
-    );
+    final restored = ChatMessage.fromSupabase(remote, 17, profileId: 84);
 
     expect(restored.clientId, message.clientId);
     expect(restored.profileId, 84);
@@ -70,5 +64,21 @@ void main() {
 
     expect(outOfRange.messageType, MessageType.normal);
     expect(malformed.messageType, MessageType.normal);
+  });
+
+  test('counts paired local and remote attachment slots once', () {
+    final message = ChatMessage(
+      message: 'Two images',
+      isUserMessage: true,
+      timestamp: '2026-08-20T12:00:00.000Z',
+      imagePaths: const ['/local/first.jpg', ''],
+      imageUrls: const [
+        'storage://chat-attachments/user/message/image_0.jpg',
+        'storage://chat-attachments/user/message/image_1.jpg',
+      ],
+    );
+
+    expect(message.hasImages, isTrue);
+    expect(message.imageCount, 2);
   });
 }

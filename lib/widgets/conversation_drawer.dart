@@ -20,7 +20,13 @@ enum _ConversationAction { pin, rename, archive, restore, delete }
 
 class ConversationDrawer extends StatefulWidget {
   final int? profileId;
-  const ConversationDrawer({super.key, this.profileId});
+  final Future<void> Function()? onClose;
+
+  const ConversationDrawer({
+    super.key,
+    this.profileId,
+    this.onClose,
+  });
 
   @override
   State<ConversationDrawer> createState() => _ConversationDrawerState();
@@ -136,7 +142,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                       NewConversationButton(
                         onPressed: () {
                           provider.clearSelection();
-                          Navigator.pop(context);
+                          unawaited(_closeDrawer());
                         },
                       ),
                     ],
@@ -252,6 +258,17 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
 
   Future<void> _closeThenNavigate(String routeName) async {
     final navigator = Navigator.of(context);
+    await _closeDrawer();
+    if (!mounted || !navigator.mounted) return;
+    await navigator.pushNamed(routeName);
+  }
+
+  Future<void> _closeDrawer() async {
+    if (widget.onClose != null) {
+      await widget.onClose!();
+      return;
+    }
+
     final closeDuration = motionDuration(
       context,
       HowAIMotion.drawerTransition,
@@ -260,8 +277,6 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
     if (closeDuration > Duration.zero) {
       await Future<void>.delayed(closeDuration);
     }
-    if (!mounted || !navigator.mounted) return;
-    await navigator.pushNamed(routeName);
   }
 
   List<Widget> _buildRecencySections(
@@ -417,7 +432,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
           ? null
           : () {
               provider.selectConversation(c);
-              Navigator.pop(context);
+              unawaited(_closeDrawer());
             },
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),

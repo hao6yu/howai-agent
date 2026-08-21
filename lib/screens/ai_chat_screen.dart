@@ -55,7 +55,7 @@ import '../providers/reminder_provider.dart';
 import '../providers/push_notification_provider.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import '../widgets/conversation_drawer.dart';
-import '../widgets/edge_swipe_drawer_opener.dart';
+import '../widgets/sliding_drawer_shell.dart';
 import '../widgets/new_conversation_button.dart';
 import '../providers/conversation_provider.dart';
 import '../providers/ai_personality_provider.dart';
@@ -220,7 +220,8 @@ class _AiChatScreenState extends State<AiChatScreen>
   bool _pendingActionBusy = false;
 
   // Showcase GlobalKeys for feature highlighting
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final GlobalKey<SlidingDrawerShellState> _drawerShellKey =
+      GlobalKey<SlidingDrawerShellState>();
   final GlobalKey _drawerButtonKey = GlobalKey();
   final GlobalKey _quickActionsKey = GlobalKey();
   final GlobalKey _speakButtonKey = GlobalKey();
@@ -2792,10 +2793,7 @@ class _AiChatScreenState extends State<AiChatScreen>
               return aTime.compareTo(bTime);
             });
 
-            return Scaffold(
-              key: _scaffoldKey,
-              drawer: ConversationDrawer(profileId: _currentProfileId),
-              drawerEnableOpenDragGesture: false,
+            final chatScaffold = Scaffold(
               appBar: AppBar(
                 toolbarHeight: 50,
                 title: const BrandedAppTitle(),
@@ -2865,8 +2863,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                     ),
                 ],
               ),
-              body: EdgeSwipeDrawerOpener(
-                onOpen: _openConversationDrawer,
+              body: GestureDetector(
+                behavior: HitTestBehavior.translucent,
                 onTap: () {
                   FocusScope.of(context).unfocus();
                 },
@@ -3341,6 +3339,18 @@ class _AiChatScreenState extends State<AiChatScreen>
                 ),
               ),
             );
+
+            return SlidingDrawerShell(
+              key: _drawerShellKey,
+              onOpening: () {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              drawer: ConversationDrawer(
+                profileId: _currentProfileId,
+                onClose: _closeConversationDrawer,
+              ),
+              child: chatScaffold,
+            );
           },
         );
       },
@@ -3349,7 +3359,13 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   void _openConversationDrawer() {
     FocusManager.instance.primaryFocus?.unfocus();
-    _scaffoldKey.currentState?.openDrawer();
+    final drawer = _drawerShellKey.currentState;
+    if (drawer != null) unawaited(drawer.open());
+  }
+
+  Future<void> _closeConversationDrawer() async {
+    final drawer = _drawerShellKey.currentState;
+    if (drawer != null) await drawer.close();
   }
 
   // New: Load messages for a specific conversation

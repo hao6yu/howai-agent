@@ -68,6 +68,17 @@ void main() {
     expect(find.byIcon(Icons.post_add), findsNothing);
   });
 
+  testWidgets('drawer gives the full search hint enough room', (tester) async {
+    await pumpDrawer(tester);
+
+    final searchField = find.byKey(
+      const ValueKey<String>('conversation_search_field'),
+    );
+    expect(searchField, findsOneWidget);
+    expect(tester.getSize(searchField).width, greaterThanOrEqualTo(270));
+    expect(find.text('Search conversations'), findsOneWidget);
+  });
+
   for (final testCase in <({
     String name,
     ThemeMode mode,

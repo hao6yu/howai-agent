@@ -55,6 +55,7 @@ import '../providers/reminder_provider.dart';
 import '../providers/push_notification_provider.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import '../widgets/conversation_drawer.dart';
+import '../widgets/edge_swipe_drawer_opener.dart';
 import '../widgets/new_conversation_button.dart';
 import '../providers/conversation_provider.dart';
 import '../providers/ai_personality_provider.dart';
@@ -219,6 +220,7 @@ class _AiChatScreenState extends State<AiChatScreen>
   bool _pendingActionBusy = false;
 
   // Showcase GlobalKeys for feature highlighting
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final GlobalKey _drawerButtonKey = GlobalKey();
   final GlobalKey _quickActionsKey = GlobalKey();
   final GlobalKey _speakButtonKey = GlobalKey();
@@ -2791,7 +2793,9 @@ class _AiChatScreenState extends State<AiChatScreen>
             });
 
             return Scaffold(
+              key: _scaffoldKey,
               drawer: ConversationDrawer(profileId: _currentProfileId),
+              drawerEnableOpenDragGesture: false,
               appBar: AppBar(
                 toolbarHeight: 50,
                 title: const BrandedAppTitle(),
@@ -2809,11 +2813,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                           size: settings.getScaledFontSize(24),
                         ),
                         tooltip: AppLocalizations.of(context)?.menu ?? 'Menu',
-                        onPressed: () {
-                          // Unfocus text field when drawer opens
-                          FocusScope.of(context).unfocus();
-                          Scaffold.of(context).openDrawer();
-                        },
+                        onPressed: _openConversationDrawer,
                       );
 
                       // Wrap with Showcase for feature highlighting
@@ -2865,8 +2865,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                     ),
                 ],
               ),
-              body: GestureDetector(
-                behavior: HitTestBehavior.translucent,
+              body: EdgeSwipeDrawerOpener(
+                onOpen: _openConversationDrawer,
                 onTap: () {
                   FocusScope.of(context).unfocus();
                 },
@@ -3345,6 +3345,11 @@ class _AiChatScreenState extends State<AiChatScreen>
         );
       },
     );
+  }
+
+  void _openConversationDrawer() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    _scaffoldKey.currentState?.openDrawer();
   }
 
   // New: Load messages for a specific conversation

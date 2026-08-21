@@ -1,52 +1,38 @@
-class ConversationDeletionCandidate {
-  final int localId;
-  final String remoteId;
+enum RemoteConversationAction { merge, purge }
 
-  const ConversationDeletionCandidate({
-    required this.localId,
-    required this.remoteId,
-  });
-
-  bool isStillMappedTo(String? currentRemoteId) => currentRemoteId == remoteId;
-}
-
-/// The remotely-backed local conversations that existed before a remote
-/// conversation snapshot started downloading.
+/// Destructive reconciliation requires an explicit server tombstone.
 ///
-/// Only rows in this baseline may be treated as remotely deleted by that
-/// snapshot. A local conversation uploaded while the download is in flight
-/// receives its mapping too late to enter the baseline, so an older server
-/// snapshot cannot delete it.
-class ConversationDeletionBaseline {
-  final Map<int, String> _remoteIdsByLocalId;
+/// A row can be absent from a snapshot because of pagination races, transient
+/// API behavior, or an incomplete response. Absence is therefore never a
+/// deletion signal.
+class ConversationReconciliationPolicy {
+  const ConversationReconciliationPolicy._();
 
-  ConversationDeletionBaseline._(Map<int, String> remoteIdsByLocalId)
-    : _remoteIdsByLocalId = Map.unmodifiable(remoteIdsByLocalId);
+  static RemoteConversationAction actionForRemoteRecord(
+    Map<String, dynamic> remote,
+  ) => remote['deleted_at'] == null
+      ? RemoteConversationAction.merge
+      : RemoteConversationAction.purge;
 
-  factory ConversationDeletionBaseline.capture({
-    required Iterable<int> localIds,
-    required String? Function(int localId) remoteIdForLocalId,
+  static bool shouldDeleteForRemoteAbsence() => false;
+
+  /// A stable client ID is the only safe proof that a cached mapping still
+  /// points to the same cloud conversation. An owner lookup takes precedence;
+  /// a mismatched or legacy-null mapped row is never overwritten in place.
+  static String? verifiedRemoteId({
+    required String? ownerRemoteId,
+    required String? mappedRemoteId,
+    required String? mappedRemoteClientId,
+    required String localClientId,
   }) {
-    final mappings = <int, String>{};
-    for (final localId in localIds) {
-      final remoteId = remoteIdForLocalId(localId);
-      if (remoteId != null && remoteId.isNotEmpty) {
-        mappings[localId] = remoteId;
-      }
+    if (ownerRemoteId != null && ownerRemoteId.isNotEmpty) {
+      return ownerRemoteId;
     }
-    return ConversationDeletionBaseline._(mappings);
-  }
-
-  Iterable<ConversationDeletionCandidate> absentFrom(
-    Set<String> remoteConversationIds,
-  ) sync* {
-    for (final entry in _remoteIdsByLocalId.entries) {
-      if (!remoteConversationIds.contains(entry.value)) {
-        yield ConversationDeletionCandidate(
-          localId: entry.key,
-          remoteId: entry.value,
-        );
-      }
+    if (mappedRemoteId != null &&
+        mappedRemoteId.isNotEmpty &&
+        mappedRemoteClientId == localClientId) {
+      return mappedRemoteId;
     }
+    return null;
   }
 }

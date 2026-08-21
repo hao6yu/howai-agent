@@ -1,11 +1,7 @@
 import 'dart:convert';
 import '../services/location_service.dart';
 
-enum MessageType {
-  normal,
-  reviewRequest,
-  welcome,
-}
+enum MessageType { normal, reviewRequest, welcome }
 
 class ChatMessage {
   final int? id;
@@ -16,12 +12,33 @@ class ChatMessage {
   final String timestamp;
   final int? profileId;
   final List<String>? imagePaths; // Local file paths
-  final List<String>? imageUrls; // Cloud URLs from Supabase Storage
+  final List<String>? imageUrls; // Cloud URLs or private Storage references
   final List<String>? filePaths;
   final bool? isWelcomeMessage;
   final int? conversationId;
   final List<PlaceResult>? locationResults;
   final MessageType messageType;
+
+  bool get hasImages =>
+      imagePaths?.any((path) => path.trim().isNotEmpty) == true ||
+      imageUrls?.any((url) => url.trim().isNotEmpty) == true;
+
+  int get imageCount {
+    final localPaths = imagePaths ?? const <String>[];
+    final remoteUrls = imageUrls ?? const <String>[];
+    final slots = localPaths.length > remoteUrls.length
+        ? localPaths.length
+        : remoteUrls.length;
+    var count = 0;
+    for (var index = 0; index < slots; index++) {
+      final hasLocal =
+          index < localPaths.length && localPaths[index].trim().isNotEmpty;
+      final hasRemote =
+          index < remoteUrls.length && remoteUrls[index].trim().isNotEmpty;
+      if (hasLocal || hasRemote) count++;
+    }
+    return count;
+  }
 
   ChatMessage({
     this.id,
@@ -55,8 +72,9 @@ class ChatMessage {
       'image_paths': imagePaths != null ? jsonEncode(imagePaths) : null,
       'image_urls': imageUrls != null ? jsonEncode(imageUrls) : null,
       'file_paths': filePaths != null ? jsonEncode(filePaths) : null,
-      'is_welcome_message':
-          isWelcomeMessage != null && isWelcomeMessage! ? 1 : 0,
+      'is_welcome_message': isWelcomeMessage != null && isWelcomeMessage!
+          ? 1
+          : 0,
       'conversation_id': conversationId,
       'location_results': locationResults != null
           ? jsonEncode(locationResults!.map((r) => r.toJson()).toList())
@@ -72,9 +90,11 @@ class ChatMessage {
 
   factory ChatMessage.fromMap(Map<String, dynamic> map) {
     final storedMessageType = map['message_type'];
-    final messageTypeIndex =
-        storedMessageType is int ? storedMessageType : null;
-    final messageType = messageTypeIndex != null &&
+    final messageTypeIndex = storedMessageType is int
+        ? storedMessageType
+        : null;
+    final messageType =
+        messageTypeIndex != null &&
             messageTypeIndex >= 0 &&
             messageTypeIndex < MessageType.values.length
         ? MessageType.values[messageTypeIndex]
@@ -100,8 +120,8 @@ class ChatMessage {
       conversationId: map['conversation_id'],
       locationResults: map['location_results'] != null
           ? (jsonDecode(map['location_results']) as List)
-              .map((item) => PlaceResult.fromStoredJson(item))
-              .toList()
+                .map((item) => PlaceResult.fromStoredJson(item))
+                .toList()
           : null,
       messageType: messageType,
     );
@@ -114,13 +134,14 @@ class ChatMessage {
       'conversation_id': conversationUuid,
       'content': message,
       'is_ai': !isUserMessage, // Invert for Supabase
-      'image_urls': imageUrls, // Array of URLs
+      'image_urls': imageUrls, // Remote URLs/private Storage references
       'metadata': {
         'is_welcome_message': isWelcomeMessage ?? false,
         'message_type': messageType.name,
         if (locationResults != null)
-          'location_results':
-              locationResults!.map((result) => result.toJson()).toList(),
+          'location_results': locationResults!
+              .map((result) => result.toJson())
+              .toList(),
       },
       'created_at': timestamp,
     };
@@ -137,9 +158,7 @@ class ChatMessage {
         : const <String, dynamic>{};
     final messageTypeName = metadata['message_type'] as String?;
     final messageType = MessageType.values
-        .where(
-          (value) => value.name == messageTypeName,
-        )
+        .where((value) => value.name == messageTypeName)
         .firstOrNull;
     final storedLocations = metadata['location_results'];
 
@@ -156,8 +175,8 @@ class ChatMessage {
       isWelcomeMessage: metadata['is_welcome_message'] as bool? ?? false,
       locationResults: storedLocations is List
           ? storedLocations
-              .map((item) => PlaceResult.fromStoredJson(item))
-              .toList()
+                .map((item) => PlaceResult.fromStoredJson(item))
+                .toList()
           : null,
       messageType: messageType ?? MessageType.normal,
     );

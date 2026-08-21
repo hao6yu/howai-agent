@@ -64,7 +64,6 @@ import '../services/file_service.dart';
 import '../services/location_service.dart';
 import '../services/sync_service.dart';
 import '../services/id_mapping_service.dart';
-import '../services/supabase_service.dart';
 import '../services/device_timezone_service.dart';
 import '../widgets/place_result_widget.dart';
 import '../services/chat_integration_helper.dart';
@@ -88,10 +87,7 @@ import '../core/accessibility/motion_preferences.dart';
 class AiChatScreen extends StatefulWidget {
   final VoidCallback? onNavigateToGuide;
 
-  const AiChatScreen({
-    super.key,
-    this.onNavigateToGuide,
-  });
+  const AiChatScreen({super.key, this.onNavigateToGuide});
 
   @override
   State<AiChatScreen> createState() => _AiChatScreenState();
@@ -285,26 +281,23 @@ class _AiChatScreenState extends State<AiChatScreen>
   // Setup real-time sync for the current conversation
   void _setupRealtimeSync() async {
     try {
-      final conversationProvider =
-          Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider = Provider.of<ConversationProvider>(
+        context,
+        listen: false,
+      );
       final currentConv = conversationProvider.selectedConversation;
 
       if (currentConv?.id != null) {
-        final currentConvId = currentConv!.id!;
-        // Get the UUID for this conversation
-        final idMapping = IDMappingService();
-        final user = SupabaseService().currentUser;
-        if (user == null || user.isAnonymous) return;
-        await idMapping.initialize(user.id);
-        final conversationUuid = idMapping.getConversationUUID(currentConvId);
-
+        final conversationUuid = await SyncService().watchLocalConversation(
+          currentConv!.id!,
+        );
         if (conversationUuid != null) {
-          // Subscribe to real-time updates for this conversation
-          final syncService = SyncService();
-          await syncService.watchConversation(conversationUuid);
           debugPrint(
-              '[AIChatScreen] Subscribed to real-time updates for conversation: $conversationUuid');
+            '[AIChatScreen] Subscribed to real-time updates for conversation: $conversationUuid',
+          );
         }
+      } else {
+        await SyncService().stopWatchingConversation();
       }
     } catch (e) {
       debugPrint('[AIChatScreen] Error setting up real-time sync (silent): $e');
@@ -314,14 +307,17 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Get showcase data for a specific feature ID
   ShowcaseFeature? _getShowcaseFeature(String featureId) {
-    final features =
-        FeatureShowcaseService.getFeaturesForCurrentVersion(context);
-    return features.firstWhere((feature) => feature.id == featureId,
-        orElse: () => ShowcaseFeature(
-              id: featureId,
-              title: featureId,
-              description: featureId,
-            ));
+    final features = FeatureShowcaseService.getFeaturesForCurrentVersion(
+      context,
+    );
+    return features.firstWhere(
+      (feature) => feature.id == featureId,
+      orElse: () => ShowcaseFeature(
+        id: featureId,
+        title: featureId,
+        description: featureId,
+      ),
+    );
   }
 
   Future<void> _initializeDeviceTTS() async {
@@ -359,8 +355,10 @@ class _AiChatScreenState extends State<AiChatScreen>
   Future<void> _applyPremiumVoiceDefaultsIfNeeded() async {
     if (!mounted) return;
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final subscriptionService =
-        Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
     await settings.applyPremiumVoiceDefaultsIfNeeded(
       isPremium: subscriptionService.isPremium,
     );
@@ -495,8 +493,10 @@ class _AiChatScreenState extends State<AiChatScreen>
   }
 
   Future<void> _loadMessages({bool initial = true}) async {
-    final conversationProvider =
-        Provider.of<ConversationProvider>(context, listen: false);
+    final conversationProvider = Provider.of<ConversationProvider>(
+      context,
+      listen: false,
+    );
     final selectedConversation = conversationProvider.selectedConversation;
 
     // If we have a selected conversation, load messages for that conversation
@@ -515,10 +515,10 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   Future<void> _loadMoreMessages() async {
     if (_isLoadingMore || !_hasMore) return;
-    final conversationId =
-        Provider.of<ConversationProvider>(context, listen: false)
-            .selectedConversation
-            ?.id;
+    final conversationId = Provider.of<ConversationProvider>(
+      context,
+      listen: false,
+    ).selectedConversation?.id;
     if (conversationId == null) return;
 
     setState(() {
@@ -570,8 +570,10 @@ class _AiChatScreenState extends State<AiChatScreen>
         return;
       }
 
-      final conversationProvider =
-          Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider = Provider.of<ConversationProvider>(
+        context,
+        listen: false,
+      );
       final selectedConversationId =
           conversationProvider.selectedConversation?.id;
 
@@ -581,6 +583,7 @@ class _AiChatScreenState extends State<AiChatScreen>
 
       _lastLoadedConversationId = null;
       _loadMessagesForConversation(selectedConversationId);
+      _setupRealtimeSync();
     });
   }
 
@@ -623,8 +626,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
 
     // NEW: Don't add welcome message on landing page - only add when user starts a conversation
-    final conversationProvider =
-        Provider.of<ConversationProvider>(context, listen: false);
+    final conversationProvider = Provider.of<ConversationProvider>(
+      context,
+      listen: false,
+    );
     if (conversationProvider.selectedConversation == null) {
       return; // Don't add welcome message on landing page
     }
@@ -664,12 +669,16 @@ class _AiChatScreenState extends State<AiChatScreen>
   Future<void> _prepareVoiceDemoPlayer() async {
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     await AudioService.prepareVoiceDemoPlayer(
-        useSpeakerOutput: settings.useSpeakerOutput);
+      useSpeakerOutput: settings.useSpeakerOutput,
+    );
   }
 
   // Start rotating loading messages
-  void _startLoadingMessageRotation(String aiName,
-      {bool isDeepResearch = false, bool isLongWait = false}) {
+  void _startLoadingMessageRotation(
+    String aiName, {
+    bool isDeepResearch = false,
+    bool isLongWait = false,
+  }) {
     _loadingMessageRotationTimer?.cancel();
     _loadingMessageIndex = 0;
 
@@ -684,19 +693,21 @@ class _AiChatScreenState extends State<AiChatScreen>
       index: 0,
     );
 
-    _loadingMessageRotationTimer =
-        Timer.periodic(ChatUiConstants.loadingRotationInterval, (timer) {
-      if (!_isSending || !mounted) {
-        timer.cancel();
-        return;
-      }
-      _loadingMessageIndex = (_loadingMessageIndex + 1) % shuffled.length;
-      _aiLoadingMessage.value = LoadingMessageService.buildMessage(
-        aiName: aiName,
-        shuffledMessages: shuffled,
-        index: _loadingMessageIndex,
-      );
-    });
+    _loadingMessageRotationTimer = Timer.periodic(
+      ChatUiConstants.loadingRotationInterval,
+      (timer) {
+        if (!_isSending || !mounted) {
+          timer.cancel();
+          return;
+        }
+        _loadingMessageIndex = (_loadingMessageIndex + 1) % shuffled.length;
+        _aiLoadingMessage.value = LoadingMessageService.buildMessage(
+          aiName: aiName,
+          shuffledMessages: shuffled,
+          index: _loadingMessageIndex,
+        );
+      },
+    );
   }
 
   // Stop rotating loading messages
@@ -729,8 +740,10 @@ class _AiChatScreenState extends State<AiChatScreen>
         arguments: Map<String, dynamic>.from(rawArguments),
       );
       if (mounted) {
-        final profileProvider =
-            Provider.of<ProfileProvider>(context, listen: false);
+        final profileProvider = Provider.of<ProfileProvider>(
+          context,
+          listen: false,
+        );
         await profileProvider.loadProfiles();
         if (result.displayName != null) {
           setState(() => _currentProfileName = result.displayName);
@@ -814,15 +827,14 @@ class _AiChatScreenState extends State<AiChatScreen>
       return text.replaceAll(titlePattern, '').trim();
     }
 
-    String sanitizeAssistantText(String text) => redactReminderInternals(
-          _stripTitleJson(text),
-          existingReminders,
-        );
+    String sanitizeAssistantText(String text) =>
+        redactReminderInternals(_stripTitleJson(text), existingReminders);
 
     // Helper to extract title from text
     String? _extractTitle(String text) {
-      final titleMatch =
-          RegExp(r'\{"title"\s*:\s*"([^"]+)"\}').firstMatch(text);
+      final titleMatch = RegExp(
+        r'\{"title"\s*:\s*"([^"]+)"\}',
+      ).firstMatch(text);
       return titleMatch?.group(1);
     }
 
@@ -875,12 +887,14 @@ class _AiChatScreenState extends State<AiChatScreen>
             if (displayText.trim().isNotEmpty) {
               // Resolve placeholder index by timestamp so list shifts do not
               // cause updates/removals to target the wrong message.
-              int placeholderIndex = _messages.lastIndexWhere((m) =>
-                  !m.isUserMessage &&
-                  m.id == null &&
-                  m.timestamp == timestamp &&
-                  (m.conversationId == conversationId ||
-                      m.conversationId == null));
+              int placeholderIndex = _messages.lastIndexWhere(
+                (m) =>
+                    !m.isUserMessage &&
+                    m.id == null &&
+                    m.timestamp == timestamp &&
+                    (m.conversationId == conversationId ||
+                        m.conversationId == null),
+              );
 
               if (!_streamingMessageAdded || placeholderIndex == -1) {
                 // First real content - add the message to UI
@@ -913,9 +927,10 @@ class _AiChatScreenState extends State<AiChatScreen>
                 final uiUpdateInterval = displayText.length > 8000
                     ? const Duration(milliseconds: 320)
                     : displayText.length > 4000
-                        ? const Duration(milliseconds: 220)
-                        : const Duration(milliseconds: 80);
-                final shouldUpdateUi = lastUiUpdateAt == null ||
+                    ? const Duration(milliseconds: 220)
+                    : const Duration(milliseconds: 80);
+                final shouldUpdateUi =
+                    lastUiUpdateAt == null ||
                     now.difference(lastUiUpdateAt!) >= uiUpdateInterval;
                 final isTextChanged = displayText != lastRenderedText;
 
@@ -934,7 +949,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                   lastRenderedText = displayText;
                   lastUiUpdateAt = now;
 
-                  final shouldAutoScroll = lastAutoScrollAt == null ||
+                  final shouldAutoScroll =
+                      lastAutoScrollAt == null ||
                       now.difference(lastAutoScrollAt!) >= autoScrollInterval;
                   if (shouldAutoScroll && shouldFollowStream) {
                     lastAutoScrollAt = now;
@@ -966,12 +982,14 @@ class _AiChatScreenState extends State<AiChatScreen>
             onStreamError?.call(event);
             // Remove any leftover temporary streaming assistant rows.
             setState(() {
-              _messages.removeWhere((m) =>
-                  !m.isUserMessage &&
-                  m.id == null &&
-                  (m.timestamp == timestamp ||
-                      m.conversationId == conversationId ||
-                      m.conversationId == null));
+              _messages.removeWhere(
+                (m) =>
+                    !m.isUserMessage &&
+                    m.id == null &&
+                    (m.timestamp == timestamp ||
+                        m.conversationId == conversationId ||
+                        m.conversationId == null),
+              );
             });
             setState(() {
               _streamingMessageIndex = null;
@@ -987,12 +1005,14 @@ class _AiChatScreenState extends State<AiChatScreen>
         final shouldClearSending =
             _currentRequestId == requestId || _requestCancelled;
         setState(() {
-          _messages.removeWhere((m) =>
-              !m.isUserMessage &&
-              m.id == null &&
-              (m.timestamp == timestamp ||
-                  m.conversationId == conversationId ||
-                  m.conversationId == null));
+          _messages.removeWhere(
+            (m) =>
+                !m.isUserMessage &&
+                m.id == null &&
+                (m.timestamp == timestamp ||
+                    m.conversationId == conversationId ||
+                    m.conversationId == null),
+          );
           _streamingMessageIndex = null;
           _streamingMessageAdded = false;
           _activeStreamingMessageTimestamp = null;
@@ -1008,11 +1028,13 @@ class _AiChatScreenState extends State<AiChatScreen>
 
       // Ensure the latest streamed text is rendered before the temporary
       // message is replaced by the persisted row.
-      final finalPlaceholderIndex = _messages.lastIndexWhere((m) =>
-          !m.isUserMessage &&
-          m.id == null &&
-          m.timestamp == timestamp &&
-          (m.conversationId == conversationId || m.conversationId == null));
+      final finalPlaceholderIndex = _messages.lastIndexWhere(
+        (m) =>
+            !m.isUserMessage &&
+            m.id == null &&
+            m.timestamp == timestamp &&
+            (m.conversationId == conversationId || m.conversationId == null),
+      );
       if (finalPlaceholderIndex != -1 &&
           cleanedText.trim().isNotEmpty &&
           cleanedText != lastRenderedText) {
@@ -1046,12 +1068,14 @@ class _AiChatScreenState extends State<AiChatScreen>
       print('[ChatScreen] Streaming exception: $e');
       // Remove any leftover temporary streaming assistant rows.
       setState(() {
-        _messages.removeWhere((m) =>
-            !m.isUserMessage &&
-            m.id == null &&
-            (m.timestamp == timestamp ||
-                m.conversationId == conversationId ||
-                m.conversationId == null));
+        _messages.removeWhere(
+          (m) =>
+              !m.isUserMessage &&
+              m.id == null &&
+              (m.timestamp == timestamp ||
+                  m.conversationId == conversationId ||
+                  m.conversationId == null),
+        );
       });
       setState(() {
         _streamingMessageIndex = null;
@@ -1063,11 +1087,15 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
   }
 
-  Future<void> _sendMessage(String text,
-      [List<XFile>? images, List<PlatformFile>? files]) async {
+  Future<void> _sendMessage(
+    String text, [
+    List<XFile>? images,
+    List<PlatformFile>? files,
+  ]) async {
     if (text.trim().isEmpty &&
         (images == null || images.isEmpty) &&
-        (files == null || files.isEmpty)) return;
+        (files == null || files.isEmpty))
+      return;
 
     final appLocale = Localizations.localeOf(context).toLanguageTag();
 
@@ -1111,8 +1139,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
 
     // Get subscription service
-    final subscriptionService =
-        Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
     // Check image analysis limits if images are present (but don't consume usage yet)
     if (images != null && images.isNotEmpty) {
       if (!subscriptionService.isPremium) {
@@ -1134,8 +1164,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     _currentRequestId = requestId;
 
     // Clear any existing message lists before starting a new conversation
-    if (Provider.of<ConversationProvider>(context, listen: false)
-            .selectedConversation ==
+    if (Provider.of<ConversationProvider>(
+          context,
+          listen: false,
+        ).selectedConversation ==
         null) {
       setState(() {
         _messages = [];
@@ -1145,8 +1177,10 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
 
     // Ensure a conversation exists before saving a message
-    final conversationProvider =
-        Provider.of<ConversationProvider>(context, listen: false);
+    final conversationProvider = Provider.of<ConversationProvider>(
+      context,
+      listen: false,
+    );
     bool isNewConversation = conversationProvider.selectedConversation == null;
     final shouldGenerateAiTitle = isNewConversation;
     int? conversationId = isNewConversation
@@ -1164,7 +1198,9 @@ class _AiChatScreenState extends State<AiChatScreen>
             : AppLocalizations.of(context)!.newConversation,
       );
       await conversationProvider.createConversation(
-          provisionalTitle, _currentProfileId);
+        provisionalTitle,
+        _currentProfileId,
+      );
       conversationId = conversationProvider.selectedConversation?.id;
       if (conversationId == null) {
         setState(() {
@@ -1176,17 +1212,21 @@ class _AiChatScreenState extends State<AiChatScreen>
         return;
       }
       _lastLoadedConversationId = conversationId;
+      _setupRealtimeSync();
       isNewConversation = false;
     }
 
     // Get the current settings and profile from the providers
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    final profileProvider =
-        Provider.of<ProfileProvider>(context, listen: false);
+    final profileProvider = Provider.of<ProfileProvider>(
+      context,
+      listen: false,
+    );
 
     // Get the latest profile name and characteristics
-    final currentProfile =
-        await _databaseService.getProfile(_currentProfileId!);
+    final currentProfile = await _databaseService.getProfile(
+      _currentProfileId!,
+    );
     final currentProfileName = currentProfile?.name ?? 'User';
     final userCharacteristics = currentProfile?.characteristics ?? {};
 
@@ -1220,42 +1260,51 @@ class _AiChatScreenState extends State<AiChatScreen>
     // Filter messages by conversation ID before building history
     final conversationMessages = conversationId == null
         ? _messages
-            .where((msg) => msg.conversationId == null)
-            .toList() // For new conversations, only use messages without conversation ID
+              .where((msg) => msg.conversationId == null)
+              .toList() // For new conversations, only use messages without conversation ID
         : _messages
-            .where((msg) => msg.conversationId == conversationId)
-            .toList(); // For existing conversations, only use messages from this conversation
+              .where((msg) => msg.conversationId == conversationId)
+              .toList(); // For existing conversations, only use messages from this conversation
 
     // Add the current user message to the filtered list if not already included
     // This ensures the current message is part of the history even before it's added to _messages
-    if (!conversationMessages.any((msg) =>
-        msg.isUserMessage &&
-        msg.message == userMessage.message &&
-        msg.timestamp == userMessage.timestamp)) {
+    if (!conversationMessages.any(
+      (msg) =>
+          msg.isUserMessage &&
+          msg.message == userMessage.message &&
+          msg.timestamp == userMessage.timestamp,
+    )) {
       conversationMessages.add(userMessage);
     }
 
     // Sort messages by timestamp to ensure proper order
-    conversationMessages.sort((a, b) =>
-        DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)));
+    conversationMessages.sort(
+      (a, b) =>
+          DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)),
+    );
 
     final history = conversationMessages
         .skip(math.max(0, conversationMessages.length - 50))
-        .map((msg) => {
-              'role': msg.isUserMessage ? 'user' : 'assistant',
-              'content': msg.message,
-            })
+        .map(
+          (msg) => {
+            'role': msg.isUserMessage ? 'user' : 'assistant',
+            'content': msg.message,
+          },
+        )
         .toList();
 
     // Load AI personality configuration first to get the AI name
     dynamic aiPersonality;
     String aiName = 'HowAI'; // Default fallback matching createDefault()
     if (_currentProfileId != null) {
-      final personalityProvider =
-          Provider.of<AIPersonalityProvider>(context, listen: false);
+      final personalityProvider = Provider.of<AIPersonalityProvider>(
+        context,
+        listen: false,
+      );
       await personalityProvider.loadPersonalityForProfile(_currentProfileId!);
-      aiPersonality =
-          personalityProvider.getPersonalityForProfile(_currentProfileId!);
+      aiPersonality = personalityProvider.getPersonalityForProfile(
+        _currentProfileId!,
+      );
       if (aiPersonality != null && aiPersonality.aiName.isNotEmpty) {
         aiName = aiPersonality.aiName;
       }
@@ -1274,10 +1323,12 @@ class _AiChatScreenState extends State<AiChatScreen>
     // Add message to UI state AFTER building the history, but check for duplicates
     setState(() {
       // Check if this exact message already exists to prevent duplicates
-      bool messageExists = _messages.any((existing) =>
-          existing.message == userMessage.message &&
-          existing.timestamp == userMessage.timestamp &&
-          existing.isUserMessage == userMessage.isUserMessage);
+      bool messageExists = _messages.any(
+        (existing) =>
+            existing.message == userMessage.message &&
+            existing.timestamp == userMessage.timestamp &&
+            existing.isUserMessage == userMessage.isUserMessage,
+      );
 
       if (!messageExists) {
         _messages.add(userMessage);
@@ -1298,10 +1349,12 @@ class _AiChatScreenState extends State<AiChatScreen>
       if (userMessageId != null) {
         setState(() {
           // Find the message in our state and update it with the ID from DB
-          int index = _messages.indexWhere((msg) =>
-              msg.isUserMessage &&
-              msg.message == text &&
-              msg.timestamp == userMessage.timestamp);
+          int index = _messages.indexWhere(
+            (msg) =>
+                msg.isUserMessage &&
+                msg.message == text &&
+                msg.timestamp == userMessage.timestamp,
+          );
           if (index != -1) {
             // Create a new message with the ID
             final updatedMessage = ChatMessage(
@@ -1354,8 +1407,10 @@ class _AiChatScreenState extends State<AiChatScreen>
       // AI personality was already loaded earlier for the loading message
 
       // Check if we have recent places data that could be relevant for this query
-      String? placesContext =
-          _getRecentPlacesContext(text, conversationMessages);
+      String? placesContext = _getRecentPlacesContext(
+        text,
+        conversationMessages,
+      );
 
       // If user is asking for analysis but no places found, add a specific instruction
       String finalMessage = text;
@@ -1364,7 +1419,8 @@ class _AiChatScreenState extends State<AiChatScreen>
       } else {
         // Check if user is asking for place analysis without having place data
         final lowerText = text.toLowerCase();
-        final isPlaceAnalysisRequest = (lowerText.contains('suggest') ||
+        final isPlaceAnalysisRequest =
+            (lowerText.contains('suggest') ||
                 lowerText.contains('recommend') ||
                 lowerText.contains('best') ||
                 lowerText.contains('top')) &&
@@ -1383,18 +1439,21 @@ class _AiChatScreenState extends State<AiChatScreen>
         subscriptionService: subscriptionService,
       );
 
-      final reasoningEffortOverride =
-          subscriptionService.isPremium ? _thinkingLevel.reasoningEffort : null;
+      final reasoningEffortOverride = subscriptionService.isPremium
+          ? _thinkingLevel.reasoningEffort
+          : null;
 
       final reminderProvider = Provider.of<ReminderProvider>(
         context,
         listen: false,
       );
-      final wantsFreshReminderState = isExistingReminderUpdateRequest(text) ||
+      final wantsFreshReminderState =
+          isExistingReminderUpdateRequest(text) ||
           isExistingReminderResumeRequest(text);
       await reminderProvider.ensureInitialized(force: wantsFreshReminderState);
       final allowReminderActions = reminderProvider.isAvailable;
-      final allowAutomationActions = subscriptionService.isPremium &&
+      final allowAutomationActions =
+          subscriptionService.isPremium &&
           await _automationService.checkAvailability();
       final allowMarketAutomationActions =
           allowAutomationActions && _automationService.marketBriefingsAvailable;
@@ -1404,20 +1463,20 @@ class _AiChatScreenState extends State<AiChatScreen>
       final pendingActionProposal = _pendingActionProposal;
       final pendingReminderProposal =
           pendingActionProposal?.actionType == 'reminders_create'
-              ? pendingActionProposal
-              : null;
+          ? pendingActionProposal
+          : null;
       final pendingAutomationProposal =
           pendingActionProposal?.actionType == 'automations_create'
-              ? pendingActionProposal
-              : null;
+          ? pendingActionProposal
+          : null;
       final existingReminders = allowReminderActions
           ? reminderProvider.reminders
-              .where(
-                (reminder) => reminder.status != ReminderStatus.completed,
-              )
-              .take(30)
-              .map((reminder) => reminder.agentUpdateContext())
-              .toList(growable: false)
+                .where(
+                  (reminder) => reminder.status != ReminderStatus.completed,
+                )
+                .take(30)
+                .map((reminder) => reminder.agentUpdateContext())
+                .toList(growable: false)
           : <Map<String, dynamic>>[];
 
       // Hosted tools are available in both response paths. OpenAI infers
@@ -1526,16 +1585,19 @@ class _AiChatScreenState extends State<AiChatScreen>
             await subscriptionService.tryUseDocumentAnalysis();
             // Show usage reminder for free users
             final remaining = subscriptionService.remainingDocumentAnalysis;
-            final settings =
-                Provider.of<SettingsProvider>(context, listen: false);
+            final settings = Provider.of<SettingsProvider>(
+              context,
+              listen: false,
+            );
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
                       "Document analysis used. You have $remaining uses remaining.",
-                      style:
-                          TextStyle(fontSize: settings.getScaledFontSize(14)),
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(14),
+                      ),
                     ),
                     duration: Duration(seconds: 2),
                     backgroundColor: Colors.blue,
@@ -1604,27 +1666,31 @@ class _AiChatScreenState extends State<AiChatScreen>
           );
 
           // Defensive: guarantee the just-sent user message is present in the new conversation UI.
-          final hasCurrentUserMessage = _messages.any((m) =>
-              m.isUserMessage &&
-              m.conversationId == conversationId &&
-              m.timestamp == userMessage.timestamp &&
-              m.message == userMessage.message);
+          final hasCurrentUserMessage = _messages.any(
+            (m) =>
+                m.isUserMessage &&
+                m.conversationId == conversationId &&
+                m.timestamp == userMessage.timestamp &&
+                m.message == userMessage.message,
+          );
           if (!hasCurrentUserMessage) {
             setState(() {
-              _messages.add(ChatMessage(
-                id: userMessageId,
-                message: userMessage.message,
-                isUserMessage: true,
-                timestamp: userMessage.timestamp,
-                profileId: userMessage.profileId,
-                imagePaths: userMessage.imagePaths,
-                imageUrls: userMessage.imageUrls,
-                filePaths: userMessage.filePaths,
-                conversationId: conversationId,
-                isWelcomeMessage: userMessage.isWelcomeMessage,
-                locationResults: userMessage.locationResults,
-                messageType: userMessage.messageType,
-              ));
+              _messages.add(
+                ChatMessage(
+                  id: userMessageId,
+                  message: userMessage.message,
+                  isUserMessage: true,
+                  timestamp: userMessage.timestamp,
+                  profileId: userMessage.profileId,
+                  imagePaths: userMessage.imagePaths,
+                  imageUrls: userMessage.imageUrls,
+                  filePaths: userMessage.filePaths,
+                  conversationId: conversationId,
+                  isWelcomeMessage: userMessage.isWelcomeMessage,
+                  locationResults: userMessage.locationResults,
+                  messageType: userMessage.messageType,
+                ),
+              );
             });
           }
         } else {
@@ -1686,9 +1752,10 @@ class _AiChatScreenState extends State<AiChatScreen>
             }
           } catch (error) {
             if (aiText.trim().isEmpty) {
-              aiText = actionToolCall['name']
-                          ?.toString()
-                          .startsWith('automations_create_') ==
+              aiText =
+                  actionToolCall['name']?.toString().startsWith(
+                        'automations_create_',
+                      ) ==
                       true
                   ? 'I could not prepare that Automation. Please check the schedule and try again.'
                   : 'I could not prepare that reminder. Please check the time and try again.';
@@ -1724,30 +1791,34 @@ class _AiChatScreenState extends State<AiChatScreen>
           // IMPORTANT: Also check file paths to avoid treating messages with different files as duplicates
           final serializedGeneratedFiles =
               generatedFiles != null && generatedFiles.isNotEmpty
-                  ? jsonEncode(generatedFiles)
-                  : null;
+              ? jsonEncode(generatedFiles)
+              : null;
           final serializedGeneratedImages =
               generatedImages != null && generatedImages.isNotEmpty
-                  ? jsonEncode(generatedImages)
-                  : null;
-          final aiMessageExists = existingConversationMessages.any((existing) =>
-              !existing.isUserMessage && // Only check AI messages
-              existing.message == aiText && // Same content
-              existing.conversationId == conversationId && // Same conversation
-              // Also compare file paths
-              (((existing.filePaths == null || existing.filePaths!.isEmpty) &&
-                      (generatedFiles == null || generatedFiles.isEmpty)) ||
-                  (existing.filePaths != null &&
-                      generatedFiles != null &&
-                      jsonEncode(existing.filePaths) ==
-                          serializedGeneratedFiles)) &&
-              // Also compare image paths
-              (((existing.imagePaths == null || existing.imagePaths!.isEmpty) &&
-                      (generatedImages == null || generatedImages.isEmpty)) ||
-                  (existing.imagePaths != null &&
-                      generatedImages != null &&
-                      jsonEncode(existing.imagePaths) ==
-                          serializedGeneratedImages)));
+              ? jsonEncode(generatedImages)
+              : null;
+          final aiMessageExists = existingConversationMessages.any(
+            (existing) =>
+                !existing.isUserMessage && // Only check AI messages
+                existing.message == aiText && // Same content
+                existing.conversationId ==
+                    conversationId && // Same conversation
+                // Also compare file paths
+                (((existing.filePaths == null || existing.filePaths!.isEmpty) &&
+                        (generatedFiles == null || generatedFiles.isEmpty)) ||
+                    (existing.filePaths != null &&
+                        generatedFiles != null &&
+                        jsonEncode(existing.filePaths) ==
+                            serializedGeneratedFiles)) &&
+                // Also compare image paths
+                (((existing.imagePaths == null ||
+                            existing.imagePaths!.isEmpty) &&
+                        (generatedImages == null || generatedImages.isEmpty)) ||
+                    (existing.imagePaths != null &&
+                        generatedImages != null &&
+                        jsonEncode(existing.imagePaths) ==
+                            serializedGeneratedImages)),
+          );
 
           if (aiMessageExists) {
             //// print('[ChatScreen] Detected duplicate AI message - skipping creation');
@@ -1755,10 +1826,12 @@ class _AiChatScreenState extends State<AiChatScreen>
             // Just update state from database, but don't add a new message
             setState(() {
               if (streamTimestamp != null && streamTimestamp.isNotEmpty) {
-                _messages.removeWhere((existing) =>
-                    !existing.isUserMessage &&
-                    existing.id == null &&
-                    existing.timestamp == streamTimestamp);
+                _messages.removeWhere(
+                  (existing) =>
+                      !existing.isUserMessage &&
+                      existing.id == null &&
+                      existing.timestamp == streamTimestamp,
+                );
               }
               _streamingMessageIndex = null;
               _streamingMessageAdded = false;
@@ -1809,7 +1882,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 imagePaths: generatedImages,
                 filePaths: generatedFiles,
                 messageType: MessageType.normal,
-              )
+              ),
             ];
             //// print('[ChatScreen] Created fallback message with filePaths: ${messagesToAdd[0].filePaths}');
           }
@@ -1860,19 +1933,23 @@ class _AiChatScreenState extends State<AiChatScreen>
             // This guarantees the persisted assistant message does not coexist with
             // any stream placeholder residue.
             if (streamTimestamp != null && streamTimestamp.isNotEmpty) {
-              _messages.removeWhere((existing) =>
-                  !existing.isUserMessage &&
-                  existing.id == null &&
-                  (existing.conversationId == conversationId ||
-                      existing.conversationId == null ||
-                      existing.timestamp == streamTimestamp));
+              _messages.removeWhere(
+                (existing) =>
+                    !existing.isUserMessage &&
+                    existing.id == null &&
+                    (existing.conversationId == conversationId ||
+                        existing.conversationId == null ||
+                        existing.timestamp == streamTimestamp),
+              );
             } else {
               // Additional safeguard for non-streaming path.
-              _messages.removeWhere((existing) =>
-                  !existing.isUserMessage &&
-                  existing.id == null &&
-                  (existing.conversationId == conversationId ||
-                      existing.conversationId == null));
+              _messages.removeWhere(
+                (existing) =>
+                    !existing.isUserMessage &&
+                    existing.id == null &&
+                    (existing.conversationId == conversationId ||
+                        existing.conversationId == null),
+              );
             }
 
             // Remove matching temporary assistant messages (typically streaming placeholders)
@@ -1889,11 +1966,12 @@ class _AiChatScreenState extends State<AiChatScreen>
 
                 final sameText =
                     existing.message.trim() == persisted.message.trim();
-                final sameFiles = jsonEncode(existing.filePaths ?? const []) ==
+                final sameFiles =
+                    jsonEncode(existing.filePaths ?? const []) ==
                     jsonEncode(persisted.filePaths ?? const []);
                 final sameImages =
                     jsonEncode(existing.imagePaths ?? const []) ==
-                        jsonEncode(persisted.imagePaths ?? const []);
+                    jsonEncode(persisted.imagePaths ?? const []);
 
                 return sameText && sameFiles && sameImages;
               });
@@ -1969,16 +2047,16 @@ class _AiChatScreenState extends State<AiChatScreen>
 
             if (subscriptionService.isPremium &&
                 !settings.premiumUsesSystemTts) {
-              final canUseElevenLabs =
-                  await subscriptionService.tryUseElevenLabsTTS();
+              final canUseElevenLabs = await subscriptionService
+                  .tryUseElevenLabsTTS();
               if (canUseElevenLabs) {
                 audioPath =
                     await ChatSpeechService.generateAndPlayAudioForMessage(
-                  message: aiText,
-                  voiceId: settings.selectedVoiceId,
-                  elevenLabsService: _elevenLabsService,
-                  playAudio: _playAudio,
-                );
+                      message: aiText,
+                      voiceId: settings.selectedVoiceId,
+                      elevenLabsService: _elevenLabsService,
+                      playAudio: _playAudio,
+                    );
               } else {
                 audioPath = await _generateAndPlayDeviceTTS(aiText);
               }
@@ -1999,22 +2077,30 @@ class _AiChatScreenState extends State<AiChatScreen>
             _currentProfileId != null &&
             conversationId != null &&
             subscriptionService.isPremium) {
-          final memoryMessages = history
-              .where((entry) =>
-                  (entry['role'] == 'user' || entry['role'] == 'assistant') &&
-                  entry['content'] is String)
-              .map((entry) => <String, String>{
-                    'role': entry['role'] as String,
-                    'content': entry['content'] as String,
-                  })
-              .toList(growable: true)
-            ..add({'role': 'assistant', 'content': aiText});
-          unawaited(PersonalMemoryService().learnFromConversation(
-            source: MemoryLearningSource.chat,
-            sourceId: conversationId.toString(),
-            profileId: _currentProfileId!,
-            messages: memoryMessages,
-          ));
+          final memoryMessages =
+              history
+                  .where(
+                    (entry) =>
+                        (entry['role'] == 'user' ||
+                            entry['role'] == 'assistant') &&
+                        entry['content'] is String,
+                  )
+                  .map(
+                    (entry) => <String, String>{
+                      'role': entry['role'] as String,
+                      'content': entry['content'] as String,
+                    },
+                  )
+                  .toList(growable: true)
+                ..add({'role': 'assistant', 'content': aiText});
+          unawaited(
+            PersonalMemoryService().learnFromConversation(
+              source: MemoryLearningSource.chat,
+              sourceId: conversationId.toString(),
+              profileId: _currentProfileId!,
+              messages: memoryMessages,
+            ),
+          );
           _userTurnsSinceLastMemoryReview = 0;
         }
       } else {
@@ -2027,8 +2113,8 @@ class _AiChatScreenState extends State<AiChatScreen>
           final l10n = AppLocalizations.of(context)!;
           final errorMessage = switch (streamingFailure?.errorCode) {
             openAiErrorCodeAnonymousLimit => l10n.guestAiLimitReached,
-            openAiErrorCodeUsageLimit || openAiErrorCodeRateLimit =>
-              l10n.aiUsageLimitReached,
+            openAiErrorCodeUsageLimit ||
+            openAiErrorCodeRateLimit => l10n.aiUsageLimitReached,
             _ => l10n.sorryCouldNotRespond,
           };
           _showErrorSnackBar(
@@ -2073,13 +2159,17 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Handle location query method
   Future<void> _handleLocationQuery(
-      String originalText, LocationQueryInfo queryInfo) async {
+    String originalText,
+    LocationQueryInfo queryInfo,
+  ) async {
     try {
       //// print('[LocationQuery] Auto-detected location query: ${queryInfo.query} (category: ${queryInfo.category})');
 
       // Create user message first
-      final conversationProvider =
-          Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider = Provider.of<ConversationProvider>(
+        context,
+        listen: false,
+      );
       int? messageConversationId =
           conversationProvider.selectedConversation?.id;
       bool createdNewConversation = false;
@@ -2090,7 +2180,9 @@ class _AiChatScreenState extends State<AiChatScreen>
         final String searchTitle = "Places Explorer: ${queryInfo.query}";
 
         await conversationProvider.createConversation(
-            searchTitle, _currentProfileId);
+          searchTitle,
+          _currentProfileId,
+        );
         messageConversationId = conversationProvider.selectedConversation?.id;
 
         if (messageConversationId == null) {
@@ -2198,8 +2290,10 @@ class _AiChatScreenState extends State<AiChatScreen>
       //// print('[LocationQuery] Error handling location query: $e');
 
       // Create error message
-      final conversationProvider =
-          Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider = Provider.of<ConversationProvider>(
+        context,
+        listen: false,
+      );
       final errorMessage = ChatMessage(
         message:
             "❌ Sorry, I had trouble searching for ${queryInfo.query} near you. This might be because:\n\n• Location services are disabled\n• Network connectivity issues\n• The search service is temporarily unavailable\n\nPlease check your location settings and try again, or feel free to ask me something else!",
@@ -2276,9 +2370,11 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
 
     final settings = Provider.of<SettingsProvider>(context, listen: false);
-    await AudioService.playAudio(audioPath,
-        useSpeakerOutput: settings.useSpeakerOutput,
-        playbackSpeed: settings.elevenLabsPlaybackSpeed);
+    await AudioService.playAudio(
+      audioPath,
+      useSpeakerOutput: settings.useSpeakerOutput,
+      playbackSpeed: settings.elevenLabsPlaybackSpeed,
+    );
   }
 
   Future<void> _stopAudio() async {
@@ -2357,8 +2453,9 @@ class _AiChatScreenState extends State<AiChatScreen>
         }
       }
 
-      final source =
-          messageIndex != -1 ? _messages[messageIndex] : originalUserMessage;
+      final source = messageIndex != -1
+          ? _messages[messageIndex]
+          : originalUserMessage;
       ChatMessage updatedUserMessage = ChatMessage(
         id: source.id ?? userMessageId,
         message: source.message,
@@ -2377,8 +2474,9 @@ class _AiChatScreenState extends State<AiChatScreen>
       if (updatedUserMessage.id != null) {
         await _databaseService.updateChatMessage(updatedUserMessage);
       } else {
-        final insertedId =
-            await _databaseService.insertChatMessage(updatedUserMessage);
+        final insertedId = await _databaseService.insertChatMessage(
+          updatedUserMessage,
+        );
         updatedUserMessage = ChatMessage(
           id: insertedId,
           message: updatedUserMessage.message,
@@ -2431,8 +2529,10 @@ class _AiChatScreenState extends State<AiChatScreen>
       await _stopDeviceTTS(); // Also stop device TTS
 
       // Get subscription service
-      final subscriptionService =
-          Provider.of<SubscriptionService>(context, listen: false);
+      final subscriptionService = Provider.of<SubscriptionService>(
+        context,
+        listen: false,
+      );
       final settings = Provider.of<SettingsProvider>(context, listen: false);
       await settings.applyPremiumVoiceDefaultsIfNeeded(
         isPremium: subscriptionService.isPremium,
@@ -2515,8 +2615,9 @@ class _AiChatScreenState extends State<AiChatScreen>
     if (proposal == null || _pendingActionBusy) return;
     setState(() => _pendingActionBusy = true);
     try {
-      final channel =
-          _isVoiceInputMode ? AgentActionOrigin.voice : AgentActionOrigin.text;
+      final channel = _isVoiceInputMode
+          ? AgentActionOrigin.voice
+          : AgentActionOrigin.text;
       final isAutomation = proposal.actionType.startsWith('automations_');
       final result = isAutomation
           ? await _automationService.decide(
@@ -2525,10 +2626,10 @@ class _AiChatScreenState extends State<AiChatScreen>
               channel: channel,
             )
           : await context.read<ReminderProvider>().decide(
-                proposal,
-                decision,
-                channel: channel,
-              );
+              proposal,
+              decision,
+              channel: channel,
+            );
       if (!mounted) return;
       if (decision == AgentActionDecision.approved &&
           proposal.actionType == 'reminders_create' &&
@@ -2567,8 +2668,10 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   Future<void> _appendAssistantActionMessage(String text) async {
     if (!mounted) return;
-    final conversationId =
-        context.read<ConversationProvider>().selectedConversation?.id;
+    final conversationId = context
+        .read<ConversationProvider>()
+        .selectedConversation
+        ?.id;
     final timestamp = DateTime.now().toIso8601String();
     final message = ChatMessage(
       message: text,
@@ -2630,10 +2733,13 @@ class _AiChatScreenState extends State<AiChatScreen>
               // This avoids showing historical messages without conversation IDs
               if (_isSending) {
                 displayMessages = _messages
-                    .where((msg) =>
-                        msg.conversationId == null &&
-                        DateTime.parse(msg.timestamp).isAfter(
-                            DateTime.now().subtract(Duration(minutes: 5))))
+                    .where(
+                      (msg) =>
+                          msg.conversationId == null &&
+                          DateTime.parse(msg.timestamp).isAfter(
+                            DateTime.now().subtract(Duration(minutes: 5)),
+                          ),
+                    )
                     .toList();
               } else {
                 // No active sending - don't show any messages
@@ -2661,7 +2767,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                 final contentHash = msg.message.hashCode;
                 final timestampHash =
                     DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/
-                        1000; // Round to nearest second
+                    1000; // Round to nearest second
                 key =
                     'content_${contentHash}_${msg.isUserMessage}_${timestampHash}';
               }
@@ -2714,9 +2820,11 @@ class _AiChatScreenState extends State<AiChatScreen>
                       final showcaseData = _getShowcaseFeature('drawer_button');
                       return Showcase(
                         key: _drawerButtonKey,
-                        title: showcaseData?.title ??
+                        title:
+                            showcaseData?.title ??
                             '📋 Conversations & Settings',
-                        description: showcaseData?.description ??
+                        description:
+                            showcaseData?.description ??
                             'Tap here to open the side panel where you can view all your conversations, search through them, and access your settings.',
                         targetBorderRadius: BorderRadius.circular(8),
                         tooltipBackgroundColor: const Color(0xFF8B5CF6),
@@ -2746,8 +2854,10 @@ class _AiChatScreenState extends State<AiChatScreen>
                           onPressed: () {
                             FocusScope.of(context).unfocus();
                             final conversationProvider =
-                                Provider.of<ConversationProvider>(context,
-                                    listen: false);
+                                Provider.of<ConversationProvider>(
+                                  context,
+                                  listen: false,
+                                );
                             conversationProvider.clearSelection();
                           },
                         );
@@ -2770,9 +2880,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                         // Chat messages list
                         Expanded(
                           child: _isLoading
-                              ? const Center(
-                                  child: CircularProgressIndicator(),
-                                )
+                              ? const Center(child: CircularProgressIndicator())
                               : Stack(
                                   children: [
                                     // When no conversation is selected or displaying messages, show welcome message
@@ -2780,185 +2888,188 @@ class _AiChatScreenState extends State<AiChatScreen>
                                             displayMessages.isEmpty
                                         ? _buildWelcomeScreen()
                                         : displayMessages.isEmpty
-                                            ? Center(
-                                                child:
-                                                    Consumer<SettingsProvider>(
-                                                  builder: (context, settings,
-                                                      child) {
+                                        ? Center(
+                                            child: Consumer<SettingsProvider>(
+                                              builder:
+                                                  (context, settings, child) {
                                                     return Text(
                                                       AppLocalizations.of(
-                                                              context)!
-                                                          .noConversationsYet,
+                                                        context,
+                                                      )!.noConversationsYet,
                                                       style: TextStyle(
                                                         color: Colors
-                                                            .grey.shade600,
+                                                            .grey
+                                                            .shade600,
                                                         fontSize: settings
                                                             .getScaledFontSize(
-                                                                16),
+                                                              16,
+                                                            ),
                                                       ),
                                                     );
                                                   },
-                                                ),
-                                              )
-                                            : ListView.builder(
-                                                controller: _scrollController,
-                                                keyboardDismissBehavior:
-                                                    ScrollViewKeyboardDismissBehavior
-                                                        .onDrag,
-                                                padding: EdgeInsets.fromLTRB(
-                                                  16,
-                                                  20,
-                                                  16,
-                                                  20,
-                                                ),
-                                                itemCount:
-                                                    displayMessages.length,
-                                                reverse:
-                                                    false, // Keep chronological order
-                                                physics:
-                                                    const AlwaysScrollableScrollPhysics(), // Make sure scrolling is always enabled
-                                                itemBuilder: (context, index) {
-                                                  final message =
-                                                      displayMessages[index];
-                                                  final messageKey = message
-                                                          .id ??
-                                                      Object.hash(
-                                                        message.timestamp,
-                                                        message.isUserMessage,
-                                                        message.conversationId,
-                                                      );
+                                            ),
+                                          )
+                                        : ListView.builder(
+                                            controller: _scrollController,
+                                            keyboardDismissBehavior:
+                                                ScrollViewKeyboardDismissBehavior
+                                                    .onDrag,
+                                            padding: EdgeInsets.fromLTRB(
+                                              16,
+                                              20,
+                                              16,
+                                              20,
+                                            ),
+                                            itemCount: displayMessages.length,
+                                            reverse:
+                                                false, // Keep chronological order
+                                            physics:
+                                                const AlwaysScrollableScrollPhysics(), // Make sure scrolling is always enabled
+                                            itemBuilder: (context, index) {
+                                              final message =
+                                                  displayMessages[index];
+                                              final messageKey =
+                                                  message.id ??
+                                                  Object.hash(
+                                                    message.timestamp,
+                                                    message.isUserMessage,
+                                                    message.conversationId,
+                                                  );
 
-                                                  final isStreamingRow =
-                                                      _streamingMessageAdded &&
-                                                          _activeStreamingMessageTimestamp !=
-                                                              null &&
-                                                          !message
-                                                              .isUserMessage &&
-                                                          message.id == null &&
-                                                          message.timestamp ==
-                                                              _activeStreamingMessageTimestamp;
+                                              final isStreamingRow =
+                                                  _streamingMessageAdded &&
+                                                  _activeStreamingMessageTimestamp !=
+                                                      null &&
+                                                  !message.isUserMessage &&
+                                                  message.id == null &&
+                                                  message.timestamp ==
+                                                      _activeStreamingMessageTimestamp;
 
-                                                  // Check if this is a places widget message (has locationResults but no message text)
-                                                  if (message.locationResults !=
-                                                          null &&
-                                                      message.locationResults!
-                                                          .isNotEmpty &&
-                                                      message.message.isEmpty) {
-                                                    // Render places widget at full width as a card with consistent styling
-                                                    return Container(
-                                                      margin: const EdgeInsets
-                                                          .symmetric(
-                                                          vertical: 8,
-                                                          horizontal: 0),
-                                                      child: PlaceResultWidget(
-                                                        places: message
-                                                            .locationResults!,
-                                                        searchQuery:
-                                                            _extractSearchQueryFromPreviousMessage(
-                                                                index),
+                                              // Check if this is a places widget message (has locationResults but no message text)
+                                              if (message.locationResults !=
+                                                      null &&
+                                                  message
+                                                      .locationResults!
+                                                      .isNotEmpty &&
+                                                  message.message.isEmpty) {
+                                                // Render places widget at full width as a card with consistent styling
+                                                return Container(
+                                                  margin:
+                                                      const EdgeInsets.symmetric(
+                                                        vertical: 8,
+                                                        horizontal: 0,
                                                       ),
-                                                    );
-                                                  }
+                                                  child: PlaceResultWidget(
+                                                    places: message
+                                                        .locationResults!,
+                                                    searchQuery:
+                                                        _extractSearchQueryFromPreviousMessage(
+                                                          index,
+                                                        ),
+                                                  ),
+                                                );
+                                              }
 
-                                                  // Regular message rendering
-                                                  return ChatMessageWidget(
-                                                    key: ValueKey(
-                                                        '${messageKey}'),
-                                                    message: message,
-                                                    messageKey: messageKey,
-                                                    forcePlainText:
-                                                        isStreamingRow,
-                                                    isStreaming: isStreamingRow,
-                                                    selectionMode:
-                                                        _selectionMode,
-                                                    selectedMessages:
-                                                        _selectedMessages,
-                                                    onToggleSelection:
-                                                        (int key) {
-                                                      setState(() {
-                                                        if (_selectedMessages
-                                                            .contains(key)) {
-                                                          _selectedMessages
-                                                              .remove(key);
-                                                        } else {
-                                                          _selectedMessages
-                                                              .add(key);
-                                                        }
-                                                      });
-                                                    },
-                                                    onTranslate:
-                                                        (ChatMessage msg) =>
-                                                            _translateMessage(
-                                                                context,
-                                                                msg.message,
-                                                                message: msg),
-                                                    onQuickTranslate: (ChatMessage
-                                                                msg,
-                                                            String
-                                                                targetLanguageCode,
-                                                            String
-                                                                targetLanguageName) =>
-                                                        _performTranslation(
-                                                            context,
-                                                            msg.message,
-                                                            targetLanguageCode,
-                                                            targetLanguageName,
-                                                            message: msg),
-                                                    onSelectTranslationLanguage:
-                                                        (ChatMessage msg) =>
-                                                            _showTranslationLanguageSelector(
-                                                                context,
-                                                                msg.message,
-                                                                message: msg),
-                                                    translationPreferenceVersion:
-                                                        _translationPreferenceVersion,
-                                                    onDelete: _deleteMessage,
-                                                    onShare: null,
-                                                    translatedMessages:
-                                                        _translatedMessages,
-                                                    isPlayingAudio:
-                                                        _currentPlayingMessageId ==
-                                                                message.id &&
-                                                            (_currentPlaybackUsesDeviceTTS
-                                                                ? _isDeviceTTSPlaying
-                                                                : _isPlayingAudio),
-                                                    isPlayingDeviceTts:
-                                                        _currentPlayingMessageId ==
-                                                                message.id &&
-                                                            _currentPlaybackUsesDeviceTTS,
-                                                    onPlayAudio: _playAudio,
-                                                    onSpeakWithHighlight:
-                                                        message.isUserMessage
-                                                            ? null
-                                                            : _speakMessage,
-                                                    onQuickSaveToKnowledgeHub:
-                                                        _quickSaveMessageToKnowledgeHub,
-                                                    onSaveToKnowledgeHub:
-                                                        _saveMessageToKnowledgeHub,
-                                                    onReviewRequested:
-                                                        () async {
-                                                      // Add thank you message when user leaves review
-                                                      final thankYouMessage =
-                                                          ChatIntegrationHelper
-                                                              .createThankYouMessage(
+                                              // Regular message rendering
+                                              return ChatMessageWidget(
+                                                key: ValueKey('${messageKey}'),
+                                                message: message,
+                                                messageKey: messageKey,
+                                                forcePlainText: isStreamingRow,
+                                                isStreaming: isStreamingRow,
+                                                selectionMode: _selectionMode,
+                                                selectedMessages:
+                                                    _selectedMessages,
+                                                onToggleSelection: (int key) {
+                                                  setState(() {
+                                                    if (_selectedMessages
+                                                        .contains(key)) {
+                                                      _selectedMessages.remove(
+                                                        key,
+                                                      );
+                                                    } else {
+                                                      _selectedMessages.add(
+                                                        key,
+                                                      );
+                                                    }
+                                                  });
+                                                },
+                                                onTranslate:
+                                                    (ChatMessage msg) =>
+                                                        _translateMessage(
+                                                          context,
+                                                          msg.message,
+                                                          message: msg,
+                                                        ),
+                                                onQuickTranslate:
+                                                    (
+                                                      ChatMessage msg,
+                                                      String targetLanguageCode,
+                                                      String targetLanguageName,
+                                                    ) => _performTranslation(
+                                                      context,
+                                                      msg.message,
+                                                      targetLanguageCode,
+                                                      targetLanguageName,
+                                                      message: msg,
+                                                    ),
+                                                onSelectTranslationLanguage:
+                                                    (ChatMessage msg) =>
+                                                        _showTranslationLanguageSelector(
+                                                          context,
+                                                          msg.message,
+                                                          message: msg,
+                                                        ),
+                                                translationPreferenceVersion:
+                                                    _translationPreferenceVersion,
+                                                onDelete: _deleteMessage,
+                                                onShare: null,
+                                                translatedMessages:
+                                                    _translatedMessages,
+                                                isPlayingAudio:
+                                                    _currentPlayingMessageId ==
+                                                        message.id &&
+                                                    (_currentPlaybackUsesDeviceTTS
+                                                        ? _isDeviceTTSPlaying
+                                                        : _isPlayingAudio),
+                                                isPlayingDeviceTts:
+                                                    _currentPlayingMessageId ==
+                                                        message.id &&
+                                                    _currentPlaybackUsesDeviceTTS,
+                                                onPlayAudio: _playAudio,
+                                                onSpeakWithHighlight:
+                                                    message.isUserMessage
+                                                    ? null
+                                                    : _speakMessage,
+                                                onQuickSaveToKnowledgeHub:
+                                                    _quickSaveMessageToKnowledgeHub,
+                                                onSaveToKnowledgeHub:
+                                                    _saveMessageToKnowledgeHub,
+                                                onReviewRequested: () async {
+                                                  // Add thank you message when user leaves review
+                                                  final thankYouMessage =
+                                                      ChatIntegrationHelper.createThankYouMessage(
                                                         profileId:
                                                             _currentProfileId,
-                                                        conversationId: Provider
-                                                                .of<ConversationProvider>(
-                                                                    context,
-                                                                    listen:
-                                                                        false)
-                                                            .selectedConversation
-                                                            ?.id,
+                                                        conversationId:
+                                                            Provider.of<
+                                                                  ConversationProvider
+                                                                >(
+                                                                  context,
+                                                                  listen: false,
+                                                                )
+                                                                .selectedConversation
+                                                                ?.id,
                                                       );
 
-                                                      // Save to database
-                                                      final messageId =
-                                                          await _databaseService
-                                                              .insertChatMessage(
-                                                                  thankYouMessage);
-                                                      final completeThankYou =
-                                                          ChatMessage(
+                                                  // Save to database
+                                                  final messageId =
+                                                      await _databaseService
+                                                          .insertChatMessage(
+                                                            thankYouMessage,
+                                                          );
+                                                  final completeThankYou =
+                                                      ChatMessage(
                                                         id: messageId,
                                                         message: thankYouMessage
                                                             .message,
@@ -2979,22 +3090,25 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                                 .messageType,
                                                       );
 
-                                                      setState(() {
-                                                        _messages.add(
-                                                            completeThankYou);
-                                                      });
+                                                  setState(() {
+                                                    _messages.add(
+                                                      completeThankYou,
+                                                    );
+                                                  });
 
-                                                      // Scroll to bottom to show thank you message
-                                                      WidgetsBinding.instance
-                                                          .addPostFrameCallback(
-                                                              (_) {
+                                                  // Scroll to bottom to show thank you message
+                                                  WidgetsBinding.instance
+                                                      .addPostFrameCallback((
+                                                        _,
+                                                      ) {
                                                         _scrollToBottom(
-                                                            animated: true);
+                                                          animated: true,
+                                                        );
                                                       });
-                                                    },
-                                                  );
                                                 },
-                                              ),
+                                              );
+                                            },
+                                          ),
                                     if (_isLoadingMore)
                                       Positioned(
                                         top: 8,
@@ -3022,8 +3136,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                 strokeWidth: 2,
                                                 valueColor:
                                                     AlwaysStoppedAnimation<
-                                                            Color>(
-                                                        Color(0xFF8E6CFF)),
+                                                      Color
+                                                    >(Color(0xFF8E6CFF)),
                                               ),
                                             ),
                                           ),
@@ -3049,7 +3163,8 @@ class _AiChatScreenState extends State<AiChatScreen>
                                         strokeWidth: 2,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
-                                                Color(0xFF8E6CFF)),
+                                              Color(0xFF8E6CFF),
+                                            ),
                                       ),
                                     ),
                                     const SizedBox(width: 10),
@@ -3057,14 +3172,14 @@ class _AiChatScreenState extends State<AiChatScreen>
                                       valueListenable: _aiLoadingMessage,
                                       builder: (context, message, child) =>
                                           Text(
-                                        message,
-                                        style: TextStyle(
-                                          color: const Color(0xFF8E6CFF),
-                                          fontStyle: FontStyle.italic,
-                                          fontSize:
-                                              settings.getScaledFontSize(14),
-                                        ),
-                                      ),
+                                            message,
+                                            style: TextStyle(
+                                              color: const Color(0xFF8E6CFF),
+                                              fontStyle: FontStyle.italic,
+                                              fontSize: settings
+                                                  .getScaledFontSize(14),
+                                            ),
+                                          ),
                                     ),
                                   ],
                                 );
@@ -3073,7 +3188,6 @@ class _AiChatScreenState extends State<AiChatScreen>
                           ),
 
                         // Horizontal action cards removed - features accessible via + button menu
-
                         if (_pendingActionProposal != null)
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -3141,8 +3255,10 @@ class _AiChatScreenState extends State<AiChatScreen>
                           onLocationDiscovery: () {
                             // Show location discovery dialog with usage limits
                             final subscriptionService =
-                                Provider.of<SubscriptionService>(context,
-                                    listen: false);
+                                Provider.of<SubscriptionService>(
+                                  context,
+                                  listen: false,
+                                );
                             if (subscriptionService.isPremium ||
                                 subscriptionService.canUsePlacesExplorer) {
                               _showLocationSearch();
@@ -3177,10 +3293,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                             _sendButtonController.forward().then((_) {
                               _sendButtonController.reverse();
                             });
-                            final imagesToSend =
-                                List<XFile>.from(_pendingImages);
-                            final filesToSend =
-                                List<PlatformFile>.from(_pendingFiles);
+                            final imagesToSend = List<XFile>.from(
+                              _pendingImages,
+                            );
+                            final filesToSend = List<PlatformFile>.from(
+                              _pendingFiles,
+                            );
                             setState(() {
                               _pendingImages.clear();
                               _pendingFiles.clear();
@@ -3207,8 +3325,11 @@ class _AiChatScreenState extends State<AiChatScreen>
                               _pendingImages.clear();
                               _pendingFiles.clear(); // Clear pending files
                             });
-                            _sendMessage(text, images,
-                                files); // Pass files to send message
+                            _sendMessage(
+                              text,
+                              images,
+                              files,
+                            ); // Pass files to send message
                           },
                           sendButtonController: _sendButtonController,
                           micAnimationController: _micAnimationController,
@@ -3273,16 +3394,18 @@ class _AiChatScreenState extends State<AiChatScreen>
           // and are not already in the conversation messages
           if (msg.id == null) {
             // Enhanced duplicate check for unsaved messages
-            bool alreadyExists = updatedMessages.any((existing) =>
-                existing.message == msg.message &&
-                existing.isUserMessage == msg.isUserMessage &&
-                existing.conversationId == msg.conversationId &&
-                // Check if timestamps are within 5 seconds of each other
-                (DateTime.parse(existing.timestamp)
-                        .difference(DateTime.parse(msg.timestamp))
-                        .abs()
-                        .inSeconds <
-                    5));
+            bool alreadyExists = updatedMessages.any(
+              (existing) =>
+                  existing.message == msg.message &&
+                  existing.isUserMessage == msg.isUserMessage &&
+                  existing.conversationId == msg.conversationId &&
+                  // Check if timestamps are within 5 seconds of each other
+                  (DateTime.parse(existing.timestamp)
+                          .difference(DateTime.parse(msg.timestamp))
+                          .abs()
+                          .inSeconds <
+                      5),
+            );
 
             if (!alreadyExists) {
               updatedMessages.add(msg);
@@ -3305,7 +3428,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           final contentHash = msg.message.hashCode;
           final timestampHash =
               DateTime.parse(msg.timestamp).millisecondsSinceEpoch ~/
-                  1000; // Round to nearest second
+              1000; // Round to nearest second
           key = 'content_${contentHash}_${msg.isUserMessage}_${timestampHash}';
         }
 
@@ -3349,9 +3472,9 @@ class _AiChatScreenState extends State<AiChatScreen>
     });
     if (message.id != null) {
       await _databaseService.deleteChatMessagesBefore(
-          DateTime.parse(message.timestamp)
-              .add(const Duration(milliseconds: 1)),
-          profileId: message.profileId);
+        DateTime.parse(message.timestamp).add(const Duration(milliseconds: 1)),
+        profileId: message.profileId,
+      );
       // The above deletes all messages before the given timestamp, but we want to delete just this one.
       // Let's add a dedicated delete method for a single message if needed.
     }
@@ -3368,8 +3491,10 @@ class _AiChatScreenState extends State<AiChatScreen>
   }
 
   Future<void> _saveMessageToKnowledgeHub(ChatMessage message) async {
-    final subscriptionService =
-        Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
 
     if (!subscriptionService.isPremium) {
       _showKnowledgeHubUpgradeDialog();
@@ -3380,8 +3505,10 @@ class _AiChatScreenState extends State<AiChatScreen>
   }
 
   Future<void> _quickSaveMessageToKnowledgeHub(ChatMessage message) async {
-    final subscriptionService =
-        Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
     final settings = Provider.of<SettingsProvider>(context, listen: false);
 
     if (!subscriptionService.isPremium) {
@@ -3479,7 +3606,8 @@ class _AiChatScreenState extends State<AiChatScreen>
           builder: (context, setDialogState) {
             return AlertDialog(
               title: Text(
-                  AppLocalizations.of(context)!.knowledgeHubSaveDialogTitle),
+                AppLocalizations.of(context)!.knowledgeHubSaveDialogTitle,
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -3488,10 +3616,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                     TextField(
                       controller: titleController,
                       decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!
-                            .knowledgeHubFieldTitle,
-                        hintText: AppLocalizations.of(context)!
-                            .knowledgeHubFieldShortTitleHint,
+                        labelText: AppLocalizations.of(
+                          context,
+                        )!.knowledgeHubFieldTitle,
+                        hintText: AppLocalizations.of(
+                          context,
+                        )!.knowledgeHubFieldShortTitleHint,
                       ),
                       maxLength: KnowledgeHubLimits.titleMaxLength,
                     ),
@@ -3499,10 +3629,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                     TextField(
                       controller: contentController,
                       decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!
-                            .knowledgeHubFieldContent,
-                        hintText: AppLocalizations.of(context)!
-                            .knowledgeHubFieldRememberContentHint,
+                        labelText: AppLocalizations.of(
+                          context,
+                        )!.knowledgeHubFieldContent,
+                        hintText: AppLocalizations.of(
+                          context,
+                        )!.knowledgeHubFieldRememberContentHint,
                       ),
                       maxLines: 4,
                       minLines: 2,
@@ -3512,14 +3644,17 @@ class _AiChatScreenState extends State<AiChatScreen>
                     DropdownButtonFormField<MemoryType>(
                       initialValue: selectedType,
                       decoration: InputDecoration(
-                        labelText:
-                            AppLocalizations.of(context)!.knowledgeHubFieldType,
+                        labelText: AppLocalizations.of(
+                          context,
+                        )!.knowledgeHubFieldType,
                       ),
                       items: MemoryType.values
-                          .map((type) => DropdownMenuItem<MemoryType>(
-                                value: type,
-                                child: Text(_memoryTypeLabel(type)),
-                              ))
+                          .map(
+                            (type) => DropdownMenuItem<MemoryType>(
+                              value: type,
+                              child: Text(_memoryTypeLabel(type)),
+                            ),
+                          )
                           .toList(),
                       onChanged: (value) {
                         if (value == null) return;
@@ -3532,10 +3667,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                     TextField(
                       controller: tagsController,
                       decoration: InputDecoration(
-                        labelText: AppLocalizations.of(context)!
-                            .knowledgeHubFieldTagsOptional,
-                        hintText: AppLocalizations.of(context)!
-                            .knowledgeHubFieldTagsHint,
+                        labelText: AppLocalizations.of(
+                          context,
+                        )!.knowledgeHubFieldTagsOptional,
+                        hintText: AppLocalizations.of(
+                          context,
+                        )!.knowledgeHubFieldTagsHint,
                       ),
                     ),
                   ],
@@ -3554,10 +3691,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            AppLocalizations.of(context)!
-                                .knowledgeHubSnackTitleContentRequired,
+                            AppLocalizations.of(
+                              context,
+                            )!.knowledgeHubSnackTitleContentRequired,
                             style: TextStyle(
-                                fontSize: settings.getScaledFontSize(14)),
+                              fontSize: settings.getScaledFontSize(14),
+                            ),
                           ),
                           duration: const Duration(seconds: 2),
                         ),
@@ -3588,10 +3727,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              AppLocalizations.of(context)!
-                                  .knowledgeHubSnackSaved,
+                              AppLocalizations.of(
+                                context,
+                              )!.knowledgeHubSnackSaved,
                               style: TextStyle(
-                                  fontSize: settings.getScaledFontSize(14)),
+                                fontSize: settings.getScaledFontSize(14),
+                              ),
                             ),
                             duration: const Duration(seconds: 2),
                           ),
@@ -3607,10 +3748,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              AppLocalizations.of(context)!
-                                  .knowledgeHubSnackAlreadyExists,
+                              AppLocalizations.of(
+                                context,
+                              )!.knowledgeHubSnackAlreadyExists,
                               style: TextStyle(
-                                  fontSize: settings.getScaledFontSize(14)),
+                                fontSize: settings.getScaledFontSize(14),
+                              ),
                             ),
                             duration: const Duration(seconds: 2),
                           ),
@@ -3621,10 +3764,12 @@ class _AiChatScreenState extends State<AiChatScreen>
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(
-                              AppLocalizations.of(context)!
-                                  .knowledgeHubSnackSaveFailed,
+                              AppLocalizations.of(
+                                context,
+                              )!.knowledgeHubSnackSaveFailed,
                               style: TextStyle(
-                                  fontSize: settings.getScaledFontSize(14)),
+                                fontSize: settings.getScaledFontSize(14),
+                              ),
                             ),
                             duration: const Duration(seconds: 2),
                             backgroundColor: Colors.red,
@@ -3686,8 +3831,9 @@ class _AiChatScreenState extends State<AiChatScreen>
       barrierDismissible: true,
       builder: (context) => UpgradeDialog(
         featureName: AppLocalizations.of(context)!.knowledgeHubTitle,
-        limitMessage:
-            AppLocalizations.of(context)!.knowledgeHubUpgradeLimitMessage,
+        limitMessage: AppLocalizations.of(
+          context,
+        )!.knowledgeHubUpgradeLimitMessage,
         premiumBenefits: [
           AppLocalizations.of(context)!.knowledgeHubUpgradeBenefit1,
           AppLocalizations.of(context)!.knowledgeHubUpgradeBenefit2,
@@ -3712,11 +3858,11 @@ class _AiChatScreenState extends State<AiChatScreen>
 
     try {
       final knowledgeHubService = KnowledgeHubService();
-      final knowledgeContext =
-          await knowledgeHubService.buildKnowledgeContextForPrompt(
-        profileId: _currentProfileId!,
-        prompt: userPrompt,
-      );
+      final knowledgeContext = await knowledgeHubService
+          .buildKnowledgeContextForPrompt(
+            profileId: _currentProfileId!,
+            prompt: userPrompt,
+          );
 
       if (knowledgeContext.isEmpty) {
         return null;
@@ -3730,15 +3876,20 @@ class _AiChatScreenState extends State<AiChatScreen>
     }
   }
 
-  Future<void> _translateMessage(BuildContext context, String text,
-      {ChatMessage? message}) async {
+  Future<void> _translateMessage(
+    BuildContext context,
+    String text, {
+    ChatMessage? message,
+  }) async {
     // Show language selection popup instead of directly translating
     await _showTranslationLanguageSelector(context, text, message: message);
   }
 
   Future<void> _showTranslationLanguageSelector(
-      BuildContext context, String text,
-      {ChatMessage? message}) async {
+    BuildContext context,
+    String text, {
+    ChatMessage? message,
+  }) async {
     // Get device locale and detected language
     final deviceLocale = Localizations.localeOf(context);
     final deviceLanguage = deviceLocale.languageCode;
@@ -3746,13 +3897,18 @@ class _AiChatScreenState extends State<AiChatScreen>
     final detectedLanguageCode = _getLanguageCode(detectedLanguage);
 
     // Get user's translation history for smart suggestions from profile
-    final userPreferences =
-        ProfileTranslationService.getTranslationHistory(context);
+    final userPreferences = ProfileTranslationService.getTranslationHistory(
+      context,
+    );
 
     // For first-time users (no translation history), auto-show full language selector
     if (userPreferences.isEmpty) {
-      _showFullLanguageSelector(context, text, detectedLanguage,
-          message: message);
+      _showFullLanguageSelector(
+        context,
+        text,
+        detectedLanguage,
+        message: message,
+      );
       return;
     }
 
@@ -3775,12 +3931,20 @@ class _AiChatScreenState extends State<AiChatScreen>
             suggestedLanguages: suggestions,
             onLanguageSelected: (targetLanguageCode, targetLanguageName) {
               _performTranslation(
-                  context, text, targetLanguageCode, targetLanguageName,
-                  message: message);
+                context,
+                text,
+                targetLanguageCode,
+                targetLanguageName,
+                message: message,
+              );
             },
             onMoreLanguages: () {
-              _showFullLanguageSelector(context, text, detectedLanguage,
-                  message: message);
+              _showFullLanguageSelector(
+                context,
+                text,
+                detectedLanguage,
+                message: message,
+              );
             },
           );
         },
@@ -3789,8 +3953,11 @@ class _AiChatScreenState extends State<AiChatScreen>
   }
 
   Future<void> _showFullLanguageSelector(
-      BuildContext context, String text, String detectedLanguage,
-      {ChatMessage? message}) async {
+    BuildContext context,
+    String text,
+    String detectedLanguage, {
+    ChatMessage? message,
+  }) async {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -3800,23 +3967,34 @@ class _AiChatScreenState extends State<AiChatScreen>
           detectedLanguage: detectedLanguage,
           onLanguageSelected: (targetLanguageCode, targetLanguageName) {
             _performTranslation(
-                context, text, targetLanguageCode, targetLanguageName,
-                message: message);
+              context,
+              text,
+              targetLanguageCode,
+              targetLanguageName,
+              message: message,
+            );
           },
         );
       },
     );
   }
 
-  Future<void> _performTranslation(BuildContext context, String text,
-      String targetLanguageCode, String targetLanguageName,
-      {ChatMessage? message}) async {
+  Future<void> _performTranslation(
+    BuildContext context,
+    String text,
+    String targetLanguageCode,
+    String targetLanguageName, {
+    ChatMessage? message,
+  }) async {
     // Save user's choice for future suggestions in their profile
     await ProfileTranslationService.addTranslationChoice(
-        context, targetLanguageCode);
+      context,
+      targetLanguageCode,
+    );
 
-    final translationSourceText =
-        ChatTranslationService.sanitizeForTranslation(text);
+    final translationSourceText = ChatTranslationService.sanitizeForTranslation(
+      text,
+    );
     final detectedLanguage = _detectLanguage(translationSourceText);
     final prompt = ChatTranslationService.buildTranslationPrompt(
       detectedLanguage: detectedLanguage,
@@ -3890,7 +4068,9 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Smart translation logic based on device locale and language detection
   Map<String, String> _getSmartTranslationInfo(
-      BuildContext context, String text) {
+    BuildContext context,
+    String text,
+  ) {
     // Get user's device locale
     final deviceLocale = Localizations.localeOf(context);
     final deviceLanguage = deviceLocale.languageCode;
@@ -4125,15 +4305,17 @@ class _AiChatScreenState extends State<AiChatScreen>
       'qué',
       'cómo',
       'cuándo',
-      'quién'
+      'quién',
     ];
     final spanishChars = RegExp(r'[ñáéíóúü]');
 
     int wordMatches = spanishWords
-        .where((word) =>
-            text.contains(' $word ') ||
-            text.startsWith('$word ') ||
-            text.endsWith(' $word'))
+        .where(
+          (word) =>
+              text.contains(' $word ') ||
+              text.startsWith('$word ') ||
+              text.endsWith(' $word'),
+        )
         .length;
     bool hasSpanishChars = spanishChars.hasMatch(text);
 
@@ -4178,15 +4360,17 @@ class _AiChatScreenState extends State<AiChatScreen>
       'bien',
       'où',
       'sans',
-      'peut'
+      'peut',
     ];
     final frenchChars = RegExp(r'[àâäçéèêëïîôùûüÿ]');
 
     int wordMatches = frenchWords
-        .where((word) =>
-            text.contains(' $word ') ||
-            text.startsWith('$word ') ||
-            text.endsWith(' $word'))
+        .where(
+          (word) =>
+              text.contains(' $word ') ||
+              text.startsWith('$word ') ||
+              text.endsWith(' $word'),
+        )
         .length;
     bool hasFrenchChars = frenchChars.hasMatch(text);
 
@@ -4252,15 +4436,17 @@ class _AiChatScreenState extends State<AiChatScreen>
       'sein',
       'wurde',
       'sei',
-      'in'
+      'in',
     ];
     final germanChars = RegExp(r'[äöüß]');
 
     int wordMatches = germanWords
-        .where((word) =>
-            text.contains(' $word ') ||
-            text.startsWith('$word ') ||
-            text.endsWith(' $word'))
+        .where(
+          (word) =>
+              text.contains(' $word ') ||
+              text.startsWith('$word ') ||
+              text.endsWith(' $word'),
+        )
         .length;
     bool hasGermanChars = germanChars.hasMatch(text);
 
@@ -4308,15 +4494,17 @@ class _AiChatScreenState extends State<AiChatScreen>
       'tempo',
       'tanto',
       'lei',
-      'mio'
+      'mio',
     ];
     final italianChars = RegExp(r'[àèéìîíòóù]');
 
     int wordMatches = italianWords
-        .where((word) =>
-            text.contains(' $word ') ||
-            text.startsWith('$word ') ||
-            text.endsWith(' $word'))
+        .where(
+          (word) =>
+              text.contains(' $word ') ||
+              text.startsWith('$word ') ||
+              text.endsWith(' $word'),
+        )
         .length;
     bool hasItalianChars = italianChars.hasMatch(text);
 
@@ -4376,15 +4564,17 @@ class _AiChatScreenState extends State<AiChatScreen>
       'era',
       'depois',
       'sem',
-      'mesmo'
+      'mesmo',
     ];
     final portugueseChars = RegExp(r'[áàâãçéêíóôõú]');
 
     int wordMatches = portugueseWords
-        .where((word) =>
-            text.contains(' $word ') ||
-            text.startsWith('$word ') ||
-            text.endsWith(' $word'))
+        .where(
+          (word) =>
+              text.contains(' $word ') ||
+              text.startsWith('$word ') ||
+              text.endsWith(' $word'),
+        )
         .length;
     bool hasPortugueseChars = portugueseChars.hasMatch(text);
 
@@ -4481,10 +4671,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                     : LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.white,
-                          Colors.grey.shade100,
-                        ],
+                        colors: [Colors.white, Colors.grey.shade100],
                       ),
                 borderRadius: BorderRadius.circular(scaledBorderRadius),
                 border: Border.all(
@@ -4515,11 +4702,13 @@ class _AiChatScreenState extends State<AiChatScreen>
                         builder: (context, child) {
                           return Container(
                             decoration: BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.circular(scaledBorderRadius),
+                              borderRadius: BorderRadius.circular(
+                                scaledBorderRadius,
+                              ),
                               border: Border.all(
-                                color: Colors.red.withOpacity(0.5 *
-                                    (1 - _recordingPulseController.value)),
+                                color: Colors.red.withOpacity(
+                                  0.5 * (1 - _recordingPulseController.value),
+                                ),
                                 width:
                                     3.0 * (1 - _recordingPulseController.value),
                               ),
@@ -4534,8 +4723,9 @@ class _AiChatScreenState extends State<AiChatScreen>
                         top: 0,
                         child: Container(
                           padding: EdgeInsets.symmetric(
-                              horizontal: scaledSpacing,
-                              vertical: settings.getScaledFontSize(2)),
+                            horizontal: scaledSpacing,
+                            vertical: settings.getScaledFontSize(2),
+                          ),
                           decoration: BoxDecoration(
                             color: _isCancelingRecording
                                 ? Colors.red
@@ -4578,17 +4768,19 @@ class _AiChatScreenState extends State<AiChatScreen>
                               Text(
                                 _isRecording
                                     ? _isCancelingRecording
-                                        ? AppLocalizations.of(context)!
-                                            .cancelRecording
-                                        : AppLocalizations.of(context)!
-                                            .listening
+                                          ? AppLocalizations.of(
+                                              context,
+                                            )!.cancelRecording
+                                          : AppLocalizations.of(
+                                              context,
+                                            )!.listening
                                     : AppLocalizations.of(context)!.holdToTalk,
                                 style: TextStyle(
                                   color: _isCancelingRecording
                                       ? Colors.red.shade700
                                       : _isRecording
-                                          ? Colors.red
-                                          : const Color(0xFF0078D4),
+                                      ? Colors.red
+                                      : const Color(0xFF0078D4),
                                   fontWeight: FontWeight.w600,
                                   fontSize: settings.getScaledFontSize(16),
                                 ),
@@ -4615,8 +4807,9 @@ class _AiChatScreenState extends State<AiChatScreen>
                         right: scaledPadding,
                         child: Container(
                           padding: EdgeInsets.symmetric(
-                              horizontal: scaledSpacing,
-                              vertical: settings.getScaledFontSize(2)),
+                            horizontal: scaledSpacing,
+                            vertical: settings.getScaledFontSize(2),
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.red.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(scaledPadding),
@@ -4629,8 +4822,9 @@ class _AiChatScreenState extends State<AiChatScreen>
                                 builder: (context, child) {
                                   return Icon(
                                     Icons.mic,
-                                    color: Colors.red.withOpacity(0.7 +
-                                        0.3 * _micAnimationController.value),
+                                    color: Colors.red.withOpacity(
+                                      0.7 + 0.3 * _micAnimationController.value,
+                                    ),
                                     size: settings.getScaledFontSize(16),
                                   );
                                 },
@@ -4695,13 +4889,15 @@ class _AiChatScreenState extends State<AiChatScreen>
                     ),
                     title: Text(
                       AppLocalizations.of(context)!.voiceInputTipsPressHold,
-                      style:
-                          TextStyle(fontSize: settings.getScaledFontSize(16)),
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(16),
+                      ),
                     ),
                     subtitle: Text(
                       AppLocalizations.of(context)!.voiceInputTipsPressHoldDesc,
-                      style:
-                          TextStyle(fontSize: settings.getScaledFontSize(14)),
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(14),
+                      ),
                     ),
                   ),
                   ListTile(
@@ -4712,14 +4908,17 @@ class _AiChatScreenState extends State<AiChatScreen>
                     ),
                     title: Text(
                       AppLocalizations.of(context)!.voiceInputTipsSpeakClearly,
-                      style:
-                          TextStyle(fontSize: settings.getScaledFontSize(16)),
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(16),
+                      ),
                     ),
                     subtitle: Text(
-                      AppLocalizations.of(context)!
-                          .voiceInputTipsSpeakClearlyDesc,
-                      style:
-                          TextStyle(fontSize: settings.getScaledFontSize(14)),
+                      AppLocalizations.of(
+                        context,
+                      )!.voiceInputTipsSpeakClearlyDesc,
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(14),
+                      ),
                     ),
                   ),
                   ListTile(
@@ -4730,13 +4929,15 @@ class _AiChatScreenState extends State<AiChatScreen>
                     ),
                     title: Text(
                       AppLocalizations.of(context)!.voiceInputTipsSwipeUp,
-                      style:
-                          TextStyle(fontSize: settings.getScaledFontSize(16)),
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(16),
+                      ),
                     ),
                     subtitle: Text(
                       AppLocalizations.of(context)!.voiceInputTipsSwipeUpDesc,
-                      style:
-                          TextStyle(fontSize: settings.getScaledFontSize(14)),
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(14),
+                      ),
                     ),
                   ),
                   const Divider(),
@@ -4748,14 +4949,17 @@ class _AiChatScreenState extends State<AiChatScreen>
                     ),
                     title: Text(
                       AppLocalizations.of(context)!.voiceInputTipsSwitchInput,
-                      style:
-                          TextStyle(fontSize: settings.getScaledFontSize(16)),
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(16),
+                      ),
                     ),
                     subtitle: Text(
-                      AppLocalizations.of(context)!
-                          .voiceInputTipsSwitchInputDesc,
-                      style:
-                          TextStyle(fontSize: settings.getScaledFontSize(14)),
+                      AppLocalizations.of(
+                        context,
+                      )!.voiceInputTipsSwitchInputDesc,
+                      style: TextStyle(
+                        fontSize: settings.getScaledFontSize(14),
+                      ),
                     ),
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -4975,8 +5179,9 @@ class _AiChatScreenState extends State<AiChatScreen>
       await file.writeAsBytes(pdfBytes);
 
       // Verify file was actually written and is accessible
-      await Future.delayed(Duration(
-          milliseconds: 100)); // Small delay to ensure file system sync
+      await Future.delayed(
+        Duration(milliseconds: 100),
+      ); // Small delay to ensure file system sync
       if (!await file.exists()) {
         throw Exception("PDF file was not created successfully");
       }
@@ -4998,8 +5203,10 @@ class _AiChatScreenState extends State<AiChatScreen>
       FocusScope.of(context).unfocus();
 
       // Get the conversation provider
-      final conversationProvider =
-          Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider = Provider.of<ConversationProvider>(
+        context,
+        listen: false,
+      );
       int? messageConversationId =
           conversationProvider.selectedConversation?.id;
       bool createdNewConversation = false;
@@ -5012,7 +5219,9 @@ class _AiChatScreenState extends State<AiChatScreen>
 
         // Create a new conversation
         await conversationProvider.createConversation(
-            pdfTitle, _currentProfileId);
+          pdfTitle,
+          _currentProfileId,
+        );
 
         // Get the new conversation ID
         messageConversationId = conversationProvider.selectedConversation?.id;
@@ -5100,8 +5309,10 @@ class _AiChatScreenState extends State<AiChatScreen>
       return;
     }
 
-    final conversationProvider =
-        Provider.of<ConversationProvider>(context, listen: false);
+    final conversationProvider = Provider.of<ConversationProvider>(
+      context,
+      listen: false,
+    );
     final selectedConversation = conversationProvider.selectedConversation;
 
     if (ConversationGuard.shouldReloadConversation(
@@ -5128,19 +5339,24 @@ class _AiChatScreenState extends State<AiChatScreen>
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     if (authProvider.syncCompleted) {
       debugPrint(
-          '[AIChatScreen] Sync completed, refreshing conversations and profile');
+        '[AIChatScreen] Sync completed, refreshing conversations and profile',
+      );
 
       // Reset the flag so we don't re-trigger
       authProvider.resetSyncCompletedFlag();
 
       // Force reload conversations from database (which now has synced data)
-      final conversationProvider =
-          Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider = Provider.of<ConversationProvider>(
+        context,
+        listen: false,
+      );
       conversationProvider.loadConversations(profileId: _currentProfileId);
 
       // Reload profile to get updated name/avatar from cloud
-      final profileProvider =
-          Provider.of<ProfileProvider>(context, listen: false);
+      final profileProvider = Provider.of<ProfileProvider>(
+        context,
+        listen: false,
+      );
       profileProvider.loadProfiles();
 
       debugPrint('[AIChatScreen] UI refresh triggered after sync');
@@ -5161,13 +5377,15 @@ class _AiChatScreenState extends State<AiChatScreen>
         _micAnimationController.repeat(reverse: true);
         _recordingPulseController.repeat();
       }
-      final shortDuration =
-          _reduceMotion ? Duration.zero : const Duration(milliseconds: 300);
+      final shortDuration = _reduceMotion
+          ? Duration.zero
+          : const Duration(milliseconds: 300);
       _micAnimationController.duration = shortDuration;
       _sendButtonController.duration = shortDuration;
       _inputModeAnimationController.duration = shortDuration;
-      _recordingPulseController.duration =
-          _reduceMotion ? Duration.zero : const Duration(milliseconds: 1000);
+      _recordingPulseController.duration = _reduceMotion
+          ? Duration.zero
+          : const Duration(milliseconds: 1000);
     }
 
     final nextConversationProvider = context.read<ConversationProvider>();
@@ -5211,10 +5429,14 @@ class _AiChatScreenState extends State<AiChatScreen>
 
     // Load conversations for the current profile
     // This is safe because ConversationProvider exists at the app level
-    final conversationProvider =
-        Provider.of<ConversationProvider>(context, listen: false);
-    conversationProvider.ensureConversationsLoaded(context,
-        profileId: _currentProfileId);
+    final conversationProvider = Provider.of<ConversationProvider>(
+      context,
+      listen: false,
+    );
+    conversationProvider.ensureConversationsLoaded(
+      context,
+      profileId: _currentProfileId,
+    );
 
     // Load messages for the selected conversation
     final selectedConversation = conversationProvider.selectedConversation;
@@ -5240,10 +5462,12 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   void _pruneStreamingGhostAssistantRows({int? conversationId}) {
     final persistedAssistants = _messages
-        .where((m) =>
-            !m.isUserMessage &&
-            m.id != null &&
-            (conversationId == null || m.conversationId == conversationId))
+        .where(
+          (m) =>
+              !m.isUserMessage &&
+              m.id != null &&
+              (conversationId == null || m.conversationId == conversationId),
+        )
         .toList();
 
     if (persistedAssistants.isEmpty) {
@@ -5299,8 +5523,9 @@ class _AiChatScreenState extends State<AiChatScreen>
         final shorter = candidateText.length <= savedText.length
             ? candidateText
             : savedText;
-        final longer =
-            candidateText.length > savedText.length ? candidateText : savedText;
+        final longer = candidateText.length > savedText.length
+            ? candidateText
+            : savedText;
         final hasStrongContainment =
             shorter.length >= 120 && longer.contains(shorter);
         if (hasStrongContainment) {
@@ -5314,10 +5539,10 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Helper method to clean up duplicates using service
   void _cleanupMessagesList() {
-    final selectedConversationId =
-        Provider.of<ConversationProvider>(context, listen: false)
-            .selectedConversation
-            ?.id;
+    final selectedConversationId = Provider.of<ConversationProvider>(
+      context,
+      listen: false,
+    ).selectedConversation?.id;
     setState(() {
       _messages = MessageService.cleanupMessagesList(_messages);
       _pruneStreamingGhostAssistantRows(conversationId: selectedConversationId);
@@ -5425,8 +5650,10 @@ class _AiChatScreenState extends State<AiChatScreen>
           }
           // For other languages, languageHint remains null and Whisper will auto-detect
 
-          final transcription = await _openAIService
-              .transcribeAudio(recordingBytes, language: languageHint);
+          final transcription = await _openAIService.transcribeAudio(
+            recordingBytes,
+            language: languageHint,
+          );
 
           if (transcription != null && transcription.isNotEmpty) {
             setState(() {
@@ -5446,7 +5673,8 @@ class _AiChatScreenState extends State<AiChatScreen>
             _recordButtonText = AppLocalizations.of(context)!.holdToTalk;
           });
           _showErrorSnackBar(
-              AppLocalizations.of(context)!.errorProcessingAudio);
+            AppLocalizations.of(context)!.errorProcessingAudio,
+          );
         }
       } else {
         setState(() {
@@ -5500,8 +5728,11 @@ class _AiChatScreenState extends State<AiChatScreen>
   DateTime _nextWeeklyResetDateTime() {
     final now = DateTime.now();
     // Monday 00:00 local time.
-    final startOfWeek = DateTime(now.year, now.month, now.day)
-        .subtract(Duration(days: now.weekday - 1));
+    final startOfWeek = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
     final nextWeekStart = startOfWeek.add(const Duration(days: 7));
     return nextWeekStart;
   }
@@ -5597,8 +5828,9 @@ class _AiChatScreenState extends State<AiChatScreen>
                     SizedBox(height: isVerySmallScreen ? 6 : 8),
                     ...benefits.map(
                       (feature) => Padding(
-                        padding:
-                            EdgeInsets.only(bottom: isVerySmallScreen ? 2 : 4),
+                        padding: EdgeInsets.only(
+                          bottom: isVerySmallScreen ? 2 : 4,
+                        ),
                         child: Text(
                           feature,
                           style: TextStyle(
@@ -5739,8 +5971,9 @@ class _AiChatScreenState extends State<AiChatScreen>
                   children: [
                     _LandingCapabilityButton(
                       icon: Icons.voice_chat_rounded,
-                      label:
-                          AppLocalizations.of(context)!.voiceCallFeatureTitle,
+                      label: AppLocalizations.of(
+                        context,
+                      )!.voiceCallFeatureTitle,
                       onTap: () => _startElevenLabsCall(),
                     ),
                   ],
@@ -5752,8 +5985,9 @@ class _AiChatScreenState extends State<AiChatScreen>
                     children: [
                       Text(
                         isCompactPhone
-                            ? AppLocalizations.of(context)!
-                                .chatLandingTipCompact
+                            ? AppLocalizations.of(
+                                context,
+                              )!.chatLandingTipCompact
                             : AppLocalizations.of(context)!.chatLandingTipFull,
                         style: TextStyle(
                           fontSize: settings.getScaledFontSize(13),
@@ -5799,8 +6033,10 @@ class _AiChatScreenState extends State<AiChatScreen>
         break;
       case 'file':
         // Open file picker for document analysis with usage limits for free users
-        final subscriptionService =
-            Provider.of<SubscriptionService>(context, listen: false);
+        final subscriptionService = Provider.of<SubscriptionService>(
+          context,
+          listen: false,
+        );
         if (subscriptionService.isPremium) {
           _showFileUploadOptions();
         } else {
@@ -5815,8 +6051,10 @@ class _AiChatScreenState extends State<AiChatScreen>
         break;
       case 'location':
         // Open location discovery feature with usage limits for free users
-        final subscriptionService =
-            Provider.of<SubscriptionService>(context, listen: false);
+        final subscriptionService = Provider.of<SubscriptionService>(
+          context,
+          listen: false,
+        );
         if (subscriptionService.isPremium) {
           _showLocationSearch();
         } else {
@@ -5856,7 +6094,8 @@ class _AiChatScreenState extends State<AiChatScreen>
         return LocationSearchDialog(
           onSearchCompleted: (places, query) {
             print(
-                '[PlacesExplorer] Search completed: ${places.length} places found for "$query"');
+              '[PlacesExplorer] Search completed: ${places.length} places found for "$query"',
+            );
             Navigator.of(context).pop();
             if (places.isNotEmpty) {
               _addLocationResultsToChat(places, query);
@@ -5865,7 +6104,8 @@ class _AiChatScreenState extends State<AiChatScreen>
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                      'No places found for "$query". Try a different search or location.'),
+                    'No places found for "$query". Try a different search or location.',
+                  ),
                   backgroundColor: Colors.orange,
                   duration: Duration(seconds: 3),
                 ),
@@ -5881,8 +6121,10 @@ class _AiChatScreenState extends State<AiChatScreen>
   Future<void> _shareMessage(ChatMessage message) async {
     try {
       // Check PDF generation limits for free users
-      final subscriptionService =
-          Provider.of<SubscriptionService>(context, listen: false);
+      final subscriptionService = Provider.of<SubscriptionService>(
+        context,
+        listen: false,
+      );
       if (!subscriptionService.isPremium) {
         final canUsePdf = await subscriptionService.tryUsePdfGeneration();
         if (!canUsePdf) {
@@ -5904,8 +6146,9 @@ class _AiChatScreenState extends State<AiChatScreen>
       );
 
       // Generate PDF using HTML approach for better Unicode and styling support
-      final pdfBytes =
-          await PdfService.generateStyledMessagePdf(message.message);
+      final pdfBytes = await PdfService.generateStyledMessagePdf(
+        message.message,
+      );
 
       if (pdfBytes != null) {
         // Save PDF to documents directory
@@ -5916,8 +6159,9 @@ class _AiChatScreenState extends State<AiChatScreen>
         await file.writeAsBytes(pdfBytes);
 
         // Verify file was actually written and is accessible
-        await Future.delayed(Duration(
-            milliseconds: 100)); // Small delay to ensure file system sync
+        await Future.delayed(
+          Duration(milliseconds: 100),
+        ); // Small delay to ensure file system sync
         if (!await file.exists()) {
           throw Exception("PDF file was not created successfully");
         }
@@ -5931,15 +6175,19 @@ class _AiChatScreenState extends State<AiChatScreen>
         //// print('[PDF-SHARE] PDF file verified: ${fileSize} bytes at ${filePath}');
 
         // Get the conversation provider
-        final conversationProvider =
-            Provider.of<ConversationProvider>(context, listen: false);
+        final conversationProvider = Provider.of<ConversationProvider>(
+          context,
+          listen: false,
+        );
         final messageConversationId =
             conversationProvider.selectedConversation?.id ??
-                message.conversationId;
+            message.conversationId;
 
         // Check subscription status for message customization
-        final subscriptionService =
-            Provider.of<SubscriptionService>(context, listen: false);
+        final subscriptionService = Provider.of<SubscriptionService>(
+          context,
+          listen: false,
+        );
         final isPremium = subscriptionService.isPremium;
 
         // Create different messages for free vs premium users
@@ -6020,8 +6268,10 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Show PDF generation limit dialog
   void _showPdfLimitDialog() {
-    final subscriptionService =
-        Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
     final limit = subscriptionService.limits.pdfGenerationsWeekly;
     _showUsageLimitDialog(
       icon: Icons.picture_as_pdf,
@@ -6034,39 +6284,47 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Show document analysis limit dialog
   void _showDocumentAnalysisLimitDialog() {
-    final subscriptionService =
-        Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
     final limit = subscriptionService.limits.documentAnalysisWeekly;
     _showUsageLimitDialog(
       icon: Icons.description,
       accentColor: Colors.blue,
       title: '${AppLocalizations.of(context)!.documentAnalysis} • $limit/week',
       limit: limit,
-      premiumBenefitsText:
-          AppLocalizations.of(context)!.docAnalysisPremiumFeaturesList,
+      premiumBenefitsText: AppLocalizations.of(
+        context,
+      )!.docAnalysisPremiumFeaturesList,
     );
   }
 
   // Show places explorer limit dialog
   void _showPlacesExplorerLimitDialog() {
-    final subscriptionService =
-        Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
     final limit = subscriptionService.limits.placesExplorerWeekly;
     _showUsageLimitDialog(
       icon: Icons.location_on,
       accentColor: const Color(0xFF5856D6),
       title: '${AppLocalizations.of(context)!.placesExplorer} • $limit/week',
       limit: limit,
-      premiumBenefitsText:
-          AppLocalizations.of(context)!.placesPremiumFeaturesList,
+      premiumBenefitsText: AppLocalizations.of(
+        context,
+      )!.placesPremiumFeaturesList,
     );
   }
 
   // Show PPTX generation dialog to collect user details
   void _showPptxGenerationDialog() {
     // Check subscription status first
-    final subscriptionService =
-        Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
     // For PPTX: Premium users have unlimited access, free users get 3 uses based on document analysis remaining
     if (!subscriptionService.isPremium &&
         subscriptionService.remainingDocumentAnalysis <= 0) {
@@ -6119,32 +6377,36 @@ class _AiChatScreenState extends State<AiChatScreen>
   void _startElevenLabsCall({bool initialVisionEnabled = false}) async {
     final result = await Navigator.of(context).push<int?>(
       HowAIModalPageRoute<int?>(
-        builder: (context) => ElevenLabsCallScreen(
-          initialVisionEnabled: initialVisionEnabled,
-        ),
+        builder: (context) =>
+            ElevenLabsCallScreen(initialVisionEnabled: initialVisionEnabled),
         reducedMotion: prefersReducedMotion(context),
       ),
     );
 
     // If a conversation ID was returned, switch to it
     if (result != null && mounted) {
-      final conversationProvider =
-          Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider = Provider.of<ConversationProvider>(
+        context,
+        listen: false,
+      );
       await conversationProvider.loadConversations(
-          profileId: _currentProfileId);
+        profileId: _currentProfileId,
+      );
 
       final conversations = conversationProvider.conversations;
       if (conversations.isEmpty) {
         debugPrint(
-            '[AIChatScreen] Voice call returned conversation $result, but conversation list is empty.');
+          '[AIChatScreen] Voice call returned conversation $result, but conversation list is empty.',
+        );
         await _loadMessagesForConversation(result);
         return;
       }
 
       // Find and select the conversation, falling back safely to first available.
       final matchIndex = conversations.indexWhere((c) => c.id == result);
-      final newConversation =
-          matchIndex >= 0 ? conversations[matchIndex] : conversations.first;
+      final newConversation = matchIndex >= 0
+          ? conversations[matchIndex]
+          : conversations.first;
       conversationProvider.selectConversation(newConversation);
 
       // Load the messages for the selected conversation.
@@ -6153,8 +6415,10 @@ class _AiChatScreenState extends State<AiChatScreen>
   }
 
   // Process translation request (unified for both text and images)
-  Future<void> _processTranslation(String translationPrompt,
-      {List<XFile>? images}) async {
+  Future<void> _processTranslation(
+    String translationPrompt, {
+    List<XFile>? images,
+  }) async {
     // Send the translation prompt as a regular chat message
     // If images are provided, send them along with the text
     if (images != null && images.isNotEmpty) {
@@ -6172,7 +6436,8 @@ class _AiChatScreenState extends State<AiChatScreen>
     final combinedText = '$topic $keyPoints'.toLowerCase();
 
     // Check for keywords that indicate need for current information
-    final needsCurrentInfo = combinedText.contains('latest') ||
+    final needsCurrentInfo =
+        combinedText.contains('latest') ||
         combinedText.contains('current') ||
         combinedText.contains('recent') ||
         combinedText.contains('today') ||
@@ -6227,8 +6492,9 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Consumer<SettingsProvider>(
             builder: (context, settings, child) {
               return Container(
@@ -6294,7 +6560,7 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
                             '• Create professional PPTX presentations',
                             '• Unlimited presentation generation',
                             '• Custom themes and layouts',
-                            '• All premium AI features unlocked'
+                            '• All premium AI features unlocked',
                           ].map(
                             (benefit) => Padding(
                               padding: EdgeInsets.symmetric(vertical: 2),
@@ -6370,8 +6636,9 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
           message.message.toLowerCase().contains('find')) {
         // Extract search query from messages like "Find restaurants near me"
         final words = message.message.split(' ');
-        final findIndex =
-            words.indexWhere((word) => word.toLowerCase() == 'find');
+        final findIndex = words.indexWhere(
+          (word) => word.toLowerCase() == 'find',
+        );
         if (findIndex >= 0 && findIndex < words.length - 1) {
           return words
               .sublist(findIndex + 1)
@@ -6385,12 +6652,15 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
 
   // Extract recent places context for AI follow-up questions
   String? _getRecentPlacesContext(
-      String userMessage, List<ChatMessage> history) {
+    String userMessage,
+    List<ChatMessage> history,
+  ) {
     // Skip if this looks like a new search command rather than a question about existing results
     final lowerMessage = userMessage.toLowerCase();
 
     // Check for analysis/recommendation keywords that should NOT be treated as new searches
-    final isAnalysisRequest = lowerMessage.contains('suggest') ||
+    final isAnalysisRequest =
+        lowerMessage.contains('suggest') ||
         lowerMessage.contains('recommend') ||
         lowerMessage.contains('best') ||
         lowerMessage.contains('top ') ||
@@ -6402,7 +6672,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
         lowerMessage.contains('pick');
 
     // Only skip if it's clearly a NEW search command AND not an analysis request
-    final isNewSearchCommand = !isAnalysisRequest &&
+    final isNewSearchCommand =
+        !isAnalysisRequest &&
         (lowerMessage.startsWith('find ') ||
             lowerMessage.startsWith('search ') ||
             lowerMessage.startsWith('show me ') ||
@@ -6426,13 +6697,13 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
           final place = places[j];
           placesInfo.writeln('${j + 1}. ${place.name}');
           placesInfo.writeln(
-              '   - Rating: ${place.rating}/5 (${place.userRatingsTotal} reviews)');
+            '   - Rating: ${place.rating}/5 (${place.userRatingsTotal} reviews)',
+          );
           placesInfo.writeln('   - Type: ${place.types.join(', ')}');
           placesInfo.writeln('   - Price: ${place.priceLevel}');
-          placesInfo.writeln('   - Distance: ${place.getDistanceText(
-            locale: Localizations.localeOf(context).toString(),
-            countryCode: Localizations.localeOf(context).countryCode,
-          )}');
+          placesInfo.writeln(
+            '   - Distance: ${place.getDistanceText(locale: Localizations.localeOf(context).toString(), countryCode: Localizations.localeOf(context).countryCode)}',
+          );
           if (place.aiSummary?.isNotEmpty == true) {
             placesInfo.writeln('   - Description: ${place.aiSummary}');
           }
@@ -6440,7 +6711,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
         }
 
         placesInfo.writeln(
-            'Please answer the user\'s question about these places based on their ratings, reviews, type, and other information provided. If they ask for recommendations, suggestions, or want you to pick the best options, analyze the data above and provide specific recommendations with detailed explanations of why you chose those particular places (consider factors like rating, number of reviews, price level, distance, and type).\n\nIMPORTANT: Only discuss the places listed above. Do NOT make up or fabricate information about places not in this list. If you cannot find relevant places in the provided data, clearly state that you need more information or suggest the user perform a new search.');
+          'Please answer the user\'s question about these places based on their ratings, reviews, type, and other information provided. If they ask for recommendations, suggestions, or want you to pick the best options, analyze the data above and provide specific recommendations with detailed explanations of why you chose those particular places (consider factors like rating, number of reviews, price level, distance, and type).\n\nIMPORTANT: Only discuss the places listed above. Do NOT make up or fabricate information about places not in this list. If you cannot find relevant places in the provided data, clearly state that you need more information or suggest the user perform a new search.',
+        );
         return placesInfo.toString();
       }
     }
@@ -6466,7 +6738,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
     String searchContext = query.toLowerCase();
 
     if (placeTypes.any(
-        (type) => ['restaurant', 'food', 'meal_takeaway'].contains(type))) {
+      (type) => ['restaurant', 'food', 'meal_takeaway'].contains(type),
+    )) {
       if (searchContext.contains('chinese')) {
         placeCategory = 'Chinese restaurants';
       } else if (searchContext.contains('pizza')) {
@@ -6494,8 +6767,9 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
       placeCategory = 'bakeries and dessert places';
     } else if (placeTypes.contains('parking')) {
       placeCategory = 'parking spots';
-    } else if (placeTypes
-        .any((type) => ['hospital', 'pharmacy', 'doctor'].contains(type))) {
+    } else if (placeTypes.any(
+      (type) => ['hospital', 'pharmacy', 'doctor'].contains(type),
+    )) {
       if (placeTypes.contains('pharmacy')) {
         placeCategory = 'pharmacies';
       } else {
@@ -6507,8 +6781,9 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
       placeCategory = 'ATMs';
     } else if (placeTypes.contains('bank')) {
       placeCategory = 'banks';
-    } else if (placeTypes
-        .any((type) => ['shopping_mall', 'store'].contains(type))) {
+    } else if (placeTypes.any(
+      (type) => ['shopping_mall', 'store'].contains(type),
+    )) {
       placeCategory = 'shopping locations';
     } else if (placeTypes.contains('lodging')) {
       placeCategory = 'hotels';
@@ -6536,7 +6811,8 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
     }
 
     // Check if it's a location-specific search
-    bool hasLocationContext = query.toLowerCase().contains(' in ') ||
+    bool hasLocationContext =
+        query.toLowerCase().contains(' in ') ||
         query.toLowerCase().contains(' at ') ||
         RegExp(r'\b\d{5}\b').hasMatch(query); // zip code
 
@@ -6548,11 +6824,15 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
   }
 
   Future<void> _addLocationResultsToChat(
-      List<PlaceResult> places, String query) async {
+    List<PlaceResult> places,
+    String query,
+  ) async {
     try {
       // Consume places explorer usage for free users
-      final subscriptionService =
-          Provider.of<SubscriptionService>(context, listen: false);
+      final subscriptionService = Provider.of<SubscriptionService>(
+        context,
+        listen: false,
+      );
       if (!subscriptionService.isPremium) {
         await subscriptionService.tryUsePlacesExplorer();
         // Show usage reminder for free users
@@ -6573,8 +6853,10 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
       }
 
       // Get the conversation provider
-      final conversationProvider =
-          Provider.of<ConversationProvider>(context, listen: false);
+      final conversationProvider = Provider.of<ConversationProvider>(
+        context,
+        listen: false,
+      );
       int? messageConversationId =
           conversationProvider.selectedConversation?.id;
       bool createdNewConversation = false;
@@ -6586,7 +6868,9 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
 
         // Create a new conversation
         await conversationProvider.createConversation(
-            searchTitle, _currentProfileId);
+          searchTitle,
+          _currentProfileId,
+        );
 
         // Get the new conversation ID
         messageConversationId = conversationProvider.selectedConversation?.id;
@@ -6660,8 +6944,10 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
   // Show AI Image generation dialog to guide user with prompting
   void _showImageGenerationDialog() {
     // Check subscription status first
-    final subscriptionService =
-        Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
     if (!subscriptionService.canUseImageGeneration) {
       _showImageGenerationUpgradeDialog();
       return;
@@ -6670,297 +6956,318 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
     TextEditingController promptController = TextEditingController();
 
     showDialog(
-        context: context,
-        barrierDismissible: true,
-        builder: (BuildContext context) {
-          return Consumer<SettingsProvider>(
-            builder: (context, settings, child) {
-              return Stack(
-                children: [
-                  // Positioned dialog very close to top
-                  Positioned(
-                    top: 120, // Very close to top
-                    left: MediaQuery.of(context).size.width * 0.05,
-                    right: MediaQuery.of(context).size.width * 0.05,
-                    child: Material(
-                      color: Colors.transparent,
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Consumer<SettingsProvider>(
+          builder: (context, settings, child) {
+            return Stack(
+              children: [
+                // Positioned dialog very close to top
+                Positioned(
+                  top: 120, // Very close to top
+                  left: MediaQuery.of(context).size.width * 0.05,
+                  right: MediaQuery.of(context).size.width * 0.05,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Container(
                       child: Container(
-                        child: Container(
-                          constraints: BoxConstraints(
-                            maxHeight:
-                                MediaQuery.of(context).size.height * 0.75,
-                            maxWidth: MediaQuery.of(context).size.width * 0.9,
-                          ),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(16),
-                            color: Theme.of(context).scaffoldBackgroundColor,
-                          ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Compact header with icon and title in same row
-                              Container(
-                                padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
-                                child: Column(
-                                  children: [
-                                    // Icon and title in same row
-                                    Row(
-                                      children: [
-                                        // Smaller header icon
-                                        Container(
-                                          padding: EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context)
-                                                        .brightness ==
-                                                    Brightness.dark
-                                                ? Colors.teal.withOpacity(0.2)
-                                                : Colors.teal.withOpacity(0.1),
-                                            borderRadius:
-                                                BorderRadius.circular(30),
-                                          ),
-                                          child: Icon(
-                                            Icons.brush,
-                                            size:
-                                                settings.getScaledFontSize(24),
-                                            color: Colors.teal,
-                                          ),
-                                        ),
-                                        SizedBox(width: 12),
-
-                                        // Title and description
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'AI Image Generation',
-                                                style: TextStyle(
-                                                  fontSize: settings
-                                                      .getScaledFontSize(16),
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context)
-                                                              .brightness ==
-                                                          Brightness.dark
-                                                      ? Colors.white
-                                                      : Color(0xFF1C1C1E),
-                                                ),
-                                              ),
-                                              SizedBox(height: 2),
-                                              Text(
-                                                'Describe what you want to create',
-                                                style: TextStyle(
-                                                  fontSize: settings
-                                                      .getScaledFontSize(11),
-                                                  color: Theme.of(context)
-                                                              .brightness ==
-                                                          Brightness.dark
-                                                      ? Colors.grey.shade400
-                                                      : Colors.grey.shade600,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              // Scrollable content area
-                              Flexible(
-                                child: SingleChildScrollView(
-                                  padding: EdgeInsets.symmetric(horizontal: 20),
-                                  child: Column(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.75,
+                          maxWidth: MediaQuery.of(context).size.width * 0.9,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Compact header with icon and title in same row
+                            Container(
+                              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+                              child: Column(
+                                children: [
+                                  // Icon and title in same row
+                                  Row(
                                     children: [
-                                      // Compact input field
-                                      TextField(
-                                        controller: promptController,
-                                        maxLines: 2,
-                                        decoration: InputDecoration(
-                                          hintText:
-                                              AppLocalizations.of(context)!
-                                                  .futuristicCityExample,
-                                          hintStyle: TextStyle(
-                                            fontSize:
-                                                settings.getScaledFontSize(11),
-                                            color:
-                                                Theme.of(context).brightness ==
-                                                        Brightness.dark
-                                                    ? Colors.grey.shade500
-                                                    : Colors.grey.shade500,
-                                          ),
-                                          filled: true,
-                                          fillColor:
-                                              Theme.of(context).brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.grey.shade800
-                                                  : Colors.white,
-                                          border: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            borderSide: BorderSide(
-                                              color: Theme.of(context)
-                                                          .brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.grey.shade600
-                                                  : Colors.grey.shade300,
-                                            ),
-                                          ),
-                                          enabledBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            borderSide: BorderSide(
-                                              color: Theme.of(context)
-                                                          .brightness ==
-                                                      Brightness.dark
-                                                  ? Colors.grey.shade600
-                                                  : Colors.grey.shade300,
-                                            ),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            borderSide: BorderSide(
-                                                color: Colors.teal, width: 2),
-                                          ),
-                                          contentPadding: EdgeInsets.all(12),
-                                        ),
-                                        style: TextStyle(
-                                          fontSize:
-                                              settings.getScaledFontSize(13),
-                                          color: Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? Colors.white
-                                              : Colors.black,
-                                        ),
-                                      ),
-                                      SizedBox(height: 12),
-
-                                      // Compact tips
+                                      // Smaller header icon
                                       Container(
                                         padding: EdgeInsets.all(8),
                                         decoration: BoxDecoration(
-                                          color: Theme.of(context).brightness ==
+                                          color:
+                                              Theme.of(context).brightness ==
                                                   Brightness.dark
-                                              ? Colors.blue.shade900
-                                                  .withOpacity(0.3)
-                                              : Colors.blue.shade50,
-                                          borderRadius:
-                                              BorderRadius.circular(8),
+                                              ? Colors.teal.withOpacity(0.2)
+                                              : Colors.teal.withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            30,
+                                          ),
                                         ),
+                                        child: Icon(
+                                          Icons.brush,
+                                          size: settings.getScaledFontSize(24),
+                                          color: Colors.teal,
+                                        ),
+                                      ),
+                                      SizedBox(width: 12),
+
+                                      // Title and description
+                                      Expanded(
                                         child: Column(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              '💡 Tips:',
+                                              'AI Image Generation',
                                               style: TextStyle(
                                                 fontSize: settings
-                                                    .getScaledFontSize(13),
-                                                fontWeight: FontWeight.w600,
-                                                color: Theme.of(context)
-                                                            .brightness ==
+                                                    .getScaledFontSize(16),
+                                                fontWeight: FontWeight.bold,
+                                                color:
+                                                    Theme.of(
+                                                          context,
+                                                        ).brightness ==
                                                         Brightness.dark
-                                                    ? Colors.blue.shade300
-                                                    : Colors.blue.shade700,
+                                                    ? Colors.white
+                                                    : Color(0xFF1C1C1E),
                                               ),
                                             ),
                                             SizedBox(height: 2),
                                             Text(
-                                              '• Style: realistic, cartoon, digital art\n• Lighting & mood details\n• Colors & composition',
+                                              'Describe what you want to create',
                                               style: TextStyle(
                                                 fontSize: settings
-                                                    .getScaledFontSize(13),
-                                                color: Theme.of(context)
-                                                            .brightness ==
+                                                    .getScaledFontSize(11),
+                                                color:
+                                                    Theme.of(
+                                                          context,
+                                                        ).brightness ==
                                                         Brightness.dark
-                                                    ? Colors.blue.shade200
-                                                    : Colors.blue.shade600,
-                                                height: 1.2,
+                                                    ? Colors.grey.shade400
+                                                    : Colors.grey.shade600,
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
-                                      SizedBox(height: 8), // Space for scroll
                                     ],
                                   ),
-                                ),
+                                ],
                               ),
+                            ),
 
-                              // Compact bottom buttons
-                              Container(
-                                padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
-                                child: Row(
+                            // Scrollable content area
+                            Flexible(
+                              child: SingleChildScrollView(
+                                padding: EdgeInsets.symmetric(horizontal: 20),
+                                child: Column(
                                   children: [
-                                    Expanded(
-                                      child: TextButton(
-                                        onPressed: () {
-                                          FocusScope.of(context).unfocus();
-                                          Navigator.of(context).pop();
-                                        },
-                                        child: Text(
-                                          'Cancel',
-                                          style: TextStyle(
-                                            fontSize:
-                                                settings.getScaledFontSize(13),
+                                    // Compact input field
+                                    TextField(
+                                      controller: promptController,
+                                      maxLines: 2,
+                                      decoration: InputDecoration(
+                                        hintText: AppLocalizations.of(
+                                          context,
+                                        )!.futuristicCityExample,
+                                        hintStyle: TextStyle(
+                                          fontSize: settings.getScaledFontSize(
+                                            11,
+                                          ),
+                                          color:
+                                              Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.grey.shade500
+                                              : Colors.grey.shade500,
+                                        ),
+                                        filled: true,
+                                        fillColor:
+                                            Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.grey.shade800
+                                            : Colors.white,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
                                             color:
                                                 Theme.of(context).brightness ==
-                                                        Brightness.dark
-                                                    ? Colors.grey.shade400
-                                                    : Colors.grey.shade600,
+                                                    Brightness.dark
+                                                ? Colors.grey.shade600
+                                                : Colors.grey.shade300,
                                           ),
                                         ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color:
+                                                Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? Colors.grey.shade600
+                                                : Colors.grey.shade300,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: Colors.teal,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        contentPadding: EdgeInsets.all(12),
+                                      ),
+                                      style: TextStyle(
+                                        fontSize: settings.getScaledFontSize(
+                                          13,
+                                        ),
+                                        color:
+                                            Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.white
+                                            : Colors.black,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
-                                    Expanded(
-                                      child: ElevatedButton(
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Colors.teal,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                    SizedBox(height: 12),
+
+                                    // Compact tips
+                                    Container(
+                                      padding: EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? Colors.blue.shade900.withOpacity(
+                                                0.3,
+                                              )
+                                            : Colors.blue.shade50,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            '💡 Tips:',
+                                            style: TextStyle(
+                                              fontSize: settings
+                                                  .getScaledFontSize(13),
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  Theme.of(
+                                                        context,
+                                                      ).brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.blue.shade300
+                                                  : Colors.blue.shade700,
+                                            ),
                                           ),
-                                          padding: EdgeInsets.symmetric(
-                                              vertical: 10),
-                                        ),
-                                        onPressed: () {
-                                          final prompt =
-                                              promptController.text.trim();
-                                          if (prompt.isNotEmpty) {
-                                            FocusScope.of(context).unfocus();
-                                            Navigator.of(context).pop();
-                                            _processImageGeneration(prompt);
-                                          }
-                                        },
-                                        child: Text(
-                                          'Generate',
-                                          style: TextStyle(
-                                            fontSize:
-                                                settings.getScaledFontSize(13),
-                                            fontWeight: FontWeight.w600,
+                                          SizedBox(height: 2),
+                                          Text(
+                                            '• Style: realistic, cartoon, digital art\n• Lighting & mood details\n• Colors & composition',
+                                            style: TextStyle(
+                                              fontSize: settings
+                                                  .getScaledFontSize(13),
+                                              color:
+                                                  Theme.of(
+                                                        context,
+                                                      ).brightness ==
+                                                      Brightness.dark
+                                                  ? Colors.blue.shade200
+                                                  : Colors.blue.shade600,
+                                              height: 1.2,
+                                            ),
                                           ),
-                                        ),
+                                        ],
                                       ),
                                     ),
+                                    SizedBox(height: 8), // Space for scroll
                                   ],
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+
+                            // Compact bottom buttons
+                            Container(
+                              padding: EdgeInsets.fromLTRB(20, 8, 20, 16),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: TextButton(
+                                      onPressed: () {
+                                        FocusScope.of(context).unfocus();
+                                        Navigator.of(context).pop();
+                                      },
+                                      child: Text(
+                                        'Cancel',
+                                        style: TextStyle(
+                                          fontSize: settings.getScaledFontSize(
+                                            13,
+                                          ),
+                                          color:
+                                              Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? Colors.grey.shade400
+                                              : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: ElevatedButton(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.teal,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: 10,
+                                        ),
+                                      ),
+                                      onPressed: () {
+                                        final prompt = promptController.text
+                                            .trim();
+                                        if (prompt.isNotEmpty) {
+                                          FocusScope.of(context).unfocus();
+                                          Navigator.of(context).pop();
+                                          _processImageGeneration(prompt);
+                                        }
+                                      },
+                                      child: Text(
+                                        'Generate',
+                                        style: TextStyle(
+                                          fontSize: settings.getScaledFontSize(
+                                            13,
+                                          ),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                ],
-              );
-            },
-          );
-        });
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   // Process AI image generation request
@@ -6978,8 +7285,9 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Consumer<SettingsProvider>(
             builder: (context, settings, child) {
               return Container(
@@ -7111,9 +7419,9 @@ class _LandingCapabilityButton extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: colors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                      ),
+                    color: colors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),

@@ -29,8 +29,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       _audioPlayer?.dispose();
       _audioPlayer = AudioPlayer();
 
-      final data =
-          await rootBundle.load('assets/audio/hao_voice_demo_fixed.mp3');
+      final data = await rootBundle.load(
+        'assets/audio/hao_voice_demo_fixed.mp3',
+      );
 
       final session = await AudioSession.instance;
       await session.configure(AudioSessionConfiguration.music());
@@ -57,8 +58,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content:
-                  Text(AppLocalizations.of(context)!.couldNotPlayDemoAudio)),
+            content: Text(AppLocalizations.of(context)!.couldNotPlayDemoAudio),
+          ),
         );
       }
     }
@@ -97,8 +98,46 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   Future<void> _launchUrl(String url) async {
     final uri = Uri.parse(url);
     if (await launcher.canLaunchUrl(uri)) {
-      await launcher.launchUrl(uri,
-          mode: launcher.LaunchMode.externalApplication);
+      await launcher.launchUrl(
+        uri,
+        mode: launcher.LaunchMode.externalApplication,
+      );
+    }
+  }
+
+  Future<void> _handleRestorePurchases() async {
+    if (_isLoading) return;
+    setState(() => _isLoading = true);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
+    try {
+      final restored = await subscriptionService.restorePurchases();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            restored
+                ? 'Your Pro subscription has been restored.'
+                : subscriptionService.errorMessage ??
+                      'No active subscription was found.',
+          ),
+          backgroundColor: restored ? Colors.green : Colors.red,
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Unable to restore purchases right now. Please try again.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -117,17 +156,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      appBar: CustomAppBar(
-        title: AppLocalizations.of(context)!.premiumTitle,
-      ),
+      appBar: CustomAppBar(title: AppLocalizations.of(context)!.premiumTitle),
       body: Consumer<SubscriptionService>(
         builder: (context, subscriptionService, child) {
           // Show different content for premium vs free users
           if (subscriptionService.isPremium) {
-            return _buildPremiumUserScreen(subscriptionService);
+            return _buildPremiumUserScreen();
           } else {
             return _buildSubscriptionPlansScreen(
-                subscriptionService, horizontalPadding, isTablet);
+              subscriptionService,
+              horizontalPadding,
+              isTablet,
+            );
           }
         },
       ),
@@ -211,8 +251,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
   Widget _buildSubscriptionPlans(monthlyProduct, yearlyProduct) {
     final isTablet = MediaQuery.of(context).size.width > 600;
-    final subscriptionService =
-        Provider.of<SubscriptionService>(context, listen: false);
+    final subscriptionService = Provider.of<SubscriptionService>(
+      context,
+      listen: false,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,8 +291,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   title: AppLocalizations.of(context)!.yearlyPlan,
                   price: subscriptionService.getActualPrice(yearlyProduct),
                   period: AppLocalizations.of(context)!.perYear,
-                  savings:
-                      AppLocalizations.of(context)!.saveThreeMonthsBestValue,
+                  savings: AppLocalizations.of(
+                    context,
+                  )!.saveThreeMonthsBestValue,
                   isRecommended: true,
                   product: yearlyProduct,
                 ),
@@ -324,8 +367,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         children: benefits
             .map(
               (benefit) => Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0078D4).withOpacity(0.08),
                   borderRadius: BorderRadius.circular(999),
@@ -364,26 +409,36 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     return GestureDetector(
       onTap: () async {
         debugPrint(
-            '[SubscriptionScreen] Plan card tapped: ${product.id}, _isLoading=$_isLoading');
+          '[SubscriptionScreen] Plan card tapped: ${product.id}, _isLoading=$_isLoading',
+        );
         if (_isLoading) {
           debugPrint(
-              '[SubscriptionScreen] TAP IGNORED — _isLoading is true (stuck state)');
+            '[SubscriptionScreen] TAP IGNORED — _isLoading is true (stuck state)',
+          );
           return;
         }
         setState(() => _isLoading = true);
-        final subscriptionService =
-            Provider.of<SubscriptionService>(context, listen: false);
+        final subscriptionService = Provider.of<SubscriptionService>(
+          context,
+          listen: false,
+        );
         try {
           debugPrint(
-              '[SubscriptionScreen] Calling subscribe for: ${product.id}');
+            '[SubscriptionScreen] Calling subscribe for: ${product.id}',
+          );
           await subscriptionService
               .subscribe(product.id)
-              .timeout(const Duration(seconds: 15), onTimeout: () {
-            debugPrint(
-                '[SubscriptionScreen] subscribe() TIMED OUT for ${product.id}');
-          });
+              .timeout(
+                const Duration(seconds: 15),
+                onTimeout: () {
+                  debugPrint(
+                    '[SubscriptionScreen] subscribe() TIMED OUT for ${product.id}',
+                  );
+                },
+              );
           debugPrint(
-              '[SubscriptionScreen] subscribe() returned. errorMessage=${subscriptionService.errorMessage}');
+            '[SubscriptionScreen] subscribe() returned. errorMessage=${subscriptionService.errorMessage}',
+          );
           if (mounted && subscriptionService.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -417,8 +472,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
             color: isRecommended
                 ? const Color(0xFF0078D4)
                 : (Theme.of(context).brightness == Brightness.dark
-                    ? Colors.grey.shade600
-                    : Colors.grey.shade200),
+                      ? Colors.grey.shade600
+                      : Colors.grey.shade200),
             width: isRecommended ? 2 : 1,
           ),
           boxShadow: [
@@ -495,7 +550,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.green.shade100,
                         borderRadius: BorderRadius.circular(12),
@@ -565,24 +622,33 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 children: [
                   if (!isPlaying && !isPaused)
                     IconButton(
-                      icon: const Icon(Icons.play_circle_fill,
-                          color: Color(0xFF0078D4), size: 32),
+                      icon: const Icon(
+                        Icons.play_circle_fill,
+                        color: Color(0xFF0078D4),
+                        size: 32,
+                      ),
                       onPressed: _playVoiceDemo,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
                   if (isPlaying)
                     IconButton(
-                      icon: const Icon(Icons.pause_circle_filled,
-                          color: Color(0xFF0078D4), size: 32),
+                      icon: const Icon(
+                        Icons.pause_circle_filled,
+                        color: Color(0xFF0078D4),
+                        size: 32,
+                      ),
                       onPressed: _pauseVoiceDemo,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
                   if (isPaused)
                     IconButton(
-                      icon: const Icon(Icons.play_circle_fill,
-                          color: Color(0xFF0078D4), size: 32),
+                      icon: const Icon(
+                        Icons.play_circle_fill,
+                        color: Color(0xFF0078D4),
+                        size: 32,
+                      ),
                       onPressed: _resumeVoiceDemo,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -590,8 +656,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   if (isPlaying || isPaused) ...[
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(Icons.stop_circle,
-                          color: Colors.red, size: 32),
+                      icon: const Icon(
+                        Icons.stop_circle,
+                        color: Colors.red,
+                        size: 32,
+                      ),
                       onPressed: _stopVoiceDemo,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
@@ -702,15 +771,30 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
           // Core features available to all
           _buildComparisonRow(
-              AppLocalizations.of(context)!.unlimitedChatMessages, true, true),
+            AppLocalizations.of(context)!.unlimitedChatMessages,
+            true,
+            true,
+          ),
           _buildComparisonRow(
-              AppLocalizations.of(context)!.translationFeatures, true, true),
+            AppLocalizations.of(context)!.translationFeatures,
+            true,
+            true,
+          ),
           _buildComparisonRow(
-              AppLocalizations.of(context)!.basicVoiceDeviceTts, true, true),
+            AppLocalizations.of(context)!.basicVoiceDeviceTts,
+            true,
+            true,
+          ),
           _buildComparisonRow(
-              AppLocalizations.of(context)!.pdfCreationTools, true, true),
+            AppLocalizations.of(context)!.pdfCreationTools,
+            true,
+            true,
+          ),
           _buildComparisonRow(
-              AppLocalizations.of(context)!.profileUpdates, true, true),
+            AppLocalizations.of(context)!.profileUpdates,
+            true,
+            true,
+          ),
 
           // Features with usage limits vs unlimited
           Consumer<SubscriptionService>(
@@ -718,38 +802,50 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               return Column(
                 children: [
                   _buildComparisonRow(
-                      AppLocalizations.of(context)!.imageGeneration, true, true,
-                      freeNote:
-                          '${subscriptionService.limits.imageGenerationsWeekly}/week',
-                      premiumNote: AppLocalizations.of(context)!.unlimited),
+                    AppLocalizations.of(context)!.imageGeneration,
+                    true,
+                    true,
+                    freeNote:
+                        '${subscriptionService.limits.imageGenerationsWeekly}/week',
+                    premiumNote: AppLocalizations.of(context)!.unlimited,
+                  ),
                   _buildComparisonRow(
-                      AppLocalizations.of(context)!.photoAnalysis, true, true,
-                      freeNote:
-                          '${subscriptionService.limits.imageAnalysisWeekly}/week',
-                      premiumNote: AppLocalizations.of(context)!.unlimited),
+                    AppLocalizations.of(context)!.photoAnalysis,
+                    true,
+                    true,
+                    freeNote:
+                        '${subscriptionService.limits.imageAnalysisWeekly}/week',
+                    premiumNote: AppLocalizations.of(context)!.unlimited,
+                  ),
                   _buildComparisonRow(
-                      AppLocalizations.of(context)!.shareMessageAsPdf,
-                      true,
-                      true,
-                      freeNote:
-                          '${subscriptionService.limits.pdfGenerationsWeekly}/week',
-                      premiumNote: AppLocalizations.of(context)!.unlimited),
+                    AppLocalizations.of(context)!.shareMessageAsPdf,
+                    true,
+                    true,
+                    freeNote:
+                        '${subscriptionService.limits.pdfGenerationsWeekly}/week',
+                    premiumNote: AppLocalizations.of(context)!.unlimited,
+                  ),
                   _buildComparisonRow(
-                      AppLocalizations.of(context)!.placesExplorer, true, true,
-                      freeNote:
-                          '${subscriptionService.limits.placesExplorerWeekly}/week',
-                      premiumNote: AppLocalizations.of(context)!.unlimited),
+                    AppLocalizations.of(context)!.placesExplorer,
+                    true,
+                    true,
+                    freeNote:
+                        '${subscriptionService.limits.placesExplorerWeekly}/week',
+                    premiumNote: AppLocalizations.of(context)!.unlimited,
+                  ),
                   _buildComparisonRow(
-                      AppLocalizations.of(context)!.documentAnalysis,
-                      true,
-                      true,
-                      freeNote:
-                          '${subscriptionService.limits.documentAnalysisWeekly}/week',
-                      premiumNote: AppLocalizations.of(context)!.unlimited),
+                    AppLocalizations.of(context)!.documentAnalysis,
+                    true,
+                    true,
+                    freeNote:
+                        '${subscriptionService.limits.documentAnalysisWeekly}/week',
+                    premiumNote: AppLocalizations.of(context)!.unlimited,
+                  ),
                   _buildComparisonRow(
-                      AppLocalizations.of(context)!.presentationMaker,
-                      true,
-                      true),
+                    AppLocalizations.of(context)!.presentationMaker,
+                    true,
+                    true,
+                  ),
                 ],
               );
             },
@@ -757,24 +853,37 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
 
           // Premium-only features
           _buildComparisonRow(
-              AppLocalizations.of(context)!.premiumAiVoice, false, true),
+            AppLocalizations.of(context)!.premiumAiVoice,
+            false,
+            true,
+          ),
           _buildComparisonRow(
-              AppLocalizations.of(context)!.realtimeInternetSearch,
-              false,
-              true),
+            AppLocalizations.of(context)!.realtimeInternetSearch,
+            false,
+            true,
+          ),
           _buildComparisonRow(
-              AppLocalizations.of(context)!.aiProfileInsights, false, true),
+            AppLocalizations.of(context)!.aiProfileInsights,
+            false,
+            true,
+          ),
           _buildComparisonRow(
-              AppLocalizations.of(context)!.featureShowcaseDeepResearchTitle,
-              false,
-              true),
+            AppLocalizations.of(context)!.featureShowcaseDeepResearchTitle,
+            false,
+            true,
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildComparisonRow(String feature, bool freeHas, bool premiumHas,
-      {String? freeNote, String? premiumNote}) {
+  Widget _buildComparisonRow(
+    String feature,
+    bool freeHas,
+    bool premiumHas, {
+    String? freeNote,
+    String? premiumNote,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: LayoutBuilder(
@@ -878,8 +987,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 child: Text(
                   AppLocalizations.of(context)!.startFreeMonthToday,
                   style: TextStyle(
-                    fontSize:
-                        isVerySmallScreen ? 10 : (isSmallScreen ? 12 : 14),
+                    fontSize: isVerySmallScreen
+                        ? 10
+                        : (isSmallScreen ? 12 : 14),
                     fontWeight: FontWeight.w600,
                     color: Colors.green.shade700,
                   ),
@@ -941,42 +1051,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       children: [
         // Restore Purchases
         TextButton(
-          onPressed: _isLoading
-              ? null
-              : () async {
-                  setState(() => _isLoading = true);
-                  try {
-                    final subscriptionService =
-                        Provider.of<SubscriptionService>(context,
-                            listen: false);
-                    final restored =
-                        await subscriptionService.restorePurchases();
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          restored
-                              ? 'Your Pro subscription has been restored.'
-                              : subscriptionService.errorMessage ??
-                                  'No active subscription was found.',
-                        ),
-                        backgroundColor: restored ? Colors.green : Colors.red,
-                      ),
-                    );
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                              'Unable to restore purchases right now. Please try again.'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  } finally {
-                    if (mounted) setState(() => _isLoading = false);
-                  }
-                },
+          onPressed: _isLoading ? null : _handleRestorePurchases,
           child: Text(
             AppLocalizations.of(context)!.restorePurchases,
             style: const TextStyle(
@@ -999,7 +1074,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 children: [
                   TextButton(
                     onPressed: () => _launchUrl(
-                        'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'),
+                      'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+                    ),
                     child: Text(
                       AppLocalizations.of(context)!.termsOfUse,
                       style: const TextStyle(
@@ -1032,7 +1108,8 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 Flexible(
                   child: TextButton(
                     onPressed: () => _launchUrl(
-                        'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/'),
+                      'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/',
+                    ),
                     child: Text(
                       AppLocalizations.of(context)!.termsOfUse,
                       style: const TextStyle(
@@ -1044,11 +1121,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                     ),
                   ),
                 ),
-                Container(
-                  width: 1,
-                  height: 12,
-                  color: Colors.grey.shade300,
-                ),
+                Container(width: 1, height: 12, color: Colors.grey.shade300),
                 Flexible(
                   child: TextButton(
                     onPressed: () =>
@@ -1073,7 +1146,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   // Premium user management screen
-  Widget _buildPremiumUserScreen(SubscriptionService subscriptionService) {
+  Widget _buildPremiumUserScreen() {
     final isTablet = MediaQuery.of(context).size.width > 600;
     final horizontalPadding = isTablet ? 32.0 : 16.0;
 
@@ -1089,20 +1162,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ),
           child: Column(
             children: [
-              // Premium Status Header
-              _buildPremiumStatusHeader(subscriptionService),
-              const SizedBox(height: 20),
-
-              // Subscription Details Card
-              _buildSubscriptionDetailsCard(subscriptionService),
-              const SizedBox(height: 20),
-
-              // Premium Features Showcase
+              _buildPremiumStatusHeader(),
+              const SizedBox(height: 12),
+              _buildPremiumQuickActions(),
+              const SizedBox(height: 12),
               _buildPremiumFeaturesShowcase(),
-              const SizedBox(height: 20),
-
-              // Manage Subscription
-              _buildManageSubscriptionCard(),
               const SizedBox(height: 24),
             ],
           ),
@@ -1112,8 +1176,11 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   // Original subscription plans screen for free users
-  Widget _buildSubscriptionPlansScreen(SubscriptionService subscriptionService,
-      double horizontalPadding, bool isTablet) {
+  Widget _buildSubscriptionPlansScreen(
+    SubscriptionService subscriptionService,
+    double horizontalPadding,
+    bool isTablet,
+  ) {
     final monthlyProduct = subscriptionService.monthlyProduct;
     final yearlyProduct = subscriptionService.yearlyProduct;
 
@@ -1137,10 +1204,15 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 ),
                 TextButton(
                   onPressed: () => _launchUrl(
-                      'https://apps.apple.com/account/subscriptions'),
-                  child: const Text('Open',
-                      style: TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold)),
+                    'https://apps.apple.com/account/subscriptions',
+                  ),
+                  child: const Text(
+                    'Open',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1196,293 +1268,284 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     );
   }
 
-  Widget _buildPremiumStatusHeader(SubscriptionService subscriptionService) {
+  Widget _buildPremiumStatusHeader() {
     final colors = Theme.of(context).extension<HowAIColors>()!;
 
     return Container(
       key: const Key('subscription_premium_status'),
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: colors.success.withValues(alpha: 0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.check_rounded,
-              color: colors.success,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.premiumActive,
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: colors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  AppLocalizations.of(context)!.fullAccessToFeatures,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [colors.accent, const Color(0xFF6750D8)],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: colors.accent.withValues(alpha: 0.2),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSubscriptionDetailsCard(
-      SubscriptionService subscriptionService) {
-    final colors = Theme.of(context).extension<HowAIColors>()!;
-
-    return Container(
-      key: const Key('subscription_details_group'),
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 6),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: Colors.white,
+                  size: 27,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 11,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.28),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      color: Colors.white,
+                      size: 15,
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      AppLocalizations.of(context)!.active,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
           Text(
-            AppLocalizations.of(context)!.subscriptionDetails,
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: colors.textPrimary,
+            AppLocalizations.of(context)!.premiumActive,
+            style: const TextStyle(
+              fontSize: 25,
+              height: 1.1,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
             ),
           ),
-          const SizedBox(height: 8),
-          _buildDetailRow(AppLocalizations.of(context)!.status,
-              AppLocalizations.of(context)!.active),
-          Divider(color: colors.divider),
-          _buildDetailRow(AppLocalizations.of(context)!.billing,
-              AppLocalizations.of(context)!.managedThroughAppStore),
-          Divider(color: colors.divider),
-          _buildDetailRow(AppLocalizations.of(context)!.features,
-              AppLocalizations.of(context)!.unlimitedAccess),
+          const SizedBox(height: 6),
+          Text(
+            AppLocalizations.of(context)!.fullAccessToFeatures,
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.35,
+              color: Colors.white.withValues(alpha: 0.84),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(
+                Theme.of(context).platform == TargetPlatform.iOS
+                    ? Icons.apple
+                    : Icons.shop_rounded,
+                color: Colors.white.withValues(alpha: 0.82),
+                size: 17,
+              ),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  AppLocalizations.of(context)!.managedThroughAppStore,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withValues(alpha: 0.82),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildPremiumQuickActions() {
     final colors = Theme.of(context).extension<HowAIColors>()!;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: colors.textSecondary,
-              ),
+    return Container(
+      key: const Key('subscription_manage_group'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: colors.divider),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final stackActions = constraints.maxWidth < 340;
+          final manageButton = OutlinedButton.icon(
+            onPressed: () => _launchUrl(
+              Theme.of(context).platform == TargetPlatform.iOS
+                  ? 'https://apps.apple.com/account/subscriptions'
+                  : 'https://play.google.com/store/account/subscriptions',
             ),
-          ),
-          const SizedBox(width: 16),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: colors.textPrimary,
-              ),
-            ),
-          ),
-        ],
+            icon: const Icon(Icons.open_in_new_rounded, size: 18),
+            label: Text(AppLocalizations.of(context)!.manageInAppStore),
+          );
+          final restoreButton = TextButton.icon(
+            key: const Key('subscription_restore_active'),
+            onPressed: _isLoading ? null : _handleRestorePurchases,
+            icon: _isLoading
+                ? const SizedBox.square(
+                    dimension: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.restore_rounded, size: 19),
+            label: Text(AppLocalizations.of(context)!.restorePurchases),
+          );
+
+          if (stackActions) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [manageButton, restoreButton],
+            );
+          }
+          return Row(
+            children: [
+              Expanded(child: manageButton),
+              const SizedBox(width: 8),
+              Expanded(child: restoreButton),
+            ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildPremiumFeaturesShowcase() {
     final colors = Theme.of(context).extension<HowAIColors>()!;
+    final l10n = AppLocalizations.of(context)!;
+    final features = <({IconData icon, String label})>[
+      (
+        icon: Icons.auto_awesome_rounded,
+        label: l10n.unlimitedAiImageGeneration,
+      ),
+      (icon: Icons.image_search_rounded, label: l10n.unlimitedImageAnalysis),
+      (icon: Icons.picture_as_pdf_rounded, label: l10n.unlimitedPdfCreation),
+      (icon: Icons.record_voice_over_rounded, label: l10n.premiumAiVoice),
+      (icon: Icons.phone_in_talk_rounded, label: l10n.voiceCallFeatureTitle),
+      (icon: Icons.travel_explore_rounded, label: l10n.realtimeWebSearch),
+      (icon: Icons.tune_rounded, label: l10n.thinkingLevel),
+      (icon: Icons.explore_rounded, label: l10n.placesExplorerTitle),
+      (icon: Icons.description_rounded, label: l10n.documentAnalysisTitle),
+    ];
 
     return Container(
       key: const Key('subscription_features_group'),
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            AppLocalizations.of(context)!.yourPremiumFeatures,
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: colors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildFeatureShowcaseItem(
-              Icons.image,
-              AppLocalizations.of(context)!.unlimitedAiImageGeneration,
-              AppLocalizations.of(context)!.createStunningImages),
-          _buildFeatureShowcaseItem(
-              Icons.analytics,
-              AppLocalizations.of(context)!.unlimitedImageAnalysis,
-              AppLocalizations.of(context)!.analyzePhotosWithAi),
-          _buildFeatureShowcaseItem(
-              Icons.picture_as_pdf,
-              AppLocalizations.of(context)!.unlimitedPdfCreation,
-              AppLocalizations.of(context)!.convertImagesToPdf),
-          _buildFeatureShowcaseItem(
-              Icons.record_voice_over,
-              AppLocalizations.of(context)!.premiumAiVoice,
-              AppLocalizations.of(context)!.naturalVoiceResponses),
-          _buildFeatureShowcaseItem(
-              Icons.phone_in_talk,
-              AppLocalizations.of(context)!.voiceCallFeatureTitle,
-              '${AppLocalizations.of(context)!.voiceCallFeatureDesc}\n${AppLocalizations.of(context)!.voiceCallPremiumLimit(10, 60)}'),
-          _buildFeatureShowcaseItem(
-              Icons.search,
-              AppLocalizations.of(context)!.realtimeWebSearch,
-              AppLocalizations.of(context)!.getLatestInformation),
-          _buildFeatureShowcaseItem(
-              Icons.tune_rounded,
-              AppLocalizations.of(context)!.thinkingLevel,
-              AppLocalizations.of(context)!.thinkingLevelNote),
-          _buildFeatureShowcaseItem(
-              Icons.explore,
-              AppLocalizations.of(context)!.placesExplorerTitle,
-              AppLocalizations.of(context)!.placesExplorerDesc),
-          _buildFeatureShowcaseItem(
-              Icons.description,
-              AppLocalizations.of(context)!.documentAnalysisTitle,
-              AppLocalizations.of(context)!.documentAnalysisDesc),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureShowcaseItem(
-      IconData icon, String title, String description) {
-    final colors = Theme.of(context).extension<HowAIColors>()!;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 28,
-            child: Icon(icon, color: colors.textSecondary, size: 19),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: colors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 1),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.3,
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildManageSubscriptionCard() {
-    final colors = Theme.of(context).extension<HowAIColors>()!;
-
-    return Container(
-      key: const Key('subscription_manage_group'),
-      width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.divider),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            AppLocalizations.of(context)!.manageSubscription,
+            l10n.yourPremiumFeatures,
             style: TextStyle(
               fontSize: 17,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
               color: colors.textPrimary,
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 4),
           Text(
-            AppLocalizations.of(context)!.subscriptionManagedMessage,
-            style: TextStyle(
-              fontSize: 14,
-              color: colors.textSecondary,
-              height: 1.4,
-            ),
+            l10n.unlimitedAccess,
+            style: TextStyle(fontSize: 13, color: colors.textSecondary),
           ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _launchUrl(
-                  Theme.of(context).platform == TargetPlatform.iOS
-                      ? 'https://apps.apple.com/account/subscriptions'
-                      : 'https://play.google.com/store/account/subscriptions'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colors.textPrimary,
-                side: BorderSide(color: colors.divider),
-                padding: const EdgeInsets.symmetric(vertical: 13),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-              icon: const Icon(Icons.settings),
-              label: Text(
-                AppLocalizations.of(context)!.manageInAppStore,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+          const SizedBox(height: 14),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final columns = constraints.maxWidth >= 340 ? 2 : 1;
+              final tileWidth = columns == 2
+                  ? (constraints.maxWidth - 10) / 2
+                  : constraints.maxWidth;
+              return Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  for (final feature in features)
+                    _buildPremiumFeatureTile(
+                      feature.icon,
+                      feature.label,
+                      tileWidth,
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPremiumFeatureTile(IconData icon, String label, double width) {
+    final colors = Theme.of(context).extension<HowAIColors>()!;
+
+    return Container(
+      width: width,
+      constraints: const BoxConstraints(minHeight: 64),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: colors.canvas,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.divider),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: colors.accentSoft,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: colors.accent, size: 19),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+                color: colors.textPrimary,
               ),
             ),
           ),

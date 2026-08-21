@@ -2,49 +2,69 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:haogpt/services/sync_reconciliation_policy.dart';
 
 void main() {
-  test('an in-flight upload is not deleted by an older remote snapshot', () {
-    final mappings = <int, String>{1: 'remote-existing'};
-    final baseline = ConversationDeletionBaseline.capture(
-      localIds: const [1, 2],
-      remoteIdForLocalId: (localId) => mappings[localId],
-    );
-
-    // Conversation 2 uploads after the remote download began. The server
-    // response was captured before that upload and therefore contains neither
-    // conversation.
-    mappings[2] = 'remote-uploaded-during-download';
-    final candidates = baseline.absentFrom(<String>{}).toList();
-
-    expect(candidates.map((candidate) => candidate.localId), contains(1));
+  test('remote absence is never treated as a deletion signal', () {
     expect(
-      candidates.map((candidate) => candidate.localId),
-      isNot(contains(2)),
+      ConversationReconciliationPolicy.shouldDeleteForRemoteAbsence(),
+      isFalse,
     );
   });
 
-  test('only baseline mappings absent from the server are candidates', () {
-    final mappings = <int, String>{1: 'remote-present', 2: 'remote-deleted'};
-    final baseline = ConversationDeletionBaseline.capture(
-      localIds: const [1, 2, 3],
-      remoteIdForLocalId: (localId) => mappings[localId],
+  test('only an explicit tombstone authorizes a local purge', () {
+    expect(
+      ConversationReconciliationPolicy.actionForRemoteRecord({
+        'id': 'active',
+        'deleted_at': null,
+      }),
+      RemoteConversationAction.merge,
     );
-
-    final candidates = baseline.absentFrom({'remote-present'}).toList();
-
-    expect(candidates, hasLength(1));
-    expect(candidates.single.localId, 2);
-    expect(candidates.single.remoteId, 'remote-deleted');
+    expect(
+      ConversationReconciliationPolicy.actionForRemoteRecord({
+        'id': 'deleted',
+        'deleted_at': '2026-08-20T23:57:00.000Z',
+      }),
+      RemoteConversationAction.purge,
+    );
   });
 
-  test('a mapping rebound during download no longer matches its candidate', () {
-    final baseline = ConversationDeletionBaseline.capture(
-      localIds: const [7],
-      remoteIdForLocalId: (_) => 'remote-before-merge',
-    );
-    final candidate = baseline.absentFrom(<String>{}).single;
-
-    expect(candidate.isStillMappedTo('remote-before-merge'), isTrue);
-    expect(candidate.isStillMappedTo('remote-after-merge'), isFalse);
-    expect(candidate.isStillMappedTo(null), isFalse);
-  });
+  test(
+    'stable client ownership is required before reusing a cached mapping',
+    () {
+      expect(
+        ConversationReconciliationPolicy.verifiedRemoteId(
+          ownerRemoteId: 'canonical',
+          mappedRemoteId: 'stale',
+          mappedRemoteClientId: 'different-client',
+          localClientId: 'local-client',
+        ),
+        'canonical',
+      );
+      expect(
+        ConversationReconciliationPolicy.verifiedRemoteId(
+          ownerRemoteId: null,
+          mappedRemoteId: 'mapped',
+          mappedRemoteClientId: 'local-client',
+          localClientId: 'local-client',
+        ),
+        'mapped',
+      );
+      expect(
+        ConversationReconciliationPolicy.verifiedRemoteId(
+          ownerRemoteId: null,
+          mappedRemoteId: 'stale',
+          mappedRemoteClientId: 'different-client',
+          localClientId: 'local-client',
+        ),
+        isNull,
+      );
+      expect(
+        ConversationReconciliationPolicy.verifiedRemoteId(
+          ownerRemoteId: null,
+          mappedRemoteId: 'legacy-without-client-id',
+          mappedRemoteClientId: null,
+          localClientId: 'local-client',
+        ),
+        isNull,
+      );
+    },
+  );
 }

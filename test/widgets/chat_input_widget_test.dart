@@ -96,7 +96,7 @@ void main() {
       find.byKey(const ValueKey<String>('adaptive_composer')),
     );
     final decoration = composer.decoration! as BoxDecoration;
-    expect(decoration.borderRadius, BorderRadius.circular(12));
+    expect(decoration.borderRadius, BorderRadius.circular(24));
 
     expect(
       find.ancestor(of: tools, matching: find.byType(IconButton)),
@@ -115,17 +115,17 @@ void main() {
     expect(tester.getSize(find.byType(ChatInputWidget)).height, lessThan(65));
   });
 
-  testWidgets('composer expands horizontally when the field is focused',
+  testWidgets('composer keeps a stable frame when the field is focused',
       (tester) async {
     await pumpComposer(tester);
 
     final composer = find.byKey(const ValueKey<String>('adaptive_composer'));
-    final restingWidth = tester.getSize(composer).width;
+    final restingSize = tester.getSize(composer);
 
     await tester.tap(find.byType(TextField));
     await tester.pumpAndSettle();
 
-    expect(tester.getSize(composer).width, greaterThan(restingWidth));
+    expect(tester.getSize(composer), restingSize);
   });
 
   testWidgets('tapping outside the field dismisses the keyboard focus',
@@ -148,6 +148,8 @@ void main() {
 
     expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
     expect(find.byIcon(Icons.graphic_eq_rounded), findsOneWidget);
+    final composer = find.byKey(const ValueKey<String>('adaptive_composer'));
+    final restingSize = tester.getSize(composer);
 
     await tester.enterText(find.byType(TextField), 'Hello Luna');
     await tester.pumpAndSettle();
@@ -155,6 +157,7 @@ void main() {
     expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
     expect(find.byIcon(Icons.mic_none_rounded), findsNothing);
     expect(find.byIcon(Icons.graphic_eq_rounded), findsNothing);
+    expect(tester.getSize(composer), restingSize);
 
     await tester.enterText(find.byType(TextField), '');
     await tester.pumpAndSettle();
@@ -162,6 +165,27 @@ void main() {
     expect(find.byIcon(Icons.arrow_upward_rounded), findsNothing);
     expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
     expect(find.byIcon(Icons.graphic_eq_rounded), findsOneWidget);
+    expect(tester.getSize(composer), restingSize);
+  });
+
+  testWidgets('voice and keyboard modes transition inside a stable frame',
+      (tester) async {
+    await pumpComposer(tester);
+
+    final composer = find.byKey(const ValueKey<String>('adaptive_composer'));
+    final restingSize = tester.getSize(composer);
+
+    await tester.tap(find.byIcon(Icons.mic_none_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.keyboard_alt_outlined), findsOneWidget);
+    expect(tester.getSize(composer), restingSize);
+
+    await tester.tap(find.byIcon(Icons.keyboard_alt_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
+    expect(tester.getSize(composer), restingSize);
   });
 
   testWidgets('thinking level uses a compact removable tag', (tester) async {
@@ -284,20 +308,16 @@ class _ComposerHarnessState extends State<_ComposerHarness>
     with TickerProviderStateMixin {
   late final TextEditingController _textController;
   late final FocusNode _focusNode;
-  late final AnimationController _sendController;
   late final AnimationController _micController;
   late final AnimationController _recordingController;
   late ThinkingLevel _thinkingLevel;
+  bool _isVoiceInputMode = false;
 
   @override
   void initState() {
     super.initState();
     _textController = TextEditingController();
     _focusNode = FocusNode();
-    _sendController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-    );
     _micController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 120),
@@ -313,7 +333,6 @@ class _ComposerHarnessState extends State<_ComposerHarness>
   void dispose() {
     _textController.dispose();
     _focusNode.dispose();
-    _sendController.dispose();
     _micController.dispose();
     _recordingController.dispose();
     super.dispose();
@@ -324,7 +343,7 @@ class _ComposerHarnessState extends State<_ComposerHarness>
     return ChatInputWidget(
       textController: _textController,
       textInputFocusNode: _focusNode,
-      isVoiceInputMode: false,
+      isVoiceInputMode: _isVoiceInputMode,
       isRecording: false,
       isSending: false,
       pendingImages: widget.pendingImages,
@@ -335,7 +354,9 @@ class _ComposerHarnessState extends State<_ComposerHarness>
       recordingDuration: 0,
       isShowingCancelHint: false,
       isCancelingRecording: false,
-      onToggleInputMode: () {},
+      onToggleInputMode: () {
+        setState(() => _isVoiceInputMode = !_isVoiceInputMode);
+      },
       onStartRecording: () {},
       onStopRecording: () {},
       onCancelRecording: () {},
@@ -347,7 +368,6 @@ class _ComposerHarnessState extends State<_ComposerHarness>
       onShowAttachmentOptions: (_) {},
       onShowFileUploadOptions: () {},
       onSendMessage: (_, __, ___) {},
-      sendButtonController: _sendController,
       micAnimationController: _micController,
       recordingPulseController: _recordingController,
       onSpeakCall: () {},

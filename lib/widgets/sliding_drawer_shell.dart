@@ -123,7 +123,6 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
             final currentProgress = _controller.value;
             final direction = isRtl ? -1.0 : 1.0;
             final panelOffset = drawerExtent * currentProgress * direction;
-            final cornerRadius = 16 * currentProgress;
 
             return PopScope(
               canPop: currentProgress == 0,
@@ -220,8 +219,10 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
                                 (1 - currentProgress),
                             0,
                           ),
-                          child: Opacity(
-                            opacity: 0.82 + (0.18 * currentProgress),
+                          child: RepaintBoundary(
+                            key: const ValueKey<String>(
+                              'sliding_drawer_repaint_boundary',
+                            ),
                             child: widget.drawer,
                           ),
                         ),
@@ -230,29 +231,32 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
                     Transform.translate(
                       offset: Offset(panelOffset, 0),
                       child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(cornerRadius),
-                          boxShadow: currentProgress == 0
-                              ? const []
-                              : [
+                        decoration: currentProgress == 0
+                            ? const BoxDecoration()
+                            : const BoxDecoration(
+                                boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withValues(
-                                      alpha: 0.18 * currentProgress,
-                                    ),
-                                    blurRadius: 24,
-                                    spreadRadius: 2,
+                                    color: Color(0x24000000),
+                                    blurRadius: 12,
                                   ),
                                 ],
-                        ),
+                              ),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(cornerRadius),
+                          borderRadius: currentProgress == 0
+                              ? BorderRadius.zero
+                              : const BorderRadius.all(Radius.circular(16)),
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
                               GestureDetector(
                                 behavior: HitTestBehavior.translucent,
                                 onTap: widget.onChildTap,
-                                child: widget.child,
+                                child: RepaintBoundary(
+                                  key: const ValueKey<String>(
+                                    'sliding_chat_repaint_boundary',
+                                  ),
+                                  child: widget.child,
+                                ),
                               ),
                               if (currentProgress > 0)
                                 Semantics(

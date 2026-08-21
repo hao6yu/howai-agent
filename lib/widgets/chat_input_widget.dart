@@ -68,7 +68,6 @@ class ChatInputWidget extends StatefulWidget {
   final GlobalKey? speakKey;
 
   // Animation controllers
-  final AnimationController sendButtonController;
   final AnimationController micAnimationController;
   final AnimationController recordingPulseController;
 
@@ -99,7 +98,6 @@ class ChatInputWidget extends StatefulWidget {
     required this.onShowAttachmentOptions,
     required this.onShowFileUploadOptions,
     required this.onSendMessage,
-    required this.sendButtonController,
     required this.micAnimationController,
     required this.recordingPulseController,
     this.onQuickAction,
@@ -121,33 +119,6 @@ class ChatInputWidget extends StatefulWidget {
 class _ChatInputWidgetState extends State<ChatInputWidget> {
   bool _isMenuExpanded = false;
 
-  @override
-  void initState() {
-    super.initState();
-    widget.textInputFocusNode.addListener(_handleInputFocusChange);
-  }
-
-  @override
-  void didUpdateWidget(covariant ChatInputWidget oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.textInputFocusNode != widget.textInputFocusNode) {
-      oldWidget.textInputFocusNode.removeListener(_handleInputFocusChange);
-      widget.textInputFocusNode.addListener(_handleInputFocusChange);
-    }
-  }
-
-  @override
-  void dispose() {
-    widget.textInputFocusNode.removeListener(_handleInputFocusChange);
-    super.dispose();
-  }
-
-  void _handleInputFocusChange() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
   // Helper method to send message - centralizes send logic
   void _sendMessage() {
     if (widget.textController.text.trim().isEmpty &&
@@ -167,9 +138,6 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
       }
     }
 
-    widget.sendButtonController.forward().then((_) {
-      widget.sendButtonController.reverse();
-    });
     final imagesToSend = List<XFile>.from(widget.pendingImages);
     final filesToSend = List<PlatformFile>.from(widget.pendingFiles);
     final text = widget.textController.text;
@@ -188,44 +156,50 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
         : screenWidth;
     final isTablet = shortestSide >= 600;
     final isPhoneLandscape = !isTablet && isLandscape;
-    final isIdleComposer = !widget.textInputFocusNode.hasFocus &&
-        !widget.isVoiceInputMode &&
-        widget.textController.text.trim().isEmpty &&
-        widget.pendingImages.isEmpty &&
-        widget.pendingFiles.isEmpty;
-
     // Keep the composer compact; the parent SafeArea already provides the
     // required iPhone home-indicator clearance.
-    final verticalPadding =
-        isPhoneLandscape ? 4.0 : (isIdleComposer ? 6.0 : 8.0);
+    final verticalPadding = isPhoneLandscape ? 4.0 : 5.0;
     final horizontalPadding = isPhoneLandscape ? 12.0 : 16.0;
 
     return Container(
       decoration: BoxDecoration(
         color: colors.canvas,
-        border: Border(top: BorderSide(color: colors.divider)),
       ),
       padding: EdgeInsets.fromLTRB(horizontalPadding, verticalPadding,
           horizontalPadding, verticalPadding),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Image attachments area with quick actions
-          if (widget.pendingImages.isNotEmpty) ...[
-            _buildImageAttachmentsArea(),
-            // Quick action buttons for images (only show if not in PDF workflow)
-            if (!widget.isPdfWorkflowActive) _buildQuickActionButtons(),
-          ],
+          AnimatedSize(
+            key: const ValueKey<String>('composer_accessories'),
+            duration: motionDuration(context, HowAIMotion.standard),
+            curve: HowAIMotion.enterCurve,
+            alignment: Alignment.bottomCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Image attachments area with quick actions
+                if (widget.pendingImages.isNotEmpty) ...[
+                  _buildImageAttachmentsArea(),
+                  if (!widget.isPdfWorkflowActive) _buildQuickActionButtons(),
+                ],
 
-          // File attachments area
-          if (widget.pendingFiles.isNotEmpty) _buildFileAttachmentsArea(),
+                if (widget.pendingFiles.isNotEmpty)
+                  _buildFileAttachmentsArea(),
 
-          if (widget.thinkingLevel != ThinkingLevel.auto)
-            _buildThinkingLevelChip(),
+                if (widget.thinkingLevel != ThinkingLevel.auto)
+                  _buildThinkingLevelChip(),
+              ],
+            ),
+          ),
 
           // One adaptive composer surface: tools on the left, text or
           // push-to-talk in the middle, and voice/send on the right.
-          _buildAdaptiveComposer(isPhoneLandscape),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: widget.textController,
+            builder: (context, value, child) =>
+                _buildAdaptiveComposer(isPhoneLandscape),
+          ),
         ],
       ),
     );
@@ -713,9 +687,6 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
             onSubmitted: (value) {
               _sendMessage();
             },
-            onChanged: (value) {
-              setState(() {});
-            },
           ),
         );
       },
@@ -728,17 +699,9 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
         final hasDraft = widget.textController.text.trim().isNotEmpty ||
             widget.pendingImages.isNotEmpty ||
             widget.pendingFiles.isNotEmpty;
-        final isIdleCollapsed = !isPhoneLandscape &&
-            !widget.textInputFocusNode.hasFocus &&
-            !widget.isVoiceInputMode &&
-            !hasDraft;
         final buttonSize = settings
             .getScaledFontSize(
-              isPhoneLandscape
-                  ? 38
-                  : isIdleCollapsed
-                      ? 40
-                      : 42,
+              isPhoneLandscape ? 38 : 42,
             )
             .clamp(44.0, 52.0)
             .toDouble();
@@ -773,20 +736,12 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
             size: buttonSize,
           );
         } else if (hasDraft) {
-          trailingControl = AnimatedBuilder(
-            animation: widget.sendButtonController,
-            builder: (context, child) {
-              return Transform.scale(
-                scale: 1.0 + (widget.sendButtonController.value * 0.1),
-                child: _buildComposerControl(
-                  icon: Icons.arrow_upward_rounded,
-                  onTap: canSend ? _sendMessage : null,
-                  tooltip: AppLocalizations.of(context)!.send,
-                  size: buttonSize,
-                  isPrimary: canSend,
-                ),
-              );
-            },
+          trailingControl = _buildComposerControl(
+            icon: Icons.arrow_upward_rounded,
+            onTap: canSend ? _sendMessage : null,
+            tooltip: AppLocalizations.of(context)!.send,
+            size: buttonSize,
+            isPrimary: canSend,
           );
         } else {
           final dictationControl = _buildComposerControl(
@@ -823,12 +778,12 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
         final composer = Container(
           key: const ValueKey<String>('adaptive_composer'),
           constraints: BoxConstraints(
-            minHeight: isIdleCollapsed ? 44 : buttonSize + 8,
+            minHeight: buttonSize + 8,
           ),
-          padding: EdgeInsets.all(isIdleCollapsed ? 2 : 4),
+          padding: const EdgeInsets.all(4),
           decoration: BoxDecoration(
             color: colors.surface,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(24),
             border: Border.all(color: colors.divider),
           ),
           child: Row(
@@ -837,45 +792,72 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
               toolsButton,
               const SizedBox(width: 4),
               Expanded(
-                child: widget.isVoiceInputMode
-                    ? _buildVoiceInputButton(compact: true)
-                    : _buildTextInputField(),
+                child: AnimatedSwitcher(
+                  key: const ValueKey<String>('composer-mode-switcher'),
+                  duration: motionDuration(context, HowAIMotion.quick),
+                  switchInCurve: HowAIMotion.enterCurve,
+                  switchOutCurve: HowAIMotion.exitCurve,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey<String>(
+                      widget.isVoiceInputMode ? 'voice-input' : 'text-input',
+                    ),
+                    child: widget.isVoiceInputMode
+                        ? _buildVoiceInputButton(compact: true)
+                        : _buildTextInputField(),
+                  ),
+                ),
               ),
               const SizedBox(width: 4),
-              AnimatedSwitcher(
-                key: const ValueKey<String>('adaptive-composer-switcher'),
-                duration: motionDuration(
-                  context,
-                  const Duration(milliseconds: 160),
-                ),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                child: KeyedSubtree(
-                  key: ValueKey<String>(
-                    widget.isVoiceInputMode
-                        ? 'keyboard'
-                        : hasDraft
-                            ? 'send'
-                            : 'voice-actions',
+              SizedBox(
+                width: (buttonSize * 2) + 2,
+                height: buttonSize,
+                child: AnimatedSwitcher(
+                  key: const ValueKey<String>('adaptive-composer-switcher'),
+                  duration: motionDuration(context, HowAIMotion.quick),
+                  switchInCurve: HowAIMotion.enterCurve,
+                  switchOutCurve: HowAIMotion.exitCurve,
+                  layoutBuilder: (currentChild, previousChildren) => Stack(
+                    alignment: Alignment.centerRight,
+                    children: [
+                      ...previousChildren,
+                      ?currentChild,
+                    ],
                   ),
-                  child: trailingControl,
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(begin: 0.94, end: 1).animate(
+                        CurvedAnimation(
+                          parent: animation,
+                          curve: HowAIMotion.enterCurve,
+                        ),
+                      ),
+                      alignment: Alignment.centerRight,
+                      child: child,
+                    ),
+                  ),
+                  child: KeyedSubtree(
+                    key: ValueKey<String>(
+                      widget.isVoiceInputMode
+                          ? 'keyboard'
+                          : hasDraft
+                              ? 'send'
+                              : 'voice-actions',
+                    ),
+                    child: trailingControl,
+                  ),
                 ),
               ),
             ],
           ),
         );
-        return AnimatedPadding(
-          duration: motionDuration(
-            context,
-            const Duration(milliseconds: 180),
-          ),
-          curve: Curves.easeOutCubic,
+        return Padding(
           padding: EdgeInsets.symmetric(
-            horizontal: widget.textInputFocusNode.hasFocus
-                ? 0
-                : isIdleCollapsed
-                    ? 18
-                    : 12,
+            horizontal: isPhoneLandscape ? 0 : 8,
           ),
           child: composer,
         );
@@ -942,7 +924,7 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
               type: MaterialType.transparency,
               child: InkWell(
                 onTap: onTap,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(size / 2),
                 child: Center(
                   child: Icon(
                     icon,

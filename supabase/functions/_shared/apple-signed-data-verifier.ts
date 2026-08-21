@@ -223,7 +223,7 @@ function decodeBase64Url(
   value: string,
   maxBytes: number,
   code: AppleSignedDataVerificationCode,
-): Uint8Array<ArrayBuffer> {
+): Uint8Array {
   if (
     value.length === 0 || value.length > maxEncodedLength(maxBytes) ||
     !/^[A-Za-z0-9_-]+$/.test(value) || value.length % 4 === 1
@@ -237,7 +237,7 @@ function decodeBase64Url(
   );
 }
 
-function decodeCertificate(value: string): Uint8Array<ArrayBuffer> {
+function decodeCertificate(value: string): Uint8Array {
   if (
     value.length === 0 ||
     value.length > maxEncodedLength(MAX_CERTIFICATE_BYTES) ||
@@ -256,7 +256,7 @@ function decodeBase64(
   unpadded: string,
   maxBytes: number,
   code: AppleSignedDataVerificationCode,
-): Uint8Array<ArrayBuffer> {
+): Uint8Array {
   try {
     const padded = unpadded.padEnd(Math.ceil(unpadded.length / 4) * 4, "=");
     const binary = atob(padded);

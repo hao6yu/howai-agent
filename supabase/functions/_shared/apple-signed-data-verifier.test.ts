@@ -136,7 +136,9 @@ async function createTestChain(
   const notBefore = options.notBefore ??
     new Date(SIGNED_DATE - 24 * 60 * 60_000);
   const notAfter = options.notAfter ?? new Date(SIGNED_DATE + 24 * 60 * 60_000);
-  const rootKeys = await generateEcKeys("P-384");
+  // Deno 2.1 (the release-gate runtime) cannot sign P-384 test
+  // certificates. P-256 still exercises the same chain-validation path.
+  const rootKeys = await generateEcKeys("P-256");
   const root = await X509CertificateGenerator.createSelfSigned({
     name: "CN=Test Apple Root",
     keys: rootKeys,
@@ -145,7 +147,7 @@ async function createTestChain(
     extensions: [new BasicConstraintsExtension(true, 1, true)],
   });
 
-  const intermediateKeys = await generateEcKeys("P-384");
+  const intermediateKeys = await generateEcKeys("P-256");
   const intermediateExtensions: Extension[] = [
     new BasicConstraintsExtension(true, 0, true),
   ];

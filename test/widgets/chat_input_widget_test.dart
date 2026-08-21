@@ -45,9 +45,9 @@ void main() {
         ],
         child: MaterialApp(
           builder: (context, child) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              disableAnimations: disableAnimations,
-            ),
+            data: MediaQuery.of(
+              context,
+            ).copyWith(disableAnimations: disableAnimations),
             child: child!,
           ),
           theme: HowAITheme.light(),
@@ -75,8 +75,9 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('tools, text, and voice share one compact composer row',
-      (tester) async {
+  testWidgets('tools, text, and voice share one compact composer row', (
+    tester,
+  ) async {
     await pumpComposer(tester);
 
     final tools = find.byIcon(Icons.add);
@@ -92,11 +93,11 @@ void main() {
     expect(find.byIcon(Icons.language_rounded), findsNothing);
     expect(find.textContaining('Real-time Web Search'), findsNothing);
 
-    final composer = tester.widget<Container>(
+    final composer = tester.widget<AnimatedContainer>(
       find.byKey(const ValueKey<String>('adaptive_composer')),
     );
     final decoration = composer.decoration! as BoxDecoration;
-    expect(decoration.borderRadius, BorderRadius.circular(12));
+    expect(decoration.borderRadius, BorderRadius.circular(24));
 
     expect(
       find.ancestor(of: tools, matching: find.byType(IconButton)),
@@ -115,21 +116,29 @@ void main() {
     expect(tester.getSize(find.byType(ChatInputWidget)).height, lessThan(65));
   });
 
-  testWidgets('composer expands horizontally when the field is focused',
-      (tester) async {
+  testWidgets('composer expands and focuses on the first field tap', (
+    tester,
+  ) async {
     await pumpComposer(tester);
 
     final composer = find.byKey(const ValueKey<String>('adaptive_composer'));
-    final restingWidth = tester.getSize(composer).width;
+    final restingSize = tester.getSize(composer);
 
     await tester.tap(find.byType(TextField));
     await tester.pumpAndSettle();
 
-    expect(tester.getSize(composer).width, greaterThan(restingWidth));
+    final expandedSize = tester.getSize(composer);
+    expect(expandedSize.height, greaterThan(restingSize.height));
+    expect(expandedSize.width, greaterThan(restingSize.width));
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).focusNode?.hasFocus,
+      isTrue,
+    );
   });
 
-  testWidgets('tapping outside the field dismisses the keyboard focus',
-      (tester) async {
+  testWidgets('tapping outside the field dismisses the keyboard focus', (
+    tester,
+  ) async {
     await pumpComposer(tester);
 
     final fieldFinder = find.byType(TextField);
@@ -142,19 +151,25 @@ void main() {
     expect(tester.widget<TextField>(fieldFinder).focusNode?.hasFocus, isFalse);
   });
 
-  testWidgets('send replaces both voice controls while a draft exists',
-      (tester) async {
+  testWidgets('send replaces both voice controls while a draft exists', (
+    tester,
+  ) async {
     await pumpComposer(tester);
 
     expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
     expect(find.byIcon(Icons.graphic_eq_rounded), findsOneWidget);
+    final composer = find.byKey(const ValueKey<String>('adaptive_composer'));
+    final restingSize = tester.getSize(composer);
 
     await tester.enterText(find.byType(TextField), 'Hello Luna');
     await tester.pumpAndSettle();
 
+    final expandedSize = tester.getSize(composer);
     expect(find.byIcon(Icons.arrow_upward_rounded), findsOneWidget);
     expect(find.byIcon(Icons.mic_none_rounded), findsNothing);
     expect(find.byIcon(Icons.graphic_eq_rounded), findsNothing);
+    expect(expandedSize.height, greaterThan(restingSize.height));
+    expect(expandedSize.width, greaterThan(restingSize.width));
 
     await tester.enterText(find.byType(TextField), '');
     await tester.pumpAndSettle();
@@ -162,6 +177,28 @@ void main() {
     expect(find.byIcon(Icons.arrow_upward_rounded), findsNothing);
     expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
     expect(find.byIcon(Icons.graphic_eq_rounded), findsOneWidget);
+    expect(tester.getSize(composer), expandedSize);
+  });
+
+  testWidgets('voice and keyboard modes transition inside a stable frame', (
+    tester,
+  ) async {
+    await pumpComposer(tester);
+
+    final composer = find.byKey(const ValueKey<String>('adaptive_composer'));
+    final restingSize = tester.getSize(composer);
+
+    await tester.tap(find.byIcon(Icons.mic_none_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.keyboard_alt_outlined), findsOneWidget);
+    expect(tester.getSize(composer), restingSize);
+
+    await tester.tap(find.byIcon(Icons.keyboard_alt_outlined));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.mic_none_rounded), findsOneWidget);
+    expect(tester.getSize(composer), restingSize);
   });
 
   testWidgets('thinking level uses a compact removable tag', (tester) async {
@@ -177,8 +214,9 @@ void main() {
     expect(find.text('Balanced'), findsNothing);
   });
 
-  testWidgets('composer honors the reduced-motion accessibility setting',
-      (tester) async {
+  testWidgets('composer honors the reduced-motion accessibility setting', (
+    tester,
+  ) async {
     await pumpComposer(tester, disableAnimations: true);
 
     final switcher = tester.widget<AnimatedSwitcher>(
@@ -187,8 +225,9 @@ void main() {
     expect(switcher.duration, Duration.zero);
   });
 
-  testWidgets('pending photo thumbnails use a bounded image decode',
-      (tester) async {
+  testWidgets('pending photo thumbnails use a bounded image decode', (
+    tester,
+  ) async {
     await pumpComposer(
       tester,
       pendingImages: [XFile('assets/icon/google.png')],
@@ -206,21 +245,9 @@ void main() {
     expect(resized.height, 256);
   });
 
-  for (final testCase in <({
-    String name,
-    ThemeMode mode,
-    HowAIColors colors,
-  })>[
-    (
-      name: 'light',
-      mode: ThemeMode.light,
-      colors: HowAIColors.light,
-    ),
-    (
-      name: 'dark',
-      mode: ThemeMode.dark,
-      colors: HowAIColors.dark,
-    ),
+  for (final testCase in <({String name, ThemeMode mode, HowAIColors colors})>[
+    (name: 'light', mode: ThemeMode.light, colors: HowAIColors.light),
+    (name: 'dark', mode: ThemeMode.dark, colors: HowAIColors.dark),
   ]) {
     testWidgets(
       'quick actions use readable grouped styling in ${testCase.name} mode',
@@ -257,9 +284,11 @@ void main() {
         expect(title.style?.fontSize, 15);
         expect(title.style?.fontWeight, FontWeight.w600);
 
-        final description = tester.widget<Text>(find.text(
-          'Speak naturally - your voice will be transcribed and understood',
-        ));
+        final description = tester.widget<Text>(
+          find.text(
+            'Speak naturally - your voice will be transcribed and understood',
+          ),
+        );
         expect(description.maxLines, 2);
         expect(description.style?.color, testCase.colors.textSecondary);
       },
@@ -284,20 +313,16 @@ class _ComposerHarnessState extends State<_ComposerHarness>
     with TickerProviderStateMixin {
   late final TextEditingController _textController;
   late final FocusNode _focusNode;
-  late final AnimationController _sendController;
   late final AnimationController _micController;
   late final AnimationController _recordingController;
   late ThinkingLevel _thinkingLevel;
+  bool _isVoiceInputMode = false;
 
   @override
   void initState() {
     super.initState();
     _textController = TextEditingController();
     _focusNode = FocusNode();
-    _sendController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 120),
-    );
     _micController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 120),
@@ -313,7 +338,6 @@ class _ComposerHarnessState extends State<_ComposerHarness>
   void dispose() {
     _textController.dispose();
     _focusNode.dispose();
-    _sendController.dispose();
     _micController.dispose();
     _recordingController.dispose();
     super.dispose();
@@ -324,7 +348,7 @@ class _ComposerHarnessState extends State<_ComposerHarness>
     return ChatInputWidget(
       textController: _textController,
       textInputFocusNode: _focusNode,
-      isVoiceInputMode: false,
+      isVoiceInputMode: _isVoiceInputMode,
       isRecording: false,
       isSending: false,
       pendingImages: widget.pendingImages,
@@ -335,7 +359,9 @@ class _ComposerHarnessState extends State<_ComposerHarness>
       recordingDuration: 0,
       isShowingCancelHint: false,
       isCancelingRecording: false,
-      onToggleInputMode: () {},
+      onToggleInputMode: () {
+        setState(() => _isVoiceInputMode = !_isVoiceInputMode);
+      },
       onStartRecording: () {},
       onStopRecording: () {},
       onCancelRecording: () {},
@@ -347,7 +373,6 @@ class _ComposerHarnessState extends State<_ComposerHarness>
       onShowAttachmentOptions: (_) {},
       onShowFileUploadOptions: () {},
       onSendMessage: (_, __, ___) {},
-      sendButtonController: _sendController,
       micAnimationController: _micController,
       recordingPulseController: _recordingController,
       onSpeakCall: () {},

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -19,7 +20,13 @@ enum _ConversationAction { pin, rename, archive, restore, delete }
 
 class ConversationDrawer extends StatefulWidget {
   final int? profileId;
-  const ConversationDrawer({Key? key, this.profileId}) : super(key: key);
+  final Future<void> Function()? onClose;
+
+  const ConversationDrawer({
+    super.key,
+    this.profileId,
+    this.onClose,
+  });
 
   @override
   State<ConversationDrawer> createState() => _ConversationDrawerState();
@@ -55,6 +62,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
         bottomRight: Radius.circular(1),
       ),
       child: Drawer(
+        width: math.min(MediaQuery.sizeOf(context).width * 0.9, 390),
         backgroundColor: colors.canvas,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -84,23 +92,25 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
             return Column(
               children: [
                 // Fixed header section (search bar and spacing)
-                SizedBox(height: MediaQuery.of(context).padding.top + 16),
+                SizedBox(height: MediaQuery.paddingOf(context).top + 8),
 
                 // Search bar and New Chat button
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
+                      horizontal: 16.0, vertical: 6.0),
                   child: Row(
                     children: [
                       // Search bar
                       Expanded(
                         child: Container(
-                          height: 44,
+                          height: 46,
                           decoration: BoxDecoration(
                             color: colors.surface,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: TextField(
+                            key: const ValueKey<String>(
+                                'conversation_search_field'),
                             controller: _searchController,
                             style: TextStyle(
                               color: Theme.of(context)
@@ -114,7 +124,11 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                                   .searchConversations,
                               hintStyle: TextStyle(color: colors.textTertiary),
                               prefixIcon: Icon(Icons.search,
-                                  color: colors.textSecondary),
+                                  size: 21, color: colors.textSecondary),
+                              prefixIconConstraints: const BoxConstraints(
+                                minWidth: 44,
+                                minHeight: 44,
+                              ),
                               filled: false,
                               border: InputBorder.none,
                               contentPadding:
@@ -128,14 +142,14 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                       NewConversationButton(
                         onPressed: () {
                           provider.clearSelection();
-                          Navigator.pop(context);
+                          unawaited(_closeDrawer());
                         },
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
 
                 // Scrollable conversations section
                 Expanded(
@@ -244,6 +258,17 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
 
   Future<void> _closeThenNavigate(String routeName) async {
     final navigator = Navigator.of(context);
+    await _closeDrawer();
+    if (!mounted || !navigator.mounted) return;
+    await navigator.pushNamed(routeName);
+  }
+
+  Future<void> _closeDrawer() async {
+    if (widget.onClose != null) {
+      await widget.onClose!();
+      return;
+    }
+
     final closeDuration = motionDuration(
       context,
       HowAIMotion.drawerTransition,
@@ -252,8 +277,6 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
     if (closeDuration > Duration.zero) {
       await Future<void>.delayed(closeDuration);
     }
-    if (!mounted || !navigator.mounted) return;
-    await navigator.pushNamed(routeName);
   }
 
   List<Widget> _buildRecencySections(
@@ -366,13 +389,6 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
         ),
         overflow: TextOverflow.ellipsis,
       ),
-      subtitle: Text(
-        'Updated ${_timeAgo(context, c.updatedAt)}',
-        style: TextStyle(
-          color: colors.textTertiary,
-          fontSize: 12,
-        ),
-      ),
       selected: isSelected,
       selectedTileColor: colors.surface,
       trailing: PopupMenuButton<_ConversationAction>(
@@ -416,7 +432,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
           ? null
           : () {
               provider.selectConversation(c);
-              Navigator.pop(context);
+              unawaited(_closeDrawer());
             },
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
@@ -532,28 +548,6 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(AppLocalizations.of(context)!.somethingWentWrong)),
     );
-  }
-
-  String _timeAgo(BuildContext context, DateTime dateTime) {
-    final l10n = AppLocalizations.of(context)!;
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inDays > 365) {
-      final years = (difference.inDays / 365).floor();
-      return l10n.yearAgo(years);
-    } else if (difference.inDays > 30) {
-      final months = (difference.inDays / 30).floor();
-      return l10n.monthAgo(months);
-    } else if (difference.inDays > 0) {
-      return l10n.dayAgo(difference.inDays);
-    } else if (difference.inHours > 0) {
-      return l10n.hourAgo(difference.inHours);
-    } else if (difference.inMinutes > 0) {
-      return l10n.minuteAgo(difference.inMinutes);
-    } else {
-      return l10n.justNow;
-    }
   }
 
   Future<String?> _resolveAvatarPath(String? avatarPath) async {

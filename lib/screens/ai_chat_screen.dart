@@ -15,6 +15,7 @@ import 'package:showcaseview/showcaseview.dart';
 // Import the extracted widgets and utilities
 import '../widgets/chat_message_widget.dart';
 import '../widgets/chat_input_widget.dart';
+import '../widgets/chat_empty_state.dart';
 import '../widgets/pptx_generation_dialog.dart';
 import '../widgets/translation_dialog.dart';
 import '../widgets/subscription_banner.dart';
@@ -55,6 +56,7 @@ import '../providers/reminder_provider.dart';
 import '../providers/push_notification_provider.dart';
 import 'package:haogpt/generated/app_localizations.dart';
 import '../widgets/conversation_drawer.dart';
+import '../widgets/sliding_drawer_shell.dart';
 import '../widgets/new_conversation_button.dart';
 import '../providers/conversation_provider.dart';
 import '../providers/ai_personality_provider.dart';
@@ -94,7 +96,7 @@ class AiChatScreen extends StatefulWidget {
 }
 
 class _AiChatScreenState extends State<AiChatScreen>
-    with TickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final DatabaseService _databaseService = DatabaseService();
@@ -108,8 +110,6 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Add a FocusNode for the text input
   final FocusNode _textInputFocusNode = FocusNode();
-  bool _keyboardVisible = false;
-  bool _followKeyboardToLatest = false;
 
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
@@ -125,16 +125,12 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Animation controllers
   late AnimationController _micAnimationController;
-  late AnimationController _sendButtonController;
 
   // Add a flag to control welcome message generation
   bool _skipWelcomeMessage = false;
 
   // Add new state variable for input mode
   bool _isVoiceInputMode = false;
-
-  // Add input mode animation controller
-  late AnimationController _inputModeAnimationController;
 
   // Add recording animation
   late AnimationController _recordingPulseController;
@@ -219,6 +215,8 @@ class _AiChatScreenState extends State<AiChatScreen>
   bool _pendingActionBusy = false;
 
   // Showcase GlobalKeys for feature highlighting
+  final GlobalKey<SlidingDrawerShellState> _drawerShellKey =
+      GlobalKey<SlidingDrawerShellState>();
   final GlobalKey _drawerButtonKey = GlobalKey();
   final GlobalKey _quickActionsKey = GlobalKey();
   final GlobalKey _speakButtonKey = GlobalKey();
@@ -226,22 +224,9 @@ class _AiChatScreenState extends State<AiChatScreen>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _textInputFocusNode.addListener(_handleTextInputFocusChange);
     AudioService.isPlayingAudio.addListener(_handleAudioPlaybackChanged);
 
     _micAnimationController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    _sendButtonController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    // Initialize input mode animation controller
-    _inputModeAnimationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
@@ -366,17 +351,13 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     AudioService.isPlayingAudio.removeListener(_handleAudioPlaybackChanged);
-    _textInputFocusNode.removeListener(_handleTextInputFocusChange);
     _scrollController.removeListener(_onScroll);
     _listenedConversationProvider?.removeListener(_onConversationChanged);
     _listenedAuthProvider?.removeListener(_onAuthSyncCompleted);
     _textController.dispose();
     _scrollController.dispose();
     _micAnimationController.dispose();
-    _sendButtonController.dispose();
-    _inputModeAnimationController.dispose();
     _recordingPulseController.dispose();
     _cancelRecordingTimer();
     _textInputFocusNode.dispose(); // Dispose the focus node
@@ -415,39 +396,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     });
   }
 
-  @override
-  void didChangeMetrics() {
-    if (!mounted) return;
-    final keyboardVisible = View.of(context).viewInsets.bottom > 0;
-    if (keyboardVisible && !_keyboardVisible) {
-      _followKeyboardToLatest = _isNearBottom(threshold: 280);
-    }
-    _keyboardVisible = keyboardVisible;
-    if (!keyboardVisible) {
-      _followKeyboardToLatest = false;
-      return;
-    }
-    if (_followKeyboardToLatest) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _keyboardVisible && _followKeyboardToLatest) {
-          _scrollToBottom(animated: false);
-        }
-      });
-    }
-  }
-
-  void _handleTextInputFocusChange() {
-    if (!_textInputFocusNode.hasFocus) return;
-    _followKeyboardToLatest = _isNearBottom(threshold: 280);
-    if (_followKeyboardToLatest) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _textInputFocusNode.hasFocus) {
-          _scrollToBottom(animated: true);
-        }
-      });
-    }
-  }
-
   // PDF Auto-conversion methods
   void _startPdfAutoConversionTimer() {
     _pdfAutoConversionTimer?.cancel();
@@ -484,7 +432,8 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   void _onScroll() {
     if (_scrollController.hasClients &&
-        _scrollController.offset <= 100 &&
+        _scrollController.offset >=
+            _scrollController.position.maxScrollExtent - 100 &&
         !_isLoadingMore &&
         _hasMore &&
         !_isLoading) {
@@ -590,28 +539,28 @@ class _AiChatScreenState extends State<AiChatScreen>
   void _scrollToBottom({bool animated = false}) {
     if (!_scrollController.hasClients) return;
 
-    final maxScroll = _scrollController.position.maxScrollExtent;
+    final bottom = _scrollController.position.minScrollExtent;
 
     if (animated) {
       // Only animate if requested (e.g., after sending/receiving a new message)
       const threshold = 50.0;
-      if ((_scrollController.offset + threshold) < maxScroll) {
+      if ((_scrollController.offset - bottom).abs() > threshold) {
         _scrollController.animateTo(
-          maxScroll,
+          bottom,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
       }
     } else {
       // Instantly jump to bottom (no animation)
-      _scrollController.jumpTo(maxScroll);
+      _scrollController.jumpTo(bottom);
     }
   }
 
   bool _isNearBottom({double threshold = 140}) {
     if (!_scrollController.hasClients) return true;
     final position = _scrollController.position;
-    return (position.maxScrollExtent - position.pixels) <= threshold;
+    return (position.pixels - position.minScrollExtent) <= threshold;
   }
 
   void _addWelcomeMessageIfNeeded() {
@@ -2790,8 +2739,8 @@ class _AiChatScreenState extends State<AiChatScreen>
               return aTime.compareTo(bTime);
             });
 
-            return Scaffold(
-              drawer: ConversationDrawer(profileId: _currentProfileId),
+            final chatScaffold = Scaffold(
+              resizeToAvoidBottomInset: true,
               appBar: AppBar(
                 toolbarHeight: 50,
                 title: const BrandedAppTitle(),
@@ -2809,11 +2758,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                           size: settings.getScaledFontSize(24),
                         ),
                         tooltip: AppLocalizations.of(context)?.menu ?? 'Menu',
-                        onPressed: () {
-                          // Unfocus text field when drawer opens
-                          FocusScope.of(context).unfocus();
-                          Scaffold.of(context).openDrawer();
-                        },
+                        onPressed: _openConversationDrawer,
                       );
 
                       // Wrap with Showcase for feature highlighting
@@ -2874,7 +2819,6 @@ class _AiChatScreenState extends State<AiChatScreen>
                   color: Theme.of(context).scaffoldBackgroundColor,
                   child: SafeArea(
                     bottom: true,
-                    maintainBottomViewPadding: false,
                     child: Column(
                       children: [
                         // Chat messages list
@@ -2883,32 +2827,10 @@ class _AiChatScreenState extends State<AiChatScreen>
                               ? const Center(child: CircularProgressIndicator())
                               : Stack(
                                   children: [
-                                    // When no conversation is selected or displaying messages, show welcome message
-                                    selectedConversation == null &&
-                                            displayMessages.isEmpty
+                                    // Use the same useful starter surface for a
+                                    // brand-new chat and an empty saved chat.
+                                    displayMessages.isEmpty
                                         ? _buildWelcomeScreen()
-                                        : displayMessages.isEmpty
-                                        ? Center(
-                                            child: Consumer<SettingsProvider>(
-                                              builder:
-                                                  (context, settings, child) {
-                                                    return Text(
-                                                      AppLocalizations.of(
-                                                        context,
-                                                      )!.noConversationsYet,
-                                                      style: TextStyle(
-                                                        color: Colors
-                                                            .grey
-                                                            .shade600,
-                                                        fontSize: settings
-                                                            .getScaledFontSize(
-                                                              16,
-                                                            ),
-                                                      ),
-                                                    );
-                                                  },
-                                            ),
-                                          )
                                         : ListView.builder(
                                             controller: _scrollController,
                                             keyboardDismissBehavior:
@@ -2921,13 +2843,19 @@ class _AiChatScreenState extends State<AiChatScreen>
                                               20,
                                             ),
                                             itemCount: displayMessages.length,
-                                            reverse:
-                                                false, // Keep chronological order
+                                            // Keep the newest message anchored
+                                            // above the composer while iOS
+                                            // animates the keyboard viewport.
+                                            reverse: true,
                                             physics:
                                                 const AlwaysScrollableScrollPhysics(), // Make sure scrolling is always enabled
                                             itemBuilder: (context, index) {
+                                              final messageIndex =
+                                                  displayMessages.length -
+                                                  1 -
+                                                  index;
                                               final message =
-                                                  displayMessages[index];
+                                                  displayMessages[messageIndex];
                                               final messageKey =
                                                   message.id ??
                                                   Object.hash(
@@ -2964,7 +2892,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                         .locationResults!,
                                                     searchQuery:
                                                         _extractSearchQueryFromPreviousMessage(
-                                                          index,
+                                                          message,
                                                         ),
                                                   ),
                                                 );
@@ -3290,9 +3218,6 @@ class _AiChatScreenState extends State<AiChatScreen>
                           onQuickAction: (prompt) {
                             // Handle quick actions by automatically sending with the prompt
                             //// print('[ChatScreen] Quick action triggered with prompt: "$prompt"');
-                            _sendButtonController.forward().then((_) {
-                              _sendButtonController.reverse();
-                            });
                             final imagesToSend = List<XFile>.from(
                               _pendingImages,
                             );
@@ -3318,9 +3243,6 @@ class _AiChatScreenState extends State<AiChatScreen>
                               }
                             }
 
-                            _sendButtonController.forward().then((_) {
-                              _sendButtonController.reverse();
-                            });
                             setState(() {
                               _pendingImages.clear();
                               _pendingFiles.clear(); // Clear pending files
@@ -3331,7 +3253,6 @@ class _AiChatScreenState extends State<AiChatScreen>
                               files,
                             ); // Pass files to send message
                           },
-                          sendButtonController: _sendButtonController,
                           micAnimationController: _micAnimationController,
                           recordingPulseController: _recordingPulseController,
                         ),
@@ -3341,10 +3262,33 @@ class _AiChatScreenState extends State<AiChatScreen>
                 ),
               ),
             );
+
+            return SlidingDrawerShell(
+              key: _drawerShellKey,
+              onOpening: () {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+              drawer: ConversationDrawer(
+                profileId: _currentProfileId,
+                onClose: _closeConversationDrawer,
+              ),
+              child: chatScaffold,
+            );
           },
         );
       },
     );
+  }
+
+  void _openConversationDrawer() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    final drawer = _drawerShellKey.currentState;
+    if (drawer != null) unawaited(drawer.open());
+  }
+
+  Future<void> _closeConversationDrawer() async {
+    final drawer = _drawerShellKey.currentState;
+    if (drawer != null) await drawer.close();
   }
 
   // New: Load messages for a specific conversation
@@ -4595,16 +4539,8 @@ class _AiChatScreenState extends State<AiChatScreen>
       }
     });
 
-    if (_isVoiceInputMode) {
-      _inputModeAnimationController.forward();
-    } else {
-      _inputModeAnimationController.reverse();
-    }
-
-    // Scroll to bottom after toggling to ensure message visibility
-    // Use a slightly longer delay to account for the animation
-    Future.delayed(const Duration(milliseconds: 150), () {
-      _scrollToBottom(animated: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _scrollToBottom(animated: false);
     });
   }
 
@@ -5381,8 +5317,6 @@ class _AiChatScreenState extends State<AiChatScreen>
           ? Duration.zero
           : const Duration(milliseconds: 300);
       _micAnimationController.duration = shortDuration;
-      _sendButtonController.duration = shortDuration;
-      _inputModeAnimationController.duration = shortDuration;
       _recordingPulseController.duration = _reduceMotion
           ? Duration.zero
           : const Duration(milliseconds: 1000);
@@ -5931,80 +5865,18 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Build landing welcome screen (chat-first only)
   Widget _buildWelcomeScreen() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Center(
-        child: Consumer<SettingsProvider>(
-          builder: (context, settings, child) {
-            final screenWidth = MediaQuery.of(context).size.width;
-            final isCompactPhone = screenWidth < 390;
-            final colors = context.howaiColors;
-
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  AppLocalizations.of(context)!.chatLandingTitle,
-                  style: TextStyle(
-                    fontSize: settings.getScaledFontSize(24),
-                    fontWeight: FontWeight.w600,
-                    color: colors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  AppLocalizations.of(context)!.chatLandingSubtitle,
-                  style: TextStyle(
-                    fontSize: settings.getScaledFontSize(16),
-                    color: colors.textSecondary,
-                    height: 1.4,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: [
-                    _LandingCapabilityButton(
-                      icon: Icons.voice_chat_rounded,
-                      label: AppLocalizations.of(
-                        context,
-                      )!.voiceCallFeatureTitle,
-                      onTap: () => _startElevenLabsCall(),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  child: Column(
-                    children: [
-                      Text(
-                        isCompactPhone
-                            ? AppLocalizations.of(
-                                context,
-                              )!.chatLandingTipCompact
-                            : AppLocalizations.of(context)!.chatLandingTipFull,
-                        style: TextStyle(
-                          fontSize: settings.getScaledFontSize(13),
-                          color: colors.textTertiary,
-                          height: 1.35,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
+    return ChatEmptyState(
+      onPromptSelected: _primeComposer,
+      onAnalyzePhoto: () => _showAttachmentOptions(forPdf: false),
     );
+  }
+
+  void _primeComposer(String prompt) {
+    _textController.value = TextEditingValue(
+      text: prompt,
+      selection: TextSelection.collapsed(offset: prompt.length),
+    );
+    _textInputFocusNode.requestFocus();
   }
 
   // Handle feature card taps
@@ -6628,7 +6500,10 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
     );
   }
 
-  String _extractSearchQueryFromPreviousMessage(int currentIndex) {
+  String _extractSearchQueryFromPreviousMessage(ChatMessage currentMessage) {
+    final currentIndex = _messages.indexOf(currentMessage);
+    if (currentIndex < 0) return 'places';
+
     // Look for the user message before this places widget message
     for (int i = currentIndex - 1; i >= 0; i--) {
       final message = _messages[i];
@@ -7379,55 +7254,6 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
           ),
         );
       },
-    );
-  }
-}
-
-class _LandingCapabilityButton extends StatelessWidget {
-  const _LandingCapabilityButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.howaiColors;
-    return Semantics(
-      button: true,
-      label: label,
-      child: Material(
-        color: colors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: colors.divider),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 18, color: colors.accent),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: colors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -362,28 +362,15 @@ class _PlaceResultWidgetState extends State<PlaceResultWidget> {
   }
 
   void _openFullScreenList() async {
-    final enterDuration = motionDuration(context, HowAIMotion.deliberate);
-    final exitDuration = motionDuration(context, HowAIMotion.routeExit);
     // Open full-screen list view and wait for the result
     final selectedPlaceIndex = await Navigator.of(context).push<int>(
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) =>
-            _FullScreenListView(
+      HowAIModalPageRoute<int>(
+        builder: (context) => _FullScreenListView(
           places: widget.places,
           searchQuery: widget.searchQuery,
           enableRouteFeatures: widget.enableRouteFeatures,
         ),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return fadeSlideTransition(
-            child,
-            animation,
-            begin: const Offset(0, 0.04),
-          );
-        },
-        transitionDuration: enterDuration,
-        reverseTransitionDuration: exitDuration,
-        barrierDismissible: true,
-        opaque: true,
+        reducedMotion: prefersReducedMotion(context),
       ),
     );
 

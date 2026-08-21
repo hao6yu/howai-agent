@@ -4,6 +4,7 @@ import 'package:photo_view/photo_view.dart';
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:http/http.dart' as http;
 import 'package:gal/gal.dart';
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:haogpt/generated/app_localizations.dart';
@@ -25,14 +26,11 @@ class ImageGalleryDialog extends StatefulWidget {
   State<ImageGalleryDialog> createState() => _ImageGalleryDialogState();
 }
 
-class _ImageGalleryDialogState extends State<ImageGalleryDialog>
-    with TickerProviderStateMixin {
+class _ImageGalleryDialogState extends State<ImageGalleryDialog> {
   late PageController _pageController;
   late int _currentIndex;
-  late AnimationController _saveSuccessController;
-  late Animation<double> _saveSuccessAnimation;
+  Timer? _saveSuccessTimer;
   bool _showSaveSuccess = false;
-  bool _reduceMotion = false;
   ResolvedMessageMedia _resolvedMedia = const ResolvedMessageMedia(
     visibleImagePaths: <String>[],
     fileAvailability: <String, bool>{},
@@ -45,29 +43,7 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
     super.initState();
     _currentIndex = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
-
-    // Initialize save success animation
-    _saveSuccessController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
-
-    _saveSuccessAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _saveSuccessController,
-      curve: Curves.elasticOut,
-    ));
     _resolveMedia();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _reduceMotion = prefersReducedMotion(context);
-    _saveSuccessController.duration =
-        _reduceMotion ? Duration.zero : const Duration(milliseconds: 1500);
   }
 
   Future<void> _resolveMedia() async {
@@ -83,29 +59,16 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
 
   @override
   void dispose() {
+    _saveSuccessTimer?.cancel();
     _pageController.dispose();
-    _saveSuccessController.dispose();
     super.dispose();
   }
 
   void _showSaveSuccessIndicator() {
-    setState(() {
-      _showSaveSuccess = true;
-    });
-
-    _saveSuccessController.forward().then((_) {
-      // Auto hide after animation completes
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (mounted) {
-          _saveSuccessController.reverse().then((_) {
-            if (mounted) {
-              setState(() {
-                _showSaveSuccess = false;
-              });
-            }
-          });
-        }
-      });
+    _saveSuccessTimer?.cancel();
+    if (!_showSaveSuccess) setState(() => _showSaveSuccess = true);
+    _saveSuccessTimer = Timer(const Duration(milliseconds: 1250), () {
+      if (mounted) setState(() => _showSaveSuccess = false);
     });
   }
 
@@ -370,18 +333,24 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
                 ),
               ),
 
-            // Success indicator overlay
-            if (_showSaveSuccess)
-              AnimatedBuilder(
-                animation: _saveSuccessAnimation,
-                builder: (context, child) {
-                  return Positioned.fill(
-                    child: Container(
-                      color: Colors.black
-                          .withOpacity(0.3 * _saveSuccessAnimation.value),
+            // Success indicator overlay uses Flutter's implicit animations, so
+            // it stays in sync without a manually managed ticker/controller.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ExcludeSemantics(
+                  excluding: !_showSaveSuccess,
+                  child: AnimatedOpacity(
+                    opacity: _showSaveSuccess ? 1 : 0,
+                    duration: motionDuration(context, HowAIMotion.standard),
+                    curve: HowAIMotion.enterCurve,
+                    child: ColoredBox(
+                      color: Colors.black.withOpacity(0.3),
                       child: Center(
-                        child: Transform.scale(
-                          scale: _saveSuccessAnimation.value,
+                        child: AnimatedScale(
+                          scale: _showSaveSuccess ? 1 : 0.96,
+                          duration:
+                              motionDuration(context, HowAIMotion.standard),
+                          curve: HowAIMotion.enterCurve,
                           child: Container(
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
@@ -395,7 +364,7 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
                                 ),
                               ],
                             ),
-                            child: Column(
+                            child: const Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
@@ -418,9 +387,10 @@ class _ImageGalleryDialogState extends State<ImageGalleryDialog>
                         ),
                       ),
                     ),
-                  );
-                },
+                  ),
+                ),
               ),
+            ),
           ],
         ),
       ),

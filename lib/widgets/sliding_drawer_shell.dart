@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 
 import '../core/accessibility/motion_preferences.dart';
 
@@ -14,11 +15,11 @@ class SlidingDrawerShell extends StatefulWidget {
     required this.child,
     this.onChildTap,
     this.onOpening,
-    this.edgeWidth = 36,
-    this.drawerWidthFactor = 0.9,
-    this.maxDrawerWidth = 390,
-    this.settleThreshold = 0.35,
-    this.flingVelocity = 500,
+    this.edgeWidth = 42,
+    this.drawerWidthFactor = 0.84,
+    this.maxDrawerWidth = 360,
+    this.settleThreshold = 0.3,
+    this.flingVelocity = 420,
     this.closeSemanticsLabel = 'Close navigation',
   });
 
@@ -71,23 +72,21 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
 
   Future<void> close() => _animateTo(0);
 
-  Future<void> _animateTo(double target) async {
+  Future<void> _animateTo(double target, {double velocity = 0}) async {
     _controller.stop();
-    final fullDuration = motionDuration(context, HowAIMotion.drawerTransition);
-    if (fullDuration == Duration.zero) {
+    if (prefersReducedMotion(context)) {
       _controller.value = target;
       return;
     }
 
-    final remainingDistance = (target - _controller.value).abs();
-    final milliseconds = (fullDuration.inMilliseconds * remainingDistance)
-        .round()
-        .clamp(80, fullDuration.inMilliseconds);
-    await _controller.animateTo(
+    final simulation = SpringSimulation(
+      const SpringDescription(mass: 1, stiffness: 380, damping: 39),
+      _controller.value,
       target,
-      duration: Duration(milliseconds: milliseconds),
-      curve: HowAIMotion.enterCurve,
+      velocity.clamp(-4.0, 4.0),
     );
+    await _controller.animateWith(simulation);
+    if (mounted) _controller.value = target;
   }
 
   void _resetDrag() {
@@ -97,14 +96,16 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
     _velocityTracker = null;
   }
 
-  void _settleDrawer({required bool isRtl}) {
+  void _settleDrawer({required bool isRtl, required double drawerExtent}) {
     final velocity = _velocityTracker?.getVelocity().pixelsPerSecond.dx ?? 0;
     final openingVelocity = isRtl ? -velocity : velocity;
     final shouldOpen = openingVelocity.abs() >= widget.flingVelocity
         ? openingVelocity > 0
         : _controller.value >= widget.settleThreshold;
     _resetDrag();
-    unawaited(shouldOpen ? open() : close());
+    unawaited(
+      _animateTo(shouldOpen ? 1 : 0, velocity: openingVelocity / drawerExtent),
+    );
   }
 
   @override
@@ -161,8 +162,8 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
                     event.timeStamp,
                     event.localPosition,
                   );
-                  final delta = event.localPosition - _dragStart!;
-                  final openingDistance = isRtl ? -delta.dx : delta.dx;
+                  var delta = event.localPosition - _dragStart!;
+                  var openingDistance = isRtl ? -delta.dx : delta.dx;
 
                   if (!_horizontalDragAccepted) {
                     if (delta.distance < kTouchSlop) return;
@@ -173,6 +174,13 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
                     }
                     _horizontalDragAccepted = true;
                     if (_dragStartValue == 0) widget.onOpening?.call();
+                    // Discard the gesture-recognition slop so accepting the
+                    // horizontal swipe does not make the panel jump.
+                    _dragStart =
+                        _dragStart! + Offset(delta.dx.sign * kTouchSlop, 0);
+                    _dragStartValue = _controller.value;
+                    delta = event.localPosition - _dragStart!;
+                    openingDistance = isRtl ? -delta.dx : delta.dx;
                   }
 
                   _controller.value =
@@ -188,7 +196,7 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
                     event.localPosition,
                   );
                   if (_horizontalDragAccepted) {
-                    _settleDrawer(isRtl: isRtl);
+                    _settleDrawer(isRtl: isRtl, drawerExtent: drawerExtent);
                   } else {
                     _resetDrag();
                   }
@@ -196,7 +204,7 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
                 onPointerCancel: (event) {
                   if (event.pointer != _trackedPointer) return;
                   if (_horizontalDragAccepted) {
-                    _settleDrawer(isRtl: isRtl);
+                    _settleDrawer(isRtl: isRtl, drawerExtent: drawerExtent);
                   } else {
                     _resetDrag();
                   }
@@ -230,53 +238,41 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
                     ),
                     Transform.translate(
                       offset: Offset(panelOffset, 0),
-                      child: DecoratedBox(
-                        decoration: currentProgress == 0
-                            ? const BoxDecoration()
-                            : const BoxDecoration(
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Color(0x24000000),
-                                    blurRadius: 12,
-                                  ),
-                                ],
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.all(
+                          Radius.circular(14),
+                        ),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onTap: widget.onChildTap,
+                              child: RepaintBoundary(
+                                key: const ValueKey<String>(
+                                  'sliding_chat_repaint_boundary',
+                                ),
+                                child: widget.child,
                               ),
-                        child: ClipRRect(
-                          borderRadius: currentProgress == 0
-                              ? BorderRadius.zero
-                              : const BorderRadius.all(Radius.circular(16)),
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              GestureDetector(
-                                behavior: HitTestBehavior.translucent,
-                                onTap: widget.onChildTap,
-                                child: RepaintBoundary(
+                            ),
+                            if (currentProgress > 0)
+                              Semantics(
+                                button: true,
+                                label: widget.closeSemanticsLabel,
+                                child: GestureDetector(
                                   key: const ValueKey<String>(
-                                    'sliding_chat_repaint_boundary',
+                                    'sliding_drawer_scrim',
                                   ),
-                                  child: widget.child,
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: close,
+                                  child: ColoredBox(
+                                    color: Colors.black.withValues(
+                                      alpha: 0.24 * currentProgress,
+                                    ),
+                                  ),
                                 ),
                               ),
-                              if (currentProgress > 0)
-                                Semantics(
-                                  button: true,
-                                  label: widget.closeSemanticsLabel,
-                                  child: GestureDetector(
-                                    key: const ValueKey<String>(
-                                      'sliding_drawer_scrim',
-                                    ),
-                                    behavior: HitTestBehavior.opaque,
-                                    onTap: close,
-                                    child: ColoredBox(
-                                      color: Colors.black.withValues(
-                                        alpha: 0.24 * currentProgress,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
+                          ],
                         ),
                       ),
                     ),

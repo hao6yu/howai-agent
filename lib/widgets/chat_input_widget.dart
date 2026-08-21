@@ -148,11 +148,12 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
   @override
   Widget build(BuildContext context) {
     final colors = context.howaiColors;
-    final orientation = MediaQuery.of(context).orientation;
+    final orientation = MediaQuery.orientationOf(context);
+    final mediaSize = MediaQuery.sizeOf(context);
     final isLandscape = orientation == Orientation.landscape;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final shortestSide = MediaQuery.of(context).size.height < screenWidth
-        ? MediaQuery.of(context).size.height
+    final screenWidth = mediaSize.width;
+    final shortestSide = mediaSize.height < screenWidth
+        ? mediaSize.height
         : screenWidth;
     final isTablet = shortestSide >= 600;
     final isPhoneLandscape = !isTablet && isLandscape;
@@ -195,10 +196,14 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
 
           // One adaptive composer surface: tools on the left, text or
           // push-to-talk in the middle, and voice/send on the right.
-          ValueListenableBuilder<TextEditingValue>(
-            valueListenable: widget.textController,
-            builder: (context, value, child) =>
-                _buildAdaptiveComposer(isPhoneLandscape),
+          AnimatedBuilder(
+            animation: widget.textInputFocusNode,
+            builder: (context, child) =>
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: widget.textController,
+                  builder: (context, value, child) =>
+                      _buildAdaptiveComposer(isPhoneLandscape),
+                ),
           ),
         ],
       ),
@@ -775,89 +780,123 @@ class _ChatInputWidgetState extends State<ChatInputWidget> {
         }
 
         final colors = context.howaiColors;
-        final composer = Container(
-          key: const ValueKey<String>('adaptive_composer'),
-          constraints: BoxConstraints(
-            minHeight: buttonSize + 8,
+        final isExpanded = !isPhoneLandscape &&
+            !widget.isVoiceInputMode &&
+            widget.textInputFocusNode.hasFocus;
+        final inputSurface = AnimatedSwitcher(
+          key: const ValueKey<String>('composer-mode-switcher'),
+          duration: motionDuration(context, HowAIMotion.quick),
+          switchInCurve: HowAIMotion.enterCurve,
+          switchOutCurve: HowAIMotion.exitCurve,
+          transitionBuilder: (child, animation) => FadeTransition(
+            opacity: animation,
+            child: child,
           ),
-          padding: const EdgeInsets.all(4),
+          child: KeyedSubtree(
+            key: ValueKey<String>(
+              widget.isVoiceInputMode ? 'voice-input' : 'text-input',
+            ),
+            child: widget.isVoiceInputMode
+                ? _buildVoiceInputButton(compact: true)
+                : _buildTextInputField(),
+          ),
+        );
+        final trailingSlot = SizedBox(
+          width: (buttonSize * 2) + 2,
+          height: buttonSize,
+          child: AnimatedSwitcher(
+            key: const ValueKey<String>('adaptive-composer-switcher'),
+            duration: motionDuration(context, HowAIMotion.quick),
+            switchInCurve: HowAIMotion.enterCurve,
+            switchOutCurve: HowAIMotion.exitCurve,
+            layoutBuilder: (currentChild, previousChildren) => Stack(
+              alignment: Alignment.centerRight,
+              children: [
+                ...previousChildren,
+                ?currentChild,
+              ],
+            ),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: animation,
+              child: ScaleTransition(
+                scale: Tween<double>(begin: 0.94, end: 1).animate(
+                  CurvedAnimation(
+                    parent: animation,
+                    curve: HowAIMotion.enterCurve,
+                  ),
+                ),
+                alignment: Alignment.centerRight,
+                child: child,
+              ),
+            ),
+            child: KeyedSubtree(
+              key: ValueKey<String>(
+                widget.isVoiceInputMode
+                    ? 'keyboard'
+                    : hasDraft
+                        ? 'send'
+                        : 'voice-actions',
+              ),
+              child: trailingControl,
+            ),
+          ),
+        );
+        final composerDuration = motionDuration(
+          context,
+          const Duration(milliseconds: 180),
+        );
+        final trailingWidth = (buttonSize * 2) + 2;
+        final composer = AnimatedContainer(
+          key: const ValueKey<String>('adaptive_composer'),
+          duration: composerDuration,
+          curve: HowAIMotion.enterCurve,
+          height: isExpanded ? (buttonSize * 2) + 14 : buttonSize + 8,
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: colors.surface,
             borderRadius: BorderRadius.circular(24),
             border: Border.all(color: colors.divider),
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          child: Stack(
             children: [
-              toolsButton,
-              const SizedBox(width: 4),
-              Expanded(
-                child: AnimatedSwitcher(
-                  key: const ValueKey<String>('composer-mode-switcher'),
-                  duration: motionDuration(context, HowAIMotion.quick),
-                  switchInCurve: HowAIMotion.enterCurve,
-                  switchOutCurve: HowAIMotion.exitCurve,
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: child,
-                  ),
-                  child: KeyedSubtree(
-                    key: ValueKey<String>(
-                      widget.isVoiceInputMode ? 'voice-input' : 'text-input',
-                    ),
-                    child: widget.isVoiceInputMode
-                        ? _buildVoiceInputButton(compact: true)
-                        : _buildTextInputField(),
-                  ),
-                ),
+              AnimatedPositioned(
+                duration: composerDuration,
+                curve: HowAIMotion.enterCurve,
+                left: isExpanded ? 8 : buttonSize + 8,
+                right: isExpanded ? 8 : trailingWidth + 8,
+                top: 4,
+                bottom: isExpanded ? buttonSize + 6 : 4,
+                child: inputSurface,
               ),
-              const SizedBox(width: 4),
-              SizedBox(
-                width: (buttonSize * 2) + 2,
+              Positioned(
+                left: 4,
+                bottom: 4,
+                width: buttonSize,
                 height: buttonSize,
-                child: AnimatedSwitcher(
-                  key: const ValueKey<String>('adaptive-composer-switcher'),
-                  duration: motionDuration(context, HowAIMotion.quick),
-                  switchInCurve: HowAIMotion.enterCurve,
-                  switchOutCurve: HowAIMotion.exitCurve,
-                  layoutBuilder: (currentChild, previousChildren) => Stack(
-                    alignment: Alignment.centerRight,
-                    children: [
-                      ...previousChildren,
-                      ?currentChild,
-                    ],
-                  ),
-                  transitionBuilder: (child, animation) => FadeTransition(
-                    opacity: animation,
-                    child: ScaleTransition(
-                      scale: Tween<double>(begin: 0.94, end: 1).animate(
-                        CurvedAnimation(
-                          parent: animation,
-                          curve: HowAIMotion.enterCurve,
-                        ),
-                      ),
-                      alignment: Alignment.centerRight,
-                      child: child,
-                    ),
-                  ),
-                  child: KeyedSubtree(
-                    key: ValueKey<String>(
-                      widget.isVoiceInputMode
-                          ? 'keyboard'
-                          : hasDraft
-                              ? 'send'
-                              : 'voice-actions',
-                    ),
-                    child: trailingControl,
-                  ),
-                ),
+                child: toolsButton,
+              ),
+              Positioned(
+                right: 4,
+                bottom: 4,
+                width: trailingWidth,
+                height: buttonSize,
+                child: trailingSlot,
               ),
             ],
           ),
         );
-        return Padding(
+        return AnimatedPadding(
+          duration: motionDuration(
+            context,
+            const Duration(milliseconds: 180),
+          ),
+          curve: HowAIMotion.enterCurve,
           padding: EdgeInsets.symmetric(
-            horizontal: isPhoneLandscape ? 0 : 8,
+            horizontal: isPhoneLandscape
+                ? 0
+                : widget.textInputFocusNode.hasFocus
+                    ? 4
+                    : 18,
           ),
           child: composer,
         );

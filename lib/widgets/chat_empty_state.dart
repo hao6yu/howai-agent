@@ -44,83 +44,72 @@ class ChatEmptyState extends StatelessWidget {
       ),
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SingleChildScrollView(
-          key: const ValueKey<String>('chat_empty_state'),
-          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: constraints.hasBoundedHeight
-                  ? (constraints.maxHeight - 48).clamp(0, double.infinity)
-                  : 0,
-            ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: colors.accentSoft,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.auto_awesome_rounded,
-                        color: colors.accent,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      l10n.chatLandingTitle,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            color: colors.textPrimary,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -0.4,
-                          ),
-                    ),
-                    const SizedBox(height: 7),
-                    Text(
-                      l10n.chatLandingSubtitle,
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: colors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    LayoutBuilder(
-                      builder: (context, actionConstraints) {
-                        const spacing = 10.0;
-                        final useTwoColumns = actionConstraints.maxWidth >= 330;
-                        final actionWidth = useTwoColumns
-                            ? (actionConstraints.maxWidth - spacing) / 2
-                            : actionConstraints.maxWidth;
-                        return Wrap(
-                          spacing: spacing,
-                          runSpacing: spacing,
-                          children: [
-                            for (final action in actions)
-                              SizedBox(
-                                width: actionWidth,
-                                child: _StarterAction(action: action),
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                  ],
+    return SingleChildScrollView(
+      key: const ValueKey<String>('chat_empty_state'),
+      padding: const EdgeInsets.fromLTRB(24, 52, 24, 20),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: colors.accentSoft,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.auto_awesome_rounded,
+                  color: colors.accent,
+                  size: 24,
                 ),
               ),
-            ),
+              const SizedBox(height: 18),
+              Text(
+                l10n.chatLandingTitle,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  color: colors.textPrimary,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                l10n.chatLandingSubtitle,
+                textAlign: TextAlign.center,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(color: colors.textSecondary),
+              ),
+              const SizedBox(height: 24),
+              LayoutBuilder(
+                builder: (context, actionConstraints) {
+                  const spacing = 10.0;
+                  final useTwoColumns = actionConstraints.maxWidth >= 330;
+                  final actionWidth = useTwoColumns
+                      ? (actionConstraints.maxWidth - spacing) / 2
+                      : actionConstraints.maxWidth;
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: [
+                      for (final action in actions)
+                        SizedBox(
+                          width: actionWidth,
+                          child: _StarterAction(action: action),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

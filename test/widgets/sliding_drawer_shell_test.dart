@@ -1,8 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haogpt/widgets/sliding_drawer_shell.dart';
 
 void main() {
+  const drawerExtent = 360.0;
+
   Future<GlobalKey<SlidingDrawerShellState>> pumpShell(
     WidgetTester tester, {
     TextDirection textDirection = TextDirection.ltr,
@@ -42,14 +45,18 @@ void main() {
     await gesture.moveBy(const Offset(160, 0));
     await tester.pump();
 
-    expect(tester.getTopLeft(chatPanel).dx, closeTo(160, 0.5));
-    expect(shellKey.currentState?.progress, closeTo(160 / 390, 0.01));
+    final trackedDistance = 160 - kTouchSlop;
+    expect(tester.getTopLeft(chatPanel).dx, closeTo(trackedDistance, 0.5));
+    expect(
+      shellKey.currentState?.progress,
+      closeTo(trackedDistance / drawerExtent, 0.01),
+    );
 
     await gesture.up();
     await tester.pumpAndSettle();
 
     expect(shellKey.currentState?.isOpen, isTrue);
-    expect(tester.getTopLeft(chatPanel).dx, closeTo(390, 0.5));
+    expect(tester.getTopLeft(chatPanel).dx, closeTo(drawerExtent, 0.5));
   });
 
   testWidgets('vertical edge scrolling leaves the chat panel in place', (
@@ -111,7 +118,8 @@ void main() {
     await gesture.moveBy(const Offset(-280, 0));
     await tester.pump();
 
-    expect(tester.getTopLeft(chatPanel).dx, closeTo(110, 0.5));
+    final trackedDistance = drawerExtent - (280 - kTouchSlop);
+    expect(tester.getTopLeft(chatPanel).dx, closeTo(trackedDistance, 0.5));
 
     await gesture.up();
     await tester.pumpAndSettle();
@@ -126,7 +134,8 @@ void main() {
     await gesture.moveBy(const Offset(-160, 0));
     await tester.pump();
 
-    expect(tester.getTopLeft(chatPanel).dx, closeTo(-160, 0.5));
+    final trackedDistance = 160 - kTouchSlop;
+    expect(tester.getTopLeft(chatPanel).dx, closeTo(-trackedDistance, 0.5));
 
     await gesture.up();
     await tester.pumpAndSettle();

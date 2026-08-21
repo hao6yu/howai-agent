@@ -96,7 +96,7 @@ class AiChatScreen extends StatefulWidget {
 }
 
 class _AiChatScreenState extends State<AiChatScreen>
-    with TickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final DatabaseService _databaseService = DatabaseService();
@@ -110,8 +110,6 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   // Add a FocusNode for the text input
   final FocusNode _textInputFocusNode = FocusNode();
-  bool _keyboardVisible = false;
-  bool _followKeyboardToLatest = false;
 
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
@@ -226,8 +224,6 @@ class _AiChatScreenState extends State<AiChatScreen>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _textInputFocusNode.addListener(_handleTextInputFocusChange);
     AudioService.isPlayingAudio.addListener(_handleAudioPlaybackChanged);
 
     _micAnimationController = AnimationController(
@@ -355,9 +351,7 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     AudioService.isPlayingAudio.removeListener(_handleAudioPlaybackChanged);
-    _textInputFocusNode.removeListener(_handleTextInputFocusChange);
     _scrollController.removeListener(_onScroll);
     _listenedConversationProvider?.removeListener(_onConversationChanged);
     _listenedAuthProvider?.removeListener(_onAuthSyncCompleted);
@@ -402,39 +396,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     });
   }
 
-  @override
-  void didChangeMetrics() {
-    if (!mounted) return;
-    final keyboardVisible = View.of(context).viewInsets.bottom > 0;
-    if (keyboardVisible && !_keyboardVisible) {
-      _followKeyboardToLatest = _isNearBottom(threshold: 280);
-    }
-    _keyboardVisible = keyboardVisible;
-    if (!keyboardVisible) {
-      _followKeyboardToLatest = false;
-      return;
-    }
-    if (_followKeyboardToLatest) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _keyboardVisible && _followKeyboardToLatest) {
-          _scrollToBottom(animated: false);
-        }
-      });
-    }
-  }
-
-  void _handleTextInputFocusChange() {
-    if (!_textInputFocusNode.hasFocus) return;
-    _followKeyboardToLatest = _isNearBottom(threshold: 280);
-    if (_followKeyboardToLatest) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _textInputFocusNode.hasFocus) {
-          _scrollToBottom(animated: false);
-        }
-      });
-    }
-  }
-
   // PDF Auto-conversion methods
   void _startPdfAutoConversionTimer() {
     _pdfAutoConversionTimer?.cancel();
@@ -471,7 +432,8 @@ class _AiChatScreenState extends State<AiChatScreen>
 
   void _onScroll() {
     if (_scrollController.hasClients &&
-        _scrollController.offset <= 100 &&
+        _scrollController.offset >=
+            _scrollController.position.maxScrollExtent - 100 &&
         !_isLoadingMore &&
         _hasMore &&
         !_isLoading) {
@@ -577,28 +539,28 @@ class _AiChatScreenState extends State<AiChatScreen>
   void _scrollToBottom({bool animated = false}) {
     if (!_scrollController.hasClients) return;
 
-    final maxScroll = _scrollController.position.maxScrollExtent;
+    final bottom = _scrollController.position.minScrollExtent;
 
     if (animated) {
       // Only animate if requested (e.g., after sending/receiving a new message)
       const threshold = 50.0;
-      if ((_scrollController.offset + threshold) < maxScroll) {
+      if ((_scrollController.offset - bottom).abs() > threshold) {
         _scrollController.animateTo(
-          maxScroll,
+          bottom,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
       }
     } else {
       // Instantly jump to bottom (no animation)
-      _scrollController.jumpTo(maxScroll);
+      _scrollController.jumpTo(bottom);
     }
   }
 
   bool _isNearBottom({double threshold = 140}) {
     if (!_scrollController.hasClients) return true;
     final position = _scrollController.position;
-    return (position.maxScrollExtent - position.pixels) <= threshold;
+    return (position.pixels - position.minScrollExtent) <= threshold;
   }
 
   void _addWelcomeMessageIfNeeded() {
@@ -2778,6 +2740,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             });
 
             final chatScaffold = Scaffold(
+              resizeToAvoidBottomInset: true,
               appBar: AppBar(
                 toolbarHeight: 50,
                 title: const BrandedAppTitle(),
@@ -2856,7 +2819,6 @@ class _AiChatScreenState extends State<AiChatScreen>
                   color: Theme.of(context).scaffoldBackgroundColor,
                   child: SafeArea(
                     bottom: true,
-                    maintainBottomViewPadding: false,
                     child: Column(
                       children: [
                         // Chat messages list
@@ -2881,13 +2843,19 @@ class _AiChatScreenState extends State<AiChatScreen>
                                               20,
                                             ),
                                             itemCount: displayMessages.length,
-                                            reverse:
-                                                false, // Keep chronological order
+                                            // Keep the newest message anchored
+                                            // above the composer while iOS
+                                            // animates the keyboard viewport.
+                                            reverse: true,
                                             physics:
                                                 const AlwaysScrollableScrollPhysics(), // Make sure scrolling is always enabled
                                             itemBuilder: (context, index) {
+                                              final messageIndex =
+                                                  displayMessages.length -
+                                                  1 -
+                                                  index;
                                               final message =
-                                                  displayMessages[index];
+                                                  displayMessages[messageIndex];
                                               final messageKey =
                                                   message.id ??
                                                   Object.hash(
@@ -2924,7 +2892,7 @@ class _AiChatScreenState extends State<AiChatScreen>
                                                         .locationResults!,
                                                     searchQuery:
                                                         _extractSearchQueryFromPreviousMessage(
-                                                          index,
+                                                          message,
                                                         ),
                                                   ),
                                                 );
@@ -6532,7 +6500,10 @@ CRITICAL: You MUST complete BOTH steps. Do not stop after searching."""
     );
   }
 
-  String _extractSearchQueryFromPreviousMessage(int currentIndex) {
+  String _extractSearchQueryFromPreviousMessage(ChatMessage currentMessage) {
+    final currentIndex = _messages.indexOf(currentMessage);
+    if (currentIndex < 0) return 'places';
+
     // Look for the user message before this places widget message
     for (int i = currentIndex - 1; i >= 0; i--) {
       final message = _messages[i];

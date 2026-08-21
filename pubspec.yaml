@@ -20,7 +20,6 @@ dependencies:
   crypto: ^3.0.6   # Content fingerprints for durable imported files
   shared_preferences: ^2.5.3  # For storing user preferences
   audioplayers: ^6.4.0  # For game sounds
-  flutter_animate: ^4.5.0  # For animations
   flutter_launcher_icons: ^0.14.3
   chess: ^0.8.1
   flutter_tts: ^4.2.3

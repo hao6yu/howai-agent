@@ -4,11 +4,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_storekit/in_app_purchase_storekit.dart';
 import 'package:in_app_purchase_storekit/store_kit_2_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/app_config.dart';
+import 'serial_task_queue.dart';
 import 'subscription_entitlement_policy.dart';
 import 'supabase_service.dart';
 
@@ -96,10 +98,7 @@ String _currencySymbolForCode(String currencyCode) {
   }
 }
 
-enum SubscriptionTier {
-  free,
-  premium,
-}
+enum SubscriptionTier { free, premium }
 
 class _TrustedServerEntitlement {
   final bool active;
@@ -117,6 +116,18 @@ class _TrustedServerEntitlement {
     if (expiry == null || !expiry.isAfter(DateTime.now())) return null;
     return expiry.millisecondsSinceEpoch;
   }
+}
+
+class _PurchaseAccountContext {
+  final String userId;
+  final int generation;
+  final String? productId;
+
+  const _PurchaseAccountContext({
+    required this.userId,
+    required this.generation,
+    this.productId,
+  });
 }
 
 class SubscriptionLimits {
@@ -231,7 +242,8 @@ class UsageStats {
       placesExplorerCount: json['placesExplorerCount'] ?? 0,
       documentAnalysisCount: json['documentAnalysisCount'] ?? 0,
       lastReset: DateTime.fromMillisecondsSinceEpoch(
-          json['lastReset'] ?? DateTime.now().millisecondsSinceEpoch),
+        json['lastReset'] ?? DateTime.now().millisecondsSinceEpoch,
+      ),
     );
   }
 }
@@ -276,8 +288,10 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   }
 
   // All subscription product IDs for this platform
-  static Set<String> get _allSubscriptionIds =>
-      {monthlySubscriptionId, yearlySubscriptionId};
+  static Set<String> get _allSubscriptionIds => {
+    monthlySubscriptionId,
+    yearlySubscriptionId,
+  };
 
   // ---------------------------------------------------------------------------
   // Constants for entitlement cache & throttle
@@ -384,8 +398,11 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  Completer<bool>? _restoreEventCompleter;
   Future<bool>? _activeRestoreAttempt;
+  _PurchaseAccountContext? _activeRestoreContext;
+  _PurchaseAccountContext? _pendingPurchaseContext;
+  final SerialTaskQueue _purchaseUpdateQueue = SerialTaskQueue();
+  final Map<String, _TrustedServerEntitlement> _restoreEvidenceResults = {};
 
   // Throttle: tracks when the last full platform check completed
   DateTime? _lastFullCheckTime;
@@ -401,10 +418,10 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
   // Convenience getters for subscription status (with debug override)
   bool get isPremium => resolvePremiumStatus(
-        realStatus: _realSubscriptionStatus,
-        isDebugBuild: kDebugMode,
-        debugOverride: _debugOverridePremium,
-      );
+    realStatus: _realSubscriptionStatus,
+    isDebugBuild: kDebugMode,
+    debugOverride: _debugOverridePremium,
+  );
 
   bool get isFree => !isPremium;
 
@@ -460,8 +477,10 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   int get remainingImageAnalysis {
     if (isPremium) return -1;
     if (limits.imageAnalysisWeekly == -1) return -1;
-    return (limits.imageAnalysisWeekly - _usageStats.imageAnalysisCount)
-        .clamp(0, limits.imageAnalysisWeekly);
+    return (limits.imageAnalysisWeekly - _usageStats.imageAnalysisCount).clamp(
+      0,
+      limits.imageAnalysisWeekly,
+    );
   }
 
   int get remainingVoiceGenerations {
@@ -537,7 +556,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       await _loadProducts();
       await checkSubscriptionStatus();
       debugPrint(
-          '[SubscriptionService] Init complete: isSubscribed=$_isSubscribed, tier=$_subscriptionTier');
+        '[SubscriptionService] Init complete: isSubscribed=$_isSubscribed, tier=$_subscriptionTier',
+      );
 
       // Reconcile again after startup so a restored auth session can recover
       // server-granted access even if StoreKit has no readable transaction.
@@ -775,8 +795,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         return;
       }
 
-      final ProductDetailsResponse response =
-          await _inAppPurchase.queryProductDetails(productIds);
+      final ProductDetailsResponse response = await _inAppPurchase
+          .queryProductDetails(productIds);
 
       if (response.notFoundIDs.isNotEmpty) {
         _errorMessage =
@@ -807,6 +827,11 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     return user.id;
   }
 
+  bool _isAccountContextCurrent(_PurchaseAccountContext context) {
+    return context.generation == _identityGeneration &&
+        context.userId == _currentEntitlementUserId;
+  }
+
   Future<void> _handleAuthStateChange(User? user) async {
     final userId = user == null || user.isAnonymous ? null : user.id;
     if (userId == _lastKnownEntitlementUserId) return;
@@ -814,6 +839,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     _lastKnownEntitlementUserId = userId;
     _identityGeneration++;
     _lastFullCheckTime = null;
+    _pendingPurchaseContext = null;
 
     // Downgrade in memory before any async work so a newly signed-in free
     // account can never see the previous account's Pro controls.
@@ -842,14 +868,16 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     if (generation != _identityGeneration ||
         _currentEntitlementUserId != expectedUserId) {
       debugPrint(
-          '[SubscriptionService] Ignoring stale entitlement result after account change');
+        '[SubscriptionService] Ignoring stale entitlement result after account change',
+      );
       return;
     }
 
     final previousStatus = _isSubscribed;
     _isSubscribed = active;
-    _subscriptionTier =
-        active ? SubscriptionTier.premium : SubscriptionTier.free;
+    _subscriptionTier = active
+        ? SubscriptionTier.premium
+        : SubscriptionTier.free;
 
     // These legacy values are display/debug mirrors only. They are never read
     // as authorization and are cleared on every account transition.
@@ -858,7 +886,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
     if (previousStatus != active) {
       debugPrint(
-          '[SubscriptionService] Subscription status changed: $previousStatus -> $active');
+        '[SubscriptionService] Subscription status changed: $previousStatus -> $active',
+      );
     }
     notifyListeners();
   }
@@ -919,19 +948,29 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
     try {
       _TrustedServerEntitlement? entitlement =
-          await _fetchTrustedServerEntitlement(expectedUserId: userId);
+          await _fetchTrustedServerEntitlement(
+            expectedUserId: userId,
+            expectedGeneration: generation,
+          );
 
       // Refresh store-backed entitlements through the server. StoreKit/Play is
       // evidence, not authorization: the server enforces account ownership.
-      final shouldRefreshStore = entitlement?.active != true ||
+      final shouldRefreshStore =
+          entitlement?.active != true ||
           entitlement?.source == 'app_store' ||
           entitlement?.source == 'play_store';
       if (shouldRefreshStore) {
         final refreshed = Platform.isIOS
-            ? await _syncVerifiedAppleEntitlement(expectedUserId: userId)
+            ? await _syncVerifiedAppleEntitlement(
+                expectedUserId: userId,
+                expectedGeneration: generation,
+              )
             : Platform.isAndroid
-                ? await _syncVerifiedGoogleEntitlement(expectedUserId: userId)
-                : null;
+            ? await _syncVerifiedGoogleEntitlement(
+                expectedUserId: userId,
+                expectedGeneration: generation,
+              )
+            : null;
         entitlement = refreshed ?? entitlement;
       }
 
@@ -957,11 +996,14 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
 
       // A short, server-created, account-bound cache keeps verified subscribers
       // working during a temporary outage without crossing account boundaries.
-      final cached =
-          await _hasCachedValidatedEntitlement(prefs, userId: userId);
+      final cached = await _hasCachedValidatedEntitlement(
+        prefs,
+        userId: userId,
+      );
       if (cached) {
         debugPrint(
-            '[SubscriptionService] Using user-bound offline entitlement cache');
+          '[SubscriptionService] Using user-bound offline entitlement cache',
+        );
       }
       await _applyResolvedSubscription(
         active: cached,
@@ -973,9 +1015,12 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       return cached;
     } catch (e) {
       debugPrint(
-          '[SubscriptionService] Error checking subscription status: $e');
-      final cached =
-          await _hasCachedValidatedEntitlement(prefs, userId: userId);
+        '[SubscriptionService] Error checking subscription status: $e',
+      );
+      final cached = await _hasCachedValidatedEntitlement(
+        prefs,
+        userId: userId,
+      );
       await _applyResolvedSubscription(
         active: cached,
         expectedUserId: userId,
@@ -994,8 +1039,10 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     }
     if (_lastFullCheckTime != null &&
         DateTime.now().difference(_lastFullCheckTime!) < _minCheckInterval) {
-      debugPrint('[SubscriptionService] Subscription check throttled '
-          '(last check ${DateTime.now().difference(_lastFullCheckTime!).inMinutes} min ago)');
+      debugPrint(
+        '[SubscriptionService] Subscription check throttled '
+        '(last check ${DateTime.now().difference(_lastFullCheckTime!).inMinutes} min ago)',
+      );
       return _isSubscribed;
     }
     return checkSubscriptionStatus();
@@ -1031,8 +1078,9 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final validUntil = boundedEntitlementCacheExpiry(
       nowMs: nowMs,
-      maximumOfflineAgeMs:
-          const Duration(hours: _defaultValidatedCacheHours).inMilliseconds,
+      maximumOfflineAgeMs: const Duration(
+        hours: _defaultValidatedCacheHours,
+      ).inMilliseconds,
       entitlementExpiresAtMs: expiresAtMs,
     );
     if (validUntil <= nowMs) {
@@ -1040,10 +1088,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       return;
     }
     await prefs.setString(_subscriptionCacheUserIdKey, userId);
-    await prefs.setInt(
-      _subscriptionValidUntilMsKey,
-      validUntil,
-    );
+    await prefs.setInt(_subscriptionValidUntilMsKey, validUntil);
   }
 
   Future<void> _clearValidatedEntitlementCache(SharedPreferences prefs) async {
@@ -1077,34 +1122,94 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       notifyListeners();
       return false;
     }
-
-    final eventCompleter = Completer<bool>();
-    _restoreEventCompleter = eventCompleter;
+    final restoreContext = _PurchaseAccountContext(
+      userId: userId,
+      generation: _identityGeneration,
+    );
 
     try {
       debugPrint('[SubscriptionService] Restoring purchases...');
+      _activeRestoreContext = restoreContext;
+      _restoreEvidenceResults.clear();
       _errorMessage = null;
       notifyListeners();
 
-      await _inAppPurchase.restorePurchases(applicationUserName: userId);
+      if (Platform.isIOS) {
+        if (!InAppPurchaseStoreKitPlatform.isStoreKit2Enabled) {
+          throw StateError('StoreKit 2 is required for signed restoration.');
+        }
+        // Apple reserves AppStore.sync() for an explicit user Restore action.
+        // Query Transaction.all directly afterward so completion does not rely
+        // on asynchronously delivered purchaseStream callbacks.
+        final addition = _inAppPurchase
+            .getPlatformAddition<InAppPurchaseStoreKitPlatformAddition>();
+        await addition.sync();
+        if (!_isAccountContextCurrent(restoreContext)) {
+          throw StateError('The signed-in account changed during restore.');
+        }
+        final transactions = await SK2Transaction.transactions();
+        await _purchaseUpdateQueue.enqueue(() async {
+          await _syncVerifiedAppleEntitlement(
+            transactions: transactions,
+            expectedUserId: restoreContext.userId,
+            expectedGeneration: restoreContext.generation,
+          );
+        });
+      } else if (Platform.isAndroid) {
+        // BillingClient.queryPurchasesAsync is the authoritative Android
+        // restore snapshot. Process the returned purchases directly instead of
+        // waiting for a secondary stream delivery.
+        final addition = _inAppPurchase
+            .getPlatformAddition<InAppPurchaseAndroidPlatformAddition>();
+        final result = await addition.queryPastPurchases(
+          applicationUserName: restoreContext.userId,
+        );
+        if (result.error != null) {
+          throw StateError('Google Play restore failed: ${result.error}');
+        }
+        await _purchaseUpdateQueue.enqueue(() async {
+          for (final purchase in result.pastPurchases) {
+            await _processPurchaseUpdate(
+              purchase,
+              accountContext: restoreContext,
+              deferLocalResolution: true,
+            );
+          }
+        });
+      }
 
-      // StoreKit sends restored transactions through purchaseStream. Recheck
-      // the trusted server in parallel so an entitlement already recovered by
-      // the backend also resolves the button promptly. An empty StoreKit 2
-      // restore does not emit an event, so keep a bounded wait for that case.
-      final statusCheck = checkSubscriptionStatus()
-          .timeout(const Duration(seconds: 18), onTimeout: () => false)
-          .catchError((Object _) => false);
-      unawaited(statusCheck.then((active) {
-        if (active) _completeRestoreEvent(true);
-      }));
-
-      final restored = await eventCompleter.future.timeout(
-        const Duration(seconds: 18),
-        onTimeout: () => false,
+      if (!_isAccountContextCurrent(restoreContext)) {
+        throw StateError('The signed-in account changed during restore.');
+      }
+      final entitlement = await _fetchTrustedServerEntitlement(
+        expectedUserId: restoreContext.userId,
+        expectedGeneration: restoreContext.generation,
       );
-      final active = restored || await statusCheck;
-      if (active) {
+      if (entitlement == null) {
+        _errorMessage =
+            'The subscription server could not confirm this restore. Please try again.';
+        notifyListeners();
+        return false;
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+      if (entitlement.active) {
+        await _setValidatedEntitlementCache(
+          prefs,
+          userId: restoreContext.userId,
+          expiresAtMs: entitlement.cacheValidUntilMs,
+        );
+      } else {
+        await _clearValidatedEntitlementCache(prefs);
+      }
+      await _applyResolvedSubscription(
+        active: entitlement.active,
+        expectedUserId: restoreContext.userId,
+        generation: restoreContext.generation,
+        prefs: prefs,
+      );
+
+      if (entitlement.active) {
         _errorMessage = null;
         return true;
       }
@@ -1117,20 +1222,13 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       debugPrint('[SubscriptionService] Error restoring purchases: $e');
       _errorMessage =
           'Unable to restore purchases right now. Please try again.';
-      _completeRestoreEvent(false);
       notifyListeners();
       return false;
     } finally {
-      if (identical(_restoreEventCompleter, eventCompleter)) {
-        _restoreEventCompleter = null;
+      if (identical(_activeRestoreContext, restoreContext)) {
+        _activeRestoreContext = null;
+        _restoreEvidenceResults.clear();
       }
-    }
-  }
-
-  void _completeRestoreEvent(bool restored) {
-    final completer = _restoreEventCompleter;
-    if (completer != null && !completer.isCompleted) {
-      completer.complete(restored);
     }
   }
 
@@ -1139,6 +1237,7 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   // ---------------------------------------------------------------------------
 
   Future<void> subscribe([String? productId]) async {
+    _PurchaseAccountContext? startedContext;
     try {
       final userId = _currentEntitlementUserId;
       if (userId == null) {
@@ -1162,7 +1261,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       );
 
       debugPrint(
-          '[SubscriptionService] Starting purchase for: ${productDetails.id}');
+        '[SubscriptionService] Starting purchase for: ${productDetails.id}',
+      );
 
       final PurchaseParam purchaseParam = PurchaseParam(
         productDetails: productDetails,
@@ -1171,15 +1271,28 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         // while StoreKit uses it as the application username.
         applicationUserName: userId,
       );
+      startedContext = _PurchaseAccountContext(
+        userId: userId,
+        generation: _identityGeneration,
+        productId: productDetails.id,
+      );
+      _pendingPurchaseContext = startedContext;
 
-      final bool success =
-          await _inAppPurchase.buyNonConsumable(purchaseParam: purchaseParam);
+      final bool success = await _inAppPurchase.buyNonConsumable(
+        purchaseParam: purchaseParam,
+      );
 
       if (!success) {
+        if (identical(_pendingPurchaseContext, startedContext)) {
+          _pendingPurchaseContext = null;
+        }
         _errorMessage = "Failed to initiate purchase. Please try again.";
         notifyListeners();
       }
     } catch (e) {
+      if (identical(_pendingPurchaseContext, startedContext)) {
+        _pendingPurchaseContext = null;
+      }
       _errorMessage = "Error starting subscription: $e";
       notifyListeners();
       rethrow;
@@ -1190,118 +1303,167 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
   // Purchase stream listener
   // ---------------------------------------------------------------------------
 
-  void _listenToPurchaseUpdated(
-      List<PurchaseDetails> purchaseDetailsList) async {
-    if (purchaseDetailsList.isEmpty) {
-      _completeRestoreEvent(false);
-      return;
+  void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) {
+    final restoreContext = _activeRestoreContext;
+    final pendingContext = _pendingPurchaseContext;
+    final currentUserId = _currentEntitlementUserId;
+    final currentContext = currentUserId == null
+        ? null
+        : _PurchaseAccountContext(
+            userId: currentUserId,
+            generation: _identityGeneration,
+          );
+
+    for (final purchase in purchaseDetailsList) {
+      final accountContext =
+          restoreContext ??
+          (pendingContext?.productId == purchase.productID
+              ? pendingContext
+              : currentContext);
+      final processing = _purchaseUpdateQueue.enqueue(
+        () => _processPurchaseUpdate(
+          purchase,
+          accountContext: accountContext,
+          deferLocalResolution: restoreContext != null,
+        ),
+      );
+      unawaited(
+        processing.catchError((Object error, StackTrace stackTrace) {
+          debugPrint(
+            '[SubscriptionService] Purchase update processing failed: $error',
+          );
+          _errorMessage = 'A store purchase update could not be processed.';
+          notifyListeners();
+        }),
+      );
+    }
+  }
+
+  Future<void> _processPurchaseUpdate(
+    PurchaseDetails purchaseDetails, {
+    required _PurchaseAccountContext? accountContext,
+    required bool deferLocalResolution,
+  }) async {
+    var purchaseWasVerified = false;
+    debugPrint(
+      '[SubscriptionService] Purchase status: ${purchaseDetails.status} for ${purchaseDetails.productID}',
+    );
+
+    if (purchaseDetails.status == PurchaseStatus.pending) {
+      // Waiting for user/store action.
+    } else if (purchaseDetails.status == PurchaseStatus.error) {
+      debugPrint(
+        '[SubscriptionService] Purchase error: ${purchaseDetails.error}',
+      );
+      _errorMessage =
+          "Purchase error: ${purchaseDetails.error?.message ?? 'Unknown error'}";
+      notifyListeners();
+    } else if (purchaseDetails.status == PurchaseStatus.purchased ||
+        purchaseDetails.status == PurchaseStatus.restored) {
+      if (_allSubscriptionIds.contains(purchaseDetails.productID)) {
+        purchaseWasVerified = await _handleSubscriptionPurchase(
+          purchaseDetails,
+          accountContext: accountContext,
+          deferLocalResolution: deferLocalResolution,
+        );
+      }
     }
 
-    for (final PurchaseDetails purchaseDetails in purchaseDetailsList) {
-      var purchaseWasDelivered = false;
-      debugPrint(
-          '[SubscriptionService] Purchase status: ${purchaseDetails.status} for ${purchaseDetails.productID}');
+    // Finish/acknowledge only after the backend cryptographically verified and
+    // reconciled this exact store evidence. Verified inactive history can also
+    // be completed so it is not replayed indefinitely.
+    final isSubscription = _allSubscriptionIds.contains(
+      purchaseDetails.productID,
+    );
+    if (purchaseDetails.pendingCompletePurchase &&
+        (!isSubscription || purchaseWasVerified)) {
+      await _inAppPurchase.completePurchase(purchaseDetails);
+    }
 
-      if (purchaseDetails.status == PurchaseStatus.pending) {
-        // Waiting for user/store action
-      } else if (purchaseDetails.status == PurchaseStatus.error) {
-        debugPrint(
-            '[SubscriptionService] Purchase error: ${purchaseDetails.error}');
-        _errorMessage =
-            "Purchase error: ${purchaseDetails.error?.message ?? 'Unknown error'}";
-        _completeRestoreEvent(false);
-        notifyListeners();
-      } else if (purchaseDetails.status == PurchaseStatus.canceled) {
-        _completeRestoreEvent(false);
-      } else if (purchaseDetails.status == PurchaseStatus.purchased ||
-          purchaseDetails.status == PurchaseStatus.restored) {
-        if (_allSubscriptionIds.contains(purchaseDetails.productID)) {
-          purchaseWasDelivered =
-              await _handleSubscriptionPurchase(purchaseDetails);
-        }
-      }
-
-      // Finish a subscription transaction only after the trusted backend has
-      // granted access. If verification is temporarily unavailable, leaving it
-      // unfinished lets the next launch recover its signed StoreKit evidence.
-      final isSubscription =
-          _allSubscriptionIds.contains(purchaseDetails.productID);
-      if (purchaseDetails.pendingCompletePurchase &&
-          (!isSubscription || purchaseWasDelivered)) {
-        await _inAppPurchase.completePurchase(purchaseDetails);
-      }
+    if (purchaseDetails.status != PurchaseStatus.pending &&
+        identical(_pendingPurchaseContext, accountContext)) {
+      _pendingPurchaseContext = null;
     }
   }
 
   Future<bool> _handleSubscriptionPurchase(
-      PurchaseDetails purchaseDetails) async {
+    PurchaseDetails purchaseDetails, {
+    required _PurchaseAccountContext? accountContext,
+    required bool deferLocalResolution,
+  }) async {
     try {
-      final userId = _currentEntitlementUserId;
       final prefs = await SharedPreferences.getInstance();
-      if (userId == null) {
-        await _applyResolvedSubscription(
-          active: false,
-          expectedUserId: null,
-          generation: _identityGeneration,
-          prefs: prefs,
-        );
+      if (accountContext == null || !_isAccountContextCurrent(accountContext)) {
         _errorMessage =
-            'Sign in to a HowAI account before purchasing or restoring Pro.';
-        _completeRestoreEvent(false);
+            'The signed-in account changed before the purchase was verified.';
         notifyListeners();
         return false;
       }
+      final userId = accountContext.userId;
 
       final entitlement = Platform.isIOS
           ? await _syncVerifiedAppleEntitlement(
               expectedUserId: userId,
+              expectedGeneration: accountContext.generation,
               purchase: purchaseDetails,
             )
           : Platform.isAndroid
-              ? await _syncVerifiedGoogleEntitlement(
-                  expectedUserId: userId,
-                  purchase: purchaseDetails,
-                )
-              : null;
-      final isEntitled = entitlement?.active == true;
+          ? await _syncVerifiedGoogleEntitlement(
+              expectedUserId: userId,
+              expectedGeneration: accountContext.generation,
+              purchase: purchaseDetails,
+            )
+          : null;
+      if (entitlement == null) {
+        _errorMessage =
+            'The store purchase could not be verified right now. Please try again.';
+        notifyListeners();
+        return false;
+      }
+
+      final isEntitled = entitlement.active;
+      if (deferLocalResolution) {
+        // Restore applies one final server snapshot after all queued evidence
+        // settles, avoiding paid/free flicker from intermediate transactions.
+        return true;
+      }
 
       if (isEntitled) {
         await _setValidatedEntitlementCache(
           prefs,
           userId: userId,
-          expiresAtMs: entitlement!.cacheValidUntilMs,
+          expiresAtMs: entitlement.cacheValidUntilMs,
         );
         await _applyResolvedSubscription(
           active: true,
           expectedUserId: userId,
-          generation: _identityGeneration,
+          generation: accountContext.generation,
           prefs: prefs,
         );
-        _completeRestoreEvent(true);
         _errorMessage = null;
         debugPrint(
-            '[SubscriptionService] Server-verified subscription entitlement confirmed');
+          '[SubscriptionService] Server-verified subscription entitlement confirmed',
+        );
       } else {
         await _clearValidatedEntitlementCache(prefs);
         await _applyResolvedSubscription(
           active: false,
           expectedUserId: userId,
-          generation: _identityGeneration,
+          generation: accountContext.generation,
           prefs: prefs,
         );
         _errorMessage =
-            'The store purchase could not be verified for this HowAI account.';
-        _completeRestoreEvent(false);
+            'No active subscription was found for this HowAI account.';
         debugPrint(
-            '[SubscriptionService] Purchase was not granted without server verification');
+          '[SubscriptionService] Purchase was not granted without server verification',
+        );
       }
 
       notifyListeners();
-      return isEntitled;
+      return true;
     } catch (e) {
       debugPrint('[SubscriptionService] Error handling purchase: $e');
       _errorMessage = "Error processing purchase: $e";
-      _completeRestoreEvent(false);
       notifyListeners();
       return false;
     }
@@ -1321,19 +1483,24 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       await syncUsageStatsToSupabase();
     } catch (e) {
       debugPrint(
-          '[SubscriptionService] Error syncing current subscription (silent): $e');
+        '[SubscriptionService] Error syncing current subscription (silent): $e',
+      );
     }
   }
 
   Future<_TrustedServerEntitlement?> _fetchTrustedServerEntitlement({
     required String expectedUserId,
+    required int expectedGeneration,
   }) async {
-    if (_currentEntitlementUserId != expectedUserId) return null;
+    if (expectedGeneration != _identityGeneration ||
+        _currentEntitlementUserId != expectedUserId) {
+      return null;
+    }
 
     try {
-      final response = await _supabase.client.functions.invoke(
-          'entitlement-status',
-          body: const {}).timeout(const Duration(seconds: 10));
+      final response = await _supabase.client.functions
+          .invoke('entitlement-status', body: const {})
+          .timeout(const Duration(seconds: 10));
       final data = response.data;
       if (data is! Map) return null;
       final entitlement = data['entitlement'];
@@ -1344,7 +1511,10 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       final expiresAt = expiresAtRaw is String
           ? DateTime.tryParse(expiresAtRaw)?.toLocal()
           : null;
-      if (_currentEntitlementUserId != expectedUserId) return null;
+      if (expectedGeneration != _identityGeneration ||
+          _currentEntitlementUserId != expectedUserId) {
+        return null;
+      }
       return _TrustedServerEntitlement(
         active: active,
         expiresAt: expiresAt,
@@ -1354,7 +1524,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       );
     } catch (e) {
       debugPrint(
-          '[SubscriptionService] Trusted entitlement refresh failed (using user-bound cache): $e');
+        '[SubscriptionService] Trusted entitlement refresh failed (using user-bound cache): $e',
+      );
       return null;
     }
   }
@@ -1367,8 +1538,11 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
     List<SK2Transaction>? transactions,
     PurchaseDetails? purchase,
     required String expectedUserId,
+    required int expectedGeneration,
   }) async {
-    if (!Platform.isIOS || _currentEntitlementUserId != expectedUserId) {
+    if (!Platform.isIOS ||
+        expectedGeneration != _identityGeneration ||
+        _currentEntitlementUserId != expectedUserId) {
       return null;
     }
 
@@ -1377,33 +1551,54 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         purchaseVerificationData:
             purchase?.verificationData.serverVerificationData,
       );
-      SK2Transaction? unfinishedTransaction;
+      SK2Transaction? selectedTransaction;
       if (signedTransaction == null) {
         final availableTransactions =
-            transactions ?? await SK2Transaction.unfinishedTransactions();
-        final latest =
-            _latestAppleSubscriptionTransaction(availableTransactions);
-        signedTransaction = selectStoreKitTransactionJws(
-          fallbackVerificationData: latest?.receiptData,
+            transactions ?? await SK2Transaction.transactions();
+        selectedTransaction = _latestAppleSubscriptionTransaction(
+          availableTransactions,
         );
-        if (transactions == null && signedTransaction != null) {
-          unfinishedTransaction = latest;
-        }
+        signedTransaction = selectStoreKitTransactionJws(
+          fallbackVerificationData: selectedTransaction?.receiptData,
+        );
       }
       if (signedTransaction == null) {
         debugPrint(
-            '[SubscriptionService] No signed StoreKit 2 transaction available for server verification');
+          '[SubscriptionService] No signed StoreKit 2 transaction available for server verification',
+        );
         return null;
       }
 
-      final response = await _supabase.client.functions.invoke(
-        'verify-apple-entitlement',
-        body: {'signed_transaction': signedTransaction},
-      ).timeout(const Duration(seconds: 15));
+      final restoreContext = _activeRestoreContext;
+      final restoreCacheEnabled =
+          restoreContext?.userId == expectedUserId &&
+          restoreContext?.generation == expectedGeneration;
+      final evidenceKey = 'apple:$signedTransaction';
+      if (restoreCacheEnabled) {
+        final cached = _restoreEvidenceResults[evidenceKey];
+        if (cached != null) return cached;
+      }
+
+      if (expectedGeneration != _identityGeneration ||
+          _currentEntitlementUserId != expectedUserId) {
+        return null;
+      }
+
+      final response = await _supabase.client.functions
+          .invoke(
+            'verify-apple-entitlement',
+            body: {
+              'account_id': expectedUserId,
+              'signed_transaction': signedTransaction,
+            },
+          )
+          .timeout(const Duration(seconds: 15));
 
       final data = response.data;
       final entitlement = data is Map ? data['entitlement'] : null;
-      if (entitlement is! Map || _currentEntitlementUserId != expectedUserId) {
+      if (entitlement is! Map ||
+          expectedGeneration != _identityGeneration ||
+          _currentEntitlementUserId != expectedUserId) {
         return null;
       }
       final active = entitlement['active'] == true;
@@ -1412,35 +1607,55 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
           ? DateTime.tryParse(expiresAtRaw)?.toLocal()
           : null;
       debugPrint(
-          '[SubscriptionService] Server-verified Apple entitlement synced (active: $active)');
-      if (active && unfinishedTransaction != null) {
-        final transactionId = int.tryParse(unfinishedTransaction.id);
-        if (transactionId != null) {
-          try {
-            await SK2Transaction.finish(transactionId);
-          } catch (e) {
-            debugPrint(
-                '[SubscriptionService] Verified unfinished StoreKit transaction could not be finished: $e');
-          }
-        }
+        '[SubscriptionService] Server-verified Apple entitlement synced (active: $active)',
+      );
+      if (purchase == null && selectedTransaction != null) {
+        await _finishAppleTransactionIfUnfinished(selectedTransaction);
       }
-      return _TrustedServerEntitlement(
+      final result = _TrustedServerEntitlement(
         active: active,
         expiresAt: expiresAt,
-        source: 'app_store',
+        source: entitlement['source'] is String
+            ? entitlement['source'] as String
+            : 'app_store',
       );
+      if (restoreCacheEnabled) {
+        _restoreEvidenceResults[evidenceKey] = result;
+      }
+      return result;
     } catch (e) {
       debugPrint(
-          '[SubscriptionService] Server Apple entitlement sync failed (silent): $e');
+        '[SubscriptionService] Server Apple entitlement sync failed (silent): $e',
+      );
       return null;
+    }
+  }
+
+  Future<void> _finishAppleTransactionIfUnfinished(
+    SK2Transaction transaction,
+  ) async {
+    try {
+      final unfinished = await SK2Transaction.unfinishedTransactions();
+      if (!unfinished.any((candidate) => candidate.id == transaction.id)) {
+        return;
+      }
+      final transactionId = int.tryParse(transaction.id);
+      if (transactionId != null) await SK2Transaction.finish(transactionId);
+    } catch (e) {
+      debugPrint(
+        '[SubscriptionService] Verified StoreKit transaction could not be finished: $e',
+      );
     }
   }
 
   Future<_TrustedServerEntitlement?> _syncVerifiedGoogleEntitlement({
     required String expectedUserId,
+    required int expectedGeneration,
     PurchaseDetails? purchase,
   }) async {
-    if (!Platform.isAndroid || _currentEntitlementUserId != expectedUserId) {
+    if (!Platform.isAndroid ||
+        expectedGeneration != _identityGeneration ||
+        _currentEntitlementUserId != expectedUserId) {
       return null;
     }
 
@@ -1455,7 +1670,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         );
         if (result.error != null) {
           debugPrint(
-              '[SubscriptionService] Google Play query failed: ${result.error}');
+            '[SubscriptionService] Google Play query failed: ${result.error}',
+          );
           return null;
         }
         purchases.addAll(result.pastPurchases);
@@ -1467,16 +1683,38 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         final token = candidate.verificationData.serverVerificationData.trim();
         if (token.isEmpty) continue;
 
-        final response = await _supabase.client.functions.invoke(
-          'verify-google-entitlement',
-          body: {
-            'purchase_token': token,
-            'product_id': candidate.productID,
-          },
-        ).timeout(const Duration(seconds: 15));
+        final restoreContext = _activeRestoreContext;
+        final restoreCacheEnabled =
+            restoreContext?.userId == expectedUserId &&
+            restoreContext?.generation == expectedGeneration;
+        final evidenceKey = 'google:$token';
+        if (restoreCacheEnabled) {
+          final cached = _restoreEvidenceResults[evidenceKey];
+          if (cached != null) {
+            if (cached.active) return cached;
+            inactiveDecision ??= cached;
+            continue;
+          }
+        }
+        if (expectedGeneration != _identityGeneration ||
+            _currentEntitlementUserId != expectedUserId) {
+          return null;
+        }
+
+        final response = await _supabase.client.functions
+            .invoke(
+              'verify-google-entitlement',
+              body: {
+                'account_id': expectedUserId,
+                'purchase_token': token,
+                'product_id': candidate.productID,
+              },
+            )
+            .timeout(const Duration(seconds: 15));
         final data = response.data;
         final entitlement = data is Map ? data['entitlement'] : null;
         if (entitlement is! Map ||
+            expectedGeneration != _identityGeneration ||
             _currentEntitlementUserId != expectedUserId) {
           continue;
         }
@@ -1488,21 +1726,22 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         final decision = _TrustedServerEntitlement(
           active: active,
           expiresAt: expiresAt,
-          source: 'play_store',
+          source: entitlement['source'] is String
+              ? entitlement['source'] as String
+              : 'play_store',
         );
+        if (restoreCacheEnabled) {
+          _restoreEvidenceResults[evidenceKey] = decision;
+        }
         if (decision.active) return decision;
         inactiveDecision ??= decision;
       }
 
-      return inactiveDecision ??
-          _TrustedServerEntitlement(
-            active: false,
-            expiresAt: null,
-            source: 'play_store',
-          );
+      return inactiveDecision;
     } catch (e) {
       debugPrint(
-          '[SubscriptionService] Server Google Play entitlement sync failed: $e');
+        '[SubscriptionService] Server Google Play entitlement sync failed: $e',
+      );
       return null;
     }
   }
@@ -1517,7 +1756,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       if (!_allSubscriptionIds.contains(transaction.productId)) continue;
       if (transaction.receiptData?.trim().isEmpty ?? true) continue;
 
-      final candidateDate = _parseStoreKitDate(transaction.expirationDate) ??
+      final candidateDate =
+          _parseStoreKitDate(transaction.expirationDate) ??
           _parseStoreKitDate(transaction.purchaseDate);
       if (candidateDate == null) continue;
 
@@ -1551,7 +1791,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       await _loadUsageStatsFromSupabase();
     } catch (e) {
       debugPrint(
-          '[SubscriptionService] Error loading subscription from Supabase (silent): $e');
+        '[SubscriptionService] Error loading subscription from Supabase (silent): $e',
+      );
     }
   }
 
@@ -1569,11 +1810,13 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
         final featureName = stat['feature_name'] as String;
         final usageCount = stat['usage_count'] as int? ?? 0;
         debugPrint(
-            '[SubscriptionService] Cloud $featureName usage: $usageCount');
+          '[SubscriptionService] Cloud $featureName usage: $usageCount',
+        );
       }
     } catch (e) {
       debugPrint(
-          '[SubscriptionService] Error loading usage stats from Supabase (silent): $e');
+        '[SubscriptionService] Error loading usage stats from Supabase (silent): $e',
+      );
     }
   }
 
@@ -1622,7 +1865,8 @@ class SubscriptionService with ChangeNotifier, WidgetsBindingObserver {
       debugPrint('[SubscriptionService] Usage stats synced to Supabase');
     } catch (e) {
       debugPrint(
-          '[SubscriptionService] Error syncing usage stats (silent): $e');
+        '[SubscriptionService] Error syncing usage stats (silent): $e',
+      );
     }
   }
 

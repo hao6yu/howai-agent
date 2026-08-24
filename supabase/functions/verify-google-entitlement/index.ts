@@ -1,5 +1,14 @@
 import { createClient } from "npm:@supabase/supabase-js@2.111.0";
-import { evaluateGooglePlaySubscription } from "../_shared/google-play-entitlement.ts";
+import {
+  allowGooglePlayTestPurchases,
+  evaluateGooglePlaySubscription,
+  GooglePlayEntitlementValidationError,
+} from "../_shared/google-play-entitlement.ts";
+import {
+  assertAuthenticatedAccountRequest,
+  assertStoreAccountAttribution,
+  StoreAccountAttributionError,
+} from "../_shared/store-account-attribution.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -16,7 +25,12 @@ const GOOGLE_PLAY_PRODUCT_IDS = new Set(
 );
 const SERVICE_ACCOUNT_JSON = Deno.env.get("GOOGLE_PLAY_SERVICE_ACCOUNT_JSON") ??
   "";
+const GOOGLE_PLAY_TEST_PURCHASES_ALLOWED = allowGooglePlayTestPurchases(
+  Deno.env.get("GOOGLE_PLAY_ALLOW_TEST_PURCHASES"),
+);
 const MAX_BODY_BYTES = 8 * 1024;
+// Google documents purchase tokens as opaque strings without a small fixed
+// limit. Keep a defensive request bound without truncating valid tokens.
 const MAX_TOKEN_LENGTH = 4 * 1024;
 
 type ServiceAccount = Readonly<{
@@ -64,6 +78,7 @@ Deno.serve(async (req) => {
 
   let purchaseToken = "";
   let productId = "";
+  let requestedAccountId: unknown;
   try {
     const body = JSON.parse(rawBody) as Record<string, unknown>;
     purchaseToken = typeof body.purchase_token === "string"
@@ -72,6 +87,7 @@ Deno.serve(async (req) => {
     productId = typeof body.product_id === "string"
       ? body.product_id.trim()
       : "";
+    requestedAccountId = body.account_id;
   } catch {
     return jsonResponse(
       400,
@@ -89,6 +105,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    assertAuthenticatedAccountRequest(user.id, requestedAccountId);
     const serviceAccount = parseServiceAccount(SERVICE_ACCOUNT_JSON);
     const accessToken = await createGoogleAccessToken(serviceAccount);
     const url = new URL(
@@ -124,9 +141,21 @@ Deno.serve(async (req) => {
       GOOGLE_PLAY_PRODUCT_IDS,
       productId,
     );
+    if (decision.testPurchase && !GOOGLE_PLAY_TEST_PURCHASES_ALLOWED) {
+      throw new GooglePlayEntitlementValidationError(
+        "Google Play test purchases are not accepted by this deployment.",
+      );
+    }
+    assertStoreAccountAttribution(
+      user.id,
+      decision.obfuscatedExternalAccountId,
+      "Google Play",
+    );
     const now = new Date().toISOString();
     const metadata = {
+      linked_purchase_token: decision.linkedPurchaseToken,
       product_id: decision.productId,
+      revoked: false,
       subscription_state: decision.state,
       test_purchase: decision.testPurchase,
       obfuscated_account_id_matches:
@@ -135,45 +164,57 @@ Deno.serve(async (req) => {
           : decision.obfuscatedExternalAccountId === user.id,
     };
 
-    if (decision.active && decision.expiresAt) {
-      const { error } = await supabaseAdmin.rpc("claim_store_entitlement", {
+    const { data: reconciliationRows, error: reconciliationError } =
+      await supabaseAdmin.rpc("reconcile_store_entitlement", {
         p_user_id: user.id,
         p_source: "play_store",
         p_source_reference: purchaseToken,
         p_linked_source_reference: decision.linkedPurchaseToken,
+        p_active: decision.active,
         p_verified_at: now,
         p_expires_at: decision.expiresAt,
+        p_revoked: false,
         p_metadata: metadata,
       });
-      if (error) throw new Error(`Entitlement claim failed: ${error.message}`);
-    } else {
-      const { error } = await supabaseAdmin
-        .from("app_entitlements")
-        .update({
-          tier: "free",
-          verified_at: now,
-          expires_at: decision.expiresAt,
-          metadata,
-          updated_at: now,
-        })
-        .eq("user_id", user.id)
-        .eq("source", "play_store")
-        .eq("source_reference", purchaseToken);
-      if (error) {
-        throw new Error(`Expired entitlement update failed: ${error.message}`);
-      }
+    if (reconciliationError) {
+      throw new Error(
+        `Entitlement reconciliation failed: ${reconciliationError.message}`,
+      );
     }
+    const reconciliation = Array.isArray(reconciliationRows)
+      ? reconciliationRows[0]
+      : null;
+    if (!reconciliation || typeof reconciliation !== "object") {
+      throw new Error("Entitlement reconciliation returned no result.");
+    }
+
+    const effectiveActive = reconciliation.active === true;
+    const effectiveExpiresAt =
+      typeof reconciliation.effective_expires_at === "string"
+        ? reconciliation.effective_expires_at
+        : null;
+    const effectiveSource = typeof reconciliation.effective_source === "string"
+      ? reconciliation.effective_source
+      : null;
 
     return jsonResponse(200, {
       entitlement: {
-        active: decision.active,
-        expires_at: decision.expiresAt,
+        active: effectiveActive,
+        applied: reconciliation.applied === true,
+        expires_at: effectiveExpiresAt,
         product_id: decision.productId,
+        source: effectiveSource,
         state: decision.state,
         verified_at: now,
       },
     }, origin);
   } catch (error) {
+    if (error instanceof StoreAccountAttributionError) {
+      return jsonResponse(409, { error: error.message }, origin);
+    }
+    if (error instanceof GooglePlayEntitlementValidationError) {
+      return jsonResponse(422, { error: error.message }, origin);
+    }
     console.error("Google Play entitlement verification failed", error);
     return jsonResponse(
       503,

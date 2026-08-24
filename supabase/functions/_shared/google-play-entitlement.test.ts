@@ -1,5 +1,9 @@
-import { assertEquals } from "jsr:@std/assert@1";
-import { evaluateGooglePlaySubscription } from "./google-play-entitlement.ts";
+import { assertEquals, assertThrows } from "jsr:@std/assert@1";
+import {
+  allowGooglePlayTestPurchases,
+  evaluateGooglePlaySubscription,
+  GooglePlayEntitlementValidationError,
+} from "./google-play-entitlement.ts";
 
 const products = new Set([
   "com.hyu.haogpt.premium.monthly",
@@ -31,7 +35,7 @@ Deno.test("accepts active and grace-period matching subscriptions", () => {
   }
 });
 
-Deno.test("rejects expired, pending, held, and mismatched products", () => {
+Deno.test("rejects expired, pending, and held subscriptions", () => {
   for (
     const value of [
       {
@@ -55,13 +59,6 @@ Deno.test("rejects expired, pending, held, and mismatched products", () => {
           expiryTime: "2026-08-17T17:00:00.000Z",
         }],
       },
-      {
-        subscriptionState: "SUBSCRIPTION_STATE_ACTIVE",
-        lineItems: [{
-          productId: "attacker.product",
-          expiryTime: "2026-08-17T17:00:00.000Z",
-        }],
-      },
     ]
   ) {
     assertEquals(
@@ -74,4 +71,49 @@ Deno.test("rejects expired, pending, held, and mismatched products", () => {
       false,
     );
   }
+});
+
+Deno.test("rejects a token that does not contain the requested product", () => {
+  assertThrows(
+    () =>
+      evaluateGooglePlaySubscription(
+        {
+          subscriptionState: "SUBSCRIPTION_STATE_ACTIVE",
+          lineItems: [{
+            productId: "attacker.product",
+            expiryTime: "2026-08-17T17:00:00.000Z",
+          }],
+        },
+        products,
+        "com.hyu.haogpt.premium.monthly",
+        now,
+      ),
+    GooglePlayEntitlementValidationError,
+  );
+});
+
+Deno.test("Google Play test purchases require explicit configuration", () => {
+  assertEquals(allowGooglePlayTestPurchases(undefined), false);
+  assertEquals(allowGooglePlayTestPurchases("false"), false);
+  assertEquals(allowGooglePlayTestPurchases("true"), true);
+  assertEquals(allowGooglePlayTestPurchases(" TRUE "), true);
+});
+
+Deno.test("preserves opaque linked purchase tokens larger than 512 characters", () => {
+  const linkedPurchaseToken = "t".repeat(1_024);
+  const decision = evaluateGooglePlaySubscription(
+    {
+      subscriptionState: "SUBSCRIPTION_STATE_ACTIVE",
+      linkedPurchaseToken,
+      lineItems: [{
+        productId: "com.hyu.haogpt.premium.monthly",
+        expiryTime: "2026-08-17T17:00:00.000Z",
+      }],
+    },
+    products,
+    "com.hyu.haogpt.premium.monthly",
+    now,
+  );
+
+  assertEquals(decision.linkedPurchaseToken, linkedPurchaseToken);
 });

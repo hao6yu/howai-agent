@@ -8,13 +8,15 @@ export type GooglePlaySubscription = Readonly<{
 
 export type GooglePlayEntitlementDecision = Readonly<{
   active: boolean;
-  expiresAt: string | null;
-  productId: string | null;
+  expiresAt: string;
+  productId: string;
   state: string;
   linkedPurchaseToken: string | null;
   obfuscatedExternalAccountId: string | null;
   testPurchase: boolean;
 }>;
+
+export class GooglePlayEntitlementValidationError extends Error {}
 
 const ENTITLED_STATES = new Set([
   "SUBSCRIPTION_STATE_ACTIVE",
@@ -58,28 +60,36 @@ export function evaluateGooglePlaySubscription(
   const external = isRecord(value.externalAccountIdentifiers)
     ? value.externalAccountIdentifiers
     : null;
+  if (selectedProductId == null || latestExpiryMs == null) {
+    throw new GooglePlayEntitlementValidationError(
+      "Google Play purchase does not contain the requested subscription.",
+    );
+  }
   return Object.freeze({
-    active: selectedProductId != null &&
-      latestExpiryMs != null &&
-      latestExpiryMs > nowMs &&
+    active: latestExpiryMs > nowMs &&
       ENTITLED_STATES.has(state),
-    expiresAt: latestExpiryMs == null
-      ? null
-      : new Date(latestExpiryMs).toISOString(),
+    expiresAt: new Date(latestExpiryMs).toISOString(),
     productId: selectedProductId,
     state,
-    linkedPurchaseToken: boundedText(value.linkedPurchaseToken),
+    linkedPurchaseToken: boundedText(value.linkedPurchaseToken, 4 * 1024),
     obfuscatedExternalAccountId: boundedText(
       external?.obfuscatedExternalAccountId,
+      512,
     ),
     testPurchase: isRecord(value.testPurchase),
   });
 }
 
-function boundedText(value: unknown): string | null {
+export function allowGooglePlayTestPurchases(
+  value: string | null | undefined,
+): boolean {
+  return value?.trim().toLowerCase() === "true";
+}
+
+function boundedText(value: unknown, maximumLength: number): string | null {
   if (typeof value !== "string") return null;
   const text = value.trim();
-  return text.length > 0 && text.length <= 512 ? text : null;
+  return text.length > 0 && text.length <= maximumLength ? text : null;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

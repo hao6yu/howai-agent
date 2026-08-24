@@ -2,8 +2,10 @@ import { createClient } from "npm:@supabase/supabase-js@2.111.0";
 
 import {
   AppleEntitlementValidationError,
+  type AppleStoreEnvironment,
   type AppleTransactionPayload,
   evaluateAppleTransaction,
+  parseAllowedAppleStoreEnvironments,
 } from "../_shared/apple-entitlement.ts";
 import { APPLE_ROOT_CA_DER_BASE64 } from "../_shared/apple-root-certificates.ts";
 import {
@@ -11,6 +13,11 @@ import {
   verifyAndDecodeAppleTransaction,
 } from "../_shared/apple-signed-data-verifier.ts";
 import { summarizeAppleTransactionJws } from "../_shared/apple-verification-diagnostics.ts";
+import {
+  assertAuthenticatedAccountRequest,
+  assertStoreAccountAttribution,
+  StoreAccountAttributionError,
+} from "../_shared/store-account-attribution.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
@@ -25,6 +32,9 @@ const APPLE_PRODUCT_IDS = new Set(
     .map((value) => value.trim())
     .filter(Boolean),
 );
+const APPLE_ALLOWED_ENVIRONMENTS = parseAllowedAppleStoreEnvironments(
+  Deno.env.get("APPLE_ALLOWED_ENVIRONMENTS"),
+);
 const MAX_BODY_BYTES = 32 * 1024;
 const MAX_SIGNED_TRANSACTION_LENGTH = 24 * 1024;
 
@@ -34,7 +44,7 @@ type AuthenticatedUser = Readonly<{
 }>;
 
 type VerifiedTransaction = Readonly<{
-  environment: "Production" | "Sandbox";
+  environment: AppleStoreEnvironment;
   payload: AppleTransactionPayload;
 }>;
 
@@ -80,11 +90,13 @@ Deno.serve(async (req) => {
   }
 
   let signedTransaction: string;
+  let requestedAccountId: unknown;
   try {
     const body = JSON.parse(requestBody) as Record<string, unknown>;
     signedTransaction = typeof body.signed_transaction === "string"
       ? body.signed_transaction.trim()
       : "";
+    requestedAccountId = body.account_id;
   } catch {
     return jsonResponse(
       400,
@@ -104,28 +116,22 @@ Deno.serve(async (req) => {
   }
 
   try {
+    assertAuthenticatedAccountRequest(user.id, requestedAccountId);
     const verified = await verifySignedTransaction(signedTransaction);
     const decision = evaluateAppleTransaction(
       verified.payload,
       {
         bundleId: APPLE_BUNDLE_ID,
-        environment: verified.environment,
+        environments: APPLE_ALLOWED_ENVIRONMENTS,
         productIds: APPLE_PRODUCT_IDS,
       },
     );
+    assertStoreAccountAttribution(
+      user.id,
+      decision.appAccountToken,
+      "App Store",
+    );
     const now = new Date().toISOString();
-
-    const { data: currentEntitlement, error: currentError } =
-      await supabaseAdmin
-        .from("app_entitlements")
-        .select("source, source_reference")
-        .eq("user_id", user.id)
-        .maybeSingle();
-    if (currentError) {
-      throw new Error(
-        `Current entitlement lookup failed: ${currentError.message}`,
-      );
-    }
 
     const metadata = {
       app_account_token_matches: decision.appAccountToken == null
@@ -133,61 +139,69 @@ Deno.serve(async (req) => {
         : decision.appAccountToken === user.id,
       app_account_token_present: decision.appAccountToken != null,
       environment: decision.environment,
+      purchase_at: decision.purchaseAt,
       product_id: decision.productId,
+      revocation_at: decision.revocationAt,
       revoked: decision.revoked,
       signed_at: decision.signedAt,
       transaction_id: decision.transactionId,
     };
 
-    if (decision.active) {
-      const { error } = await supabaseAdmin.rpc(
-        "claim_store_entitlement",
+    const { data: reconciliationRows, error: reconciliationError } =
+      await supabaseAdmin.rpc(
+        "reconcile_store_entitlement",
         {
           p_user_id: user.id,
           p_source: "app_store",
           p_source_reference: decision.originalTransactionId,
           p_linked_source_reference: null,
+          p_active: decision.active,
           p_verified_at: now,
           p_expires_at: decision.expiresAt,
+          p_revoked: decision.revoked,
           p_metadata: metadata,
         },
       );
-      if (error) throw new Error(`Entitlement claim failed: ${error.message}`);
-    } else if (
-      currentEntitlement?.source === "app_store" &&
-      currentEntitlement.source_reference === decision.originalTransactionId
-    ) {
-      const { error } = await supabaseAdmin
-        .from("app_entitlements")
-        .update({
-          tier: "free",
-          verified_at: now,
-          expires_at: decision.expiresAt,
-          metadata,
-          updated_at: now,
-        })
-        .eq("user_id", user.id)
-        .eq("source", "app_store")
-        .eq("source_reference", decision.originalTransactionId);
-      if (error) {
-        throw new Error(`Expired entitlement update failed: ${error.message}`);
-      }
+    if (reconciliationError) {
+      throw new Error(
+        `Entitlement reconciliation failed: ${reconciliationError.message}`,
+      );
     }
+    const reconciliation = Array.isArray(reconciliationRows)
+      ? reconciliationRows[0]
+      : null;
+    if (!reconciliation || typeof reconciliation !== "object") {
+      throw new Error("Entitlement reconciliation returned no result.");
+    }
+
+    const effectiveActive = reconciliation.active === true;
+    const effectiveExpiresAt =
+      typeof reconciliation.effective_expires_at === "string"
+        ? reconciliation.effective_expires_at
+        : null;
+    const effectiveSource = typeof reconciliation.effective_source === "string"
+      ? reconciliation.effective_source
+      : null;
 
     return jsonResponse(
       200,
       {
         entitlement: {
-          active: decision.active,
+          active: effectiveActive,
+          applied: reconciliation.applied === true,
           environment: decision.environment,
-          expires_at: decision.expiresAt,
+          expires_at: effectiveExpiresAt,
           product_id: decision.productId,
+          source: effectiveSource,
           verified_at: now,
         },
       },
       origin,
     );
   } catch (error) {
+    if (error instanceof StoreAccountAttributionError) {
+      return jsonResponse(409, { error: error.message }, origin);
+    }
     if (error instanceof AppleEntitlementValidationError) {
       console.warn(
         "Apple transaction payload validation rejected",

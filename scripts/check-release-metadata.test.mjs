@@ -32,38 +32,38 @@ const compliantMergedManifest = `
 `;
 
 test('parses the HowAI app version and numeric build', () => {
-  assert.deepEqual(parsePubspecVersion('name: haogpt\nversion: 2.0.4+49\n'), {
+  assert.deepEqual(parsePubspecVersion('name: haogpt\nversion: 2.0.5+50\n'), {
     major: 2,
     minor: 0,
-    patch: 4,
-    build: 49,
+    patch: 5,
+    build: 50,
   });
 });
 
-test('accepts the 2.0.4 release line and later build numbers', () => {
+test('accepts the 2.0.5 release line and later build numbers', () => {
   assert.equal(
-    validateReleaseVersion('version: 2.0.4+49\n').build,
-    49,
+    validateReleaseVersion('version: 2.0.5+50\n').build,
+    50,
   );
 });
 
-test('rejects the previous 2.0.3 release line', () => {
+test('rejects the previous 2.0.4 release line', () => {
   assert.throws(
-    () => validateReleaseVersion('version: 2.0.3+99\n'),
-    /requires version 2\.0\.4/,
+    () => validateReleaseVersion('version: 2.0.4+99\n'),
+    /requires version 2\.0\.5/,
   );
 });
 
 test('rejects a reused build number', () => {
   assert.throws(
-    () => validateReleaseVersion('version: 2.0.4+48\n'),
-    /requires build 49 or newer/,
+    () => validateReleaseVersion('version: 2.0.5+49\n'),
+    /requires build 50 or newer/,
   );
 });
 
 test('rejects a version without a numeric build', () => {
   assert.throws(
-    () => validateReleaseVersion('version: 2.0.4\n'),
+    () => validateReleaseVersion('version: 2.0.5\n'),
     /numeric build/,
   );
 });

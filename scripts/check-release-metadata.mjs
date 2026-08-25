@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url';
 export const releasePolicy = Object.freeze({
   major: 2,
   minor: 0,
-  patch: 4,
-  minimumBuild: 49,
+  patch: 5,
+  minimumBuild: 50,
 });
 
 export function parsePubspecVersion(pubspec) {

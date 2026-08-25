@@ -27,6 +27,16 @@ awk -F= '
   }
 ' "$ENV_FILE" > "$PUBLIC_ENV_FILE"
 
+# Android's native Maps metadata is resolved by Gradle rather than Dart. Pass
+# the same allowlisted public key through the process environment so clean
+# release checkouts do not depend on an untracked local.properties entry.
+MOBILE_GOOGLE_MAPS_API_KEY="$(
+  awk -F= '$1 == "GOOGLE_MAPS_API_KEY" { sub(/^[^=]*=/, ""); print; exit }' "$PUBLIC_ENV_FILE"
+)"
+if [[ -n "$MOBILE_GOOGLE_MAPS_API_KEY" ]]; then
+  export GOOGLE_MAPS_API_KEY="$MOBILE_GOOGLE_MAPS_API_KEY"
+fi
+
 if grep -Eq '^(OPENAI_API_KEY|ELEVENLABS_API_KEY|XI_API_KEY)=.+' "$ENV_FILE"; then
   echo "Ignoring provider API keys in $ENV_FILE; mobile builds use Supabase proxies." >&2
 fi

@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:haogpt/core/theme/howai_theme.dart';
 import 'package:haogpt/generated/app_localizations.dart';
+import 'package:haogpt/models/conversation.dart';
 import 'package:haogpt/providers/conversation_provider.dart';
 import 'package:haogpt/providers/profile_provider.dart';
 import 'package:haogpt/services/subscription_service.dart';
@@ -13,6 +14,19 @@ import 'package:haogpt/widgets/new_conversation_button.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+class _TestConversationProvider extends ConversationProvider {
+  _TestConversationProvider(this.items, {this.archivedItems = const []});
+
+  final List<Conversation> items;
+  final List<Conversation> archivedItems;
+
+  @override
+  List<Conversation> get conversations => items;
+
+  @override
+  List<Conversation> get archivedConversations => archivedItems;
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -32,11 +46,14 @@ void main() {
   Future<void> pumpDrawer(
     WidgetTester tester, {
     ThemeMode themeMode = ThemeMode.light,
+    ConversationProvider? conversationProvider,
   }) async {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider(create: (_) => ConversationProvider()),
+          ChangeNotifierProvider<ConversationProvider>(
+            create: (_) => conversationProvider ?? ConversationProvider(),
+          ),
           ChangeNotifierProvider(create: (_) => ProfileProvider()),
           ChangeNotifierProvider<SubscriptionService>.value(
             value: SubscriptionService(),
@@ -60,8 +77,9 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('drawer uses the shared new-conversation control',
-      (tester) async {
+  testWidgets('drawer uses the shared new-conversation control', (
+    tester,
+  ) async {
     await pumpDrawer(tester);
 
     expect(find.byType(NewConversationButton), findsOneWidget);
@@ -80,45 +98,100 @@ void main() {
     expect(find.text('Search conversations'), findsOneWidget);
   });
 
-  for (final testCase in <({
-    String name,
-    ThemeMode mode,
-    HowAIColors colors,
-  })>[
-    (
-      name: 'light',
-      mode: ThemeMode.light,
-      colors: HowAIColors.light,
-    ),
-    (
-      name: 'dark',
-      mode: ThemeMode.dark,
-      colors: HowAIColors.dark,
-    ),
-  ]) {
-    testWidgets(
-      'workspace links stay compact in ${testCase.name} mode',
-      (tester) async {
-        await pumpDrawer(tester, themeMode: testCase.mode);
-
-        final navigation = find.byKey(
-          const ValueKey<String>('drawer_workspace_navigation'),
-        );
-        expect(navigation, findsOneWidget);
-        expect(find.text('Automations'), findsOneWidget);
-        expect(find.text('Knowledge Hub'), findsOneWidget);
-        expect(find.text('Reminders and recurring tasks'), findsNothing);
-
-        expect(tester.getSize(navigation).height, lessThanOrEqualTo(104));
-        final container = tester.widget<Container>(navigation);
-        final decoration = container.decoration! as BoxDecoration;
-        expect(decoration.color, testCase.colors.surface);
-      },
+  testWidgets('large conversation histories build rows lazily', (tester) async {
+    final now = DateTime.now();
+    final conversations = List<Conversation>.generate(
+      1000,
+      (index) => Conversation(
+        id: index + 1,
+        title: 'Conversation $index',
+        createdAt: now,
+        updatedAt: now,
+        profileId: 1,
+      ),
     );
+
+    await pumpDrawer(
+      tester,
+      conversationProvider: _TestConversationProvider(conversations),
+    );
+
+    final builtActionCount = find
+        .byTooltip('Conversation actions')
+        .evaluate()
+        .length;
+    expect(builtActionCount, greaterThan(0));
+    expect(builtActionCount, lessThan(50));
+    expect(
+      find.byKey(const ValueKey<String>('conversation_tile_1000')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('archived rows are lazy until their section is expanded', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final archived = List<Conversation>.generate(
+      200,
+      (index) => Conversation(
+        id: index + 1,
+        title: 'Archived conversation $index',
+        createdAt: now,
+        updatedAt: now,
+        archivedAt: now,
+        profileId: 1,
+      ),
+    );
+
+    await pumpDrawer(
+      tester,
+      conversationProvider: _TestConversationProvider(
+        const [],
+        archivedItems: archived,
+      ),
+    );
+
+    expect(find.byTooltip('Conversation actions'), findsNothing);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('archived_conversations_toggle')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byTooltip('Conversation actions'), findsWidgets);
+    expect(
+      find.byTooltip('Conversation actions').evaluate().length,
+      lessThan(50),
+    );
+  });
+
+  for (final testCase in <({String name, ThemeMode mode, HowAIColors colors})>[
+    (name: 'light', mode: ThemeMode.light, colors: HowAIColors.light),
+    (name: 'dark', mode: ThemeMode.dark, colors: HowAIColors.dark),
+  ]) {
+    testWidgets('workspace links stay compact in ${testCase.name} mode', (
+      tester,
+    ) async {
+      await pumpDrawer(tester, themeMode: testCase.mode);
+
+      final navigation = find.byKey(
+        const ValueKey<String>('drawer_workspace_navigation'),
+      );
+      expect(navigation, findsOneWidget);
+      expect(find.text('Automations'), findsOneWidget);
+      expect(find.text('Knowledge Hub'), findsOneWidget);
+      expect(find.text('Reminders and recurring tasks'), findsNothing);
+
+      expect(tester.getSize(navigation).height, lessThanOrEqualTo(104));
+      final container = tester.widget<Container>(navigation);
+      final decoration = container.decoration! as BoxDecoration;
+      expect(decoration.color, testCase.colors.surface);
+    });
   }
 
-  testWidgets('workspace navigation waits for the sliding drawer to close',
-      (tester) async {
+  testWidgets('workspace navigation waits for the sliding drawer to close', (
+    tester,
+  ) async {
     final closeCompleter = Completer<void>();
     var closeRequested = false;
 
@@ -142,11 +215,11 @@ void main() {
           supportedLocales: AppLocalizations.supportedLocales,
           routes: {
             '/actions': (_) => const Scaffold(
-                  body: Text(
-                    'Actions destination',
-                    key: ValueKey<String>('actions_destination'),
-                  ),
-                ),
+              body: Text(
+                'Actions destination',
+                key: ValueKey<String>('actions_destination'),
+              ),
+            ),
           },
           home: Scaffold(
             body: ConversationDrawer(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
 import 'dart:io';
@@ -99,6 +100,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     with TickerProviderStateMixin {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ValueNotifier<bool> _showScrollToLatest = ValueNotifier<bool>(false);
   final DatabaseService _databaseService = DatabaseService();
   final OpenAIService _openAIService = OpenAIService();
   final AutomationService _automationService = AutomationService();
@@ -357,6 +359,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     _listenedAuthProvider?.removeListener(_onAuthSyncCompleted);
     _textController.dispose();
     _scrollController.dispose();
+    _showScrollToLatest.dispose();
     _micAnimationController.dispose();
     _recordingPulseController.dispose();
     _cancelRecordingTimer();
@@ -367,6 +370,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     _aiTimeoutTimer?.cancel();
     _stopLoadingMessageRotation();
     _aiLoadingMessage.dispose();
+    _streamingMessage.dispose();
 
     // Cancel PDF auto-conversion timer
     _pdfAutoConversionTimer?.cancel();
@@ -431,6 +435,25 @@ class _AiChatScreenState extends State<AiChatScreen>
   }
 
   void _onScroll() {
+    if (_scrollController.hasClients) {
+      final shouldShowScrollToLatest = !_isNearBottom(threshold: 180);
+      if (_showScrollToLatest.value != shouldShowScrollToLatest) {
+        _showScrollToLatest.value = shouldShowScrollToLatest;
+      }
+    }
+
+    if (_isSending && _scrollController.hasClients) {
+      final direction = _scrollController.position.userScrollDirection;
+      if (direction == ScrollDirection.reverse) {
+        // The chat list is reversed, so increasing the offset means the user
+        // is reading older messages. Never pull them back to the response.
+        _followStreamingResponse = false;
+      } else if (direction == ScrollDirection.forward &&
+          _isNearBottom(threshold: 72)) {
+        _followStreamingResponse = true;
+      }
+    }
+
     if (_scrollController.hasClients &&
         _scrollController.offset >=
             _scrollController.position.maxScrollExtent - 100 &&
@@ -481,18 +504,14 @@ class _AiChatScreenState extends State<AiChatScreen>
         offset: _loadedCount,
       );
       if (moreMessages.isNotEmpty) {
-        final prevScrollHeight = _scrollController.position.maxScrollExtent;
         setState(() {
           _messages.insertAll(0, moreMessages);
           _loadedCount += moreMessages.length;
           _hasMore = moreMessages.length == _pageSize;
         });
-        // After prepending, maintain scroll position
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final newScrollHeight = _scrollController.position.maxScrollExtent;
-          final scrollOffset = newScrollHeight - prevScrollHeight;
-          _scrollController.jumpTo(_scrollController.offset + scrollOffset);
-        });
+        // The list is reversed and older messages are appended at its far
+        // extent, so retaining the current offset preserves the viewport.
+        // Applying a max-extent correction here causes a visible jump.
       } else {
         setState(() {
           _hasMore = false;
@@ -540,19 +559,24 @@ class _AiChatScreenState extends State<AiChatScreen>
     if (!_scrollController.hasClients) return;
 
     final bottom = _scrollController.position.minScrollExtent;
+    final distance = (_scrollController.offset - bottom).abs();
+    if (distance < 0.5) return;
 
     if (animated) {
-      // Only animate if requested (e.g., after sending/receiving a new message)
-      const threshold = 50.0;
-      if ((_scrollController.offset - bottom).abs() > threshold) {
-        _scrollController.animateTo(
-          bottom,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
+      final duration = motionDuration(
+        context,
+        distance > 280 ? HowAIMotion.standard : HowAIMotion.quick,
+      );
+      if (duration == Duration.zero) {
+        _scrollController.jumpTo(bottom);
+        return;
       }
+      _scrollController.animateTo(
+        bottom,
+        duration: duration,
+        curve: HowAIMotion.enterCurve,
+      );
     } else {
-      // Instantly jump to bottom (no animation)
       _scrollController.jumpTo(bottom);
     }
   }
@@ -665,10 +689,15 @@ class _AiChatScreenState extends State<AiChatScreen>
     _loadingMessageRotationTimer = null;
   }
 
-  // Streaming message index tracker for updating the correct message
-  int? _streamingMessageIndex;
   bool _streamingMessageAdded = false;
   String? _activeStreamingMessageTimestamp;
+  final ValueNotifier<ChatMessage?> _streamingMessage =
+      ValueNotifier<ChatMessage?>(null);
+  bool _followStreamingResponse = true;
+
+  void _publishStreamingMessage(ChatMessage? message) {
+    if (mounted) _streamingMessage.value = message;
+  }
 
   Future<String> _applyProfileNameToolCall(
     Map<String, dynamic> toolCall, {
@@ -751,10 +780,11 @@ class _AiChatScreenState extends State<AiChatScreen>
     // Message will be added when first text arrives
     setState(() {
       _streamingMessageAdded = false;
-      _streamingMessageIndex = null;
       _activeStreamingMessageTimestamp = timestamp;
       _isSending = true;
     });
+    _publishStreamingMessage(null);
+    _followStreamingResponse = _isNearBottom();
     _startLoadingMessageRotation(aiName);
 
     String fullText = '';
@@ -767,7 +797,6 @@ class _AiChatScreenState extends State<AiChatScreen>
     DateTime? lastUiUpdateAt;
     DateTime? lastAutoScrollAt;
     const autoScrollInterval = Duration(milliseconds: 250);
-    bool shouldFollowStream = false;
     bool streamAborted = false;
 
     // Helper to strip title JSON from text
@@ -849,7 +878,6 @@ class _AiChatScreenState extends State<AiChatScreen>
 
               if (!_streamingMessageAdded || placeholderIndex == -1) {
                 // First real content - add the message to UI
-                shouldFollowStream = _isNearBottom();
                 setState(() {
                   final newMessage = ChatMessage(
                     message: displayText,
@@ -859,20 +887,19 @@ class _AiChatScreenState extends State<AiChatScreen>
                     conversationId: conversationId,
                   );
                   _messages.add(newMessage);
-                  _streamingMessageIndex = _messages.length - 1;
                   _activeStreamingMessageTimestamp = timestamp;
                   _streamingMessageAdded = true;
                 });
+                _publishStreamingMessage(_messages.last);
                 lastRenderedText = displayText;
                 lastUiUpdateAt = DateTime.now();
                 lastAutoScrollAt = DateTime.now();
-                if (shouldFollowStream) {
+                if (_followStreamingResponse) {
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     _scrollToBottom(animated: true);
                   });
                 }
               } else {
-                _streamingMessageIndex = placeholderIndex;
                 // Throttle UI updates to avoid excessive full-list rebuilds/flicker.
                 final now = DateTime.now();
                 final uiUpdateInterval = displayText.length > 8000
@@ -886,16 +913,15 @@ class _AiChatScreenState extends State<AiChatScreen>
                 final isTextChanged = displayText != lastRenderedText;
 
                 if (shouldUpdateUi && isTextChanged) {
-                  setState(() {
-                    final updatedMessage = ChatMessage(
-                      message: displayText,
-                      isUserMessage: false,
-                      timestamp: timestamp,
-                      profileId: _currentProfileId,
-                      conversationId: conversationId,
-                    );
-                    _messages[placeholderIndex] = updatedMessage;
-                  });
+                  final updatedMessage = ChatMessage(
+                    message: displayText,
+                    isUserMessage: false,
+                    timestamp: timestamp,
+                    profileId: _currentProfileId,
+                    conversationId: conversationId,
+                  );
+                  _messages[placeholderIndex] = updatedMessage;
+                  _publishStreamingMessage(updatedMessage);
 
                   lastRenderedText = displayText;
                   lastUiUpdateAt = now;
@@ -903,10 +929,10 @@ class _AiChatScreenState extends State<AiChatScreen>
                   final shouldAutoScroll =
                       lastAutoScrollAt == null ||
                       now.difference(lastAutoScrollAt!) >= autoScrollInterval;
-                  if (shouldAutoScroll && shouldFollowStream) {
+                  if (shouldAutoScroll && _followStreamingResponse) {
                     lastAutoScrollAt = now;
                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                      _scrollToBottom(animated: false);
+                      _scrollToBottom(animated: true);
                     });
                   }
                 }
@@ -943,11 +969,11 @@ class _AiChatScreenState extends State<AiChatScreen>
               );
             });
             setState(() {
-              _streamingMessageIndex = null;
               _streamingMessageAdded = false;
               _activeStreamingMessageTimestamp = null;
               _isSending = false;
             });
+            _publishStreamingMessage(null);
             return null;
         }
       }
@@ -964,13 +990,13 @@ class _AiChatScreenState extends State<AiChatScreen>
                     m.conversationId == conversationId ||
                     m.conversationId == null),
           );
-          _streamingMessageIndex = null;
           _streamingMessageAdded = false;
           _activeStreamingMessageTimestamp = null;
           if (shouldClearSending) {
             _isSending = false;
           }
         });
+        _publishStreamingMessage(null);
         return null;
       }
 
@@ -989,16 +1015,15 @@ class _AiChatScreenState extends State<AiChatScreen>
       if (finalPlaceholderIndex != -1 &&
           cleanedText.trim().isNotEmpty &&
           cleanedText != lastRenderedText) {
-        setState(() {
-          final finalUpdatedMessage = ChatMessage(
-            message: cleanedText,
-            isUserMessage: false,
-            timestamp: timestamp,
-            profileId: _currentProfileId,
-            conversationId: conversationId,
-          );
-          _messages[finalPlaceholderIndex] = finalUpdatedMessage;
-        });
+        final finalUpdatedMessage = ChatMessage(
+          message: cleanedText,
+          isUserMessage: false,
+          timestamp: timestamp,
+          profileId: _currentProfileId,
+          conversationId: conversationId,
+        );
+        _messages[finalPlaceholderIndex] = finalUpdatedMessage;
+        _publishStreamingMessage(finalUpdatedMessage);
       }
 
       // Keep the temporary streamed row visible while the final message is
@@ -1029,11 +1054,11 @@ class _AiChatScreenState extends State<AiChatScreen>
         );
       });
       setState(() {
-        _streamingMessageIndex = null;
         _streamingMessageAdded = false;
         _activeStreamingMessageTimestamp = null;
         _isSending = false;
       });
+      _publishStreamingMessage(null);
       return null;
     }
   }
@@ -1790,7 +1815,6 @@ class _AiChatScreenState extends State<AiChatScreen>
                       existing.timestamp == streamTimestamp,
                 );
               }
-              _streamingMessageIndex = null;
               _streamingMessageAdded = false;
               _activeStreamingMessageTimestamp = null;
               _isSending = false;
@@ -1945,7 +1969,6 @@ class _AiChatScreenState extends State<AiChatScreen>
             // Add all messages to state with their database IDs
             _messages.addAll(completedMessages);
             _pruneStreamingGhostAssistantRows(conversationId: conversationId);
-            _streamingMessageIndex = null;
             _streamingMessageAdded = false;
             _activeStreamingMessageTimestamp = null;
 
@@ -1962,6 +1985,7 @@ class _AiChatScreenState extends State<AiChatScreen>
             _currentRequestId = null;
           });
         });
+        _publishStreamingMessage(null);
 
         // Clean up messages to remove any potential duplicates
         _cleanupMessagesList();
@@ -2831,297 +2855,400 @@ class _AiChatScreenState extends State<AiChatScreen>
                       children: [
                         // Chat messages list
                         Expanded(
-                          child: _isLoading
-                              ? const Center(child: CircularProgressIndicator())
-                              : Stack(
-                                  children: [
-                                    // Use the same useful starter surface for a
-                                    // brand-new chat and an empty saved chat.
-                                    displayMessages.isEmpty
-                                        ? _buildWelcomeScreen()
-                                        : ListView.builder(
-                                            controller: _scrollController,
-                                            keyboardDismissBehavior:
-                                                ScrollViewKeyboardDismissBehavior
-                                                    .onDrag,
-                                            padding: EdgeInsets.fromLTRB(
-                                              16,
-                                              20,
-                                              16,
-                                              20,
-                                            ),
-                                            itemCount: displayMessages.length,
-                                            // Keep the newest message anchored
-                                            // above the composer while iOS
-                                            // animates the keyboard viewport.
-                                            reverse: true,
-                                            physics:
-                                                const AlwaysScrollableScrollPhysics(), // Make sure scrolling is always enabled
-                                            itemBuilder: (context, index) {
-                                              final messageIndex =
-                                                  displayMessages.length -
-                                                  1 -
-                                                  index;
-                                              final message =
-                                                  displayMessages[messageIndex];
-                                              final messageKey =
-                                                  message.id ??
-                                                  Object.hash(
-                                                    message.timestamp,
-                                                    message.isUserMessage,
-                                                    message.conversationId,
-                                                  );
+                          child: AnimatedSwitcher(
+                            duration: motionDuration(
+                              context,
+                              HowAIMotion.standard,
+                            ),
+                            switchInCurve: HowAIMotion.enterCurve,
+                            switchOutCurve: HowAIMotion.exitCurve,
+                            child: _isLoading
+                                ? const Center(
+                                    key: ValueKey<String>(
+                                      'chat_messages_loading',
+                                    ),
+                                    child: CircularProgressIndicator(),
+                                  )
+                                : Stack(
+                                    key: const ValueKey<String>(
+                                      'chat_messages_content',
+                                    ),
+                                    children: [
+                                      // Use the same useful starter surface for a
+                                      // brand-new chat and an empty saved chat.
+                                      displayMessages.isEmpty
+                                          ? _buildWelcomeScreen()
+                                          : ValueListenableBuilder<
+                                              ChatMessage?
+                                            >(
+                                              valueListenable:
+                                                  _streamingMessage,
+                                              builder: (context, liveStreamingMessage, _) => ListView.builder(
+                                                controller: _scrollController,
+                                                keyboardDismissBehavior:
+                                                    ScrollViewKeyboardDismissBehavior
+                                                        .onDrag,
+                                                padding: EdgeInsets.fromLTRB(
+                                                  16,
+                                                  20,
+                                                  16,
+                                                  20,
+                                                ),
+                                                itemCount:
+                                                    displayMessages.length,
+                                                // Keep the newest message anchored
+                                                // above the composer while iOS
+                                                // animates the keyboard viewport.
+                                                reverse: true,
+                                                physics:
+                                                    const AlwaysScrollableScrollPhysics(), // Make sure scrolling is always enabled
+                                                itemBuilder: (context, index) {
+                                                  final messageIndex =
+                                                      displayMessages.length -
+                                                      1 -
+                                                      index;
+                                                  final storedMessage =
+                                                      displayMessages[messageIndex];
+                                                  final message =
+                                                      liveStreamingMessage !=
+                                                              null &&
+                                                          storedMessage
+                                                                  .timestamp ==
+                                                              liveStreamingMessage
+                                                                  .timestamp
+                                                      ? liveStreamingMessage
+                                                      : storedMessage;
+                                                  final messageKey =
+                                                      message.id ??
+                                                      Object.hash(
+                                                        message.timestamp,
+                                                        message.isUserMessage,
+                                                        message.conversationId,
+                                                      );
 
-                                              final isStreamingRow =
-                                                  _streamingMessageAdded &&
-                                                  _activeStreamingMessageTimestamp !=
-                                                      null &&
-                                                  !message.isUserMessage &&
-                                                  message.id == null &&
-                                                  message.timestamp ==
-                                                      _activeStreamingMessageTimestamp;
+                                                  final isStreamingRow =
+                                                      _streamingMessageAdded &&
+                                                      _activeStreamingMessageTimestamp !=
+                                                          null &&
+                                                      !message.isUserMessage &&
+                                                      message.id == null &&
+                                                      message.timestamp ==
+                                                          _activeStreamingMessageTimestamp;
 
-                                              // Check if this is a places widget message (has locationResults but no message text)
-                                              if (message.locationResults !=
-                                                      null &&
-                                                  message
-                                                      .locationResults!
-                                                      .isNotEmpty &&
-                                                  message.message.isEmpty) {
-                                                // Render places widget at full width as a card with consistent styling
-                                                return Container(
-                                                  margin:
-                                                      const EdgeInsets.symmetric(
-                                                        vertical: 8,
-                                                        horizontal: 0,
+                                                  // Check if this is a places widget message (has locationResults but no message text)
+                                                  if (message.locationResults !=
+                                                          null &&
+                                                      message
+                                                          .locationResults!
+                                                          .isNotEmpty &&
+                                                      message.message.isEmpty) {
+                                                    // Render places widget at full width as a card with consistent styling
+                                                    return Container(
+                                                      margin:
+                                                          const EdgeInsets.symmetric(
+                                                            vertical: 8,
+                                                            horizontal: 0,
+                                                          ),
+                                                      child: PlaceResultWidget(
+                                                        places: message
+                                                            .locationResults!,
+                                                        searchQuery:
+                                                            _extractSearchQueryFromPreviousMessage(
+                                                              message,
+                                                            ),
                                                       ),
-                                                  child: PlaceResultWidget(
-                                                    places: message
-                                                        .locationResults!,
-                                                    searchQuery:
-                                                        _extractSearchQueryFromPreviousMessage(
-                                                          message,
-                                                        ),
-                                                  ),
-                                                );
-                                              }
-
-                                              // Regular message rendering
-                                              return ChatMessageWidget(
-                                                key: ValueKey('${messageKey}'),
-                                                message: message,
-                                                messageKey: messageKey,
-                                                forcePlainText: isStreamingRow,
-                                                isStreaming: isStreamingRow,
-                                                selectionMode: _selectionMode,
-                                                selectedMessages:
-                                                    _selectedMessages,
-                                                onToggleSelection: (int key) {
-                                                  setState(() {
-                                                    if (_selectedMessages
-                                                        .contains(key)) {
-                                                      _selectedMessages.remove(
-                                                        key,
-                                                      );
-                                                    } else {
-                                                      _selectedMessages.add(
-                                                        key,
-                                                      );
-                                                    }
-                                                  });
-                                                },
-                                                onTranslate:
-                                                    (ChatMessage msg) =>
-                                                        _translateMessage(
-                                                          context,
-                                                          msg.message,
-                                                          message: msg,
-                                                        ),
-                                                onQuickTranslate:
-                                                    (
-                                                      ChatMessage msg,
-                                                      String targetLanguageCode,
-                                                      String targetLanguageName,
-                                                    ) => _performTranslation(
-                                                      context,
-                                                      msg.message,
-                                                      targetLanguageCode,
-                                                      targetLanguageName,
-                                                      message: msg,
-                                                    ),
-                                                onSelectTranslationLanguage:
-                                                    (ChatMessage msg) =>
-                                                        _showTranslationLanguageSelector(
-                                                          context,
-                                                          msg.message,
-                                                          message: msg,
-                                                        ),
-                                                translationPreferenceVersion:
-                                                    _translationPreferenceVersion,
-                                                onDelete: _deleteMessage,
-                                                onShare: null,
-                                                translatedMessages:
-                                                    _translatedMessages,
-                                                isPlayingAudio:
-                                                    _currentPlayingMessageId ==
-                                                        message.id &&
-                                                    (_currentPlaybackUsesDeviceTTS
-                                                        ? _isDeviceTTSPlaying
-                                                        : _isPlayingAudio),
-                                                isPlayingDeviceTts:
-                                                    _currentPlayingMessageId ==
-                                                        message.id &&
-                                                    _currentPlaybackUsesDeviceTTS,
-                                                onPlayAudio: _playAudio,
-                                                onSpeakWithHighlight:
-                                                    message.isUserMessage
-                                                    ? null
-                                                    : _speakMessage,
-                                                onQuickSaveToKnowledgeHub:
-                                                    _quickSaveMessageToKnowledgeHub,
-                                                onSaveToKnowledgeHub:
-                                                    _saveMessageToKnowledgeHub,
-                                                onReviewRequested: () async {
-                                                  // Add thank you message when user leaves review
-                                                  final thankYouMessage =
-                                                      ChatIntegrationHelper.createThankYouMessage(
-                                                        profileId:
-                                                            _currentProfileId,
-                                                        conversationId:
-                                                            Provider.of<
-                                                                  ConversationProvider
-                                                                >(
-                                                                  context,
-                                                                  listen: false,
-                                                                )
-                                                                .selectedConversation
-                                                                ?.id,
-                                                      );
-
-                                                  // Save to database
-                                                  final messageId =
-                                                      await _databaseService
-                                                          .insertChatMessage(
-                                                            thankYouMessage,
-                                                          );
-                                                  final completeThankYou =
-                                                      ChatMessage(
-                                                        id: messageId,
-                                                        message: thankYouMessage
-                                                            .message,
-                                                        isUserMessage:
-                                                            thankYouMessage
-                                                                .isUserMessage,
-                                                        timestamp:
-                                                            thankYouMessage
-                                                                .timestamp,
-                                                        profileId:
-                                                            thankYouMessage
-                                                                .profileId,
-                                                        conversationId:
-                                                            thankYouMessage
-                                                                .conversationId,
-                                                        messageType:
-                                                            thankYouMessage
-                                                                .messageType,
-                                                      );
-
-                                                  setState(() {
-                                                    _messages.add(
-                                                      completeThankYou,
                                                     );
-                                                  });
+                                                  }
 
-                                                  // Scroll to bottom to show thank you message
-                                                  WidgetsBinding.instance
-                                                      .addPostFrameCallback((
-                                                        _,
-                                                      ) {
-                                                        _scrollToBottom(
-                                                          animated: true,
+                                                  // Regular message rendering
+                                                  return ChatMessageWidget(
+                                                    key: ValueKey(
+                                                      '${messageKey}',
+                                                    ),
+                                                    message: message,
+                                                    messageKey: messageKey,
+                                                    forcePlainText:
+                                                        isStreamingRow,
+                                                    isStreaming: isStreamingRow,
+                                                    selectionMode:
+                                                        _selectionMode,
+                                                    selectedMessages:
+                                                        _selectedMessages,
+                                                    onToggleSelection:
+                                                        (int key) {
+                                                          setState(() {
+                                                            if (_selectedMessages
+                                                                .contains(
+                                                                  key,
+                                                                )) {
+                                                              _selectedMessages
+                                                                  .remove(key);
+                                                            } else {
+                                                              _selectedMessages
+                                                                  .add(key);
+                                                            }
+                                                          });
+                                                        },
+                                                    onTranslate:
+                                                        (ChatMessage msg) =>
+                                                            _translateMessage(
+                                                              context,
+                                                              msg.message,
+                                                              message: msg,
+                                                            ),
+                                                    onQuickTranslate:
+                                                        (
+                                                          ChatMessage msg,
+                                                          String
+                                                          targetLanguageCode,
+                                                          String
+                                                          targetLanguageName,
+                                                        ) => _performTranslation(
+                                                          context,
+                                                          msg.message,
+                                                          targetLanguageCode,
+                                                          targetLanguageName,
+                                                          message: msg,
+                                                        ),
+                                                    onSelectTranslationLanguage:
+                                                        (ChatMessage msg) =>
+                                                            _showTranslationLanguageSelector(
+                                                              context,
+                                                              msg.message,
+                                                              message: msg,
+                                                            ),
+                                                    translationPreferenceVersion:
+                                                        _translationPreferenceVersion,
+                                                    onDelete: _deleteMessage,
+                                                    onShare: null,
+                                                    translatedMessages:
+                                                        _translatedMessages,
+                                                    isPlayingAudio:
+                                                        _currentPlayingMessageId ==
+                                                            message.id &&
+                                                        (_currentPlaybackUsesDeviceTTS
+                                                            ? _isDeviceTTSPlaying
+                                                            : _isPlayingAudio),
+                                                    isPlayingDeviceTts:
+                                                        _currentPlayingMessageId ==
+                                                            message.id &&
+                                                        _currentPlaybackUsesDeviceTTS,
+                                                    onPlayAudio: _playAudio,
+                                                    onSpeakWithHighlight:
+                                                        message.isUserMessage
+                                                        ? null
+                                                        : _speakMessage,
+                                                    onQuickSaveToKnowledgeHub:
+                                                        _quickSaveMessageToKnowledgeHub,
+                                                    onSaveToKnowledgeHub:
+                                                        _saveMessageToKnowledgeHub,
+                                                    onReviewRequested: () async {
+                                                      // Add thank you message when user leaves review
+                                                      final thankYouMessage =
+                                                          ChatIntegrationHelper.createThankYouMessage(
+                                                            profileId:
+                                                                _currentProfileId,
+                                                            conversationId:
+                                                                Provider.of<
+                                                                      ConversationProvider
+                                                                    >(
+                                                                      context,
+                                                                      listen:
+                                                                          false,
+                                                                    )
+                                                                    .selectedConversation
+                                                                    ?.id,
+                                                          );
+
+                                                      // Save to database
+                                                      final messageId =
+                                                          await _databaseService
+                                                              .insertChatMessage(
+                                                                thankYouMessage,
+                                                              );
+                                                      final completeThankYou =
+                                                          ChatMessage(
+                                                            id: messageId,
+                                                            message:
+                                                                thankYouMessage
+                                                                    .message,
+                                                            isUserMessage:
+                                                                thankYouMessage
+                                                                    .isUserMessage,
+                                                            timestamp:
+                                                                thankYouMessage
+                                                                    .timestamp,
+                                                            profileId:
+                                                                thankYouMessage
+                                                                    .profileId,
+                                                            conversationId:
+                                                                thankYouMessage
+                                                                    .conversationId,
+                                                            messageType:
+                                                                thankYouMessage
+                                                                    .messageType,
+                                                          );
+
+                                                      setState(() {
+                                                        _messages.add(
+                                                          completeThankYou,
                                                         );
                                                       });
+
+                                                      // Scroll to bottom to show thank you message
+                                                      WidgetsBinding.instance
+                                                          .addPostFrameCallback(
+                                                            (_) {
+                                                              _scrollToBottom(
+                                                                animated: true,
+                                                              );
+                                                            },
+                                                          );
+                                                    },
+                                                  );
                                                 },
-                                              );
-                                            },
-                                          ),
-                                    if (_isLoadingMore)
-                                      Positioned(
-                                        top: 8,
-                                        left: 0,
-                                        right: 0,
-                                        child: Center(
-                                          child: Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: Colors.black
-                                                      .withOpacity(0.05),
-                                                  blurRadius: 4,
-                                                ),
-                                              ],
+                                              ),
                                             ),
-                                            child: const SizedBox(
-                                              width: 24,
-                                              height: 24,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                valueColor:
-                                                    AlwaysStoppedAnimation<
-                                                      Color
-                                                    >(Color(0xFF8E6CFF)),
+                                      if (_isLoadingMore)
+                                        Positioned(
+                                          top: 8,
+                                          left: 0,
+                                          right: 0,
+                                          child: Center(
+                                            child: Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.05),
+                                                    blurRadius: 4,
+                                                  ),
+                                                ],
+                                              ),
+                                              child: const SizedBox(
+                                                width: 24,
+                                                height: 24,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(Color(0xFF8E6CFF)),
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
-                                      ),
-                                  ],
-                                ),
+                                      if (displayMessages.isNotEmpty)
+                                        ValueListenableBuilder<bool>(
+                                          valueListenable: _showScrollToLatest,
+                                          builder: (context, show, _) {
+                                            final duration = motionDuration(
+                                              context,
+                                              HowAIMotion.quick,
+                                            );
+                                            return PositionedDirectional(
+                                              end: 16,
+                                              bottom: 14,
+                                              child: IgnorePointer(
+                                                ignoring: !show,
+                                                child: AnimatedOpacity(
+                                                  opacity: show ? 1 : 0,
+                                                  duration: duration,
+                                                  curve: HowAIMotion.enterCurve,
+                                                  child: AnimatedScale(
+                                                    scale: show ? 1 : 0.92,
+                                                    duration: duration,
+                                                    curve:
+                                                        HowAIMotion.enterCurve,
+                                                    child: IconButton.filledTonal(
+                                                      key: const ValueKey<String>(
+                                                        'scroll_to_latest_message',
+                                                      ),
+                                                      tooltip:
+                                                          'Scroll to latest message',
+                                                      onPressed: () {
+                                                        _followStreamingResponse =
+                                                            true;
+                                                        _scrollToBottom(
+                                                          animated: true,
+                                                        );
+                                                      },
+                                                      icon: const Icon(
+                                                        Icons
+                                                            .keyboard_arrow_down_rounded,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                          ),
                         ),
 
                         // Loading indicator for AI typing
-                        if (_isSending && !_streamingMessageAdded)
-                          Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Consumer<SettingsProvider>(
-                              builder: (context, settings, child) {
-                                return Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Color(0xFF8E6CFF),
-                                            ),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    ValueListenableBuilder<String>(
-                                      valueListenable: _aiLoadingMessage,
-                                      builder: (context, message, child) =>
-                                          Text(
-                                            message,
-                                            style: TextStyle(
-                                              color: const Color(0xFF8E6CFF),
-                                              fontStyle: FontStyle.italic,
-                                              fontSize: settings
-                                                  .getScaledFontSize(14),
+                        HowAIAnimatedPresence(
+                          duration: motionDuration(context, HowAIMotion.quick),
+                          child: _isSending && !_streamingMessageAdded
+                              ? Container(
+                                  key: const ValueKey<String>(
+                                    'chat_typing_indicator',
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 8,
+                                  ),
+                                  child: Consumer<SettingsProvider>(
+                                    builder: (context, settings, child) {
+                                      return Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Color(0xFF8E6CFF),
+                                                  ),
                                             ),
                                           ),
-                                    ),
-                                  ],
-                                );
-                              },
-                            ),
-                          ),
+                                          const SizedBox(width: 10),
+                                          ValueListenableBuilder<String>(
+                                            valueListenable: _aiLoadingMessage,
+                                            builder:
+                                                (
+                                                  context,
+                                                  message,
+                                                  child,
+                                                ) => Text(
+                                                  message,
+                                                  style: TextStyle(
+                                                    color: const Color(
+                                                      0xFF8E6CFF,
+                                                    ),
+                                                    fontStyle: FontStyle.italic,
+                                                    fontSize: settings
+                                                        .getScaledFontSize(14),
+                                                  ),
+                                                ),
+                                          ),
+                                        ],
+                                      );
+                                    },
+                                  ),
+                                )
+                              : null,
+                        ),
 
                         // Horizontal action cards removed - features accessible via + button menu
                         if (_pendingActionProposal != null)

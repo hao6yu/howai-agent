@@ -9,6 +9,7 @@ void main() {
   Future<GlobalKey<SlidingDrawerShellState>> pumpShell(
     WidgetTester tester, {
     TextDirection textDirection = TextDirection.ltr,
+    Widget? drawer,
   }) async {
     final shellKey = GlobalKey<SlidingDrawerShellState>();
 
@@ -18,11 +19,13 @@ void main() {
           textDirection: textDirection,
           child: SlidingDrawerShell(
             key: shellKey,
-            drawer: const ColoredBox(
-              key: ValueKey<String>('drawer_panel'),
-              color: Colors.white,
-              child: Text('Conversations'),
-            ),
+            drawer:
+                drawer ??
+                const ColoredBox(
+                  key: ValueKey<String>('drawer_panel'),
+                  color: Colors.white,
+                  child: Text('Conversations'),
+                ),
             child: const ColoredBox(
               key: ValueKey<String>('chat_panel'),
               color: Colors.blue,
@@ -104,6 +107,72 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(shellKey.currentState?.isOpen, isFalse);
+  });
+
+  testWidgets('drawer controls work while the opening spring is in flight', (
+    tester,
+  ) async {
+    var tapCount = 0;
+    final shellKey = await pumpShell(
+      tester,
+      drawer: Material(
+        color: Colors.white,
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: 48,
+            height: 48,
+            child: IconButton(
+              key: const ValueKey<String>('drawer_action'),
+              onPressed: () => tapCount += 1,
+              icon: const Icon(Icons.settings),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    shellKey.currentState?.open();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(shellKey.currentState!.progress, greaterThan(0));
+    expect(shellKey.currentState!.progress, lessThan(1));
+
+    await tester.tap(find.byKey(const ValueKey<String>('drawer_action')));
+    await tester.pumpAndSettle();
+
+    expect(tapCount, 1);
+    expect(shellKey.currentState?.isOpen, isTrue);
+  });
+
+  testWidgets('drawer can scroll while the opening spring is in flight', (
+    tester,
+  ) async {
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    final shellKey = await pumpShell(
+      tester,
+      drawer: Material(
+        color: Colors.white,
+        child: ListView.builder(
+          controller: scrollController,
+          itemCount: 40,
+          itemBuilder: (context, index) =>
+              SizedBox(height: 48, child: Text('Conversation $index')),
+        ),
+      ),
+    );
+
+    shellKey.currentState?.open();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(shellKey.currentState!.progress, lessThan(1));
+
+    await tester.dragFrom(const Offset(24, 300), const Offset(0, -180));
+    await tester.pumpAndSettle();
+
+    expect(scrollController.offset, greaterThan(0));
+    expect(shellKey.currentState?.isOpen, isTrue);
   });
 
   testWidgets('chat panel follows a closing swipe while the drawer is open', (

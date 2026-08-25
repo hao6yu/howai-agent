@@ -4,16 +4,21 @@ import '../services/database_service.dart';
 
 class ConversationProvider with ChangeNotifier {
   List<Conversation> _conversations = [];
+  List<Conversation> _activeConversations = const [];
+  List<Conversation> _archivedConversations = const [];
   Conversation? _selectedConversation;
 
-  List<Conversation> get conversations =>
-      _conversations.where((conversation) => !conversation.isArchived).toList();
-  List<Conversation> get archivedConversations =>
-      _conversations.where((conversation) => conversation.isArchived).toList();
+  List<Conversation> get conversations => _activeConversations;
+  List<Conversation> get archivedConversations => _archivedConversations;
   List<Conversation> get allConversations => List.unmodifiable(_conversations);
   Conversation? get selectedConversation => _selectedConversation;
 
   Future<void> loadConversations({int? profileId}) async {
+    await _reloadConversations(profileId: profileId);
+    notifyListeners();
+  }
+
+  Future<void> _reloadConversations({int? profileId}) async {
     // print('ConversationProvider.loadConversations called with profileId: $profileId');
     final db = DatabaseService();
     final convMaps = await db.getConversations(
@@ -21,6 +26,12 @@ class ConversationProvider with ChangeNotifier {
       includeArchived: true,
     );
     _conversations = convMaps.map((m) => Conversation.fromMap(m)).toList();
+    _activeConversations = List.unmodifiable(
+      _conversations.where((conversation) => !conversation.isArchived),
+    );
+    _archivedConversations = List.unmodifiable(
+      _conversations.where((conversation) => conversation.isArchived),
+    );
     // print('ConversationProvider.loadConversations loaded ${_conversations.length} conversations');
 
     // No longer auto-selecting the first conversation by default
@@ -37,8 +48,6 @@ class ConversationProvider with ChangeNotifier {
     } else {
       // print('ConversationProvider: No conversation selected');
     }
-
-    notifyListeners();
   }
 
   // Helper method to ensure conversations are loaded for a profile
@@ -80,7 +89,7 @@ class ConversationProvider with ChangeNotifier {
     );
     final id = await db.insertConversation(conv.toMap());
     // print('ConversationProvider created conversation with id: $id');
-    await loadConversations(profileId: profileId);
+    await _reloadConversations(profileId: profileId);
     _selectedConversation = _conversations.firstWhere((c) => c.id == id);
     // print('ConversationProvider selected new conversation: ${_selectedConversation?.title}, id: ${_selectedConversation?.id}');
     notifyListeners();
@@ -92,7 +101,7 @@ class ConversationProvider with ChangeNotifier {
     conversation.updatedAt = DateTime.now();
     await db.updateConversation(conversation.toMap());
     await db.syncService.updateConversation(conversation);
-    await loadConversations(profileId: conversation.profileId);
+    await _reloadConversations(profileId: conversation.profileId);
     notifyListeners();
   }
 
@@ -121,7 +130,7 @@ class ConversationProvider with ChangeNotifier {
     target.updatedAt = DateTime.now();
     await db.updateConversation(target.toMap());
     await db.syncService.updateConversation(target);
-    await loadConversations(profileId: profileId);
+    await _reloadConversations(profileId: profileId);
 
     final selected = _selectedConversation;
     if (selected != null && selected.id == conversationId) {
@@ -142,7 +151,8 @@ class ConversationProvider with ChangeNotifier {
     if (_selectedConversation?.id == conversation.id) {
       _selectedConversation = null;
     }
-    await loadConversations(profileId: conversation.profileId);
+    await _reloadConversations(profileId: conversation.profileId);
+    notifyListeners();
   }
 
   Future<void> restoreConversation(Conversation conversation) async {
@@ -151,7 +161,8 @@ class ConversationProvider with ChangeNotifier {
     conversation.updatedAt = DateTime.now();
     await db.updateConversation(conversation.toMap());
     await db.syncService.updateConversation(conversation);
-    await loadConversations(profileId: conversation.profileId);
+    await _reloadConversations(profileId: conversation.profileId);
+    notifyListeners();
   }
 
   Future<bool> deleteConversation(Conversation conversation) async {
@@ -162,7 +173,8 @@ class ConversationProvider with ChangeNotifier {
     if (_selectedConversation?.id == conversation.id) {
       _selectedConversation = null;
     }
-    await loadConversations(profileId: conversation.profileId);
+    await _reloadConversations(profileId: conversation.profileId);
+    notifyListeners();
     return true;
   }
 

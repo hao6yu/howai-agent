@@ -85,7 +85,13 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
       target,
       velocity.clamp(-4.0, 4.0),
     );
-    await _controller.animateWith(simulation);
+    try {
+      await _controller.animateWith(simulation).orCancel;
+    } on TickerCanceled {
+      // A new animation or a confirmed horizontal drag took ownership of the
+      // controller. The interrupted caller must still be allowed to finish.
+      return;
+    }
     if (mounted) _controller.value = target;
   }
 
@@ -145,7 +151,6 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
                           distanceFromLeadingEdge <= widget.edgeWidth);
                   if (!canStart) return;
 
-                  _controller.stop();
                   _trackedPointer = event.pointer;
                   _dragStart = event.localPosition;
                   _dragStartValue = currentProgress;
@@ -172,6 +177,10 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
                       _resetDrag();
                       return;
                     }
+                    // Do not interrupt an in-flight spring for taps or
+                    // vertical scrolling. Take ownership only after this is
+                    // confirmed as a horizontal drawer gesture.
+                    _controller.stop();
                     _horizontalDragAccepted = true;
                     if (_dragStartValue == 0) widget.onOpening?.call();
                     // Discard the gesture-recognition slop so accepting the
@@ -217,21 +226,24 @@ class SlidingDrawerShellState extends State<SlidingDrawerShell>
                       top: 0,
                       bottom: 0,
                       width: drawerExtent,
-                      child: IgnorePointer(
-                        ignoring: currentProgress < 1,
-                        child: Transform.translate(
-                          offset: Offset(
-                            -direction *
-                                drawerExtent *
-                                0.06 *
-                                (1 - currentProgress),
-                            0,
-                          ),
-                          child: RepaintBoundary(
-                            key: const ValueKey<String>(
-                              'sliding_drawer_repaint_boundary',
+                      child: ExcludeSemantics(
+                        excluding: currentProgress == 0,
+                        child: IgnorePointer(
+                          ignoring: currentProgress == 0,
+                          child: Transform.translate(
+                            offset: Offset(
+                              -direction *
+                                  drawerExtent *
+                                  0.06 *
+                                  (1 - currentProgress),
+                              0,
                             ),
-                            child: widget.drawer,
+                            child: RepaintBoundary(
+                              key: const ValueKey<String>(
+                                'sliding_drawer_repaint_boundary',
+                              ),
+                              child: widget.drawer,
+                            ),
                           ),
                         ),
                       ),

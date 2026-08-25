@@ -39,6 +39,10 @@ val localProperties = Properties()
 if (localPropertiesFile.exists()) {
     localProperties.load(FileInputStream(localPropertiesFile))
 }
+val googleMapsApiKey = sequenceOf(
+    localProperties.getProperty("GOOGLE_MAPS_API_KEY"),
+    System.getenv("GOOGLE_MAPS_API_KEY"),
+).firstOrNull { !it.isNullOrBlank() }.orEmpty()
 
 android {
     namespace = "com.hyu.haogpt"
@@ -77,7 +81,7 @@ android {
         versionName = flutter.versionName
         
         // Google Maps API key from local.properties
-        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = localProperties.getProperty("GOOGLE_MAPS_API_KEY", "")
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey
     }
 
     buildTypes {

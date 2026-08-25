@@ -18,15 +18,13 @@ import 'new_conversation_button.dart';
 
 enum _ConversationAction { pin, rename, archive, restore, delete }
 
+typedef _ConversationGroup = ({String title, List<Conversation> conversations});
+
 class ConversationDrawer extends StatefulWidget {
   final int? profileId;
   final Future<void> Function()? onClose;
 
-  const ConversationDrawer({
-    super.key,
-    this.profileId,
-    this.onClose,
-  });
+  const ConversationDrawer({super.key, this.profileId, this.onClose});
 
   @override
   State<ConversationDrawer> createState() => _ConversationDrawerState();
@@ -38,6 +36,9 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
   String _searchQuery = '';
   Set<int> _messageMatchIds = <int>{};
   int _searchGeneration = 0;
+  Timer? _searchDebounce;
+  bool _isSearchingMessages = false;
+  bool _archivedExpanded = false;
 
   @override
   void initState() {
@@ -49,6 +50,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -84,10 +86,12 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                 ? allArchivedConversations
                 : allArchivedConversations.where(_matchesSearch).toList();
 
-            final pinned =
-                filteredConversations.where((c) => c.isPinned).toList();
-            final others =
-                filteredConversations.where((c) => !c.isPinned).toList();
+            final pinned = filteredConversations
+                .where((c) => c.isPinned)
+                .toList();
+            final others = filteredConversations
+                .where((c) => !c.isPinned)
+                .toList();
 
             return Column(
               children: [
@@ -97,7 +101,9 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                 // Search bar and New Chat button
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 6.0),
+                    horizontal: 16.0,
+                    vertical: 6.0,
+                  ),
                   child: Row(
                     children: [
                       // Search bar
@@ -110,29 +116,74 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                           ),
                           child: TextField(
                             key: const ValueKey<String>(
-                                'conversation_search_field'),
+                              'conversation_search_field',
+                            ),
                             controller: _searchController,
                             style: TextStyle(
-                              color: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.color ??
+                              color:
+                                  Theme.of(
+                                    context,
+                                  ).textTheme.bodyMedium?.color ??
                                   Colors.black87,
                             ),
                             decoration: InputDecoration(
-                              hintText: AppLocalizations.of(context)!
-                                  .searchConversations,
+                              hintText: AppLocalizations.of(
+                                context,
+                              )!.searchConversations,
                               hintStyle: TextStyle(color: colors.textTertiary),
-                              prefixIcon: Icon(Icons.search,
-                                  size: 21, color: colors.textSecondary),
+                              prefixIcon: Icon(
+                                Icons.search,
+                                size: 21,
+                                color: colors.textSecondary,
+                              ),
                               prefixIconConstraints: const BoxConstraints(
                                 minWidth: 44,
                                 minHeight: 44,
                               ),
                               filled: false,
                               border: InputBorder.none,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 12),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 12,
+                              ),
+                              suffixIcon: AnimatedSwitcher(
+                                duration: motionDuration(
+                                  context,
+                                  HowAIMotion.quick,
+                                ),
+                                child: _isSearchingMessages
+                                    ? const Padding(
+                                        key: ValueKey<String>(
+                                          'conversation_search_progress',
+                                        ),
+                                        padding: EdgeInsets.all(14),
+                                        child: SizedBox.square(
+                                          dimension: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      )
+                                    : _searchQuery.isNotEmpty
+                                    ? IconButton(
+                                        key: const ValueKey<String>(
+                                          'conversation_search_clear',
+                                        ),
+                                        tooltip: 'Clear search',
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          _onSearchChanged('');
+                                        },
+                                        icon: const Icon(
+                                          Icons.close_rounded,
+                                          size: 19,
+                                        ),
+                                      )
+                                    : const SizedBox.shrink(
+                                        key: ValueKey<String>(
+                                          'conversation_search_idle',
+                                        ),
+                                      ),
+                              ),
                             ),
                             onChanged: _onSearchChanged,
                           ),
@@ -153,75 +204,18 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
 
                 // Scrollable conversations section
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Column(
-                      children: [
-                        // Pinned conversations section
-                        if (pinned.isNotEmpty) ...[
-                          _sectionHeader(
-                              AppLocalizations.of(context)!.pinnedSection),
-                          ...pinned.map(
-                              (c) => _conversationTile(context, provider, c)),
-                          Divider(
-                            height: 24,
-                            color: colors.divider,
-                            indent: 16,
-                            endIndent: 16,
-                          ),
-                        ],
-
-                        // Main conversations section, grouped by recency.
-                        if (filteredConversations.isEmpty &&
-                            filteredArchivedConversations.isEmpty &&
-                            _searchQuery.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              AppLocalizations.of(context)!.noConversationsYet,
-                              style: TextStyle(color: Colors.grey.shade600),
-                              textAlign: TextAlign.center,
-                            ),
-                          )
-                        else if (filteredConversations.isEmpty &&
-                            filteredArchivedConversations.isEmpty &&
-                            _searchQuery.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Text(
-                              AppLocalizations.of(context)!
-                                  .noConversationsMatching(_searchQuery),
-                              style: TextStyle(color: Colors.grey.shade600),
-                              textAlign: TextAlign.center,
-                            ),
-                          )
-                        else if (others.isNotEmpty)
-                          ..._buildRecencySections(context, provider, others),
-
-                        if (filteredArchivedConversations.isNotEmpty) ...[
-                          const Divider(
-                            height: 24,
-                            indent: 16,
-                            endIndent: 16,
-                          ),
-                          ExpansionTile(
-                            leading: const Icon(Icons.archive_outlined),
-                            title: Text(
-                              'Archived (${filteredArchivedConversations.length})',
-                            ),
-                            children: filteredArchivedConversations
-                                .map(
-                                  (conversation) => _conversationTile(
-                                    context,
-                                    provider,
-                                    conversation,
-                                    isArchived: true,
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ],
-                      ],
+                  child: CustomScrollView(
+                    key: const PageStorageKey<String>(
+                      'conversation_drawer_scroll',
+                    ),
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    slivers: _buildConversationSlivers(
+                      context,
+                      provider,
+                      pinned: pinned,
+                      conversations: others,
+                      archived: filteredArchivedConversations,
                     ),
                   ),
                 ),
@@ -237,16 +231,38 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
     );
   }
 
-  Future<void> _onSearchChanged(String value) async {
+  void _onSearchChanged(String value) {
     final generation = ++_searchGeneration;
-    setState(() => _searchQuery = value);
+    _searchDebounce?.cancel();
+    final trimmed = value.trim();
+    setState(() {
+      _searchQuery = value;
+      _messageMatchIds = <int>{};
+      _isSearchingMessages = trimmed.isNotEmpty;
+    });
 
-    final matches = await _databaseService.searchConversationMessageIds(
-      value,
-      profileId: widget.profileId,
-    );
+    if (trimmed.isEmpty) return;
+
+    _searchDebounce = Timer(const Duration(milliseconds: 280), () {
+      unawaited(_searchMessages(trimmed, generation));
+    });
+  }
+
+  Future<void> _searchMessages(String query, int generation) async {
+    Set<int> matches = <int>{};
+    try {
+      matches = await _databaseService.searchConversationMessageIds(
+        query,
+        profileId: widget.profileId,
+      );
+    } catch (_) {
+      // Title filtering still works if local message search is unavailable.
+    }
     if (!mounted || generation != _searchGeneration) return;
-    setState(() => _messageMatchIds = matches);
+    setState(() {
+      _messageMatchIds = matches;
+      _isSearchingMessages = false;
+    });
   }
 
   bool _matchesSearch(Conversation conversation) {
@@ -269,19 +285,14 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
       return;
     }
 
-    final closeDuration = motionDuration(
-      context,
-      HowAIMotion.drawerTransition,
-    );
+    final closeDuration = motionDuration(context, HowAIMotion.drawerTransition);
     Navigator.pop(context);
     if (closeDuration > Duration.zero) {
       await Future<void>.delayed(closeDuration);
     }
   }
 
-  List<Widget> _buildRecencySections(
-    BuildContext context,
-    ConversationProvider provider,
+  List<_ConversationGroup> _groupConversationsByRecency(
     List<Conversation> conversations,
   ) {
     final now = DateTime.now();
@@ -312,27 +323,115 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
       }
     }
 
-    final visibleGroups = groups.entries
+    return groups.entries
         .where((entry) => entry.value.isNotEmpty)
+        .map((entry) => (title: entry.key, conversations: entry.value))
         .toList(growable: false);
+  }
+
+  List<Widget> _buildConversationSlivers(
+    BuildContext context,
+    ConversationProvider provider, {
+    required List<Conversation> pinned,
+    required List<Conversation> conversations,
+    required List<Conversation> archived,
+  }) {
+    final colors = context.howaiColors;
+    final groups = _groupConversationsByRecency(conversations);
+    final hasResults =
+        pinned.isNotEmpty || conversations.isNotEmpty || archived.isNotEmpty;
+    final showArchivedRows =
+        _archivedExpanded || _searchQuery.trim().isNotEmpty;
+
     return [
-      for (var index = 0; index < visibleGroups.length; index++) ...[
-        _sectionHeader(
-          visibleGroups[index].key,
-          separatedFromPrevious: index > 0,
+      if (pinned.isNotEmpty) ...[
+        SliverToBoxAdapter(
+          child: _sectionHeader(AppLocalizations.of(context)!.pinnedSection),
         ),
-        ...visibleGroups[index].value.map(
-              (conversation) =>
-                  _conversationTile(context, provider, conversation),
-            ),
+        _conversationSliver(context, provider, pinned),
+        SliverToBoxAdapter(
+          child: Divider(
+            height: 24,
+            color: colors.divider,
+            indent: 16,
+            endIndent: 16,
+          ),
+        ),
       ],
+      if (!hasResults)
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: Align(
+            alignment: const Alignment(0, -0.72),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                _searchQuery.isEmpty
+                    ? AppLocalizations.of(context)!.noConversationsYet
+                    : AppLocalizations.of(
+                        context,
+                      )!.noConversationsMatching(_searchQuery),
+                style: TextStyle(color: colors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        )
+      else
+        for (var index = 0; index < groups.length; index++) ...[
+          SliverToBoxAdapter(
+            child: _sectionHeader(
+              groups[index].title,
+              separatedFromPrevious: index > 0,
+            ),
+          ),
+          _conversationSliver(context, provider, groups[index].conversations),
+        ],
+      if (archived.isNotEmpty) ...[
+        const SliverToBoxAdapter(
+          child: Divider(height: 24, indent: 16, endIndent: 16),
+        ),
+        SliverToBoxAdapter(
+          child: ListTile(
+            key: const ValueKey<String>('archived_conversations_toggle'),
+            leading: const Icon(Icons.archive_outlined),
+            title: Text('Archived (${archived.length})'),
+            trailing: AnimatedRotation(
+              turns: showArchivedRows ? 0.5 : 0,
+              duration: motionDuration(context, HowAIMotion.quick),
+              curve: HowAIMotion.enterCurve,
+              child: const Icon(Icons.expand_more_rounded),
+            ),
+            onTap: () {
+              setState(() => _archivedExpanded = !_archivedExpanded);
+            },
+          ),
+        ),
+        if (showArchivedRows)
+          _conversationSliver(context, provider, archived, isArchived: true),
+      ],
+      const SliverToBoxAdapter(child: SizedBox(height: 16)),
     ];
   }
 
-  Widget _sectionHeader(
-    String title, {
-    bool separatedFromPrevious = false,
+  Widget _conversationSliver(
+    BuildContext context,
+    ConversationProvider provider,
+    List<Conversation> conversations, {
+    bool isArchived = false,
   }) {
+    return SliverList.builder(
+      itemCount: conversations.length,
+      itemBuilder: (context, index) => _conversationTile(
+        context,
+        provider,
+        conversations[index],
+        isArchived: isArchived,
+      ),
+    );
+  }
+
+  Widget _sectionHeader(String title, {bool separatedFromPrevious = false}) {
     final colors = context.howaiColors;
     return Align(
       alignment: Alignment.centerLeft,
@@ -373,69 +472,71 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
     final colors = context.howaiColors;
     final isSelected = provider.selectedConversation?.id == c.id;
 
-    return ListTile(
-      dense: true,
-      contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16.0,
-          vertical: 0.0), // Remove vertical padding completely
-      minVerticalPadding: 0.0, // Force minimum vertical padding to 0
-      visualDensity: VisualDensity.compact, // Make the tile even more compact
-      title: Text(
-        _getDisplayTitle(c),
-        style: TextStyle(
-          color:
-              Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black87,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+    return AnimatedContainer(
+      key: ValueKey<String>('conversation_tile_${c.id ?? c.clientId}'),
+      duration: motionDuration(context, HowAIMotion.quick),
+      curve: HowAIMotion.enterCurve,
+      color: isSelected ? colors.surface : Colors.transparent,
+      child: ListTile(
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+        minVerticalPadding: 0,
+        visualDensity: VisualDensity.compact,
+        title: Text(
+          _getDisplayTitle(c),
+          style: TextStyle(
+            color:
+                Theme.of(context).textTheme.bodyMedium?.color ?? Colors.black87,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+          overflow: TextOverflow.ellipsis,
         ),
-        overflow: TextOverflow.ellipsis,
-      ),
-      selected: isSelected,
-      selectedTileColor: colors.surface,
-      trailing: PopupMenuButton<_ConversationAction>(
-        tooltip: 'Conversation actions',
-        onSelected: (action) =>
-            _handleConversationAction(context, provider, c, action),
-        itemBuilder: (context) => [
-          if (!isArchived)
+        selected: isSelected,
+        selectedTileColor: Colors.transparent,
+        trailing: PopupMenuButton<_ConversationAction>(
+          tooltip: 'Conversation actions',
+          onSelected: (action) =>
+              _handleConversationAction(context, provider, c, action),
+          itemBuilder: (context) => [
+            if (!isArchived)
+              PopupMenuItem(
+                value: _ConversationAction.pin,
+                child: _menuAction(
+                  c.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
+                  c.isPinned ? 'Unpin' : 'Pin',
+                ),
+              ),
+            if (!isArchived)
+              PopupMenuItem(
+                value: _ConversationAction.rename,
+                child: _menuAction(Icons.edit_outlined, 'Rename'),
+              ),
             PopupMenuItem(
-              value: _ConversationAction.pin,
+              value: isArchived
+                  ? _ConversationAction.restore
+                  : _ConversationAction.archive,
               child: _menuAction(
-                c.isPinned ? Icons.push_pin_outlined : Icons.push_pin,
-                c.isPinned ? 'Unpin' : 'Pin',
+                isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
+                isArchived ? 'Restore' : 'Archive',
               ),
             ),
-          if (!isArchived)
             PopupMenuItem(
-              value: _ConversationAction.rename,
-              child: _menuAction(Icons.edit_outlined, 'Rename'),
+              value: _ConversationAction.delete,
+              child: _menuAction(
+                Icons.delete_outline,
+                AppLocalizations.of(context)!.delete,
+                color: Theme.of(context).colorScheme.error,
+              ),
             ),
-          PopupMenuItem(
-            value: isArchived
-                ? _ConversationAction.restore
-                : _ConversationAction.archive,
-            child: _menuAction(
-              isArchived ? Icons.unarchive_outlined : Icons.archive_outlined,
-              isArchived ? 'Restore' : 'Archive',
-            ),
-          ),
-          PopupMenuItem(
-            value: _ConversationAction.delete,
-            child: _menuAction(
-              Icons.delete_outline,
-              AppLocalizations.of(context)!.delete,
-              color: Theme.of(context).colorScheme.error,
-            ),
-          ),
-        ],
-      ),
-      onTap: isArchived
-          ? null
-          : () {
-              provider.selectConversation(c);
-              unawaited(_closeDrawer());
-            },
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
+          ],
+        ),
+        onTap: isArchived
+            ? null
+            : () {
+                provider.selectConversation(c);
+                unawaited(_closeDrawer());
+              },
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     );
   }
@@ -518,7 +619,8 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
     ConversationProvider provider,
     Conversation conversation,
   ) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed =
+        await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: const Text('Delete conversation?'),
@@ -582,7 +684,8 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
             createdAt: null,
           ),
         );
-        final displayName = selectedProfile.name.trim().isEmpty ||
+        final displayName =
+            selectedProfile.name.trim().isEmpty ||
                 selectedProfile.name == 'User'
             ? AppLocalizations.of(context)!.defaultUserName
             : selectedProfile.name;
@@ -590,20 +693,17 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
         final settingsRow = Container(
           margin: const EdgeInsets.only(top: 4, bottom: 8),
           decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: colors.divider,
-                width: 1,
-              ),
-            ),
+            border: Border(top: BorderSide(color: colors.divider, width: 1)),
           ),
           child: InkWell(
             onTap: () {
               unawaited(_closeThenNavigate('/settings'));
             },
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 16.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 16.0,
+              ),
               child: Row(
                 children: [
                   // User Avatar
@@ -613,9 +713,7 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: colors.surface,
-                      border: Border.all(
-                        color: colors.divider,
-                      ),
+                      border: Border.all(color: colors.divider),
                     ),
                     child: FutureBuilder<String?>(
                       future: _resolveAvatarPath(selectedProfile.avatarPath),
@@ -762,8 +860,10 @@ class _ConversationDrawerState extends State<ConversationDrawer> {
                 ),
                 if (showProBadge) ...[
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 5,
+                      vertical: 1,
+                    ),
                     decoration: BoxDecoration(
                       color: colors.accentSoft,
                       borderRadius: BorderRadius.circular(5),

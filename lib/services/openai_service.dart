@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_pptx/flutter_pptx.dart';
 import 'package:path_provider/path_provider.dart';
+import '../core/agent/chat_history_policy.dart';
 import '../core/agent/chat_response_policy.dart';
 import '../core/agent/hosted_tool_policy.dart';
 import '../core/agent/reminder_action_intent.dart';
@@ -865,6 +866,7 @@ $bounded
   Future<Map<String, dynamic>?> generateChatResponse({
     required String message,
     required List<Map<String, dynamic>> history,
+    String? conversationCacheKey,
     String? userName,
     Map<String, dynamic>? userCharacteristics,
     List<XFile>? attachments,
@@ -1024,11 +1026,15 @@ AUTOMATIONS:
     // Debug: // print personality summary
     //// _log('[AIPersonality] ${AIPersonalityService.getPersonalitySummary()}');
 
-    // Build input array: conversation history + current message (NO system prompt - that goes in 'instructions')
+    // Build input array: bounded prior history + current message. The helper
+    // also removes the current message defensively if an older caller already
+    // appended it to history.
     final List<Map<String, dynamic>> inputMessages = [];
-
-    // Add conversation history
-    for (var entry in history) {
+    final preparedHistory = prepareChatHistory(
+      history: history,
+      currentMessage: message,
+    );
+    for (var entry in preparedHistory) {
       inputMessages.add(entry);
     }
 
@@ -1262,6 +1268,8 @@ Note: Could not extract text content from this file. Please describe what you'd 
           'howai_web_search': forceWebSearch ? 'force' : 'auto',
           'howai_reasoning_effort': reasoningEffortOverride ?? 'auto',
           'howai_action': forcedReminderMetadata,
+          if (conversationCacheKey?.trim().isNotEmpty ?? false)
+            'howai_conversation_key': conversationCacheKey!.trim(),
         },
         'instructions':
             systemPrompt, // System prompt as separate field (not in input)
@@ -2323,6 +2331,7 @@ Note: Could not extract text content from this file. Please describe what you'd 
   Stream<StreamEvent> generateChatResponseStream({
     required String message,
     required List<Map<String, dynamic>> history,
+    String? conversationCacheKey,
     String? userName,
     Map<String, dynamic>? userCharacteristics,
     List<XFile>? attachments,
@@ -2465,9 +2474,13 @@ AUTOMATIONS:
           "\n\n<research_mode>Investigate thoroughly, reconcile material conflicts, and provide the conclusion with evidence, uncertainty, and a practical next step. Do not expose hidden reasoning or raw tool output.</research_mode>";
     }
 
-    // Build input messages
+    // Build a bounded, cache-friendly view of prior messages.
     final List<Map<String, dynamic>> inputMessages = [];
-    for (var entry in history) {
+    final preparedHistory = prepareChatHistory(
+      history: history,
+      currentMessage: message,
+    );
+    for (var entry in preparedHistory) {
       inputMessages.add(entry);
     }
 
@@ -2581,6 +2594,8 @@ AUTOMATIONS:
         'howai_web_search': forceWebSearch ? 'force' : 'auto',
         'howai_reasoning_effort': reasoningEffortOverride ?? 'auto',
         'howai_action': forcedReminderMetadata,
+        if (conversationCacheKey?.trim().isNotEmpty ?? false)
+          'howai_conversation_key': conversationCacheKey!.trim(),
       },
       'instructions': systemPrompt,
       'input': inputMessages,

@@ -71,6 +71,10 @@ import {
 import { applyHowAiPromptPolicy } from "../_shared/howai-prompt-policy.ts";
 import { isStoredEntitlementActive } from "../_shared/entitlement-status.ts";
 import { paidCostBudgetLimits } from "../_shared/paid-cost-budget.ts";
+import {
+  conversationCacheIdentity,
+  serverPromptCacheKey,
+} from "../_shared/openai-prompt-cache.ts";
 
 const OPENAI_BASE_URL = "https://api.openai.com";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -574,6 +578,14 @@ async function sanitizeResponsesBody(
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   const json = JSON.parse(decoder.decode(bodyBytes)) as Record<string, unknown>;
+  const clientConversationIdentity = conversationCacheIdentity(json.metadata);
+
+  // Prompt-cache controls are always server-owned. This applies even while a
+  // model-policy rollout is disabled so an older client cannot choose a raw
+  // cache scope or retention mode.
+  delete json.prompt_cache_key;
+  delete json.prompt_cache_retention;
+  delete json.prompt_cache_options;
 
   const requestedModel = typeof json.model === "string" ? json.model : null;
   let resolvedModel = requestedModel
@@ -889,11 +901,20 @@ async function sanitizeResponsesBody(
   );
   applyWebSearchOutputGuidance(json, appliedProfile.webSearchMode);
   json.model = resolvedModel;
+  if (intent === "primary_chat" && isGpt56Model(resolvedModel)) {
+    const cacheKey = await serverPromptCacheKey({
+      userId: user.id,
+      model: resolvedModel,
+      conversationIdentity: clientConversationIdentity,
+    });
+    if (cacheKey) json.prompt_cache_key = cacheKey;
+  }
   delete json.user;
   json.safety_identifier = user.id;
   if (json.metadata && typeof json.metadata === "object") {
     delete (json.metadata as Record<string, unknown>).howai_user_id;
     delete (json.metadata as Record<string, unknown>).howai_action;
+    delete (json.metadata as Record<string, unknown>).howai_conversation_key;
     delete (json.metadata as Record<string, unknown>)
       .howai_disable_personalization;
   }
@@ -1360,6 +1381,7 @@ async function reconcilePolicyUsage(
       p_tool_calls: {
         web_search: webSearchCalls,
         image_generation: imageGenerationCalls,
+        cache_write_tokens: usage?.cacheWriteInputTokens ?? 0,
       },
       p_actual_cost_microusd: aiUsageCostMicrousd,
       p_failure_code: failureCode,
@@ -1471,11 +1493,9 @@ function estimateActualCostMicrousd(
   const estimated = estimateModelCostMicrousd(model, {
     inputTokens,
     cachedInputTokens,
-    // Until OpenAI returns this breakdown, treat uncached GPT-5.6 input as a
-    // cache write so free-plan budgets remain conservative.
-    cacheWriteInputTokens: isGpt56Model(model)
-      ? Math.max(0, inputTokens - cachedInputTokens)
-      : 0,
+    // GPT-5.6 reports cache writes separately. Missing means no reported
+    // write, rather than billing every uncached token at the write premium.
+    cacheWriteInputTokens: usage.cacheWriteInputTokens ?? 0,
     outputTokens: usage.outputTokens,
   });
   return estimated == null ? fallback : estimated +

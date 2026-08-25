@@ -3,6 +3,7 @@ export type ResponsesUsage = Readonly<{
   model: string | null;
   inputTokens: number | null;
   cachedInputTokens: number | null;
+  cacheWriteInputTokens: number | null;
   outputTokens: number | null;
   totalTokens: number | null;
   hasFinalOutput: boolean;
@@ -122,6 +123,7 @@ export function extractResponsesUsage(
     model: typeof response.model === "string" ? response.model : null,
     inputTokens,
     cachedInputTokens: numberOrNull(inputDetails.cached_tokens),
+    cacheWriteInputTokens: numberOrNull(inputDetails.cache_write_tokens),
     outputTokens,
     totalTokens,
     hasFinalOutput: responseHasFinalOutput(response.output),

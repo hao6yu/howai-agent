@@ -156,6 +156,7 @@ test("the server strips client cost-control overrides from policy requests", () 
     max_output_tokens: 100_000,
     prompt_cache_key: "client-controlled",
     prompt_cache_retention: "24h",
+    prompt_cache_options: { mode: "explicit", ttl: "30m" },
   };
 
   applyModelPolicyControls(payload, {
@@ -173,6 +174,7 @@ test("the server strips client cost-control overrides from policy requests", () 
   assert.equal(payload.max_output_tokens, 1_200);
   assert.equal("prompt_cache_key" in payload, false);
   assert.equal("prompt_cache_retention" in payload, false);
+  assert.equal("prompt_cache_options" in payload, false);
 });
 
 test("the output ceiling preserves a smaller client API request", () => {
@@ -213,14 +215,14 @@ test("cost estimation accounts for cached input pricing", () => {
       cachedInputTokens: 400,
       outputTokens: 100,
     }),
-    1_240,
+    248,
   );
   assert.equal(
     estimateModelCostMicrousd("gpt-5.6-sol-2026-07-01", {
       inputTokens: 100,
       outputTokens: 10,
     }),
-    800,
+    600,
   );
   assert.equal(
     estimateModelCostMicrousd("unknown", {
@@ -239,13 +241,13 @@ test("GPT-5.6 cost estimation includes cache writes and long-context pricing", (
       cacheWriteInputTokens: 200,
       outputTokens: 0,
     }),
-    780,
+    156,
   );
   assert.equal(
     estimateModelCostMicrousd("gpt-5.6-sol", {
       inputTokens: 272_001,
       outputTokens: 10,
     }),
-    2_720_460,
+    2_176_308,
   );
 });

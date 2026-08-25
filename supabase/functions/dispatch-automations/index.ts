@@ -274,6 +274,7 @@ async function reconcileUsage(input: {
     ? estimateModelCostMicrousd(OPENAI_MODEL, {
       inputTokens: usage.inputTokens,
       cachedInputTokens: usage.cachedInputTokens ?? 0,
+      cacheWriteInputTokens: usage.cacheWriteInputTokens ?? 0,
       outputTokens: usage.outputTokens,
     })
     : null;
@@ -287,7 +288,10 @@ async function reconcileUsage(input: {
     p_input_tokens: usage?.inputTokens ?? null,
     p_cached_input_tokens: usage?.cachedInputTokens ?? null,
     p_output_tokens: usage?.outputTokens ?? null,
-    p_tool_calls: { web_search: usage?.webSearchCalls ?? 0 },
+    p_tool_calls: {
+      web_search: usage?.webSearchCalls ?? 0,
+      cache_write_tokens: usage?.cacheWriteInputTokens ?? 0,
+    },
     p_actual_cost_microusd: actualCost,
     p_failure_code: input.failureCode,
   });

@@ -733,6 +733,7 @@ class _AiChatScreenState extends State<AiChatScreen>
     required String requestId,
     required String aiName,
     required String appLocale,
+    String? conversationCacheKey,
     String? memoryContext,
     String? reasoningEffortOverride,
     bool allowReminderActions = false,
@@ -812,6 +813,7 @@ class _AiChatScreenState extends State<AiChatScreen>
         pendingReminderDraft: pendingReminderDraft,
         pendingAutomationDraft: pendingAutomationDraft,
         existingReminders: existingReminders,
+        conversationCacheKey: conversationCacheKey,
       );
 
       await for (final event in stream) {
@@ -1165,6 +1167,20 @@ class _AiChatScreenState extends State<AiChatScreen>
       isNewConversation = false;
     }
 
+    String? conversationCacheKey =
+        conversationProvider.selectedConversation?.clientId;
+    if ((conversationCacheKey == null || conversationCacheKey.isEmpty) &&
+        conversationId != null) {
+      try {
+        conversationCacheKey = await _databaseService
+            .ensureConversationClientId(conversationId);
+      } catch (error) {
+        debugPrint(
+          '[ChatScreen] Unable to prepare conversation cache identity: $error',
+        );
+      }
+    }
+
     // Get the current settings and profile from the providers
     final settings = Provider.of<SettingsProvider>(context, listen: false);
     final profileProvider = Provider.of<ProfileProvider>(
@@ -1215,25 +1231,15 @@ class _AiChatScreenState extends State<AiChatScreen>
               .where((msg) => msg.conversationId == conversationId)
               .toList(); // For existing conversations, only use messages from this conversation
 
-    // Add the current user message to the filtered list if not already included
-    // This ensures the current message is part of the history even before it's added to _messages
-    if (!conversationMessages.any(
-      (msg) =>
-          msg.isUserMessage &&
-          msg.message == userMessage.message &&
-          msg.timestamp == userMessage.timestamp,
-    )) {
-      conversationMessages.add(userMessage);
-    }
-
     // Sort messages by timestamp to ensure proper order
     conversationMessages.sort(
       (a, b) =>
           DateTime.parse(a.timestamp).compareTo(DateTime.parse(b.timestamp)),
     );
 
+    // OpenAIService applies the token-aware context policy. Keep the complete
+    // local transcript here so its fixed cache blocks do not slide every turn.
     final history = conversationMessages
-        .skip(math.max(0, conversationMessages.length - 50))
         .map(
           (msg) => {
             'role': msg.isUserMessage ? 'user' : 'assistant',
@@ -1475,6 +1481,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           pendingReminderDraft: pendingReminderProposal?.arguments,
           pendingAutomationDraft: pendingAutomationProposal?.arguments,
           existingReminders: existingReminders,
+          conversationCacheKey: conversationCacheKey,
           onStreamError: (event) => streamingFailure = event,
         );
       } else {
@@ -1503,6 +1510,7 @@ class _AiChatScreenState extends State<AiChatScreen>
           reminderTimezone: reminderTimezone,
           pendingReminderDraft: pendingReminderProposal?.arguments,
           pendingAutomationDraft: pendingAutomationProposal?.arguments,
+          conversationCacheKey: conversationCacheKey,
           existingReminders: existingReminders,
         );
       }

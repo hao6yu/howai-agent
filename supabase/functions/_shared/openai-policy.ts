@@ -76,6 +76,7 @@ export function applyModelPolicyControls(
   payload.background = false;
   delete payload.prompt_cache_key;
   delete payload.prompt_cache_retention;
+  delete payload.prompt_cache_options;
 
   applyOutputTokenCeiling(payload, decision.maxOutputTokens);
 }
@@ -112,16 +113,16 @@ export function legacyModelAllowlist(
 const MODEL_PRICE_USD_PER_MILLION = Object.freeze({
   "gpt-5-nano": Object.freeze({ input: 0.05, cachedInput: 0.005, output: 0.4 }),
   "gpt-5.6-luna": Object.freeze({
-    input: 1,
-    cachedInput: 0.1,
-    cacheWriteInput: 1.25,
-    output: 6,
+    input: 0.2,
+    cachedInput: 0.02,
+    cacheWriteInput: 0.25,
+    output: 1.2,
   }),
   "gpt-5.6-sol": Object.freeze({
-    input: 5,
-    cachedInput: 0.5,
-    cacheWriteInput: 6.25,
-    output: 30,
+    input: 4,
+    cachedInput: 0.4,
+    cacheWriteInput: 5,
+    output: 20,
   }),
 });
 

@@ -12,7 +12,7 @@ test("collects usage when an SSE event is split across byte chunks", () => {
   const collector = new ResponsesSseUsageCollector();
   const event = [
     "event: response.completed",
-    'data: {"type":"response.completed","response":{"id":"resp_1","model":"gpt-5.6-sol-2026-07-01","output":[{"type":"message","content":[{"type":"output_text","text":"Done"}]}],"usage":{"input_tokens":120,"input_tokens_details":{"cached_tokens":20},"output_tokens":30,"total_tokens":150}}}',
+    'data: {"type":"response.completed","response":{"id":"resp_1","model":"gpt-5.6-sol-2026-07-01","output":[{"type":"message","content":[{"type":"output_text","text":"Done"}]}],"usage":{"input_tokens":120,"input_tokens_details":{"cached_tokens":20,"cache_write_tokens":10},"output_tokens":30,"total_tokens":150}}}',
     "",
     "",
   ].join("\r\n");
@@ -24,6 +24,7 @@ test("collects usage when an SSE event is split across byte chunks", () => {
     model: "gpt-5.6-sol-2026-07-01",
     inputTokens: 120,
     cachedInputTokens: 20,
+    cacheWriteInputTokens: 10,
     outputTokens: 30,
     totalTokens: 150,
     hasFinalOutput: true,
@@ -73,6 +74,7 @@ test("parses a final event even when no blank-line terminator arrives", () => {
     model: null,
     inputTokens: 2,
     cachedInputTokens: null,
+    cacheWriteInputTokens: null,
     outputTokens: 3,
     totalTokens: 5,
     hasFinalOutput: false,
@@ -94,6 +96,7 @@ test("captures billed usage from a failed terminal response", () => {
     model: null,
     inputTokens: 7,
     cachedInputTokens: null,
+    cacheWriteInputTokens: null,
     outputTokens: 1,
     totalTokens: 8,
     hasFinalOutput: false,

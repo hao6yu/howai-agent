@@ -70,6 +70,7 @@ import {
 } from "../_shared/howai-memory-context.ts";
 import { applyHowAiPromptPolicy } from "../_shared/howai-prompt-policy.ts";
 import { isStoredEntitlementActive } from "../_shared/entitlement-status.ts";
+import { paidCostBudgetLimits } from "../_shared/paid-cost-budget.ts";
 
 const OPENAI_BASE_URL = "https://api.openai.com";
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY") ?? "";
@@ -148,30 +149,6 @@ const FREE_USER_DAILY_BUDGET_MICROUSD = envNumber(
 const FREE_USER_MONTHLY_BUDGET_MICROUSD = envNumber(
   "OPENAI_PROXY_FREE_USER_MONTHLY_BUDGET_MICROUSD",
   1_000_000,
-);
-const PAID_SOL_DAILY_BUDGET_MICROUSD = envNumber(
-  "OPENAI_PROXY_PAID_SOL_DAILY_BUDGET_MICROUSD",
-  2_000_000,
-);
-const PAID_SOL_MONTHLY_BUDGET_MICROUSD = envNumber(
-  "OPENAI_PROXY_PAID_SOL_MONTHLY_BUDGET_MICROUSD",
-  30_000_000,
-);
-const PAID_USER_DAILY_BUDGET_MICROUSD = envNumber(
-  "OPENAI_PROXY_PAID_USER_DAILY_BUDGET_MICROUSD",
-  3_000_000,
-);
-const PAID_USER_MONTHLY_BUDGET_MICROUSD = envNumber(
-  "OPENAI_PROXY_PAID_USER_MONTHLY_BUDGET_MICROUSD",
-  40_000_000,
-);
-const RESEARCH_DAILY_BUDGET_MICROUSD = envNumber(
-  "OPENAI_PROXY_RESEARCH_DAILY_BUDGET_MICROUSD",
-  1_000_000,
-);
-const RESEARCH_MONTHLY_BUDGET_MICROUSD = envNumber(
-  "OPENAI_PROXY_RESEARCH_MONTHLY_BUDGET_MICROUSD",
-  10_000_000,
 );
 const RESEARCH_FALLBACK_RESERVATION_MICROUSD = envNumber(
   "OPENAI_PROXY_RESEARCH_RESERVATION_MICROUSD",
@@ -1154,16 +1131,24 @@ function reservationLimits(
   cohort: UserCohort,
   decision: ModelPolicyDecision,
 ): ReservationLimits {
+  if (cohort === "paid") {
+    return {
+      ...paidCostBudgetLimits(
+        GLOBAL_DAILY_BUDGET_MICROUSD,
+        GLOBAL_MONTHLY_BUDGET_MICROUSD,
+      ),
+      globalDailyBudgetMicrousd: GLOBAL_DAILY_BUDGET_MICROUSD,
+      globalMonthlyBudgetMicrousd: GLOBAL_MONTHLY_BUDGET_MICROUSD,
+      dailyAnswerLimit: null,
+    };
+  }
+
   const userDailyBudgetMicrousd = cohort === "anonymous"
     ? ANONYMOUS_DAILY_BUDGET_MICROUSD
-    : cohort === "free"
-    ? FREE_USER_DAILY_BUDGET_MICROUSD
-    : PAID_USER_DAILY_BUDGET_MICROUSD;
+    : FREE_USER_DAILY_BUDGET_MICROUSD;
   const userMonthlyBudgetMicrousd = cohort === "anonymous"
     ? ANONYMOUS_MONTHLY_BUDGET_MICROUSD
-    : cohort === "free"
-    ? FREE_USER_MONTHLY_BUDGET_MICROUSD
-    : PAID_USER_MONTHLY_BUDGET_MICROUSD;
+    : FREE_USER_MONTHLY_BUDGET_MICROUSD;
 
   if (cohort === "anonymous") {
     return {
@@ -1189,20 +1174,9 @@ function reservationLimits(
     };
   }
 
-  const routeDailyBudgetMicrousd = decision.role === "sol"
-    ? PAID_SOL_DAILY_BUDGET_MICROUSD
-    : decision.role === "research"
-    ? RESEARCH_DAILY_BUDGET_MICROUSD
-    : FREE_NANO_DAILY_BUDGET_MICROUSD;
-  const routeMonthlyBudgetMicrousd = decision.role === "sol"
-    ? PAID_SOL_MONTHLY_BUDGET_MICROUSD
-    : decision.role === "research"
-    ? RESEARCH_MONTHLY_BUDGET_MICROUSD
-    : FREE_NANO_MONTHLY_BUDGET_MICROUSD;
-
   return {
-    routeDailyBudgetMicrousd,
-    routeMonthlyBudgetMicrousd,
+    routeDailyBudgetMicrousd: FREE_NANO_DAILY_BUDGET_MICROUSD,
+    routeMonthlyBudgetMicrousd: FREE_NANO_MONTHLY_BUDGET_MICROUSD,
     userDailyBudgetMicrousd,
     userMonthlyBudgetMicrousd,
     globalDailyBudgetMicrousd: GLOBAL_DAILY_BUDGET_MICROUSD,

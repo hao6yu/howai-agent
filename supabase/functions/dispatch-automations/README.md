@@ -29,11 +29,12 @@ AUTOMATION_MODEL=gpt-5.6-luna
 AUTOMATION_RESERVATION_MICROUSD=100000
 AUTOMATION_DAILY_BUDGET_MICROUSD=2000000
 AUTOMATION_MONTHLY_BUDGET_MICROUSD=40000000
-OPENAI_PROXY_PAID_USER_DAILY_BUDGET_MICROUSD=3000000
-OPENAI_PROXY_PAID_USER_MONTHLY_BUDGET_MICROUSD=40000000
 OPENAI_PROXY_GLOBAL_DAILY_BUDGET_MICROUSD=10000000
 OPENAI_PROXY_GLOBAL_MONTHLY_BUDGET_MICROUSD=150000000
 ```
+
+Paid users have no separate aggregate user cost ceiling. Automation's own
+route budget remains in force, along with the shared global safety ceilings.
 
 Both verified reports and fail-closed/withheld outcomes are appended to the
 conversation and Automation history. When push delivery is enabled, only a

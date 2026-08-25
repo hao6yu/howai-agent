@@ -12,6 +12,7 @@ import {
   sendFcmMessage,
 } from "../_shared/firebase-cloud-messaging.ts";
 import { estimateModelCostMicrousd } from "../_shared/openai-policy.ts";
+import { paidCostBudgetLimits } from "../_shared/paid-cost-budget.ts";
 import type { ResponsesUsage } from "../_shared/openai-stream.ts";
 import { webSearchToolCostMicrousd } from "../_shared/openai-web-search.ts";
 
@@ -42,14 +43,6 @@ const AUTOMATION_MONTHLY_BUDGET_MICROUSD = envNumber(
   "AUTOMATION_MONTHLY_BUDGET_MICROUSD",
   40_000_000,
 );
-const PAID_USER_DAILY_BUDGET_MICROUSD = envNumber(
-  "OPENAI_PROXY_PAID_USER_DAILY_BUDGET_MICROUSD",
-  3_000_000,
-);
-const PAID_USER_MONTHLY_BUDGET_MICROUSD = envNumber(
-  "OPENAI_PROXY_PAID_USER_MONTHLY_BUDGET_MICROUSD",
-  40_000_000,
-);
 const GLOBAL_DAILY_BUDGET_MICROUSD = envNumber(
   "OPENAI_PROXY_GLOBAL_DAILY_BUDGET_MICROUSD",
   10_000_000,
@@ -57,6 +50,10 @@ const GLOBAL_DAILY_BUDGET_MICROUSD = envNumber(
 const GLOBAL_MONTHLY_BUDGET_MICROUSD = envNumber(
   "OPENAI_PROXY_GLOBAL_MONTHLY_BUDGET_MICROUSD",
   150_000_000,
+);
+const PAID_COST_BUDGET_LIMITS = paidCostBudgetLimits(
+  GLOBAL_DAILY_BUDGET_MICROUSD,
+  GLOBAL_MONTHLY_BUDGET_MICROUSD,
 );
 
 type ClaimedRun = Readonly<{
@@ -239,8 +236,10 @@ async function reserveUsage(
     p_reservation_microusd: AUTOMATION_RESERVATION_MICROUSD,
     p_route_daily_budget_microusd: AUTOMATION_DAILY_BUDGET_MICROUSD,
     p_route_monthly_budget_microusd: AUTOMATION_MONTHLY_BUDGET_MICROUSD,
-    p_user_daily_budget_microusd: PAID_USER_DAILY_BUDGET_MICROUSD,
-    p_user_monthly_budget_microusd: PAID_USER_MONTHLY_BUDGET_MICROUSD,
+    p_user_daily_budget_microusd:
+      PAID_COST_BUDGET_LIMITS.userDailyBudgetMicrousd,
+    p_user_monthly_budget_microusd:
+      PAID_COST_BUDGET_LIMITS.userMonthlyBudgetMicrousd,
     p_global_daily_budget_microusd: GLOBAL_DAILY_BUDGET_MICROUSD,
     p_global_monthly_budget_microusd: GLOBAL_MONTHLY_BUDGET_MICROUSD,
     p_daily_answer_limit: null,
